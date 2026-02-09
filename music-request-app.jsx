@@ -1,20 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Music, Download, Settings, CheckCircle, XCircle, Clock, AlertCircle, Menu, X } from 'lucide-react';
-
 const MusicRequestApp = () => {
-  const [currentPage, setCurrentPage] = useState('search');
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [settings, setSettings] = useState({
+  // Get lucide icons
+  const { Search, Music, Download, Settings, CheckCircle, XCircle, Clock, AlertCircle, Menu, X } = lucide;
+  
+  const [currentPage, setCurrentPage] = React.useState('search');
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+  const [settings, setSettings] = React.useState({
     lidarrUrl: localStorage.getItem('lidarrUrl') || '',
     lidarrApiKey: localStorage.getItem('lidarrApiKey') || ''
   });
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchType, setSearchType] = useState('release-group');
-  const [searchResults, setSearchResults] = useState([]);
-  const [searching, setSearching] = useState(false);
-  const [wantedReleases, setWantedReleases] = useState([]);
-  const [queue, setQueue] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = React.useState('');
+  const [searchType, setSearchType] = React.useState('release-group');
+  const [searchResults, setSearchResults] = React.useState([]);
+  const [searching, setSearching] = React.useState(false);
+  const [wantedReleases, setWantedReleases] = React.useState([]);
+  const [queue, setQueue] = React.useState([]);
+  const [loading, setLoading] = React.useState(false);
 
   // Save settings to localStorage
   const saveSettings = (newSettings) => {
@@ -203,7 +203,7 @@ const MusicRequestApp = () => {
   };
 
   // Auto-refresh status page
-  useEffect(() => {
+  React.useEffect(() => {
     if (currentPage === 'status') {
       fetchWantedReleases();
       fetchQueue();
@@ -422,7 +422,7 @@ const MusicRequestApp = () => {
 
   // Settings Page
   const SettingsPage = () => {
-    const [tempSettings, setTempSettings] = useState(settings);
+    const [tempSettings, setTempSettings] = React.useState(settings);
 
     return (
       <div className="p-4 md:p-6">
@@ -602,5 +602,3 @@ const MusicRequestApp = () => {
     </div>
   );
 };
-
-export default MusicRequestApp;
