@@ -24,3 +24,4 @@ yarn-error.log*
 
 # server config
 server/config.json
+.env
