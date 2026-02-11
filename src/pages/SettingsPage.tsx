@@ -1,28 +1,59 @@
 import { useState, useEffect } from "react";
-import useSettings from "../hooks/useSettings";
+import { useLidarrContext } from "../context/LidarrContext";
 
 export default function SettingsPage() {
-  const { settings, loading, saving, testing, testResult, error, save, testConnection } =
-    useSettings();
+  const { settings, isLoading, saveSettings, testConnection } =
+    useLidarrContext();
   const [url, setUrl] = useState("");
   const [apiKey, setApiKey] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{
+    success: boolean;
+    version?: string;
+    error?: string;
+  } | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (settings.lidarrUrl) setUrl(settings.lidarrUrl);
   }, [settings.lidarrUrl]);
 
-  if (loading) {
+  if (isLoading) {
     return <p className="text-gray-400">Loading settings...</p>;
   }
 
-  const handleTest = (e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleTest = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
-    testConnection({ lidarrUrl: url, lidarrApiKey: apiKey });
+    setTesting(true);
+    setTestResult(null);
+    setError(null);
+
+    try {
+      const result = await testConnection({
+        lidarrUrl: url,
+        lidarrApiKey: apiKey,
+      });
+      setTestResult(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Test failed");
+    } finally {
+      setTesting(false);
+    }
   };
 
-  const handleSave = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSave = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
-    save({ lidarrUrl: url, lidarrApiKey: apiKey });
+    setSaving(true);
+    setError(null);
+
+    try {
+      await saveSettings({ lidarrUrl: url, lidarrApiKey: apiKey });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Save failed");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (

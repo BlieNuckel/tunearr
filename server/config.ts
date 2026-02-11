@@ -1,28 +1,33 @@
-const fs = require("fs");
-const path = require("path");
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const DATA_DIR = path.join(__dirname, "data");
 const CONFIG_PATH = path.join(DATA_DIR, "config.json");
 
-const DEFAULT_CONFIG = {
+export interface Config {
+  lidarrUrl: string;
+  lidarrApiKey: string;
+}
+
+const DEFAULT_CONFIG: Config = {
   lidarrUrl: "",
   lidarrApiKey: "",
 };
 
-/** @returns {{ lidarrUrl: string, lidarrApiKey: string }} */
-function loadConfig() {
+export const loadConfig = (): Config => {
   try {
     const data = fs.readFileSync(CONFIG_PATH, "utf-8");
     return { ...DEFAULT_CONFIG, ...JSON.parse(data) };
   } catch {
     return { ...DEFAULT_CONFIG };
   }
-}
+};
 
-/** @param {{ lidarrUrl: string, lidarrApiKey: string }} config */
-function saveConfig(config) {
+export const saveConfig = (config: Config): void => {
   fs.mkdirSync(DATA_DIR, { recursive: true });
   fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
-}
-
-module.exports = { loadConfig, saveConfig };
+};

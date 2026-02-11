@@ -1,9 +1,10 @@
-const express = require("express");
-const { loadConfig, saveConfig } = require("../config");
+import express from "express";
+import type { Request, Response } from "express";
+import { loadConfig, saveConfig } from "../config.ts";
 
 const router = express.Router();
 
-router.get("/", (_req, res) => {
+router.get("/", (_req: Request, res: Response) => {
   const config = loadConfig();
   res.json({
     lidarrUrl: config.lidarrUrl,
@@ -13,7 +14,7 @@ router.get("/", (_req, res) => {
   });
 });
 
-router.put("/", (req, res) => {
+router.put("/", (req: Request, res: Response) => {
   const { lidarrUrl, lidarrApiKey } = req.body;
   if (!lidarrUrl || !lidarrApiKey) {
     return res.status(400).json({ error: "URL and API key are required" });
@@ -23,7 +24,7 @@ router.put("/", (req, res) => {
   res.json({ success: true });
 });
 
-router.post("/test", async (req, res) => {
+router.post("/test", async (req: Request, res: Response) => {
   const { lidarrUrl, lidarrApiKey } = req.body;
   if (!lidarrUrl || !lidarrApiKey) {
     return res.status(400).json({ error: "URL and API key are required" });
@@ -41,8 +42,9 @@ router.post("/test", async (req, res) => {
     const data = await response.json();
     res.json({ success: true, version: data.version });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    const error = err as Error;
+    res.status(500).json({ error: error.message });
   }
 });
 
-module.exports = router;
+export default router;

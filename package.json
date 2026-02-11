@@ -2,6 +2,7 @@
   "name": "music-requester",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "dependencies": {
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
@@ -16,14 +17,16 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "dev": "concurrently \"vite\" \"node server/index.js\"",
-    "start": "concurrently \"vite\" \"node server/index.js\"",
+    "dev": "concurrently \"vite\" \"tsx server/index.ts\"",
+    "start": "concurrently \"vite\" \"tsx server/index.ts\"",
     "start:client": "vite",
-    "start:server": "node server/index.js",
+    "start:server": "tsx server/index.ts",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "typecheck:server": "cd server && tsc --noEmit"
   },
   "devDependencies": {
+    "@types/express": "^5.0.6",
     "@types/jest": "^30.0.0",
     "@types/node": "^25.2.3",
     "@types/react": "^19.2.14",
@@ -32,6 +35,7 @@
     "autoprefixer": "^10.4.24",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.19",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vite": "^7.3.1"
   }

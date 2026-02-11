@@ -1,8 +1,12 @@
-const express = require("express");
-const path = require("path");
-const settingsRoutes = require("./routes/settings");
-const musicbrainzRoutes = require("./routes/musicbrainz");
-const lidarrRoutes = require("./routes/lidarr");
+import express from "express";
+import path from "path";
+import { fileURLToPath } from "url";
+import settingsRoutes from "./routes/settings.ts";
+import musicbrainzRoutes from "./routes/musicbrainz.ts";
+import lidarrRoutes from "./routes/lidarr.ts";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -13,7 +17,6 @@ app.use("/api/settings", settingsRoutes);
 app.use("/api/musicbrainz", musicbrainzRoutes);
 app.use("/api/lidarr", lidarrRoutes);
 
-// Serve React build in production
 if (process.env.NODE_ENV === "production") {
   app.use(express.static(path.join(__dirname, "..", "build")));
   app.get("/{*path}", (_req, res) => {

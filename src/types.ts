@@ -23,8 +23,16 @@ export interface WantedItem {
 
 export interface RecentImport {
   id: number;
-  artist: string;
-  album: string;
+  albumId: number;
+  date: string;
+  artist: {
+    artistName: string;
+    id: number;
+  };
+  album: {
+    id: number;
+    title: string;
+  };
   [key: string]: unknown;
 }
 

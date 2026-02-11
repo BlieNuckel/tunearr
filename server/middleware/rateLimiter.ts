@@ -1,7 +1,13 @@
+import type { Request, Response, NextFunction } from "express";
+
 let lastRequestTime = 0;
 
 /** Enforces 1 request per second for MusicBrainz API compliance */
-function musicbrainzRateLimiter(req, res, next) {
+const musicbrainzRateLimiter = (
+  _req: Request,
+  _res: Response,
+  next: NextFunction
+): void => {
   const now = Date.now();
   const elapsed = now - lastRequestTime;
   const minInterval = 1000;
@@ -16,6 +22,6 @@ function musicbrainzRateLimiter(req, res, next) {
     lastRequestTime = now;
     next();
   }
-}
+};
 
-module.exports = musicbrainzRateLimiter;
+export default musicbrainzRateLimiter;
