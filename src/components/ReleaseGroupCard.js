@@ -5,9 +5,8 @@ import useLidarr from "../hooks/useLidarr";
  * @param {{ releaseGroup: object }} props
  */
 export default function ReleaseGroupCard({ releaseGroup }) {
-  const artistCredit = releaseGroup["artist-credit"]?.[0];
-  const artistName = artistCredit?.artist?.name || "Unknown Artist";
-  const artistMbid = artistCredit?.artist?.id;
+  const artistName =
+    releaseGroup["artist-credit"]?.[0]?.artist?.name || "Unknown Artist";
   const albumTitle = releaseGroup.title;
   const albumMbid = releaseGroup.id;
   const year = releaseGroup["first-release-date"]?.slice(0, 4) || "";
@@ -18,7 +17,7 @@ export default function ReleaseGroupCard({ releaseGroup }) {
 
   const handleClick = () => {
     if (state === "idle" || state === "error") {
-      addToLidarr({ artistMbid, albumMbid });
+      addToLidarr({ albumMbid });
     }
   };
 
@@ -36,6 +35,7 @@ export default function ReleaseGroupCard({ releaseGroup }) {
         <h3 className="text-white font-semibold truncate">{albumTitle}</h3>
         <p className="text-gray-400 text-sm">{artistName}</p>
         {year && <p className="text-gray-500 text-xs mt-1">{year}</p>}
+        <p className="text-gray-600 text-xs mt-1 truncate">{albumMbid}</p>
       </div>
       <div className="flex items-start">
         <MonitorButton state={state} onClick={handleClick} errorMsg={errorMsg} />
