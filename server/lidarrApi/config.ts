@@ -1,4 +1,4 @@
-import { loadConfig } from "../config";
+import { config } from "../config";
 
 interface LidarrConfig {
   url: string;
@@ -6,14 +6,14 @@ interface LidarrConfig {
 }
 
 const getLidarrConfig = (): LidarrConfig => {
-  const config = loadConfig();
-  if (!config.lidarrUrl || !config.lidarrApiKey) {
+
+  if (!config.get().lidarrUrl || !config.get().lidarrApiKey) {
     throw new Error("Lidarr not configured");
   }
   return {
-    url: config.lidarrUrl,
+    url: config.get().lidarrUrl,
     headers: {
-      "X-Api-Key": config.lidarrApiKey,
+      "X-Api-Key": config.get().lidarrApiKey,
       "Content-Type": "application/json",
     },
   };

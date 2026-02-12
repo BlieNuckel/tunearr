@@ -1,15 +1,18 @@
 import type { Request, Response } from "express";
 import express from "express";
-import { loadConfig, saveConfig } from "../config";
+import { config } from "../config";
 
 const router = express.Router();
 
 router.get("/", (_req: Request, res: Response) => {
-  const config = loadConfig();
+
+  const lidarrApiKey = config.get().lidarrApiKey;
+  const lidarrUrl = config.get().lidarrUrl;
+
   res.json({
-    lidarrUrl: config.lidarrUrl,
-    lidarrApiKey: config.lidarrApiKey
-      ? "••••" + config.lidarrApiKey.slice(-4)
+    lidarrUrl,
+    lidarrApiKey: lidarrApiKey
+      ? "••••" + config.get().lidarrApiKey.slice(-4)
       : "",
   });
 });
@@ -20,7 +23,7 @@ router.put("/", (req: Request, res: Response) => {
     return res.status(400).json({ error: "URL and API key are required" });
   }
   const url = lidarrUrl.replace(/\/+$/, "");
-  saveConfig({ lidarrUrl: url, lidarrApiKey });
+  config.set({ lidarrUrl: url, lidarrApiKey });
   res.json({ success: true });
 });
 

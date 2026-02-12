@@ -1,0 +1,10 @@
+services:
+  music-requester:
+    build:
+      context: .
+    container_name: music-requester
+    ports:
+      - "3000:3001"
+    volumes:
+      - ./.config:/var/lib/music-requester/config
+    env_file: .env

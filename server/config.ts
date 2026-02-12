@@ -5,29 +5,36 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const DATA_DIR = path.join(__dirname, "data");
-const CONFIG_PATH = path.join(DATA_DIR, "config.json");
-
-export interface Config {
+interface IConfig {
   lidarrUrl: string;
   lidarrApiKey: string;
 }
 
-const DEFAULT_CONFIG: Config = {
+const DEFAULT_CONFIG: IConfig = {
   lidarrUrl: "",
   lidarrApiKey: "",
 };
 
-export const loadConfig = (): Config => {
-  try {
-    const data = fs.readFileSync(CONFIG_PATH, "utf-8");
-    return { ...DEFAULT_CONFIG, ...JSON.parse(data) };
-  } catch {
-    return { ...DEFAULT_CONFIG };
-  }
-};
+const CONFIG_DIR = process.env.APP_CONFIG_DIR || path.join(__dirname, "..", "config");
+const CONFIG_PATH = path.join(CONFIG_DIR, "config.json");
 
-export const saveConfig = (config: Config): void => {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-  fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
-};
+const config = {
+  get: () => {
+    try {
+      const data = fs.readFileSync(CONFIG_PATH, "utf-8");
+      return { ...DEFAULT_CONFIG, ...JSON.parse(data) };
+    } catch {
+      return { ...DEFAULT_CONFIG };
+    }
+  },
+  set: (config: IConfig) => {
+    if (!fs.existsSync(CONFIG_DIR)) {
+      console.log(`config directory missing. creating it in ${CONFIG_DIR}`);
+      fs.mkdirSync(CONFIG_DIR, { recursive: true });
+    }
+
+    fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
+  }
+}
+
+export { config, IConfig }
