@@ -1,6 +1,6 @@
-import express from "express";
 import type { Request, Response } from "express";
-import { loadConfig, saveConfig } from "../config.ts";
+import express from "express";
+import { loadConfig, saveConfig } from "../config";
 
 const router = express.Router();
 

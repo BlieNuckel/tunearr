@@ -1,9 +1,9 @@
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
-import settingsRoutes from "./routes/settings.ts";
-import musicbrainzRoutes from "./routes/musicbrainz.ts";
-import lidarrRoutes from "./routes/lidarr.ts";
+import lidarrRoutes from "./routes/lidarr";
+import musicbrainzRoutes from "./routes/musicbrainz";
+import settingsRoutes from "./routes/settings";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

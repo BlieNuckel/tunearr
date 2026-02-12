@@ -1,6 +1,6 @@
-import express from "express";
 import type { Request, Response } from "express";
-import rateLimiter from "../middleware/rateLimiter.ts";
+import express from "express";
+import rateLimiter from "../middleware/rateLimiter";
 
 const router = express.Router();
 
