@@ -12,7 +12,11 @@ const lidarrPut = async <T = unknown>(
     headers,
     body: JSON.stringify(body),
   });
-  return { status: response.status, data: await response.json() };
+  return {
+    status: response.status,
+    data: await response.json(),
+    ok: response.ok,
+  };
 };
 
 export { lidarrPut };

@@ -15,7 +15,8 @@ const DEFAULT_CONFIG: IConfig = {
   lidarrApiKey: "",
 };
 
-const CONFIG_DIR = process.env.APP_CONFIG_DIR || path.join(__dirname, "..", "config");
+const CONFIG_DIR =
+  process.env.APP_CONFIG_DIR || path.join(__dirname, "..", "config");
 const CONFIG_PATH = path.join(CONFIG_DIR, "config.json");
 
 const config = {
@@ -34,7 +35,7 @@ const config = {
     }
 
     fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
-  }
-}
+  },
+};
 
-export { config, IConfig }
+export { config, IConfig };;

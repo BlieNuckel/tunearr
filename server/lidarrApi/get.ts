@@ -14,7 +14,11 @@ const lidarrGet = async <T = unknown>(
   const response = await fetch(`${url}/api/v1${lidarrPath}${sep}${params}`, {
     headers,
   });
-  return { status: response.status, data: await response.json() };
+  return {
+    status: response.status,
+    data: await response.json(),
+    ok: response.ok,
+  };
 };
 
 export { lidarrGet };

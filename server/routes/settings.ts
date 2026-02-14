@@ -5,7 +5,6 @@ import { config } from "../config";
 const router = express.Router();
 
 router.get("/", (_req: Request, res: Response) => {
-
   const lidarrApiKey = config.get().lidarrApiKey;
   const lidarrUrl = config.get().lidarrUrl;
 
