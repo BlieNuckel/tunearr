@@ -2,11 +2,8 @@ import { useState, useEffect } from "react";
 import { useLidarrContext } from "../context/LidarrContext";
 
 export default function SettingsPage() {
-  const { settings, isLoading, saveSettings, testConnection } =
+  const { options, settings, isLoading, saveSettings, testConnection, loadLidarrOptionValues } =
     useLidarrContext();
-  const [qualityProfiles, setQualityProfiles] = useState<{ id: number; name: string }[]>([]);
-  const [metadataProfiles, setMetadataProfiles] = useState<{ id: number; name: string }[]>([]);
-  const [rootFolders, setRootFolders] = useState<{ id: number; path: string }[]>([]);
   const [url, setUrl] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [qualityProfileId, setQualityProfileId] = useState(1);
@@ -22,32 +19,7 @@ export default function SettingsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchLidarrOptions = async () => {
-      try {
-        const [qualityRes, metadataRes, rootRes] = await Promise.all([
-          fetch("/api/lidarr/qualityprofiles"),
-          fetch("/api/lidarr/metadataprofiles"),
-          fetch("/api/lidarr/rootfolders"),
-        ]);
-
-        if (qualityRes.ok) {
-          const data = await qualityRes.json();
-          setQualityProfiles(data);
-        }
-        if (metadataRes.ok) {
-          const data = await metadataRes.json();
-          setMetadataProfiles(data);
-        }
-        if (rootRes.ok) {
-          const data = await rootRes.json();
-          setRootFolders(data);
-        }
-      } catch (err) {
-        // Silently fail - user can still save settings manually
-      }
-    };
-
-    fetchLidarrOptions();
+    loadLidarrOptionValues();
   }, []);
 
   useEffect(() => {
@@ -79,6 +51,7 @@ export default function SettingsPage() {
         lidarrMetadataProfileId: settings.lidarrMetadataProfileId,
       });
       setTestResult(result);
+
     } catch (err) {
       setError(err instanceof Error ? err.message : "Test failed");
     } finally {
@@ -150,12 +123,12 @@ export default function SettingsPage() {
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">Lidarr Root Path</label>
             <select
-              key={rootFolders.length} // Force re-render when root folders change
+              key={options.rootFolderPaths.length} // Force re-render when root folders change
               value={rootFolderPath}
               onChange={(e) => setRootFolderPath(e.target.value)}
               className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-gray-100 placeholder-gray-500 focus:outline-none focus:border-indigo-500"
             >
-              {rootFolders.map((folder) => (
+              {options.rootFolderPaths.map((folder) => (
                 <option key={folder.id} value={folder.path}>
                   {folder.path}
                 </option>
@@ -165,12 +138,12 @@ export default function SettingsPage() {
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">Quality Profile</label>
             <select
-              key={qualityProfiles.length} // Force re-render when quality profiles change
+              key={options.qualityProfiles.length} // Force re-render when quality profiles change
               value={qualityProfileId}
               onChange={(e) => setQualityProfileId(Number(e.target.value))}
               className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-gray-100 placeholder-gray-500 focus:outline-none focus:border-indigo-500"
             >
-              {qualityProfiles.map((profile) => (
+              {options.qualityProfiles.map((profile) => (
                 <option key={profile.id} value={profile.id}>
                   {profile.name}
                 </option>
@@ -180,12 +153,12 @@ export default function SettingsPage() {
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">Metadata Profile</label>
             <select
-              key={metadataProfiles.length} // Force re-render when metadata profiles change
+              key={options.metadataProfiles.length} // Force re-render when metadata profiles change
               value={metadataProfileId}
               onChange={(e) => setMetadataProfileId(Number(e.target.value))}
               className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-gray-100 placeholder-gray-500 focus:outline-none focus:border-indigo-500"
             >
-              {metadataProfiles.map((profile) => (
+              {options.metadataProfiles.map((profile) => (
                 <option key={profile.id} value={profile.id}>
                   {profile.name}
                 </option>

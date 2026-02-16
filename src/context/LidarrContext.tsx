@@ -14,7 +14,14 @@ interface LidarrSettings {
   lidarrMetadataProfileId: number;
 }
 
+type LidarrOptions = {
+  qualityProfiles: { id: number; name: string }[];
+  metadataProfiles: { id: number; name: string }[];
+  rootFolderPaths: { id: number; path: string }[];
+};
+
 interface LidarrContextValue {
+  options: LidarrOptions;
   settings: LidarrSettings;
   isConnected: boolean;
   isLoading: boolean;
@@ -22,6 +29,7 @@ interface LidarrContextValue {
   testConnection: (
     testSettings: LidarrSettings,
   ) => Promise<{ success: boolean; version?: string; error?: string }>;
+  loadLidarrOptionValues: () => Promise<void>;
 }
 
 const LidarrContext = createContext<LidarrContextValue | undefined>(undefined);
@@ -39,6 +47,11 @@ export const LidarrContextProvider = ({
     lidarrQualityProfileId: 1,
     lidarrRootFolderPath: "",
     lidarrMetadataProfileId: 1,
+  });
+  const [options, setOptions] = useState<LidarrOptions>({
+    qualityProfiles: [],
+    metadataProfiles: [],
+    rootFolderPaths: [],
   });
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -120,12 +133,39 @@ export const LidarrContextProvider = ({
     return { success: true, version: data.version };
   };
 
+  const loadLidarrOptionValues = async () => {
+    try {
+      const [qualityRes, metadataRes, rootRes] = await Promise.all([
+        fetch("/api/lidarr/qualityprofiles"),
+        fetch("/api/lidarr/metadataprofiles"),
+        fetch("/api/lidarr/rootfolders"),
+      ]);
+
+      if (qualityRes.ok) {
+        const data = await qualityRes.json();
+        setOptions((prev) => ({ ...prev, qualityProfiles: data }));
+      }
+      if (metadataRes.ok) {
+        const data = await metadataRes.json();
+        setOptions((prev) => ({ ...prev, metadataProfiles: data }));
+      }
+      if (rootRes.ok) {
+        const data = await rootRes.json();
+        setOptions((prev) => ({ ...prev, rootFolderPaths: data }));
+      }
+    } catch (err) {
+      // Silently fail - user can still save settings manually
+    }
+  };
+
   const value: LidarrContextValue = {
+    options,
     settings,
     isConnected,
     isLoading,
     saveSettings,
     testConnection,
+    loadLidarrOptionValues
   };
 
   return (
