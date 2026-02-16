@@ -36,10 +36,13 @@ export default function SettingsPage() {
   }, [settings.lidarrUrl]);
 
   useEffect(() => {
-    setQualityProfiles(options.qualityProfiles || []);
-    setMetadataProfiles(options.metadataProfiles || []);
-    setRootFolders(options.rootFolderPaths || []);
-  }, [options]);
+    if (options.qualityProfiles.length)
+      setQualityProfiles(options.qualityProfiles || []);
+    if (options.metadataProfiles.length)
+      setMetadataProfiles(options.metadataProfiles || []);
+    if (options.rootFolderPaths.length)
+      setRootFolders(options.rootFolderPaths || []);
+  }, [options.metadataProfiles.length, options.qualityProfiles.length, options.rootFolderPaths.length]);
 
   if (isLoading) {
     return <p className="text-gray-400">Loading settings...</p>;
@@ -113,7 +116,8 @@ export default function SettingsPage() {
               type="password"
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
-              placeholder={"Enter API key"}
+              placeholder={
+                "Enter API key"}
               className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-gray-100 placeholder-gray-500 focus:outline-none focus:border-indigo-500"
             />
           </div>

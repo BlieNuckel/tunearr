@@ -38,6 +38,7 @@ interface LidarrContextProviderProps {
   children: ReactNode;
 }
 
+
 export const LidarrContextProvider = ({
   children,
 }: LidarrContextProviderProps) => {
@@ -56,82 +57,38 @@ export const LidarrContextProvider = ({
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        const res = await fetch("/api/settings");
-        if (res.ok) {
-          const data = await res.json();
-          setSettings({
-            lidarrUrl: data.lidarrUrl || "",
-            lidarrApiKey: data.lidarrApiKey || "",
-            lidarrQualityProfileId: data.lidarrQualityProfileId || 1,
-            lidarrRootFolderPath: data.lidarrRootFolderPath || "",
-            lidarrMetadataProfileId: data.lidarrMetadataProfileId || 1,
+  const loadSettings = async () => {
+    try {
+      const res = await fetch("/api/settings");
+      if (res.ok) {
+        const data = await res.json();
+        setSettings({
+          lidarrUrl: data.lidarrUrl || "",
+          lidarrApiKey: data.lidarrApiKey || "",
+          lidarrQualityProfileId: data.lidarrQualityProfileId || 1,
+          lidarrRootFolderPath: data.lidarrRootFolderPath || "",
+          lidarrMetadataProfileId: data.lidarrMetadataProfileId || 1,
+        });
+
+        if (data.lidarrUrl && data.lidarrApiKey) {
+          const testRes = await fetch("/api/settings/test", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              lidarrUrl: data.lidarrUrl,
+              lidarrApiKey: data.lidarrApiKey,
+            }),
           });
-
-          if (data.lidarrUrl && data.lidarrApiKey) {
-            const testRes = await fetch("/api/settings/test", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                lidarrUrl: data.lidarrUrl,
-                lidarrApiKey: data.lidarrApiKey,
-              }),
-            });
-            const testData = await testRes.json();
-            setIsConnected(testRes.ok && testData.success);
-          }
+          const testData = await testRes.json();
+          setIsConnected(testRes.ok && testData.success);
         }
-      } catch (error) {
-        console.error("Failed to load settings:", error);
-      } finally {
-        setIsLoading(false);
       }
-    };
-
-    loadSettings();
-  }, []);
-
-  const saveSettings = async (newSettings: LidarrSettings) => {
-    const res = await fetch("/api/settings", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newSettings),
-    });
-
-    if (!res.ok) {
-      const data = await res.json();
-      throw new Error(data.error || "Failed to save settings");
+    } catch (error) {
+      console.error("Failed to load settings:", error);
+    } finally {
+      setIsLoading(false);
     }
-
-    setSettings({
-      lidarrUrl: newSettings.lidarrUrl,
-      lidarrApiKey: "••••" + newSettings.lidarrApiKey.slice(-4),
-      lidarrQualityProfileId: newSettings.lidarrQualityProfileId,
-      lidarrRootFolderPath: newSettings.lidarrRootFolderPath,
-      lidarrMetadataProfileId: newSettings.lidarrMetadataProfileId,
-    });
-
-    const testResult = await testConnection(newSettings);
-    setIsConnected(testResult.success);
-  };
-
-  const testConnection = async (testSettings: LidarrSettings) => {
-    const res = await fetch("/api/settings/test", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(testSettings),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      return { success: false, error: data.error || "Connection failed" };
-    }
-
-    return { success: true, version: data.version };
-  };
+  }
 
   const loadLidarrOptionValues = async () => {
     try {
@@ -155,10 +112,58 @@ export const LidarrContextProvider = ({
         const data = await rootRes.json();
         opts.rootFolderPaths = data;
       }
+      setOptions(opts);
     } catch (err) {
       // Silently fail - user can still save settings manually
     }
   };
+
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const saveSettings = async (newSettings: LidarrSettings) => {
+    const res = await fetch("/api/settings", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newSettings),
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || "Failed to save settings");
+    }
+
+    setSettings({
+      lidarrUrl: newSettings.lidarrUrl,
+      lidarrApiKey: "••••" + newSettings.lidarrApiKey.slice(-4),
+      lidarrQualityProfileId: newSettings.lidarrQualityProfileId,
+      lidarrRootFolderPath: newSettings.lidarrRootFolderPath,
+      lidarrMetadataProfileId: newSettings.lidarrMetadataProfileId,
+    });
+
+    await loadLidarrOptionValues();
+    await loadSettings();
+    const testResult = await testConnection(newSettings);
+    setIsConnected(testResult.success);
+  };
+
+  const testConnection = async (testSettings: LidarrSettings) => {
+    const res = await fetch("/api/settings/test", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(testSettings),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      return { success: false, error: data.error || "Connection failed" };
+    }
+
+    return { success: true, version: data.version };
+  };
+
 
   const value: LidarrContextValue = {
     options,
