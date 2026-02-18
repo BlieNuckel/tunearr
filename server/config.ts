@@ -11,6 +11,9 @@ export type IConfig = {
   lidarrQualityProfileId: number;
   lidarrRootFolderPath: string;
   lidarrMetadataProfileId: number;
+  lastfmApiKey: string;
+  plexUrl: string;
+  plexToken: string;
 };
 
 const DEFAULT_CONFIG: IConfig = {
@@ -19,6 +22,9 @@ const DEFAULT_CONFIG: IConfig = {
   lidarrQualityProfileId: 1,
   lidarrRootFolderPath: "",
   lidarrMetadataProfileId: 1,
+  lastfmApiKey: "",
+  plexUrl: "",
+  plexToken: "",
 };
 
 const CONFIG_DIR =
@@ -40,6 +46,15 @@ const validateConfig = (config: Partial<IConfig>) => {
   }
   if (typeof config.lidarrMetadataProfileId !== "number") {
     throw new Error("lidarrMetadataProfileId must be a number");
+  }
+  if (config.lastfmApiKey !== undefined && typeof config.lastfmApiKey !== "string") {
+    throw new Error("lastfmApiKey must be a string");
+  }
+  if (config.plexUrl !== undefined && typeof config.plexUrl !== "string") {
+    throw new Error("plexUrl must be a string");
+  }
+  if (config.plexToken !== undefined && typeof config.plexToken !== "string") {
+    throw new Error("plexToken must be a string");
   }
 };
 

@@ -12,6 +12,9 @@ interface LidarrSettings {
   lidarrQualityProfileId: number;
   lidarrRootFolderPath: string;
   lidarrMetadataProfileId: number;
+  lastfmApiKey: string;
+  plexUrl: string;
+  plexToken: string;
 }
 
 type LidarrOptions = {
@@ -48,6 +51,9 @@ export const LidarrContextProvider = ({
     lidarrQualityProfileId: 1,
     lidarrRootFolderPath: "",
     lidarrMetadataProfileId: 1,
+    lastfmApiKey: "",
+    plexUrl: "",
+    plexToken: "",
   });
   const [options, setOptions] = useState<LidarrOptions>({
     qualityProfiles: [],
@@ -68,6 +74,9 @@ export const LidarrContextProvider = ({
           lidarrQualityProfileId: data.lidarrQualityProfileId || 1,
           lidarrRootFolderPath: data.lidarrRootFolderPath || "",
           lidarrMetadataProfileId: data.lidarrMetadataProfileId || 1,
+          lastfmApiKey: data.lastfmApiKey || "",
+          plexUrl: data.plexUrl || "",
+          plexToken: data.plexToken || "",
         });
 
         if (data.lidarrUrl && data.lidarrApiKey) {
@@ -140,6 +149,9 @@ export const LidarrContextProvider = ({
       lidarrQualityProfileId: newSettings.lidarrQualityProfileId,
       lidarrRootFolderPath: newSettings.lidarrRootFolderPath,
       lidarrMetadataProfileId: newSettings.lidarrMetadataProfileId,
+      lastfmApiKey: newSettings.lastfmApiKey || "",
+      plexUrl: newSettings.plexUrl || "",
+      plexToken: newSettings.plexToken || "",
     });
 
     await loadLidarrOptionValues();

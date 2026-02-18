@@ -12,6 +12,9 @@ export default function SettingsPage() {
   const [qualityProfileId, setQualityProfileId] = useState(1);
   const [rootFolderPath, setRootFolderPath] = useState("");
   const [metadataProfileId, setMetadataProfileId] = useState(1);
+  const [lastfmApiKey, setLastfmApiKey] = useState("");
+  const [plexUrl, setPlexUrl] = useState("");
+  const [plexToken, setPlexToken] = useState("");
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{
@@ -33,6 +36,9 @@ export default function SettingsPage() {
     if (settings.lidarrMetadataProfileId)
       setMetadataProfileId(settings.lidarrMetadataProfileId);
     if (settings.lidarrApiKey) setApiKey(settings.lidarrApiKey);
+    if (settings.lastfmApiKey) setLastfmApiKey(settings.lastfmApiKey);
+    if (settings.plexUrl) setPlexUrl(settings.plexUrl);
+    if (settings.plexToken) setPlexToken(settings.plexToken);
   }, [settings.lidarrUrl]);
 
   useEffect(() => {
@@ -61,6 +67,9 @@ export default function SettingsPage() {
         lidarrQualityProfileId: qualityProfileId,
         lidarrRootFolderPath: rootFolderPath,
         lidarrMetadataProfileId: metadataProfileId,
+        lastfmApiKey,
+        plexUrl,
+        plexToken,
       });
       setTestResult(result);
       if (result.success) {
@@ -80,7 +89,7 @@ export default function SettingsPage() {
     setError(null);
 
     try {
-      await saveSettings({ lidarrUrl: url, lidarrApiKey: apiKey, lidarrQualityProfileId: qualityProfileId, lidarrRootFolderPath: rootFolderPath, lidarrMetadataProfileId: metadataProfileId });
+      await saveSettings({ lidarrUrl: url, lidarrApiKey: apiKey, lidarrQualityProfileId: qualityProfileId, lidarrRootFolderPath: rootFolderPath, lidarrMetadataProfileId: metadataProfileId, lastfmApiKey, plexUrl, plexToken });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed");
     } finally {
@@ -180,6 +189,56 @@ export default function SettingsPage() {
                 </option>
               ))}
             </select>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <h1 className="text-xl text-gray">Last.fm</h1>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              Last.fm API Key
+            </label>
+            <input
+              type="text"
+              value={lastfmApiKey}
+              onChange={(e) => setLastfmApiKey(e.target.value)}
+              placeholder="Enter Last.fm API key"
+              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-gray-100 placeholder-gray-500 focus:outline-none focus:border-indigo-500"
+            />
+            <p className="text-gray-500 text-xs mt-1">
+              Get a free API key at last.fm/api/account/create
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <h1 className="text-xl text-gray">Plex</h1>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              Plex URL
+            </label>
+            <input
+              type="text"
+              value={plexUrl}
+              onChange={(e) => setPlexUrl(e.target.value)}
+              placeholder="http://localhost:32400"
+              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-gray-100 placeholder-gray-500 focus:outline-none focus:border-indigo-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-1">
+              Plex Token
+            </label>
+            <input
+              type="text"
+              value={plexToken}
+              onChange={(e) => setPlexToken(e.target.value)}
+              placeholder="Enter Plex token"
+              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-gray-100 placeholder-gray-500 focus:outline-none focus:border-indigo-500"
+            />
+            <p className="text-gray-500 text-xs mt-1">
+              Used to show your most-played artists on the Discover page
+            </p>
           </div>
         </div>
 

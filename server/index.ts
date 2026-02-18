@@ -1,8 +1,10 @@
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
+import lastfmRoutes from "./routes/lastfm";
 import lidarrRoutes from "./routes/lidarr";
 import musicbrainzRoutes from "./routes/musicbrainz";
+import plexRoutes from "./routes/plex";
 import settingsRoutes from "./routes/settings";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -16,6 +18,8 @@ app.use(express.json());
 app.use("/api/settings", settingsRoutes);
 app.use("/api/musicbrainz", musicbrainzRoutes);
 app.use("/api/lidarr", lidarrRoutes);
+app.use("/api/lastfm", lastfmRoutes);
+app.use("/api/plex", plexRoutes);
 
 if (process.env.NODE_ENV === "production") {
   app.use(express.static(path.join(__dirname, "..", "build")));
