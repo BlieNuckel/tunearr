@@ -22,14 +22,14 @@ app.use("/api/lidarr", lidarrRoutes);
 app.use("/api/lastfm", lastfmRoutes);
 app.use("/api/plex", plexRoutes);
 
-app.use(errorHandler);
-
 if (process.env.NODE_ENV === "production") {
   app.use(express.static(path.join(__dirname, "..", "build")));
   app.get("/{*path}", (_req, res) => {
     res.sendFile(path.join(__dirname, "..", "build", "index.html"));
   });
 }
+
+app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
