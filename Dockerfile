@@ -8,15 +8,15 @@ RUN npm run build
 
 FROM node:22-alpine
 
-ENV APP_DATA_DIR=/var/lib/music-requester
-
-WORKDIR ${APP_DATA_DIR}
+WORKDIR /app
 
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
 COPY server/ ./server/
 COPY --from=build /build-temp/build ./build/
+
+ENV APP_CONFIG_DIR=/config
 
 ENV NODE_ENV=production
 ENV PORT=3001
