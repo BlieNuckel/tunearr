@@ -39,6 +39,7 @@ export interface QueueItem {
 export interface WantedItem {
   id: number;
   title: string;
+  foreignAlbumId: string;
   artist: { artistName: string };
 }
 

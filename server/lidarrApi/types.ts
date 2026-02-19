@@ -46,6 +46,7 @@ export type LidarrQueueItem = {
 export type LidarrWantedRecord = {
   id: number;
   title: string;
+  foreignAlbumId: string;
   artist: { artistName: string };
 };
 

@@ -10,7 +10,7 @@ interface PurchaseLinksModalProps {
   artistName: string;
   albumTitle: string;
   albumMbid: string;
-  onAddToLibrary: () => void;
+  onAddToLibrary?: () => void;
 }
 
 export default function PurchaseLinksModal({
@@ -25,7 +25,7 @@ export default function PurchaseLinksModal({
     useManualImport();
 
   const handleAddToLibrary = () => {
-    onAddToLibrary();
+    onAddToLibrary?.();
     onClose();
   };
 
@@ -143,18 +143,29 @@ export default function PurchaseLinksModal({
         </div>
 
         <div className="pt-4 border-t-2 border-black space-y-2">
-          <button
-            onClick={handleAddToLibrary}
-            className="w-full bg-pink-400 hover:bg-pink-300 text-black font-bold py-3 px-4 rounded-xl border-2 border-black shadow-cartoon-md hover:translate-y-[-2px] hover:shadow-cartoon-lg active:translate-y-[1px] active:shadow-cartoon-pressed transition-all"
-          >
-            Add to Library
-          </button>
-          <button
-            onClick={handleClose}
-            className="w-full bg-gray-100 hover:bg-gray-50 text-gray-600 font-medium py-2 px-4 rounded-xl border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all"
-          >
-            Cancel
-          </button>
+          {onAddToLibrary ? (
+            <>
+              <button
+                onClick={handleAddToLibrary}
+                className="w-full bg-pink-400 hover:bg-pink-300 text-black font-bold py-3 px-4 rounded-xl border-2 border-black shadow-cartoon-md hover:translate-y-[-2px] hover:shadow-cartoon-lg active:translate-y-[1px] active:shadow-cartoon-pressed transition-all"
+              >
+                Add to Library
+              </button>
+              <button
+                onClick={handleClose}
+                className="w-full bg-gray-100 hover:bg-gray-50 text-gray-600 font-medium py-2 px-4 rounded-xl border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all"
+              >
+                Cancel
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={handleClose}
+              className="w-full bg-gray-100 hover:bg-gray-50 text-gray-600 font-medium py-2 px-4 rounded-xl border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all"
+            >
+              Close
+            </button>
+          )}
         </div>
       </div>
     </Modal>
