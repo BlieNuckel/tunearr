@@ -1,8 +1,8 @@
 import { NavLink } from "react-router-dom";
 
 const links = [
-  { to: "/", label: "Search" },
-  { to: "/discover", label: "Discover" },
+  { to: "/", label: "Discover" },
+  { to: "/search", label: "Search" },
   { to: "/status", label: "Status" },
   { to: "/settings", label: "Settings" },
 ];
