@@ -28,3 +28,6 @@ server/config.json
 .config/
 
 config/
+
+# claude code
+.claude/settings.local.json
