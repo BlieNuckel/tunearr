@@ -109,7 +109,7 @@ router.post("/import/upload", requireImportPath, upload.array("files"), async (r
   }
 });
 
-/** Confirm manual import — send items to Lidarr */
+/** Confirm manual import — trigger the actual import via Lidarr's command API */
 router.post("/import/confirm", async (req: Request, res: Response) => {
   try {
     const { items } = req.body;
@@ -117,10 +117,8 @@ router.post("/import/confirm", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "items array is required" });
     }
 
-    // Transform GET response format to POST payload format:
-    // GET returns nested artist/album/tracks objects, POST expects flat IDs
-    const importPayload = items.map((item: Record<string, unknown>) => ({
-      id: item.id,
+    // Transform scan results into ManualImportFile format for the command
+    const files = items.map((item: Record<string, unknown>) => ({
       path: item.path,
       artistId: (item.artist as Record<string, unknown>)?.id,
       albumId: (item.album as Record<string, unknown>)?.id,
@@ -129,15 +127,18 @@ router.post("/import/confirm", async (req: Request, res: Response) => {
         ? item.tracks.map((t: Record<string, unknown>) => t.id)
         : [],
       quality: item.quality,
-      releaseGroup: item.releaseGroup,
       indexerFlags: item.indexerFlags ?? 0,
       downloadId: item.downloadId ?? "",
-      additionalFile: item.additionalFile ?? false,
-      replaceExistingFiles: item.replaceExistingFiles ?? false,
       disableReleaseSwitching: item.disableReleaseSwitching ?? false,
     }));
 
-    const result = await lidarrPost("/manualimport", importPayload);
+    // POST /manualimport only re-validates items — the actual import
+    // is triggered via POST /command with name "ManualImport"
+    const result = await lidarrPost("/command", {
+      name: "ManualImport",
+      files,
+      importMode: "move",
+    });
 
     if (!result.ok) {
       return res.status(502).json({ error: "Lidarr manual import failed" });
