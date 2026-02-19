@@ -23,7 +23,7 @@ export default function SearchBar({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
+    <form data-testid="search-form" onSubmit={handleSubmit} className="space-y-3">
       <div>
         <label className="block text-sm font-medium text-gray-600 mb-2">
           Search by
@@ -40,6 +40,7 @@ export default function SearchBar({
 
       <div className="flex gap-2">
         <input
+          data-testid="search-input"
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}

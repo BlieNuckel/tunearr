@@ -15,6 +15,8 @@ export default function StatusBadge({ status }: StatusBadgeProps) {
   const colorClass = COLORS[status] || COLORS.queued;
   return (
     <span
+      data-testid="status-badge"
+      data-status={status}
       className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold border-2 border-black shadow-cartoon-sm ${colorClass}`}
     >
       {status}

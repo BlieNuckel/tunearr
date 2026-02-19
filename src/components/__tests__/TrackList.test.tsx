@@ -50,8 +50,7 @@ describe("TrackList", () => {
 
     render(<TrackList media={media} loading={false} error={null} />);
     expect(screen.getByText("No Duration")).toBeInTheDocument();
-    const li = screen.getByText("No Duration").closest("li")!;
-    expect(li.querySelectorAll("span")).toHaveLength(2);
+    expect(screen.queryByTestId("track-duration")).not.toBeInTheDocument();
   });
 
   it("shows disc headers only when multiple media", () => {

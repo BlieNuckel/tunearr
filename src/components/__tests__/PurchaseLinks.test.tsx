@@ -5,15 +5,12 @@ describe("PurchaseLinks", () => {
   it("renders Bandcamp and Qobuz links with encoded query", () => {
     render(<PurchaseLinks artistName="Radiohead" albumTitle="OK Computer" />);
 
-    const bandcampLink = screen.getByText("Bandcamp").closest("a")!;
-    const qobuzLink = screen.getByText("Qobuz").closest("a")!;
-
     const expected = encodeURIComponent("Radiohead OK Computer");
-    expect(bandcampLink).toHaveAttribute(
+    expect(screen.getByTestId("purchase-link-bandcamp")).toHaveAttribute(
       "href",
       `https://bandcamp.com/search?q=${expected}`
     );
-    expect(qobuzLink).toHaveAttribute(
+    expect(screen.getByTestId("purchase-link-qobuz")).toHaveAttribute(
       "href",
       `https://www.qobuz.com/us-en/search?q=${expected}`
     );

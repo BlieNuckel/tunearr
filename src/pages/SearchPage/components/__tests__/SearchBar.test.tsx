@@ -11,10 +11,10 @@ describe("SearchBar", () => {
     const onSearch = vi.fn();
     render(<SearchBar onSearch={onSearch} />);
 
-    fireEvent.change(screen.getByPlaceholderText("Search..."), {
+    fireEvent.change(screen.getByTestId("search-input"), {
       target: { value: "Radiohead" },
     });
-    fireEvent.submit(screen.getByPlaceholderText("Search...").closest("form")!);
+    fireEvent.submit(screen.getByTestId("search-form"));
 
     expect(onSearch).toHaveBeenCalledWith("Radiohead", "album");
   });
@@ -23,10 +23,10 @@ describe("SearchBar", () => {
     const onSearch = vi.fn();
     render(<SearchBar onSearch={onSearch} />);
 
-    fireEvent.change(screen.getByPlaceholderText("Search..."), {
+    fireEvent.change(screen.getByTestId("search-input"), {
       target: { value: "   " },
     });
-    fireEvent.submit(screen.getByPlaceholderText("Search...").closest("form")!);
+    fireEvent.submit(screen.getByTestId("search-form"));
 
     expect(onSearch).not.toHaveBeenCalled();
   });
@@ -38,10 +38,10 @@ describe("SearchBar", () => {
     fireEvent.click(screen.getByText("Album"));
     fireEvent.click(screen.getByText("Artist"));
 
-    fireEvent.change(screen.getByPlaceholderText("Search..."), {
+    fireEvent.change(screen.getByTestId("search-input"), {
       target: { value: "Bjork" },
     });
-    fireEvent.submit(screen.getByPlaceholderText("Search...").closest("form")!);
+    fireEvent.submit(screen.getByTestId("search-form"));
 
     expect(onSearch).toHaveBeenCalledWith("Bjork", "artist");
   });

@@ -36,6 +36,7 @@ export default function PurchaseLinks({
       {links.map((link) => (
         <a
           key={link.platform}
+          data-testid={`purchase-link-${link.platform.toLowerCase()}`}
           href={link.url}
           target="_blank"
           rel="noopener noreferrer"

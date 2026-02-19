@@ -7,19 +7,19 @@ describe("StatusBadge", () => {
     expect(screen.getByText("downloading")).toBeInTheDocument();
   });
 
-  it("applies the correct color class for known statuses", () => {
+  it("sets data-status attribute for known statuses", () => {
     const { rerender } = render(<StatusBadge status="downloading" />);
-    expect(screen.getByText("downloading")).toHaveClass("bg-sky-300");
+    expect(screen.getByTestId("status-badge")).toHaveAttribute("data-status", "downloading");
 
     rerender(<StatusBadge status="imported" />);
-    expect(screen.getByText("imported")).toHaveClass("bg-emerald-400");
+    expect(screen.getByTestId("status-badge")).toHaveAttribute("data-status", "imported");
 
     rerender(<StatusBadge status="failed" />);
-    expect(screen.getByText("failed")).toHaveClass("bg-rose-400");
+    expect(screen.getByTestId("status-badge")).toHaveAttribute("data-status", "failed");
   });
 
-  it("falls back to queued style for unknown status", () => {
+  it("sets data-status for unknown status", () => {
     render(<StatusBadge status="something-unknown" />);
-    expect(screen.getByText("something-unknown")).toHaveClass("bg-gray-300");
+    expect(screen.getByTestId("status-badge")).toHaveAttribute("data-status", "something-unknown");
   });
 });

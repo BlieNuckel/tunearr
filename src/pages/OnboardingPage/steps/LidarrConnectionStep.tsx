@@ -30,6 +30,7 @@ export default function LidarrConnectionStep({
           Lidarr URL
         </label>
         <input
+          data-testid="lidarr-url-input"
           type="text"
           value={url}
           onChange={(e) => onUrlChange(e.target.value)}
@@ -42,6 +43,7 @@ export default function LidarrConnectionStep({
           API Key
         </label>
         <input
+          data-testid="lidarr-apikey-input"
           type="text"
           value={apiKey}
           onChange={(e) => onApiKeyChange(e.target.value)}

@@ -28,7 +28,7 @@ describe("Modal", () => {
       </Modal>
     );
 
-    fireEvent.click(screen.getByText("Content").parentElement!.parentElement!);
+    fireEvent.click(screen.getByTestId("modal-backdrop"));
     expect(onClose).toHaveBeenCalledOnce();
   });
 

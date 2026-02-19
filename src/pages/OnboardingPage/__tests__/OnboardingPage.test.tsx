@@ -81,7 +81,7 @@ describe("OnboardingPage", () => {
     fireEvent.click(screen.getByText("Get Started"));
     expect(screen.getByText("Lidarr Connection")).toBeInTheDocument();
     expect(
-      screen.getByPlaceholderText("http://localhost:8686")
+      screen.getByTestId("lidarr-url-input")
     ).toBeInTheDocument();
   });
 
@@ -97,10 +97,10 @@ describe("OnboardingPage", () => {
     renderOnboarding();
     fireEvent.click(screen.getByText("Get Started"));
 
-    fireEvent.change(screen.getByPlaceholderText("http://localhost:8686"), {
+    fireEvent.change(screen.getByTestId("lidarr-url-input"), {
       target: { value: "http://lidarr:8686" },
     });
-    fireEvent.change(screen.getByPlaceholderText("Enter API key"), {
+    fireEvent.change(screen.getByTestId("lidarr-apikey-input"), {
       target: { value: "testkey" },
     });
     fireEvent.click(screen.getByText("Test Connection"));
@@ -126,10 +126,10 @@ describe("OnboardingPage", () => {
 
     fireEvent.click(screen.getByText("Get Started"));
 
-    fireEvent.change(screen.getByPlaceholderText("http://localhost:8686"), {
+    fireEvent.change(screen.getByTestId("lidarr-url-input"), {
       target: { value: "http://lidarr:8686" },
     });
-    fireEvent.change(screen.getByPlaceholderText("Enter API key"), {
+    fireEvent.change(screen.getByTestId("lidarr-apikey-input"), {
       target: { value: "testkey" },
     });
     fireEvent.click(screen.getByText("Test Connection"));
@@ -159,10 +159,10 @@ describe("OnboardingPage", () => {
 
     fireEvent.click(screen.getByText("Get Started"));
 
-    fireEvent.change(screen.getByPlaceholderText("http://localhost:8686"), {
+    fireEvent.change(screen.getByTestId("lidarr-url-input"), {
       target: { value: "http://lidarr:8686" },
     });
-    fireEvent.change(screen.getByPlaceholderText("Enter API key"), {
+    fireEvent.change(screen.getByTestId("lidarr-apikey-input"), {
       target: { value: "testkey" },
     });
     fireEvent.click(screen.getByText("Test Connection"));
@@ -196,10 +196,10 @@ describe("OnboardingPage", () => {
 
     fireEvent.click(screen.getByText("Get Started"));
 
-    fireEvent.change(screen.getByPlaceholderText("http://localhost:8686"), {
+    fireEvent.change(screen.getByTestId("lidarr-url-input"), {
       target: { value: "http://lidarr:8686" },
     });
-    fireEvent.change(screen.getByPlaceholderText("Enter API key"), {
+    fireEvent.change(screen.getByTestId("lidarr-apikey-input"), {
       target: { value: "testkey" },
     });
     fireEvent.click(screen.getByText("Test Connection"));
@@ -235,10 +235,10 @@ describe("OnboardingPage", () => {
     renderOnboarding();
     fireEvent.click(screen.getByText("Get Started"));
 
-    fireEvent.change(screen.getByPlaceholderText("http://localhost:8686"), {
+    fireEvent.change(screen.getByTestId("lidarr-url-input"), {
       target: { value: "http://bad:8686" },
     });
-    fireEvent.change(screen.getByPlaceholderText("Enter API key"), {
+    fireEvent.change(screen.getByTestId("lidarr-apikey-input"), {
       target: { value: "testkey" },
     });
     fireEvent.click(screen.getByText("Test Connection"));

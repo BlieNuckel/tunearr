@@ -39,8 +39,6 @@ describe("QueueTable", () => {
 
   it("shows dash when size data is missing", () => {
     render(<QueueTable items={[makeQueueItem({ size: 0, sizeleft: 0 })]} />);
-    const cells = screen.getAllByRole("cell");
-    const progressCell = cells[3];
-    expect(progressCell).toHaveTextContent("—");
+    expect(screen.getByTestId("queue-progress")).toHaveTextContent("—");
   });
 });
