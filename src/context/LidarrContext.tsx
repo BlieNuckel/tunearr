@@ -67,7 +67,7 @@ export const LidarrContextProvider = ({
     } finally {
       setIsLoading(false);
     }
-  }
+  };
 
   const loadLidarrOptionValues = async () => {
     try {
@@ -154,7 +154,7 @@ export const LidarrContextProvider = ({
     isLoading,
     saveSettings,
     testConnection,
-    loadLidarrOptionValues
+    loadLidarrOptionValues,
   };
 
   return (

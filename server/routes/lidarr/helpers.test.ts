@@ -42,7 +42,11 @@ const mockAlbum: LidarrAlbum = {
 
 describe("getAlbumByMbid", () => {
   it("returns album from lookup", async () => {
-    mockLidarrGet.mockResolvedValue({ status: 200, data: [mockAlbum], ok: true });
+    mockLidarrGet.mockResolvedValue({
+      status: 200,
+      data: [mockAlbum],
+      ok: true,
+    });
 
     const result = await getAlbumByMbid("album-mbid-1");
     expect(result).toEqual(mockAlbum);
@@ -96,7 +100,7 @@ describe("getOrAddArtist", () => {
     expect(result).toEqual(mockArtist);
     expect(mockLidarrPost).toHaveBeenCalledWith(
       "/artist",
-      expect.objectContaining({ monitored: true }),
+      expect.objectContaining({ monitored: true })
     );
   });
 
@@ -106,7 +110,7 @@ describe("getOrAddArtist", () => {
       .mockResolvedValueOnce({ status: 200, data: [], ok: true });
 
     await expect(getOrAddArtist("unknown")).rejects.toThrow(
-      "Artist not found in Lidarr lookup",
+      "Artist not found in Lidarr lookup"
     );
   });
 });
@@ -153,7 +157,7 @@ describe("getOrAddAlbum", () => {
     });
 
     await expect(getOrAddAlbum("dup-mbid", mockArtist)).rejects.toThrow(
-      "Failed to add album: Album already exists",
+      "Failed to add album: Album already exists"
     );
   });
 });

@@ -21,7 +21,8 @@ export default function PurchaseLinksModal({
   albumMbid,
   onAddToLibrary,
 }: PurchaseLinksModalProps) {
-  const { step, items, error, upload, confirm, cancel, reset } = useManualImport();
+  const { step, items, error, upload, confirm, cancel, reset } =
+    useManualImport();
 
   const handleAddToLibrary = () => {
     onAddToLibrary();
@@ -41,7 +42,9 @@ export default function PurchaseLinksModal({
     <Modal isOpen={isOpen} onClose={handleClose}>
       <div className="space-y-4">
         <div>
-          <h2 className="text-xl font-bold text-white mb-2">Purchase Options</h2>
+          <h2 className="text-xl font-bold text-white mb-2">
+            Purchase Options
+          </h2>
           <p className="text-gray-400 text-sm">
             {albumTitle} by {artistName}
           </p>
@@ -60,11 +63,28 @@ export default function PurchaseLinksModal({
 
           {step === "uploading" && (
             <div className="flex items-center justify-center gap-2 py-6">
-              <svg className="animate-spin h-5 w-5 text-blue-400" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              <svg
+                className="animate-spin h-5 w-5 text-blue-400"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                  fill="none"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                />
               </svg>
-              <p className="text-gray-300 text-sm">Uploading and scanning files...</p>
+              <p className="text-gray-300 text-sm">
+                Uploading and scanning files...
+              </p>
             </div>
           )}
 
@@ -78,9 +98,24 @@ export default function PurchaseLinksModal({
 
           {step === "importing" && (
             <div className="flex items-center justify-center gap-2 py-6">
-              <svg className="animate-spin h-5 w-5 text-green-400" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              <svg
+                className="animate-spin h-5 w-5 text-green-400"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                  fill="none"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                />
               </svg>
               <p className="text-gray-300 text-sm">Importing to Lidarr...</p>
             </div>

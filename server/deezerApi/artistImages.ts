@@ -11,7 +11,7 @@ export async function getArtistImage(artistName: string): Promise<string> {
 
   try {
     const res = await fetch(
-      `${DEEZER_SEARCH}?q=${encodeURIComponent(artistName)}&limit=1`,
+      `${DEEZER_SEARCH}?q=${encodeURIComponent(artistName)}&limit=1`
     );
     if (!res.ok) return "";
 
@@ -36,7 +36,7 @@ export async function enrichWithImages<
   await Promise.all(
     needsImage.map(async (a) => {
       a.imageUrl = await getArtistImage(a.name);
-    }),
+    })
   );
 
   return artists;

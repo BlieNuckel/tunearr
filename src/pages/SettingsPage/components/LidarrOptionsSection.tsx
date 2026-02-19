@@ -24,7 +24,9 @@ export default function LidarrOptionsSection({
   return (
     <div className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-1">Lidarr Root Path</label>
+        <label className="block text-sm font-medium text-gray-300 mb-1">
+          Lidarr Root Path
+        </label>
         <select
           key={rootFolders.length}
           value={rootFolderPath}
@@ -39,7 +41,9 @@ export default function LidarrOptionsSection({
         </select>
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-1">Quality Profile</label>
+        <label className="block text-sm font-medium text-gray-300 mb-1">
+          Quality Profile
+        </label>
         <select
           key={qualityProfiles.length}
           value={qualityProfileId}
@@ -54,7 +58,9 @@ export default function LidarrOptionsSection({
         </select>
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-1">Metadata Profile</label>
+        <label className="block text-sm font-medium text-gray-300 mb-1">
+          Metadata Profile
+        </label>
         <select
           key={metadataProfiles.length}
           value={metadataProfileId}

@@ -54,9 +54,14 @@ export default function useDiscover() {
   const [tagArtists, setTagArtists] = useState<TagArtist[]>([]);
   const [tagArtistsLoading, setTagArtistsLoading] = useState(false);
   const [tagArtistsError, setTagArtistsError] = useState<string | null>(null);
-  const [tagPagination, setTagPagination] = useState({ page: 1, totalPages: 1 });
+  const [tagPagination, setTagPagination] = useState({
+    page: 1,
+    totalPages: 1,
+  });
 
-  const [autoSelectedArtist, setAutoSelectedArtist] = useState<string | null>(null);
+  const [autoSelectedArtist, setAutoSelectedArtist] = useState<string | null>(
+    null
+  );
 
   const hasAutoTriggered = useRef(false);
 
@@ -103,7 +108,9 @@ export default function useDiscover() {
     try {
       const [similarRes, tagsRes] = await Promise.all([
         fetch(`/api/lastfm/similar?artist=${encodeURIComponent(artistName)}`),
-        fetch(`/api/lastfm/artist/tags?artist=${encodeURIComponent(artistName)}`),
+        fetch(
+          `/api/lastfm/artist/tags?artist=${encodeURIComponent(artistName)}`
+        ),
       ]);
 
       if (!similarRes.ok) {
@@ -119,7 +126,9 @@ export default function useDiscover() {
         setArtistTags(tagsData.tags.slice(0, 10));
       }
     } catch (err) {
-      setSimilarError(err instanceof Error ? err.message : "Failed to fetch similar artists");
+      setSimilarError(
+        err instanceof Error ? err.message : "Failed to fetch similar artists"
+      );
     } finally {
       setSimilarLoading(false);
       setTagsLoading(false);
@@ -145,7 +154,7 @@ export default function useDiscover() {
 
     try {
       const res = await fetch(
-        `/api/lastfm/tag/artists?tag=${encodeURIComponent(tag)}&page=${page}`,
+        `/api/lastfm/tag/artists?tag=${encodeURIComponent(tag)}&page=${page}`
       );
 
       if (!res.ok) {
@@ -157,7 +166,9 @@ export default function useDiscover() {
       setTagArtists(data.artists);
       setTagPagination(data.pagination);
     } catch (err) {
-      setTagArtistsError(err instanceof Error ? err.message : "Failed to fetch tag artists");
+      setTagArtistsError(
+        err instanceof Error ? err.message : "Failed to fetch tag artists"
+      );
     } finally {
       setTagArtistsLoading(false);
     }

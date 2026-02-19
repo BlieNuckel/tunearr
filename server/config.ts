@@ -49,7 +49,10 @@ const validateConfig = (config: Partial<IConfig>) => {
   if (typeof config.lidarrMetadataProfileId !== "number") {
     throw new Error("lidarrMetadataProfileId must be a number");
   }
-  if (config.lastfmApiKey !== undefined && typeof config.lastfmApiKey !== "string") {
+  if (
+    config.lastfmApiKey !== undefined &&
+    typeof config.lastfmApiKey !== "string"
+  ) {
     throw new Error("lastfmApiKey must be a string");
   }
   if (config.plexUrl !== undefined && typeof config.plexUrl !== "string") {
@@ -58,7 +61,10 @@ const validateConfig = (config: Partial<IConfig>) => {
   if (config.plexToken !== undefined && typeof config.plexToken !== "string") {
     throw new Error("plexToken must be a string");
   }
-  if (config.importPath !== undefined && typeof config.importPath !== "string") {
+  if (
+    config.importPath !== undefined &&
+    typeof config.importPath !== "string"
+  ) {
     throw new Error("importPath must be a string");
   }
 };

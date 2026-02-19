@@ -56,14 +56,31 @@ describe("TrackList", () => {
 
   it("shows disc headers only when multiple media", () => {
     const singleMedia: Medium[] = [
-      { position: 1, format: "CD", title: "", tracks: [{ position: 1, title: "Track", length: 60000 }] },
+      {
+        position: 1,
+        format: "CD",
+        title: "",
+        tracks: [{ position: 1, title: "Track", length: 60000 }],
+      },
     ];
     const multiMedia: Medium[] = [
-      { position: 1, format: "CD", title: "", tracks: [{ position: 1, title: "Track A", length: 60000 }] },
-      { position: 2, format: "Vinyl", title: "Side B", tracks: [{ position: 1, title: "Track B", length: 60000 }] },
+      {
+        position: 1,
+        format: "CD",
+        title: "",
+        tracks: [{ position: 1, title: "Track A", length: 60000 }],
+      },
+      {
+        position: 2,
+        format: "Vinyl",
+        title: "Side B",
+        tracks: [{ position: 1, title: "Track B", length: 60000 }],
+      },
     ];
 
-    const { rerender } = render(<TrackList media={singleMedia} loading={false} error={null} />);
+    const { rerender } = render(
+      <TrackList media={singleMedia} loading={false} error={null} />
+    );
     expect(screen.queryByText(/CD/)).not.toBeInTheDocument();
 
     rerender(<TrackList media={multiMedia} loading={false} error={null} />);

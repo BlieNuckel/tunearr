@@ -13,14 +13,22 @@ interface LibraryPickerProps {
   onSelect: (name: string) => void;
 }
 
-export default function LibraryPicker({ artists, loading, selectedArtist, onSelect }: LibraryPickerProps) {
+export default function LibraryPicker({
+  artists,
+  loading,
+  selectedArtist,
+  onSelect,
+}: LibraryPickerProps) {
   const [filter, setFilter] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
         setDropdownOpen(false);
       }
     };
@@ -38,7 +46,9 @@ export default function LibraryPicker({ artists, loading, selectedArtist, onSele
       {loading ? (
         <p className="text-gray-500 text-sm">Loading library...</p>
       ) : artists.length === 0 ? (
-        <p className="text-gray-500 text-sm">No artists in library. Connect Lidarr in Settings.</p>
+        <p className="text-gray-500 text-sm">
+          No artists in library. Connect Lidarr in Settings.
+        </p>
       ) : (
         <div className="relative">
           <input

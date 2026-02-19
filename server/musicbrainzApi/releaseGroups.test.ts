@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { searchReleaseGroups, searchArtistReleaseGroups } from "./releaseGroups";
+import {
+  searchReleaseGroups,
+  searchArtistReleaseGroups,
+} from "./releaseGroups";
 
 vi.mock("./config", () => ({
   MB_BASE: "https://musicbrainz.test/ws/2",
@@ -32,7 +35,7 @@ describe("searchReleaseGroups", () => {
         ],
         count: 3,
         offset: 0,
-      }),
+      })
     );
 
     const result = await searchReleaseGroups("test");
@@ -46,7 +49,7 @@ describe("searchReleaseGroups", () => {
     mockFetch.mockResolvedValue(errorResponse(503));
 
     await expect(searchReleaseGroups("test")).rejects.toThrow(
-      "MusicBrainz returned 503",
+      "MusicBrainz returned 503"
     );
   });
 });
@@ -55,7 +58,7 @@ describe("searchArtistReleaseGroups", () => {
   it("looks up artist then fetches release groups", async () => {
     mockFetch
       .mockResolvedValueOnce(
-        okResponse({ artists: [{ id: "artist-id-1", name: "Radiohead" }] }),
+        okResponse({ artists: [{ id: "artist-id-1", name: "Radiohead" }] })
       )
       .mockResolvedValueOnce(
         okResponse({
@@ -65,7 +68,7 @@ describe("searchArtistReleaseGroups", () => {
           ],
           count: 2,
           offset: 0,
-        }),
+        })
       );
 
     const result = await searchArtistReleaseGroups("Radiohead");
@@ -86,19 +89,19 @@ describe("searchArtistReleaseGroups", () => {
     mockFetch.mockResolvedValue(errorResponse(500));
 
     await expect(searchArtistReleaseGroups("test")).rejects.toThrow(
-      "MusicBrainz returned 500",
+      "MusicBrainz returned 500"
     );
   });
 
   it("throws on release group lookup error", async () => {
     mockFetch
       .mockResolvedValueOnce(
-        okResponse({ artists: [{ id: "artist-id-1", name: "Test" }] }),
+        okResponse({ artists: [{ id: "artist-id-1", name: "Test" }] })
       )
       .mockResolvedValueOnce(errorResponse(429));
 
     await expect(searchArtistReleaseGroups("Test")).rejects.toThrow(
-      "MusicBrainz returned 429",
+      "MusicBrainz returned 429"
     );
   });
 });

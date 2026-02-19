@@ -41,7 +41,7 @@ describe("getConfig", () => {
   it("reads and merges saved config with defaults", async () => {
     fs.writeFileSync(
       path.join(tmpDir, "config.json"),
-      JSON.stringify({ lidarrUrl: "http://lidarr:8686", lidarrApiKey: "abc" }),
+      JSON.stringify({ lidarrUrl: "http://lidarr:8686", lidarrApiKey: "abc" })
     );
 
     const { getConfig } = await loadConfig();
@@ -78,16 +78,16 @@ describe("setConfig", () => {
   it("validates types", async () => {
     const { setConfig } = await loadConfig();
 
-    expect(() =>
-      setConfig({ lidarrUrl: 123 as unknown as string }),
-    ).toThrow("lidarrUrl must be a string");
+    expect(() => setConfig({ lidarrUrl: 123 as unknown as string })).toThrow(
+      "lidarrUrl must be a string"
+    );
 
     expect(() =>
       setConfig({
         lidarrUrl: "",
         lidarrApiKey: "",
         lidarrQualityProfileId: "bad" as unknown as number,
-      }),
+      })
     ).toThrow("lidarrQualityProfileId must be a number");
   });
 
@@ -112,7 +112,7 @@ describe("getConfigValue", () => {
   it("returns specific config value", async () => {
     fs.writeFileSync(
       path.join(tmpDir, "config.json"),
-      JSON.stringify({ lastfmApiKey: "fm-key-123" }),
+      JSON.stringify({ lastfmApiKey: "fm-key-123" })
     );
 
     const { getConfigValue } = await loadConfig();

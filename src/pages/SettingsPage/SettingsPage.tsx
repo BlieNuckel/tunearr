@@ -7,11 +7,23 @@ import PlexSection from "./components/PlexSection";
 import ImportSection from "./components/ImportSection";
 
 export default function SettingsPage() {
-  const { options, settings, isLoading, saveSettings, testConnection, loadLidarrOptionValues } =
-    useLidarrContext();
-  const [qualityProfiles, setQualityProfiles] = useState<{ id: number; name: string }[]>([]);
-  const [metadataProfiles, setMetadataProfiles] = useState<{ id: number; name: string }[]>([]);
-  const [rootFolders, setRootFolders] = useState<{ id: number; path: string }[]>([]);
+  const {
+    options,
+    settings,
+    isLoading,
+    saveSettings,
+    testConnection,
+    loadLidarrOptionValues,
+  } = useLidarrContext();
+  const [qualityProfiles, setQualityProfiles] = useState<
+    { id: number; name: string }[]
+  >([]);
+  const [metadataProfiles, setMetadataProfiles] = useState<
+    { id: number; name: string }[]
+  >([]);
+  const [rootFolders, setRootFolders] = useState<
+    { id: number; path: string }[]
+  >([]);
   const [url, setUrl] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [qualityProfileId, setQualityProfileId] = useState(1);
@@ -32,14 +44,15 @@ export default function SettingsPage() {
 
   useEffect(() => {
     loadLidarrOptionValues();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (settings.lidarrUrl) setUrl(settings.lidarrUrl);
     if (settings.lidarrQualityProfileId)
       setQualityProfileId(settings.lidarrQualityProfileId);
-    if (settings.lidarrRootFolderPath) setRootFolderPath(settings.lidarrRootFolderPath);
+    if (settings.lidarrRootFolderPath)
+      setRootFolderPath(settings.lidarrRootFolderPath);
     if (settings.lidarrMetadataProfileId)
       setMetadataProfileId(settings.lidarrMetadataProfileId);
     if (settings.lidarrApiKey) setApiKey(settings.lidarrApiKey);
@@ -47,7 +60,7 @@ export default function SettingsPage() {
     if (settings.plexUrl) setPlexUrl(settings.plexUrl);
     if (settings.plexToken) setPlexToken(settings.plexToken);
     if (settings.importPath) setImportPath(settings.importPath);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings.lidarrUrl]);
 
   useEffect(() => {
@@ -57,8 +70,12 @@ export default function SettingsPage() {
       setMetadataProfiles(options.metadataProfiles || []);
     if (options.rootFolderPaths.length)
       setRootFolders(options.rootFolderPaths || []);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [options.metadataProfiles.length, options.qualityProfiles.length, options.rootFolderPaths.length]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    options.metadataProfiles.length,
+    options.qualityProfiles.length,
+    options.rootFolderPaths.length,
+  ]);
 
   if (isLoading) {
     return <p className="text-gray-400">Loading settings...</p>;
@@ -99,7 +116,17 @@ export default function SettingsPage() {
     setError(null);
 
     try {
-      await saveSettings({ lidarrUrl: url, lidarrApiKey: apiKey, lidarrQualityProfileId: qualityProfileId, lidarrRootFolderPath: rootFolderPath, lidarrMetadataProfileId: metadataProfileId, lastfmApiKey, plexUrl, plexToken, importPath });
+      await saveSettings({
+        lidarrUrl: url,
+        lidarrApiKey: apiKey,
+        lidarrQualityProfileId: qualityProfileId,
+        lidarrRootFolderPath: rootFolderPath,
+        lidarrMetadataProfileId: metadataProfileId,
+        lastfmApiKey,
+        plexUrl,
+        plexToken,
+        importPath,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed");
     } finally {
@@ -142,7 +169,10 @@ export default function SettingsPage() {
           onTokenChange={setPlexToken}
         />
 
-        <ImportSection importPath={importPath} onImportPathChange={setImportPath} />
+        <ImportSection
+          importPath={importPath}
+          onImportPathChange={setImportPath}
+        />
 
         <button
           type="submit"
@@ -155,10 +185,11 @@ export default function SettingsPage() {
 
       {testResult && (
         <div
-          className={`mt-4 p-3 rounded-md text-sm ${testResult.success
-            ? "bg-green-900/30 text-green-400 border border-green-800"
-            : "bg-red-900/30 text-red-400 border border-red-800"
-            }`}
+          className={`mt-4 p-3 rounded-md text-sm ${
+            testResult.success
+              ? "bg-green-900/30 text-green-400 border border-green-800"
+              : "bg-red-900/30 text-red-400 border border-red-800"
+          }`}
         >
           {testResult.success
             ? `Connected! Lidarr v${testResult.version}`

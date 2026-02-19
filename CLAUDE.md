@@ -24,6 +24,7 @@ Full-stack TypeScript app: React 19 frontend + Express 5 backend. Vite proxies `
 **State management:** Single `LidarrContext` holds global settings, connection status, and Lidarr options (profiles, root paths). All other state is page-local via custom hooks in `src/hooks/` — each hook owns its own loading/error/data lifecycle.
 
 **Backend (`/server`):** Express with three layers:
+
 - **Service layer** — each external API has a `<name>Api/` directory (e.g., `lidarrApi/`, `lastfmApi/`, `musicbrainzApi/`, `plexApi/`, `deezerApi/`) containing `types.ts`, usually `config.ts`, and function files. Service configs read from `getConfig()` lazily at request time (no restart needed after settings change).
 - **Route layer** (`/server/routes/`) — maps Express routes to service functions. Routes mount at `/api/settings`, `/api/lidarr`, `/api/musicbrainz`, `/api/lastfm`, `/api/plex`. The Lidarr router is an aggregator that mounts sub-routers (add, artists, history, import, queue, wanted, qualityProfile, rootPath, metadataProfile) plus a shared `helpers.ts` for upsert logic.
 - **Middleware** (`/server/middleware/`) — `errorHandler.ts` (global Express error handler) and `rateLimiter.ts` (MusicBrainz 1 req/sec).
@@ -31,6 +32,7 @@ Full-stack TypeScript app: React 19 frontend + Express 5 backend. Vite proxies `
 **Config system** (`server/config.ts`): Persisted as JSON at `APP_CONFIG_DIR/config.json`. `getConfig()` reads from disk and merges with defaults on every call. `setConfig()` validates and writes. `getConfigValue<K>(key)` provides typed single-field access.
 
 **Key patterns:**
+
 - Type-safe generic API helpers per service (e.g., `lidarrGet<T>(path, query)`)
 - All external API calls routed through the backend
 - Functional components with custom hooks — no class components

@@ -31,7 +31,7 @@ describe("getTopArtists", () => {
               { key: "2", type: "artist", title: "Music" },
             ],
           },
-        }),
+        })
       )
       .mockResolvedValueOnce(
         okResponse({
@@ -57,7 +57,7 @@ describe("getTopArtists", () => {
               },
             ],
           },
-        }),
+        })
       );
 
     const result = await getTopArtists(10);
@@ -66,7 +66,7 @@ describe("getTopArtists", () => {
     expect(result[0].name).toBe("Radiohead");
     expect(result[0].viewCount).toBe(150);
     expect(result[0].thumb).toBe(
-      "/api/plex/thumb?path=%2Flibrary%2Fmetadata%2F123%2Fthumb",
+      "/api/plex/thumb?path=%2Flibrary%2Fmetadata%2F123%2Fthumb"
     );
     expect(result[0].genres).toEqual(["rock", "alternative"]);
     expect(result[1].name).toBe("Portishead");
@@ -79,10 +79,12 @@ describe("getTopArtists", () => {
         MediaContainer: {
           Directory: [{ key: "1", type: "movie", title: "Movies" }],
         },
-      }),
+      })
     );
 
-    await expect(getTopArtists(10)).rejects.toThrow("No music library found in Plex");
+    await expect(getTopArtists(10)).rejects.toThrow(
+      "No music library found in Plex"
+    );
   });
 
   it("throws on sections API error", async () => {

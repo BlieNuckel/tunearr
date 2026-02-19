@@ -30,7 +30,7 @@ router.get(
     const { releaseGroupId } = req.params;
     const media = await getReleaseTracks(releaseGroupId as string);
     res.json({ media });
-  },
+  }
 );
 
 export default router;

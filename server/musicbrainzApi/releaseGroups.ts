@@ -7,7 +7,7 @@ import type {
 
 /** Search for release groups (albums/EPs) by text query */
 export async function searchReleaseGroups(
-  query: string,
+  query: string
 ): Promise<ReleaseGroupSearchResult> {
   const url = `${MB_BASE}/release-group/?query=${encodeURIComponent(query)}&limit=20&fmt=json`;
   const response = await fetch(url, { headers: MB_HEADERS });
@@ -28,7 +28,7 @@ export async function searchReleaseGroups(
 
 /** Look up an artist by name and return all their albums and EPs */
 export async function searchArtistReleaseGroups(
-  artistName: string,
+  artistName: string
 ): Promise<ReleaseGroupSearchResult> {
   const artistUrl = `${MB_BASE}/artist/?query=${encodeURIComponent(artistName)}&limit=1&fmt=json`;
   const artistResponse = await fetch(artistUrl, { headers: MB_HEADERS });

@@ -15,7 +15,9 @@ router.put("/", (req: Request, res: Response) => {
   const partialConfig = req.body;
 
   if (partialConfig.importPath && !fs.existsSync(partialConfig.importPath)) {
-    return res.status(400).json({ error: `Import path "${partialConfig.importPath}" does not exist. Make sure the directory is created or the volume is mounted.` });
+    return res.status(400).json({
+      error: `Import path "${partialConfig.importPath}" does not exist. Make sure the directory is created or the volume is mounted.`,
+    });
   }
 
   setConfig(partialConfig);

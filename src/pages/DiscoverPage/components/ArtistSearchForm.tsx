@@ -16,7 +16,9 @@ export default function ArtistSearchForm({ onSearch }: ArtistSearchFormProps) {
 
   return (
     <div className="lg:col-span-2">
-      <h2 className="text-sm font-medium text-gray-400 mb-2">Search any artist</h2>
+      <h2 className="text-sm font-medium text-gray-400 mb-2">
+        Search any artist
+      </h2>
       <form onSubmit={handleSubmit} className="flex gap-2">
         <input
           type="text"

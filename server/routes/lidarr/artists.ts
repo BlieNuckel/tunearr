@@ -8,7 +8,9 @@ router.get("/artists", async (_req: Request, res: Response) => {
   const result = await lidarrGet<LidarrArtist[]>("/artist");
 
   if (!result.ok) {
-    return res.status(result.status).json({ error: "Failed to fetch artists from Lidarr" });
+    return res
+      .status(result.status)
+      .json({ error: "Failed to fetch artists from Lidarr" });
   }
 
   const artists = result.data.map((a) => ({

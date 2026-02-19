@@ -41,7 +41,9 @@ export default function QueueTable({ items }: QueueTableProps) {
               </td>
               <td className="py-2">
                 <StatusBadge
-                  status={item.trackedDownloadStatus?.toLowerCase() || "downloading"}
+                  status={
+                    item.trackedDownloadStatus?.toLowerCase() || "downloading"
+                  }
                 />
               </td>
             </tr>

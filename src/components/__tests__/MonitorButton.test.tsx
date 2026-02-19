@@ -13,13 +13,18 @@ describe("MonitorButton", () => {
     ["success", "Added"],
     ["already_monitored", "Already Monitored"],
     ["error", "Error"],
-  ] as [MonitorState, string][])("shows '%s' label for %s state", (state, label) => {
-    render(<MonitorButton state={state} onClick={onClick} />);
-    expect(screen.getByRole("button")).toHaveTextContent(label);
-  });
+  ] as [MonitorState, string][])(
+    "shows '%s' label for %s state",
+    (state, label) => {
+      render(<MonitorButton state={state} onClick={onClick} />);
+      expect(screen.getByRole("button")).toHaveTextContent(label);
+    }
+  );
 
   it("is disabled for adding, success, and already_monitored", () => {
-    const { rerender } = render(<MonitorButton state="adding" onClick={onClick} />);
+    const { rerender } = render(
+      <MonitorButton state="adding" onClick={onClick} />
+    );
     expect(screen.getByRole("button")).toBeDisabled();
 
     rerender(<MonitorButton state="success" onClick={onClick} />);
@@ -30,7 +35,9 @@ describe("MonitorButton", () => {
   });
 
   it("is enabled for idle and error", () => {
-    const { rerender } = render(<MonitorButton state="idle" onClick={onClick} />);
+    const { rerender } = render(
+      <MonitorButton state="idle" onClick={onClick} />
+    );
     expect(screen.getByRole("button")).toBeEnabled();
 
     rerender(<MonitorButton state="error" onClick={onClick} />);
@@ -45,11 +52,21 @@ describe("MonitorButton", () => {
 
   it("shows error message only in error state", () => {
     const { rerender } = render(
-      <MonitorButton state="error" onClick={onClick} errorMsg="Something broke" />
+      <MonitorButton
+        state="error"
+        onClick={onClick}
+        errorMsg="Something broke"
+      />
     );
     expect(screen.getByText("Something broke")).toBeInTheDocument();
 
-    rerender(<MonitorButton state="idle" onClick={onClick} errorMsg="Something broke" />);
+    rerender(
+      <MonitorButton
+        state="idle"
+        onClick={onClick}
+        errorMsg="Something broke"
+      />
+    );
     expect(screen.queryByText("Something broke")).not.toBeInTheDocument();
   });
 });

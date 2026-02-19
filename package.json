@@ -26,6 +26,8 @@
     "preview": "vite preview",
     "typecheck:server": "cd server && tsc --noEmit",
     "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "test": "vitest run --config vitest.config.ts",
     "test:server": "vitest run --config server/vitest.config.ts"
   },
@@ -45,6 +47,7 @@
     "globals": "^17.3.0",
     "jsdom": "^28.1.0",
     "postcss": "^8.5.6",
+    "prettier": "^3.8.1",
     "tailwindcss": "^3.4.19",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",

@@ -10,12 +10,18 @@ interface PlexTopArtistsProps {
   onSelect: (name: string) => void;
 }
 
-export default function PlexTopArtists({ artists, selectedArtist, onSelect }: PlexTopArtistsProps) {
+export default function PlexTopArtists({
+  artists,
+  selectedArtist,
+  onSelect,
+}: PlexTopArtistsProps) {
   if (artists.length === 0) return null;
 
   return (
     <div className="mb-6">
-      <h2 className="text-sm font-medium text-gray-400 mb-2">Based on your listening</h2>
+      <h2 className="text-sm font-medium text-gray-400 mb-2">
+        Based on your listening
+      </h2>
       <div className="flex flex-wrap gap-2">
         {artists.map((artist) => (
           <button

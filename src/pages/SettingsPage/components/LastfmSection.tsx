@@ -3,7 +3,10 @@ interface LastfmSectionProps {
   onApiKeyChange: (key: string) => void;
 }
 
-export default function LastfmSection({ apiKey, onApiKeyChange }: LastfmSectionProps) {
+export default function LastfmSection({
+  apiKey,
+  onApiKeyChange,
+}: LastfmSectionProps) {
   return (
     <div className="space-y-4">
       <h2 className="text-xl text-gray">Last.fm</h2>

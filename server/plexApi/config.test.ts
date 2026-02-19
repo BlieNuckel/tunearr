@@ -37,13 +37,20 @@ describe("getPlexConfig", () => {
   });
 
   it("throws when Plex is not configured", () => {
-    mockGetConfig.mockReturnValue({ ...fullConfig, plexUrl: "", plexToken: "" });
+    mockGetConfig.mockReturnValue({
+      ...fullConfig,
+      plexUrl: "",
+      plexToken: "",
+    });
 
     expect(() => getPlexConfig()).toThrow("Plex URL and token not configured");
   });
 
   it("strips trailing slashes from URL", () => {
-    mockGetConfig.mockReturnValue({ ...fullConfig, plexUrl: "http://plex:32400///" });
+    mockGetConfig.mockReturnValue({
+      ...fullConfig,
+      plexUrl: "http://plex:32400///",
+    });
 
     const config = getPlexConfig();
     expect(config.baseUrl).toBe("http://plex:32400");

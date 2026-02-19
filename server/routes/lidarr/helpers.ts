@@ -1,7 +1,11 @@
 import { getConfigValue } from "../../config";
 import { lidarrGet } from "../../lidarrApi/get";
 import { lidarrPost } from "../../lidarrApi/post";
-import { LidarrAlbum, LidarrArtist, extractLidarrError } from "../../lidarrApi/types";
+import {
+  LidarrAlbum,
+  LidarrArtist,
+  extractLidarrError,
+} from "../../lidarrApi/types";
 
 export const getAlbumByMbid = async (albumMbid: string) => {
   const result = await lidarrGet<LidarrAlbum[]>("/album/lookup", {
@@ -25,7 +29,9 @@ const addAlbumToLidarr = async (albumMbid: string, artist: LidarrArtist) => {
   });
 
   if (addAlbumResult.status >= 300) {
-    throw new Error(`Failed to add album: ${extractLidarrError(addAlbumResult.data)}`);
+    throw new Error(
+      `Failed to add album: ${extractLidarrError(addAlbumResult.data)}`
+    );
   }
 
   return addAlbumResult.data;
@@ -55,7 +61,9 @@ const addArtistToLidarr = async (artistMbid: string) => {
   });
 
   if (!addArtistResult.ok) {
-    throw new Error(`Failed to add artist: ${extractLidarrError(addArtistResult.data)}`);
+    throw new Error(
+      `Failed to add artist: ${extractLidarrError(addArtistResult.data)}`
+    );
   }
 
   return addArtistResult.data;
@@ -64,7 +72,7 @@ const addArtistToLidarr = async (artistMbid: string) => {
 export const getOrAddArtist = async (artistMbid: string) => {
   const artistsResult = await lidarrGet<LidarrArtist[]>("/artist");
   const artist = artistsResult.data.find(
-    (a) => a.foreignArtistId === artistMbid,
+    (a) => a.foreignArtistId === artistMbid
   );
 
   if (artist) {
@@ -74,7 +82,10 @@ export const getOrAddArtist = async (artistMbid: string) => {
   return await addArtistToLidarr(artistMbid);
 };
 
-export const getOrAddAlbum = async (albumMbid: string, artist: LidarrArtist) => {
+export const getOrAddAlbum = async (
+  albumMbid: string,
+  artist: LidarrArtist
+) => {
   const albumsResult = await lidarrGet<LidarrAlbum[]>("/album", {
     artistId: artist.id,
   });

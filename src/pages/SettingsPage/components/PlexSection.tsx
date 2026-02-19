@@ -5,7 +5,12 @@ interface PlexSectionProps {
   onTokenChange: (token: string) => void;
 }
 
-export default function PlexSection({ url, token, onUrlChange, onTokenChange }: PlexSectionProps) {
+export default function PlexSection({
+  url,
+  token,
+  onUrlChange,
+  onTokenChange,
+}: PlexSectionProps) {
   return (
     <div className="space-y-4">
       <h2 className="text-xl text-gray">Plex</h2>

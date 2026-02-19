@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { getSimilarArtists, getArtistTopTags, getTopArtistsByTag } from "./artists";
+import {
+  getSimilarArtists,
+  getArtistTopTags,
+  getTopArtistsByTag,
+} from "./artists";
 
 vi.mock("./config", () => ({
   buildUrl: vi.fn(() => "https://lastfm.test/api"),
@@ -26,7 +30,7 @@ describe("getSimilarArtists", () => {
             { name: "Portishead", mbid: "", match: "0.72" },
           ],
         },
-      }),
+      })
     );
 
     const result = await getSimilarArtists("Radiohead");
@@ -42,10 +46,12 @@ describe("getSimilarArtists", () => {
 
   it("throws on API error response", async () => {
     mockFetch.mockResolvedValue(
-      jsonResponse({ error: 6, message: "Artist not found" }),
+      jsonResponse({ error: 6, message: "Artist not found" })
     );
 
-    await expect(getSimilarArtists("nonexistent")).rejects.toThrow("Artist not found");
+    await expect(getSimilarArtists("nonexistent")).rejects.toThrow(
+      "Artist not found"
+    );
   });
 
   it("returns empty array when no similar artists", async () => {
@@ -66,7 +72,7 @@ describe("getArtistTopTags", () => {
             { name: "alternative", count: 80 },
           ],
         },
-      }),
+      })
     );
 
     const result = await getArtistTopTags("Radiohead");
@@ -78,7 +84,7 @@ describe("getArtistTopTags", () => {
 
   it("throws on API error", async () => {
     mockFetch.mockResolvedValue(
-      jsonResponse({ error: 6, message: "Artist not found" }),
+      jsonResponse({ error: 6, message: "Artist not found" })
     );
 
     await expect(getArtistTopTags("bad")).rejects.toThrow("Artist not found");
@@ -96,7 +102,7 @@ describe("getTopArtistsByTag", () => {
           ],
           "@attr": { page: "2", totalPages: "5" },
         },
-      }),
+      })
     );
 
     const result = await getTopArtistsByTag("rock", "2");
@@ -112,9 +118,7 @@ describe("getTopArtistsByTag", () => {
   });
 
   it("defaults pagination to page 1 of 1", async () => {
-    mockFetch.mockResolvedValue(
-      jsonResponse({ topartists: { artist: [] } }),
-    );
+    mockFetch.mockResolvedValue(jsonResponse({ topartists: { artist: [] } }));
 
     const result = await getTopArtistsByTag("niche");
     expect(result.pagination).toEqual({ page: 1, totalPages: 1 });
@@ -122,7 +126,7 @@ describe("getTopArtistsByTag", () => {
 
   it("throws on API error", async () => {
     mockFetch.mockResolvedValue(
-      jsonResponse({ error: 6, message: "Tag not found" }),
+      jsonResponse({ error: 6, message: "Tag not found" })
     );
 
     await expect(getTopArtistsByTag("bad")).rejects.toThrow("Tag not found");

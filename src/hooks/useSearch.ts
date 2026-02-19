@@ -14,7 +14,7 @@ export default function useSearch() {
     try {
       const params = new URLSearchParams({
         q: query,
-        searchType
+        searchType,
       });
 
       const res = await fetch(`/api/musicbrainz/search?${params.toString()}`);

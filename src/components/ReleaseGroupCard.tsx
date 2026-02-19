@@ -10,7 +10,9 @@ interface ReleaseGroupCardProps {
   releaseGroup: ReleaseGroup;
 }
 
-export default function ReleaseGroupCard({ releaseGroup }: ReleaseGroupCardProps) {
+export default function ReleaseGroupCard({
+  releaseGroup,
+}: ReleaseGroupCardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
@@ -22,7 +24,12 @@ export default function ReleaseGroupCard({ releaseGroup }: ReleaseGroupCardProps
   const coverUrl = `https://coverartarchive.org/release-group/${albumMbid}/front-250`;
 
   const { state, errorMsg, addToLidarr } = useLidarr();
-  const { media, loading: tracksLoading, error: tracksError, fetchTracks } = useReleaseTracks();
+  const {
+    media,
+    loading: tracksLoading,
+    error: tracksError,
+    fetchTracks,
+  } = useReleaseTracks();
 
   const handleClick = () => {
     if (!albumTitle) {
@@ -80,7 +87,12 @@ export default function ReleaseGroupCard({ releaseGroup }: ReleaseGroupCardProps
                 stroke="currentColor"
                 viewBox="0 0 24 24"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </button>
           </div>
@@ -88,7 +100,11 @@ export default function ReleaseGroupCard({ releaseGroup }: ReleaseGroupCardProps
 
         {expanded && (
           <div className="border-t border-gray-700 px-4 py-3">
-            <TrackList media={media} loading={tracksLoading} error={tracksError} />
+            <TrackList
+              media={media}
+              loading={tracksLoading}
+              error={tracksError}
+            />
           </div>
         )}
       </div>

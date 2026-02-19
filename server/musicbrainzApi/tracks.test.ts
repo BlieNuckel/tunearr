@@ -70,7 +70,7 @@ describe("getReleaseTracks", () => {
     mockFetch.mockResolvedValue({ ok: false, status: 404 });
 
     await expect(getReleaseTracks("bad")).rejects.toThrow(
-      "MusicBrainz returned 404",
+      "MusicBrainz returned 404"
     );
   });
 

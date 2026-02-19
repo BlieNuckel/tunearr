@@ -19,7 +19,11 @@ interface ArtistResultsListProps {
   };
 }
 
-export default function ArtistResultsList({ artists, isInLibrary, pagination }: ArtistResultsListProps) {
+export default function ArtistResultsList({
+  artists,
+  isInLibrary,
+  pagination,
+}: ArtistResultsListProps) {
   if (artists.length === 0) return null;
 
   return (

@@ -8,7 +8,7 @@ import type {
 /** Find the first music library section key */
 const getMusicSectionKey = async (
   baseUrl: string,
-  headers: Record<string, string>,
+  headers: Record<string, string>
 ): Promise<string> => {
   const res = await fetch(`${baseUrl}/library/sections`, { headers });
   if (!res.ok) throw new Error(`Plex returned ${res.status}`);
@@ -40,7 +40,9 @@ export async function getTopArtists(limit: number): Promise<PlexTopArtist[]> {
     .map((a) => ({
       name: a.title,
       viewCount: a.viewCount || 0,
-      thumb: a.thumb ? `/api/plex/thumb?path=${encodeURIComponent(a.thumb)}` : "",
+      thumb: a.thumb
+        ? `/api/plex/thumb?path=${encodeURIComponent(a.thumb)}`
+        : "",
       genres: (a.Genre || []).map((g) => g.tag),
     }));
 }

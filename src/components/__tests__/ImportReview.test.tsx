@@ -22,7 +22,9 @@ function makeItem(overrides: Partial<ManualImportItem> = {}): ManualImportItem {
 describe("ImportReview", () => {
   it("renders item names", () => {
     const items = [makeItem({ name: "song.flac" })];
-    render(<ImportReview items={items} onConfirm={vi.fn()} onCancel={vi.fn()} />);
+    render(
+      <ImportReview items={items} onConfirm={vi.fn()} onCancel={vi.fn()} />
+    );
     expect(screen.getByText("song.flac")).toBeInTheDocument();
   });
 
@@ -32,24 +34,38 @@ describe("ImportReview", () => {
         rejections: [{ reason: "bad quality" }, { reason: "wrong format" }],
       }),
     ];
-    render(<ImportReview items={items} onConfirm={vi.fn()} onCancel={vi.fn()} />);
+    render(
+      <ImportReview items={items} onConfirm={vi.fn()} onCancel={vi.fn()} />
+    );
     expect(screen.getByText("2 warnings")).toBeInTheDocument();
   });
 
   it("uses singular 'warning' for single rejection", () => {
     const items = [makeItem({ rejections: [{ reason: "issue" }] })];
-    render(<ImportReview items={items} onConfirm={vi.fn()} onCancel={vi.fn()} />);
+    render(
+      <ImportReview items={items} onConfirm={vi.fn()} onCancel={vi.fn()} />
+    );
     expect(screen.getByText("1 warning")).toBeInTheDocument();
   });
 
   it("shows correct button text for singular file", () => {
-    render(<ImportReview items={[makeItem()]} onConfirm={vi.fn()} onCancel={vi.fn()} />);
+    render(
+      <ImportReview
+        items={[makeItem()]}
+        onConfirm={vi.fn()}
+        onCancel={vi.fn()}
+      />
+    );
     expect(screen.getByText("Confirm Import (1 file)")).toBeInTheDocument();
   });
 
   it("shows correct button text for plural files", () => {
     render(
-      <ImportReview items={[makeItem(), makeItem()]} onConfirm={vi.fn()} onCancel={vi.fn()} />
+      <ImportReview
+        items={[makeItem(), makeItem()]}
+        onConfirm={vi.fn()}
+        onCancel={vi.fn()}
+      />
     );
     expect(screen.getByText("Confirm Import (2 files)")).toBeInTheDocument();
   });
@@ -57,7 +73,13 @@ describe("ImportReview", () => {
   it("calls onConfirm and onCancel", () => {
     const onConfirm = vi.fn();
     const onCancel = vi.fn();
-    render(<ImportReview items={[makeItem()]} onConfirm={onConfirm} onCancel={onCancel} />);
+    render(
+      <ImportReview
+        items={[makeItem()]}
+        onConfirm={onConfirm}
+        onCancel={onCancel}
+      />
+    );
 
     fireEvent.click(screen.getByText(/Confirm Import/));
     expect(onConfirm).toHaveBeenCalledOnce();

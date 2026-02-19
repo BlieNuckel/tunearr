@@ -20,7 +20,9 @@ describe("useArtistAlbums", () => {
   it("fetches albums successfully", async () => {
     const releaseGroups = [{ id: "1", title: "Homogenic" }];
     vi.mocked(fetch).mockResolvedValueOnce(
-      new Response(JSON.stringify({ "release-groups": releaseGroups }), { status: 200 })
+      new Response(JSON.stringify({ "release-groups": releaseGroups }), {
+        status: 200,
+      })
     );
 
     const { result } = renderHook(() => useArtistAlbums());

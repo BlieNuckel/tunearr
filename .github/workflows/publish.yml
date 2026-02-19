@@ -9,7 +9,38 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck frontend
+        run: tsc --noEmit
+
+      - name: Typecheck server
+        run: npm run typecheck:server
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test frontend
+        run: npm test
+
+      - name: Test server
+        run: npm run test:server
+
   publish:
+    needs: ci
     runs-on: ubuntu-latest
     permissions:
       contents: read

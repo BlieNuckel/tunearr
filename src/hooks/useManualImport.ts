@@ -14,7 +14,13 @@ export type ManualImportItem = {
   album: { id: number };
 };
 
-type ImportStep = "idle" | "uploading" | "reviewing" | "importing" | "done" | "error";
+type ImportStep =
+  | "idle"
+  | "uploading"
+  | "reviewing"
+  | "importing"
+  | "done"
+  | "error";
 
 type ImportState = {
   step: ImportStep;
@@ -106,7 +112,9 @@ export default function useManualImport() {
   const cancel = useCallback(async () => {
     const uploadId = state.uploadId;
     if (uploadId) {
-      await fetch(`/api/lidarr/import/${uploadId}`, { method: "DELETE" }).catch(() => {});
+      await fetch(`/api/lidarr/import/${uploadId}`, { method: "DELETE" }).catch(
+        () => {}
+      );
     }
     setState({
       step: "idle",

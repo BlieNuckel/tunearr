@@ -30,12 +30,8 @@ export default function RecentImports({ items }: RecentImportsProps) {
           className="flex items-center justify-between bg-gray-800 rounded-lg px-4 py-3 border border-gray-700"
         >
           <div>
-            <p className="text-white font-medium">
-              {item.album.title}
-            </p>
-            <p className="text-gray-400 text-sm">
-              {item.artist.artistName}
-            </p>
+            <p className="text-white font-medium">{item.album.title}</p>
+            <p className="text-gray-400 text-sm">{item.artist.artistName}</p>
             <p className="text-gray-500 text-xs mt-1">
               {new Date(item.date).toLocaleString()}
             </p>

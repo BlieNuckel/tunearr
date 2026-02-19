@@ -13,7 +13,12 @@ function createMockRes() {
 describe("errorHandler", () => {
   it("sends 500 with Error message", () => {
     const res = createMockRes();
-    errorHandler(new Error("Something broke"), {} as Request, res, vi.fn() as NextFunction);
+    errorHandler(
+      new Error("Something broke"),
+      {} as Request,
+      res,
+      vi.fn() as NextFunction
+    );
 
     expect(res.status).toHaveBeenCalledWith(500);
     expect(res.json).toHaveBeenCalledWith({ error: "Something broke" });

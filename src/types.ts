@@ -56,4 +56,9 @@ export interface RecentImport {
   };
 }
 
-export type MonitorState = "idle" | "adding" | "success" | "already_monitored" | "error";
+export type MonitorState =
+  | "idle"
+  | "adding"
+  | "success"
+  | "already_monitored"
+  | "error";

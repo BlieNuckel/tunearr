@@ -32,12 +32,12 @@ export default function DiscoverPage() {
 
   const libraryMbids = useMemo(
     () => new Set(libraryArtists.map((a) => a.foreignArtistId)),
-    [libraryArtists],
+    [libraryArtists]
   );
 
   const libraryNames = useMemo(
     () => new Set(libraryArtists.map((a) => a.name.toLowerCase())),
-    [libraryArtists],
+    [libraryArtists]
   );
 
   const isInLibrary = (name: string, mbid?: string) => {
@@ -95,7 +95,9 @@ export default function DiscoverPage() {
         <p className="text-gray-400 mt-4">Loading...</p>
       )}
       {similarError && <p className="text-red-400 mt-4">{similarError}</p>}
-      {tagArtistsError && <p className="text-red-400 mt-4">{tagArtistsError}</p>}
+      {tagArtistsError && (
+        <p className="text-red-400 mt-4">{tagArtistsError}</p>
+      )}
 
       {showingTagResults ? (
         <ArtistResultsList

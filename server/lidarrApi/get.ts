@@ -4,11 +4,11 @@ import { ProxyResponse } from "./types";
 /** Generic proxy helper for GET requests */
 const lidarrGet = async <T = unknown>(
   lidarrPath: string,
-  query: Record<string, unknown> = {},
+  query: Record<string, unknown> = {}
 ): Promise<ProxyResponse<T>> => {
   const { url, headers } = getLidarrConfig();
   const params = new URLSearchParams(
-    Object.entries(query).map(([key, value]) => [key, String(value)]),
+    Object.entries(query).map(([key, value]) => [key, String(value)])
   ).toString();
   const sep = params ? "?" : "";
   const response = await fetch(`${url}/api/v1${lidarrPath}${sep}${params}`, {

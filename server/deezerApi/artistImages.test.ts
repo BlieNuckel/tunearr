@@ -16,8 +16,13 @@ describe("getArtistImage", () => {
   it("fetches and returns artist image URL", async () => {
     mockFetch.mockResolvedValue(
       okResponse({
-        data: [{ picture_big: "https://cdn.deezer.com/big.jpg", picture_medium: "https://cdn.deezer.com/med.jpg" }],
-      }),
+        data: [
+          {
+            picture_big: "https://cdn.deezer.com/big.jpg",
+            picture_medium: "https://cdn.deezer.com/med.jpg",
+          },
+        ],
+      })
     );
 
     const { getArtistImage } = await import("./artistImages");
@@ -30,8 +35,10 @@ describe("getArtistImage", () => {
   it("uses cache on second call", async () => {
     mockFetch.mockResolvedValue(
       okResponse({
-        data: [{ picture_big: "https://cdn.deezer.com/big.jpg", picture_medium: "" }],
-      }),
+        data: [
+          { picture_big: "https://cdn.deezer.com/big.jpg", picture_medium: "" },
+        ],
+      })
     );
 
     const { getArtistImage } = await import("./artistImages");
@@ -63,8 +70,10 @@ describe("getArtistImage", () => {
   it("falls back to picture_medium when picture_big is empty", async () => {
     mockFetch.mockResolvedValue(
       okResponse({
-        data: [{ picture_big: "", picture_medium: "https://cdn.deezer.com/med.jpg" }],
-      }),
+        data: [
+          { picture_big: "", picture_medium: "https://cdn.deezer.com/med.jpg" },
+        ],
+      })
     );
 
     const { getArtistImage } = await import("./artistImages");
@@ -78,8 +87,10 @@ describe("enrichWithImages", () => {
   it("fills in missing imageUrls from Deezer", async () => {
     mockFetch.mockResolvedValue(
       okResponse({
-        data: [{ picture_big: "https://cdn.deezer.com/img.jpg", picture_medium: "" }],
-      }),
+        data: [
+          { picture_big: "https://cdn.deezer.com/img.jpg", picture_medium: "" },
+        ],
+      })
     );
 
     const { enrichWithImages } = await import("./artistImages");

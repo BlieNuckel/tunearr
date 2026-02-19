@@ -10,7 +10,9 @@ afterEach(() => {
 });
 
 function makeFileList(names: string[]): FileList {
-  const files = names.map((name) => new File(["content"], name, { type: "audio/flac" }));
+  const files = names.map(
+    (name) => new File(["content"], name, { type: "audio/flac" })
+  );
   return Object.assign(files, {
     item: (i: number) => files[i] ?? null,
     [Symbol.iterator]: files[Symbol.iterator].bind(files),
@@ -40,7 +42,9 @@ describe("useManualImport", () => {
     );
 
     const { result } = renderHook(() => useManualImport());
-    await act(() => result.current.upload(makeFileList(["track.flac"]), "mbid-123"));
+    await act(() =>
+      result.current.upload(makeFileList(["track.flac"]), "mbid-123")
+    );
 
     expect(result.current.step).toBe("reviewing");
     expect(result.current.uploadId).toBe("upload-1");
@@ -53,7 +57,9 @@ describe("useManualImport", () => {
     );
 
     const { result } = renderHook(() => useManualImport());
-    await act(() => result.current.upload(makeFileList(["track.flac"]), "mbid-123"));
+    await act(() =>
+      result.current.upload(makeFileList(["track.flac"]), "mbid-123")
+    );
 
     expect(result.current.step).toBe("error");
     expect(result.current.error).toBe("Bad request");
@@ -65,7 +71,9 @@ describe("useManualImport", () => {
     );
 
     const { result } = renderHook(() => useManualImport());
-    await act(() => result.current.upload(makeFileList(["track.flac"]), "mbid-123"));
+    await act(() =>
+      result.current.upload(makeFileList(["track.flac"]), "mbid-123")
+    );
 
     expect(result.current.step).toBe("error");
     expect(result.current.error).toBe("Gateway Timeout");
@@ -75,7 +83,12 @@ describe("useManualImport", () => {
     vi.mocked(fetch)
       .mockResolvedValueOnce(
         new Response(
-          JSON.stringify({ uploadId: "u1", artistId: 1, albumId: 1, items: [] }),
+          JSON.stringify({
+            uploadId: "u1",
+            artistId: 1,
+            albumId: 1,
+            items: [],
+          }),
           { status: 200 }
         )
       )
@@ -94,12 +107,19 @@ describe("useManualImport", () => {
     vi.mocked(fetch)
       .mockResolvedValueOnce(
         new Response(
-          JSON.stringify({ uploadId: "u1", artistId: 1, albumId: 1, items: [] }),
+          JSON.stringify({
+            uploadId: "u1",
+            artistId: 1,
+            albumId: 1,
+            items: [],
+          }),
           { status: 200 }
         )
       )
       .mockResolvedValueOnce(
-        new Response(JSON.stringify({ error: "Import failed" }), { status: 500 })
+        new Response(JSON.stringify({ error: "Import failed" }), {
+          status: 500,
+        })
       );
 
     const { result } = renderHook(() => useManualImport());
@@ -114,7 +134,12 @@ describe("useManualImport", () => {
     vi.mocked(fetch)
       .mockResolvedValueOnce(
         new Response(
-          JSON.stringify({ uploadId: "u1", artistId: 1, albumId: 1, items: [] }),
+          JSON.stringify({
+            uploadId: "u1",
+            artistId: 1,
+            albumId: 1,
+            items: [],
+          }),
           { status: 200 }
         )
       )
@@ -124,7 +149,9 @@ describe("useManualImport", () => {
     await act(() => result.current.upload(makeFileList(["t.flac"]), "mbid"));
     await act(() => result.current.cancel());
 
-    expect(vi.mocked(fetch)).toHaveBeenCalledWith("/api/lidarr/import/u1", { method: "DELETE" });
+    expect(vi.mocked(fetch)).toHaveBeenCalledWith("/api/lidarr/import/u1", {
+      method: "DELETE",
+    });
     expect(result.current.step).toBe("idle");
   });
 
@@ -139,7 +166,12 @@ describe("useManualImport", () => {
   it("reset returns to initial state", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(
       new Response(
-        JSON.stringify({ uploadId: "u1", artistId: 1, albumId: 1, items: [{ name: "f" }] }),
+        JSON.stringify({
+          uploadId: "u1",
+          artistId: 1,
+          albumId: 1,
+          items: [{ name: "f" }],
+        }),
         { status: 200 }
       )
     );

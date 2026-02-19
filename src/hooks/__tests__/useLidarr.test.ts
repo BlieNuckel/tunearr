@@ -30,7 +30,9 @@ describe("useLidarr", () => {
 
   it("transitions to already_monitored", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(
-      new Response(JSON.stringify({ status: "already_monitored" }), { status: 200 })
+      new Response(JSON.stringify({ status: "already_monitored" }), {
+        status: 200,
+      })
     );
 
     const { result } = renderHook(() => useLidarr());

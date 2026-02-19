@@ -10,7 +10,12 @@ interface ArtistCardProps {
   inLibrary?: boolean;
 }
 
-export default function ArtistCard({ name, imageUrl, match, inLibrary }: ArtistCardProps) {
+export default function ArtistCard({
+  name,
+  imageUrl,
+  match,
+  inLibrary,
+}: ArtistCardProps) {
   const [expanded, setExpanded] = useState(false);
   const { albums, loading, error, fetchAlbums } = useArtistAlbums();
 
@@ -38,7 +43,11 @@ export default function ArtistCard({ name, imageUrl, match, inLibrary }: ArtistC
           />
         ) : (
           <div className="w-12 h-12 rounded bg-gray-700 flex-shrink-0 flex items-center justify-center">
-            <svg className="w-6 h-6 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+            <svg
+              className="w-6 h-6 text-gray-500"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
               <path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z" />
             </svg>
           </div>
@@ -64,13 +73,20 @@ export default function ArtistCard({ name, imageUrl, match, inLibrary }: ArtistC
           stroke="currentColor"
           viewBox="0 0 24 24"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M19 9l-7 7-7-7"
+          />
         </svg>
       </button>
 
       {expanded && (
         <div className="border-t border-gray-700 p-3 space-y-2">
-          {loading && <p className="text-gray-400 text-sm">Loading albums...</p>}
+          {loading && (
+            <p className="text-gray-400 text-sm">Loading albums...</p>
+          )}
           {error && <p className="text-red-400 text-sm">{error}</p>}
           {!loading && !error && albums.length === 0 && (
             <p className="text-gray-500 text-sm">No albums found.</p>

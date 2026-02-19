@@ -25,9 +25,11 @@ export interface LidarrContextValue {
   isLoading: boolean;
   saveSettings: (newSettings: LidarrSettings) => Promise<void>;
   testConnection: (
-    testSettings: LidarrSettings,
+    testSettings: LidarrSettings
   ) => Promise<{ success: boolean; version?: string; error?: string }>;
   loadLidarrOptionValues: () => Promise<void>;
 }
 
-export const LidarrContext = createContext<LidarrContextValue | undefined>(undefined);
+export const LidarrContext = createContext<LidarrContextValue | undefined>(
+  undefined
+);

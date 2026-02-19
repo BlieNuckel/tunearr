@@ -29,7 +29,11 @@ describe("RecentImports", () => {
     const items = [
       makeImport({ id: 1, albumId: 100 }),
       makeImport({ id: 2, albumId: 100 }),
-      makeImport({ id: 3, albumId: 200, album: { id: 200, title: "Other Album" } }),
+      makeImport({
+        id: 3,
+        albumId: 200,
+        album: { id: 200, title: "Other Album" },
+      }),
     ];
     render(<RecentImports items={items} />);
 
