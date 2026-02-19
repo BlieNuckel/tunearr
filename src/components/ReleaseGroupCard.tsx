@@ -55,21 +55,23 @@ export default function ReleaseGroupCard({
 
   return (
     <>
-      <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
+      <div className="bg-white rounded-xl border-2 border-black shadow-cartoon-md overflow-hidden hover:translate-y-[-2px] hover:shadow-cartoon-lg transition-all">
         <div className="flex gap-4 p-4">
           <img
             src={coverUrl}
             alt={`${albumTitle} cover`}
-            className="w-24 h-24 rounded object-cover bg-gray-700 flex-shrink-0"
+            className="w-24 h-24 rounded-lg object-cover bg-gray-100 flex-shrink-0 border-2 border-black"
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = "none";
             }}
           />
           <div className="flex-1 min-w-0">
-            <h3 className="text-white font-semibold truncate">{albumTitle}</h3>
-            <p className="text-gray-400 text-sm">{artistName}</p>
-            {year && <p className="text-gray-500 text-xs mt-1">{year}</p>}
-            <p className="text-gray-600 text-xs mt-1 truncate">{albumMbid}</p>
+            <h3 className="text-gray-900 font-semibold truncate">
+              {albumTitle}
+            </h3>
+            <p className="text-gray-500 text-sm">{artistName}</p>
+            {year && <p className="text-gray-400 text-xs mt-1">{year}</p>}
+            <p className="text-gray-300 text-xs mt-1 truncate">{albumMbid}</p>
           </div>
           <div className="flex items-start gap-2">
             <MonitorButton
@@ -79,7 +81,7 @@ export default function ReleaseGroupCard({
             />
             <button
               onClick={handleToggle}
-              className="p-1.5 text-gray-400 hover:text-white transition-colors rounded"
+              className="p-1.5 text-gray-400 hover:text-gray-900 transition-colors rounded"
             >
               <svg
                 className={`w-5 h-5 transition-transform ${expanded ? "rotate-180" : ""}`}
@@ -99,7 +101,7 @@ export default function ReleaseGroupCard({
         </div>
 
         {expanded && (
-          <div className="border-t border-gray-700 px-4 py-3">
+          <div className="border-t-2 border-black px-4 py-3">
             <TrackList
               media={media}
               loading={tracksLoading}

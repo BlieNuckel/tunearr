@@ -16,17 +16,17 @@ export default function Pagination({
       <button
         onClick={() => onPageChange(page - 1)}
         disabled={page <= 1}
-        className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-white rounded text-sm transition-colors"
+        className="px-3 py-1.5 bg-white hover:bg-gray-50 disabled:opacity-50 text-gray-900 rounded-lg text-sm border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all"
       >
         Previous
       </button>
-      <span className="text-gray-400 text-sm">
+      <span className="text-gray-500 text-sm font-medium">
         Page {page} of {totalPages}
       </span>
       <button
         onClick={() => onPageChange(page + 1)}
         disabled={page >= totalPages}
-        className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-white rounded text-sm transition-colors"
+        className="px-3 py-1.5 bg-white hover:bg-gray-50 disabled:opacity-50 text-gray-900 rounded-lg text-sm border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all"
       >
         Next
       </button>

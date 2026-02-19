@@ -38,25 +38,25 @@ export default function WizardShell({
   showNav = true,
 }: WizardShellProps) {
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-amber-50 flex items-center justify-center p-4">
       <div className="w-full max-w-lg">
         <div className="flex gap-1 mb-8">
           {STEPS.map((_, i) => (
             <div
               key={i}
-              className={`h-1 flex-1 rounded-full ${
-                i <= stepIndex ? "bg-indigo-500" : "bg-gray-700"
+              className={`h-2 flex-1 rounded-full border-2 border-black ${
+                i <= stepIndex ? "bg-amber-300" : "bg-white"
               }`}
             />
           ))}
         </div>
 
-        <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-          <p className="text-sm text-gray-400 mb-1">
+        <div className="bg-white rounded-xl p-6 border-2 border-black shadow-cartoon-lg">
+          <p className="text-sm text-gray-500 mb-1">
             Step {stepIndex + 1} of {STEPS.length}
             {isOptional && " (Optional)"}
           </p>
-          <h2 className="text-xl font-bold text-white mb-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-6">
             {STEP_LABELS[currentStep]}
           </h2>
 
@@ -68,7 +68,7 @@ export default function WizardShell({
                 type="button"
                 onClick={onBack}
                 disabled={stepIndex === 0}
-                className="px-4 py-2 text-sm text-gray-400 hover:text-white disabled:opacity-30 transition-colors"
+                className="px-4 py-2 text-sm text-gray-400 hover:text-gray-900 disabled:opacity-30 transition-colors"
               >
                 Back
               </button>
@@ -77,7 +77,7 @@ export default function WizardShell({
                   <button
                     type="button"
                     onClick={onSkip}
-                    className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors"
+                    className="px-4 py-2 text-sm text-gray-400 hover:text-gray-900 transition-colors"
                   >
                     Skip
                   </button>
@@ -86,7 +86,7 @@ export default function WizardShell({
                   type="button"
                   onClick={onNext}
                   disabled={nextDisabled}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-md text-sm transition-colors"
+                  className="px-4 py-2 bg-amber-300 hover:bg-amber-200 disabled:opacity-50 text-black font-bold rounded-lg text-sm border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all"
                 >
                   {nextLabel}
                 </button>

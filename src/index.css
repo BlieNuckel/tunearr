@@ -1,1 +1,8 @@
 @import "tailwindcss";
+
+@theme {
+  --shadow-cartoon-sm: 2px 2px 0 0 black;
+  --shadow-cartoon-md: 4px 4px 0 0 black;
+  --shadow-cartoon-lg: 6px 6px 0 0 black;
+  --shadow-cartoon-pressed: 1px 1px 0 0 black;
+}

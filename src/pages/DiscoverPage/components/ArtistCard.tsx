@@ -27,24 +27,24 @@ export default function ArtistCard({
   };
 
   return (
-    <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
+    <div className="bg-white rounded-xl border-2 border-black shadow-cartoon-md overflow-hidden hover:translate-y-[-2px] hover:shadow-cartoon-lg transition-all">
       <button
         onClick={handleToggle}
-        className="w-full flex items-center gap-3 p-3 text-left hover:bg-gray-750 transition-colors"
+        className="w-full flex items-center gap-3 p-3 text-left hover:bg-amber-50 transition-colors"
       >
         {imageUrl ? (
           <img
             src={imageUrl}
             alt={name}
-            className="w-12 h-12 rounded object-cover bg-gray-700 flex-shrink-0"
+            className="w-12 h-12 rounded-lg object-cover bg-gray-100 flex-shrink-0 border-2 border-black"
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = "none";
             }}
           />
         ) : (
-          <div className="w-12 h-12 rounded bg-gray-700 flex-shrink-0 flex items-center justify-center">
+          <div className="w-12 h-12 rounded-lg bg-amber-100 flex-shrink-0 flex items-center justify-center border-2 border-black">
             <svg
-              className="w-6 h-6 text-gray-500"
+              className="w-6 h-6 text-amber-400"
               fill="currentColor"
               viewBox="0 0 20 20"
             >
@@ -54,15 +54,15 @@ export default function ArtistCard({
         )}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <h3 className="text-white font-medium truncate">{name}</h3>
+            <h3 className="text-gray-900 font-medium truncate">{name}</h3>
             {inLibrary && (
-              <span className="text-xs bg-indigo-900/50 text-indigo-400 px-1.5 py-0.5 rounded flex-shrink-0">
+              <span className="text-xs bg-amber-300 text-black px-1.5 py-0.5 rounded-full flex-shrink-0 border-2 border-black font-bold shadow-cartoon-sm">
                 In Library
               </span>
             )}
           </div>
           {match !== undefined && (
-            <p className="text-gray-500 text-xs">
+            <p className="text-gray-400 text-xs">
               {Math.round(match * 100)}% match
             </p>
           )}
@@ -83,13 +83,13 @@ export default function ArtistCard({
       </button>
 
       {expanded && (
-        <div className="border-t border-gray-700 p-3 space-y-2">
+        <div className="border-t-2 border-black p-3 space-y-2 bg-amber-50">
           {loading && (
-            <p className="text-gray-400 text-sm">Loading albums...</p>
+            <p className="text-gray-500 text-sm">Loading albums...</p>
           )}
-          {error && <p className="text-red-400 text-sm">{error}</p>}
+          {error && <p className="text-rose-500 text-sm">{error}</p>}
           {!loading && !error && albums.length === 0 && (
-            <p className="text-gray-500 text-sm">No albums found.</p>
+            <p className="text-gray-400 text-sm">No albums found.</p>
           )}
           {albums.map((rg) => (
             <ReleaseGroupCard key={rg.id} releaseGroup={rg} />

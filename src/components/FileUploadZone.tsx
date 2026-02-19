@@ -21,10 +21,10 @@ export default function FileUploadZone({ onFiles }: FileUploadZoneProps) {
       onDrop={handleDrop}
       onDragOver={(e) => e.preventDefault()}
       onClick={() => fileInputRef.current?.click()}
-      className="border-2 border-dashed border-gray-600 hover:border-gray-500 rounded-lg p-6 text-center cursor-pointer transition-colors"
+      className="border-2 border-dashed border-amber-400 hover:border-amber-500 rounded-xl p-6 text-center cursor-pointer bg-amber-50 shadow-cartoon-md transition-all hover:translate-y-[-2px] hover:shadow-cartoon-lg"
     >
       <svg
-        className="w-8 h-8 mx-auto text-gray-500 mb-2"
+        className="w-8 h-8 mx-auto text-amber-400 mb-2"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -36,10 +36,10 @@ export default function FileUploadZone({ onFiles }: FileUploadZoneProps) {
           d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
         />
       </svg>
-      <p className="text-gray-400 text-sm">
+      <p className="text-gray-600 text-sm">
         Drop audio files here or click to browse
       </p>
-      <p className="text-gray-600 text-xs mt-1">
+      <p className="text-gray-400 text-xs mt-1">
         FLAC, MP3, OGG, WAV, M4A, AAC
       </p>
       <input

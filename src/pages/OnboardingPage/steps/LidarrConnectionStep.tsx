@@ -21,12 +21,12 @@ export default function LidarrConnectionStep({
 }: LidarrConnectionStepProps) {
   return (
     <div className="space-y-4">
-      <p className="text-sm text-gray-400 mb-4">
+      <p className="text-sm text-gray-500 mb-4">
         Connect to your Lidarr instance. You can find your API key in Lidarr
         under Settings &gt; General.
       </p>
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-1">
+        <label className="block text-sm font-medium text-gray-600 mb-1">
           Lidarr URL
         </label>
         <input
@@ -34,11 +34,11 @@ export default function LidarrConnectionStep({
           value={url}
           onChange={(e) => onUrlChange(e.target.value)}
           placeholder="http://localhost:8686"
-          className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-gray-100 placeholder-gray-400 focus:outline-none focus:border-indigo-500"
+          className="w-full px-3 py-2 bg-white border-2 border-black rounded-lg text-gray-900 placeholder-gray-200 focus:outline-none focus:border-amber-400 shadow-cartoon-md"
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-1">
+        <label className="block text-sm font-medium text-gray-600 mb-1">
           API Key
         </label>
         <input
@@ -46,23 +46,23 @@ export default function LidarrConnectionStep({
           value={apiKey}
           onChange={(e) => onApiKeyChange(e.target.value)}
           placeholder="Enter API key"
-          className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-gray-100 placeholder-gray-400 focus:outline-none focus:border-indigo-500"
+          className="w-full px-3 py-2 bg-white border-2 border-black rounded-lg text-gray-900 placeholder-gray-200 focus:outline-none focus:border-amber-400 shadow-cartoon-md"
         />
       </div>
       <button
         type="button"
         onClick={onTest}
         disabled={testing || !url || !apiKey}
-        className="px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-white rounded-md text-sm transition-colors"
+        className="px-4 py-2 bg-amber-300 hover:bg-amber-200 disabled:opacity-50 text-black font-bold rounded-lg text-sm border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all"
       >
         {testing ? "Testing..." : "Test Connection"}
       </button>
       {testResult && (
         <div
-          className={`p-3 rounded-md text-sm ${
+          className={`p-3 rounded-xl text-sm font-medium border-2 border-black shadow-cartoon-sm ${
             testResult.success
-              ? "bg-green-900/30 text-green-400 border border-green-800"
-              : "bg-red-900/30 text-red-400 border border-red-800"
+              ? "bg-emerald-400 text-black"
+              : "bg-rose-400 text-white"
           }`}
         >
           {testResult.success

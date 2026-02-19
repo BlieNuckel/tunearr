@@ -19,7 +19,7 @@ export default function PlexTopArtists({
 
   return (
     <div className="mb-6">
-      <h2 className="text-sm font-medium text-gray-400 mb-2">
+      <h2 className="text-sm font-medium text-gray-500 mb-2">
         Based on your listening
       </h2>
       <div className="flex flex-wrap gap-2">
@@ -27,17 +27,17 @@ export default function PlexTopArtists({
           <button
             key={artist.name}
             onClick={() => onSelect(artist.name)}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm transition-colors ${
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all ${
               selectedArtist === artist.name
-                ? "bg-indigo-600 text-white"
-                : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                ? "bg-pink-400 text-black font-bold"
+                : "bg-white text-gray-700 hover:bg-pink-50"
             }`}
           >
             {artist.thumb && (
               <img
                 src={artist.thumb}
                 alt=""
-                className="w-5 h-5 rounded-full object-cover"
+                className="w-5 h-5 rounded-full object-cover border border-black"
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = "none";
                 }}

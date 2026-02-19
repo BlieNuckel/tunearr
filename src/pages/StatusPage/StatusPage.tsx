@@ -59,14 +59,14 @@ export default function StatusPage() {
   };
 
   if (loading) {
-    return <p className="text-gray-400">Loading status...</p>;
+    return <p className="text-gray-500">Loading status...</p>;
   }
 
   if (error) {
     return (
-      <div className="text-red-400">
+      <div className="text-rose-500">
         <p>Failed to load status: {error}</p>
-        <p className="text-gray-500 text-sm mt-1">
+        <p className="text-gray-400 text-sm mt-1">
           Make sure Lidarr is configured in Settings.
         </p>
       </div>
@@ -76,17 +76,17 @@ export default function StatusPage() {
   return (
     <div className="space-y-8">
       <section>
-        <h2 className="text-xl font-bold text-white mb-4">Download Queue</h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Download Queue</h2>
         <QueueTable items={queue} />
       </section>
 
       <section>
-        <h2 className="text-xl font-bold text-white mb-4">Wanted / Missing</h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Wanted / Missing</h2>
         <WantedList items={wanted} onSearch={handleAlbumSearch} />
       </section>
 
       <section>
-        <h2 className="text-xl font-bold text-white mb-4">Recent Imports</h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Imports</h2>
         <RecentImports items={history} />
       </section>
     </div>

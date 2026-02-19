@@ -4,7 +4,7 @@ import SearchBar from "../SearchBar";
 describe("SearchBar", () => {
   it("defaults to album search type", () => {
     render(<SearchBar onSearch={vi.fn()} />);
-    expect(screen.getByRole("combobox")).toHaveValue("album");
+    expect(screen.getByText("Album")).toBeInTheDocument();
   });
 
   it("calls onSearch with query and search type on submit", () => {
@@ -35,9 +35,9 @@ describe("SearchBar", () => {
     const onSearch = vi.fn();
     render(<SearchBar onSearch={onSearch} />);
 
-    fireEvent.change(screen.getByRole("combobox"), {
-      target: { value: "artist" },
-    });
+    fireEvent.click(screen.getByText("Album"));
+    fireEvent.click(screen.getByText("Artist"));
+
     fireEvent.change(screen.getByPlaceholderText("Search..."), {
       target: { value: "Bjork" },
     });

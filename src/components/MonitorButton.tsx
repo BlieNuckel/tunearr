@@ -21,12 +21,12 @@ export default function MonitorButton({
       <button
         onClick={onClick}
         disabled={disabled}
-        className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${config.className}`}
+        className={`px-3 py-1.5 rounded-lg text-sm font-medium ${config.className}`}
       >
         {config.label}
       </button>
       {state === "error" && errorMsg && (
-        <p className="text-red-400 text-xs max-w-48 text-right">{errorMsg}</p>
+        <p className="text-rose-400 text-xs max-w-48 text-right">{errorMsg}</p>
       )}
     </div>
   );

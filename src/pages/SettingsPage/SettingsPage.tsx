@@ -78,7 +78,7 @@ export default function SettingsPage() {
   ]);
 
   if (isLoading) {
-    return <p className="text-gray-400">Loading settings...</p>;
+    return <p className="text-gray-500">Loading settings...</p>;
   }
 
   const handleTest = async (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -136,7 +136,7 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-lg space-y-6">
-      <h1 className="text-2xl font-bold text-white mb-6">Settings</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">Settings</h1>
 
       <form className="space-y-6" onSubmit={handleSave}>
         <LidarrConnectionSection
@@ -177,7 +177,7 @@ export default function SettingsPage() {
         <button
           type="submit"
           disabled={saving || !url || !apiKey}
-          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-md text-sm transition-colors"
+          className="px-4 py-2 bg-amber-300 hover:bg-amber-200 disabled:opacity-50 text-black font-bold rounded-lg text-sm border-2 border-black shadow-cartoon-md hover:translate-y-[-1px] hover:shadow-cartoon-lg active:translate-y-[1px] active:shadow-cartoon-pressed transition-all"
         >
           {saving ? "Saving..." : "Save"}
         </button>
@@ -185,10 +185,10 @@ export default function SettingsPage() {
 
       {testResult && (
         <div
-          className={`mt-4 p-3 rounded-md text-sm ${
+          className={`mt-4 p-3 rounded-xl text-sm font-medium border-2 border-black shadow-cartoon-sm ${
             testResult.success
-              ? "bg-green-900/30 text-green-400 border border-green-800"
-              : "bg-red-900/30 text-red-400 border border-red-800"
+              ? "bg-emerald-400 text-black"
+              : "bg-rose-400 text-white"
           }`}
         >
           {testResult.success
@@ -198,7 +198,7 @@ export default function SettingsPage() {
       )}
 
       {error && (
-        <div className="mt-4 p-3 rounded-md text-sm bg-red-900/30 text-red-400 border border-red-800">
+        <div className="mt-4 p-3 rounded-xl text-sm font-medium bg-rose-400 text-white border-2 border-black shadow-cartoon-sm">
           {error}
         </div>
       )}
