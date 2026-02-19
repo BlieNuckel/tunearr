@@ -45,6 +45,15 @@ Full-stack TypeScript app: React 19 frontend + Express 5 backend. Vite proxies `
 - `APP_CONFIG_DIR` — Host path for runtime config JSON (default: `./config`)
 - `PORT` — Server port (default: 3001)
 
+## Testing
+
+**Every feature MUST have full test coverage — both frontend and backend — before it is considered complete.** No feature is done until its tests are written and passing.
+
+- **Frontend tests** (`npm test`): Use Vitest + jsdom + React Testing Library. Test files go in `__tests__/` directories co-located with the code they test. Cover component rendering, user interactions, loading/error states, and hook behavior.
+- **Backend tests** (`npm run test:server`): Use Vitest in node mode. Test files go alongside the code they test (e.g., `server/config.test.ts`). Cover service functions, route handlers, middleware, and edge cases. Mock external API calls — never make real network requests in tests.
+- **When modifying existing features**, update or add tests to cover the changes. Never leave existing tests broken.
+- **Run both test suites** (`npm test` and `npm run test:server`) before considering any work complete. All tests must pass.
+
 ## Code Style
 
 - JSDoc comments for type annotations are encouraged
