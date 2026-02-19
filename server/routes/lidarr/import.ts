@@ -97,6 +97,21 @@ router.post("/import/upload", requireImportPath, upload.array("files"), async (r
       return res.status(400).json({ error: "Lidarr found no importable files. Make sure the import path is accessible to Lidarr." });
     }
 
+    const scanItems = scanResult.data as Record<string, unknown>[];
+    for (const item of scanItems) {
+      const tracks = item.tracks as Record<string, unknown>[] | undefined;
+      const rejections = item.rejections as Record<string, unknown>[] | undefined;
+      console.log("[import/upload] scan item:", {
+        path: item.path,
+        name: item.name,
+        albumReleaseId: item.albumReleaseId,
+        trackCount: tracks?.length ?? 0,
+        trackIds: tracks?.map((t) => t.id) ?? [],
+        rejectionCount: rejections?.length ?? 0,
+        rejections: rejections?.map((r) => r.reason) ?? [],
+      });
+    }
+
     res.json({
       uploadId,
       artistId: artist.id,
@@ -132,6 +147,8 @@ router.post("/import/confirm", async (req: Request, res: Response) => {
       disableReleaseSwitching: item.disableReleaseSwitching ?? false,
     }));
 
+    console.log("[import/confirm] command payload:", JSON.stringify({ files }, null, 2));
+
     // POST /manualimport only re-validates items — the actual import
     // is triggered via POST /command with name "ManualImport"
     const result = await lidarrPost("/command", {
@@ -139,6 +156,8 @@ router.post("/import/confirm", async (req: Request, res: Response) => {
       files,
       importMode: "move",
     });
+
+    console.log("[import/confirm] command response:", { ok: result.ok, status: result.status, data: result.data });
 
     if (!result.ok) {
       return res.status(502).json({ error: "Lidarr manual import failed" });
