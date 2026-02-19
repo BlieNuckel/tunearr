@@ -2,11 +2,17 @@ import { useState, SubmitEvent } from "react";
 
 interface SearchBarProps {
   onSearch: (query: string, searchType: string) => void;
+  initialQuery?: string;
+  initialSearchType?: string;
 }
 
-export default function SearchBar({ onSearch }: SearchBarProps) {
-  const [query, setQuery] = useState("");
-  const [searchType, setSearchType] = useState("album");
+export default function SearchBar({
+  onSearch,
+  initialQuery = "",
+  initialSearchType = "album",
+}: SearchBarProps) {
+  const [query, setQuery] = useState(initialQuery);
+  const [searchType, setSearchType] = useState(initialSearchType);
 
   const handleSubmit = (e: SubmitEvent) => {
     e.preventDefault();

@@ -1,19 +1,38 @@
+import { useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import SearchBar from "./components/SearchBar";
 import ReleaseGroupCard from "@/components/ReleaseGroupCard";
 import useSearch from "@/hooks/useSearch";
 
 export default function SearchPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const { results, loading, error, search } = useSearch();
 
-  const handleSearch = (query: string, searchType: string) => {
-    search(query, searchType);
-  };
+  const query = searchParams.get("q") ?? "";
+  const searchType = searchParams.get("searchType") ?? "album";
+
+  useEffect(() => {
+    if (query) {
+      search(query, searchType);
+    }
+  }, [query, searchType, search]);
+
+  const handleSearch = useCallback(
+    (newQuery: string, newSearchType: string) => {
+      setSearchParams({ q: newQuery, searchType: newSearchType });
+    },
+    [setSearchParams],
+  );
 
   return (
     <div>
       <h1 className="text-2xl font-bold text-white mb-6">Search Albums</h1>
 
-      <SearchBar onSearch={handleSearch} />
+      <SearchBar
+        onSearch={handleSearch}
+        initialQuery={query}
+        initialSearchType={searchType}
+      />
 
       {loading && <p className="text-gray-400 mt-4">Searching...</p>}
 
