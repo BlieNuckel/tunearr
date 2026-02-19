@@ -47,9 +47,32 @@ export default function SearchPage() {
       )}
 
       {!loading && !error && results.length === 0 && (
-        <p className="text-gray-500 mt-6 text-center">
-          Search for an album or artist to get started.
-        </p>
+        <div className="mt-16 flex flex-col items-center text-gray-400">
+          <svg
+            className="w-16 h-16 mb-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={1.5}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
+            />
+          </svg>
+          {query ? (
+            <>
+              <p className="text-lg font-medium text-gray-500">No results found</p>
+              <p className="mt-1">Try a different search term or change the search type.</p>
+            </>
+          ) : (
+            <>
+              <p className="text-lg font-medium text-gray-500">Search for music</p>
+              <p className="mt-1">Find albums or artists by name to add to your library.</p>
+            </>
+          )}
+        </div>
       )}
     </div>
   );
