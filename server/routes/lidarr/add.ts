@@ -11,44 +11,39 @@ router.post("/add", async (req: Request, res: Response) => {
     return res.status(400).json({ error: "albumMbid is required" });
   }
 
-  try {
-    const lookupAlbum = await getAlbumByMbid(albumMbid);
-    const artistMbid = lookupAlbum.artist?.foreignArtistId;
+  const lookupAlbum = await getAlbumByMbid(albumMbid);
+  const artistMbid = lookupAlbum.artist?.foreignArtistId;
 
-    if (!artistMbid) {
-      return res
-        .status(404)
-        .json({ error: "Could not determine artist from album lookup" });
-    }
+  if (!artistMbid) {
+    return res
+      .status(404)
+      .json({ error: "Could not determine artist from album lookup" });
+  }
 
-    const artist = await getOrAddArtist(artistMbid);
-    const { wasAdded, album } = await getOrAddAlbum(albumMbid, artist);
+  const artist = await getOrAddArtist(artistMbid);
+  const { wasAdded, album } = await getOrAddAlbum(albumMbid, artist);
 
-    if (!wasAdded && album?.monitored) {
-      return res.json({ status: "already_monitored" });
-    }
+  if (!wasAdded && album?.monitored) {
+    return res.json({ status: "already_monitored" });
+  }
 
-    if (!album.monitored) {
-      const monitorResult = await lidarrPut("/album/monitor", {
-        albumIds: [album.id],
-        monitored: true,
-      });
-
-      if (!monitorResult.ok) {
-        throw new Error("Failed to monitor album");
-      }
-    }
-
-    await lidarrPost("/command", {
-      name: "AlbumSearch",
+  if (!album.monitored) {
+    const monitorResult = await lidarrPut("/album/monitor", {
       albumIds: [album.id],
+      monitored: true,
     });
 
-    res.json({ status: "success" });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    res.status(500).json({ error: message });
+    if (!monitorResult.ok) {
+      throw new Error("Failed to monitor album");
+    }
   }
+
+  await lidarrPost("/command", {
+    name: "AlbumSearch",
+    albumIds: [album.id],
+  });
+
+  res.json({ status: "success" });
 });
 
 export default router;

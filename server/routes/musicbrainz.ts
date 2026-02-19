@@ -15,17 +15,12 @@ router.get("/search", rateLimiter, async (req: Request, res: Response) => {
     return res.status(400).json({ error: "Query parameter q is required" });
   }
 
-  try {
-    const data =
-      searchType === "artist"
-        ? await searchArtistReleaseGroups(q)
-        : await searchReleaseGroups(q);
+  const data =
+    searchType === "artist"
+      ? await searchArtistReleaseGroups(q)
+      : await searchReleaseGroups(q);
 
-    res.json(data);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    res.status(500).json({ error: message });
-  }
+  res.json(data);
 });
 
 router.get(
@@ -33,14 +28,8 @@ router.get(
   rateLimiter,
   async (req: Request, res: Response) => {
     const { releaseGroupId } = req.params;
-
-    try {
-      const media = await getReleaseTracks(releaseGroupId as string);
-      res.json({ media });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Unknown error";
-      res.status(500).json({ error: message });
-    }
+    const media = await getReleaseTracks(releaseGroupId as string);
+    res.json({ media });
   },
 );
 

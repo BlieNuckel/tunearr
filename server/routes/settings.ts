@@ -28,22 +28,17 @@ router.post("/test", async (req: Request, res: Response) => {
   if (!lidarrUrl || !lidarrApiKey) {
     return res.status(400).json({ error: "URL and API key are required" });
   }
-  try {
-    const url = lidarrUrl.replace(/\/+$/, "");
-    const response = await fetch(`${url}/api/v1/system/status`, {
-      headers: { "X-Api-Key": lidarrApiKey },
-    });
-    if (!response.ok) {
-      return res
-        .status(response.status)
-        .json({ error: `Lidarr returned ${response.status}` });
-    }
-    const data = await response.json();
-    res.json({ success: true, version: data.version });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    res.status(500).json({ error: message });
+  const url = lidarrUrl.replace(/\/+$/, "");
+  const response = await fetch(`${url}/api/v1/system/status`, {
+    headers: { "X-Api-Key": lidarrApiKey },
+  });
+  if (!response.ok) {
+    return res
+      .status(response.status)
+      .json({ error: `Lidarr returned ${response.status}` });
   }
+  const data = await response.json();
+  res.json({ success: true, version: data.version });
 });
 
 export default router;

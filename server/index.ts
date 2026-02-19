@@ -6,6 +6,7 @@ import lidarrRoutes from "./routes/lidarr";
 import musicbrainzRoutes from "./routes/musicbrainz";
 import plexRoutes from "./routes/plex";
 import settingsRoutes from "./routes/settings";
+import { errorHandler } from "./middleware/errorHandler";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -20,6 +21,8 @@ app.use("/api/musicbrainz", musicbrainzRoutes);
 app.use("/api/lidarr", lidarrRoutes);
 app.use("/api/lastfm", lastfmRoutes);
 app.use("/api/plex", plexRoutes);
+
+app.use(errorHandler);
 
 if (process.env.NODE_ENV === "production") {
   app.use(express.static(path.join(__dirname, "..", "build")));
