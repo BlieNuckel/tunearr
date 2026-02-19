@@ -39,7 +39,7 @@ export default function SearchPage() {
       {error && <p className="text-rose-500 mt-4">Error: {error}</p>}
 
       {results.length > 0 && (
-        <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
           {results.map((rg) => (
             <ReleaseGroupCard key={rg.id} releaseGroup={rg} />
           ))}

@@ -63,7 +63,7 @@ describe("ReleaseGroupCard", () => {
 
     expect(screen.getAllByText("Test Album").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Test Artist").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText("2023")).toBeInTheDocument();
+    expect(screen.getAllByText("2023").length).toBeGreaterThanOrEqual(1);
   });
 
   it("shows 'Unknown Artist' when artist-credit is empty", () => {
@@ -118,90 +118,71 @@ describe("ReleaseGroupCard", () => {
     });
   });
 
-  describe("detail modal (click)", () => {
-    it("opens detail overlay and fetches tracks on click", () => {
+  describe("mobile layout", () => {
+    it("renders mobile card with title, artist, year, and monitor button", () => {
       render(<ReleaseGroupCard releaseGroup={makeReleaseGroup()} />);
-      const card = screen.getByTestId("release-group-card").closest(".flip-card")!;
 
-      fireEvent.click(card);
+      const mobileCard = screen.getByTestId("release-group-card-mobile");
+      expect(mobileCard).toBeInTheDocument();
+      expect(screen.getByTestId("mobile-monitor-button")).toBeInTheDocument();
+    });
 
-      expect(screen.getByTestId("detail-overlay")).toBeInTheDocument();
+    it("expands to show tracklist when card is clicked", () => {
+      render(<ReleaseGroupCard releaseGroup={makeReleaseGroup()} />);
+
+      expect(screen.queryByTestId("mobile-tracklist")).not.toBeInTheDocument();
+
+      const mobileCard = screen.getByTestId("release-group-card-mobile");
+      fireEvent.click(mobileCard.querySelector(".flex.items-center")!);
+
+      expect(screen.getByTestId("mobile-tracklist")).toBeInTheDocument();
       expect(mockFetchTracks).toHaveBeenCalledWith("abc-123");
     });
 
-    it("shows album info and track list in the detail overlay", () => {
+    it("collapses tracklist when expanded card is clicked again", () => {
       render(<ReleaseGroupCard releaseGroup={makeReleaseGroup()} />);
-      const card = screen.getByTestId("release-group-card").closest(".flip-card")!;
 
-      fireEvent.click(card);
+      const clickTarget = screen.getByTestId("release-group-card-mobile").querySelector(".flex.items-center")!;
 
-      const overlay = screen.getByTestId("detail-overlay");
-      expect(overlay).toHaveTextContent("Test Album");
-      expect(overlay).toHaveTextContent("Test Artist");
-      expect(overlay).toHaveTextContent("2023");
-      expect(screen.getAllByTestId("track-list").length).toBeGreaterThanOrEqual(1);
+      fireEvent.click(clickTarget);
+      expect(screen.getByTestId("mobile-tracklist")).toBeInTheDocument();
+
+      fireEvent.click(clickTarget);
+      expect(screen.queryByTestId("mobile-tracklist")).not.toBeInTheDocument();
     });
 
-    it("closes detail overlay when clicking the X button", () => {
+    it("opens purchase modal when + button is clicked", () => {
       render(<ReleaseGroupCard releaseGroup={makeReleaseGroup()} />);
-      const card = screen.getByTestId("release-group-card").closest(".flip-card")!;
 
-      fireEvent.click(card);
-      expect(screen.getByTestId("detail-overlay")).toBeInTheDocument();
-
-      fireEvent.click(screen.getByTestId("detail-close"));
-      expect(screen.queryByTestId("detail-overlay")).not.toBeInTheDocument();
-    });
-
-    it("closes detail overlay when clicking the backdrop", () => {
-      render(<ReleaseGroupCard releaseGroup={makeReleaseGroup()} />);
-      const card = screen.getByTestId("release-group-card").closest(".flip-card")!;
-
-      fireEvent.click(card);
-      expect(screen.getByTestId("detail-overlay")).toBeInTheDocument();
-
-      fireEvent.click(screen.getByTestId("detail-overlay"));
-      expect(screen.queryByTestId("detail-overlay")).not.toBeInTheDocument();
-    });
-
-    it("opens purchase modal when MonitorButton is clicked in detail overlay", () => {
-      render(<ReleaseGroupCard releaseGroup={makeReleaseGroup()} />);
-      const card = screen.getByTestId("release-group-card").closest(".flip-card")!;
-
-      fireEvent.click(card);
-      const overlay = screen.getByTestId("detail-overlay");
-      const addBtn = overlay.querySelector("button:not([data-testid='detail-close'])")!;
-      fireEvent.click(addBtn);
+      fireEvent.click(screen.getByTestId("mobile-monitor-button"));
 
       expect(screen.getByTestId("purchase-modal")).toBeInTheDocument();
     });
 
-    it("calls addToLidarr directly when album title is empty", () => {
-      render(
-        <ReleaseGroupCard releaseGroup={makeReleaseGroup({ title: "" })} />
-      );
-      const card = screen.getByTestId("release-group-card").closest(".flip-card")!;
-
-      fireEvent.click(card);
-      const overlay = screen.getByTestId("detail-overlay");
-      const addBtn = overlay.querySelector("button:not([data-testid='detail-close'])")!;
-      fireEvent.click(addBtn);
-
-      expect(mockAddToLidarr).toHaveBeenCalledWith({ albumMbid: "abc-123" });
-      expect(screen.queryByTestId("purchase-modal")).not.toBeInTheDocument();
-    });
-
-    it("calls addToLidarr when 'Add to Library' is clicked in purchase modal", () => {
+    it("does not expand card when + button is clicked", () => {
       render(<ReleaseGroupCard releaseGroup={makeReleaseGroup()} />);
-      const card = screen.getByTestId("release-group-card").closest(".flip-card")!;
 
-      fireEvent.click(card);
-      const overlay = screen.getByTestId("detail-overlay");
-      const addBtn = overlay.querySelector("button:not([data-testid='detail-close'])")!;
-      fireEvent.click(addBtn);
-      fireEvent.click(screen.getByText("Add to Library"));
+      fireEvent.click(screen.getByTestId("mobile-monitor-button"));
 
-      expect(mockAddToLidarr).toHaveBeenCalledWith({ albumMbid: "abc-123" });
+      expect(screen.queryByTestId("mobile-tracklist")).not.toBeInTheDocument();
     });
+
+    it("fetches tracks on expand but not on collapse", () => {
+      render(<ReleaseGroupCard releaseGroup={makeReleaseGroup()} />);
+
+      const clickTarget = screen.getByTestId("release-group-card-mobile").querySelector(".flex.items-center")!;
+
+      fireEvent.click(clickTarget);
+      expect(mockFetchTracks).toHaveBeenCalledTimes(1);
+
+      fireEvent.click(clickTarget);
+      expect(mockFetchTracks).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it("does not render a detail overlay", () => {
+    render(<ReleaseGroupCard releaseGroup={makeReleaseGroup()} />);
+
+    expect(screen.queryByTestId("detail-overlay")).not.toBeInTheDocument();
   });
 });
