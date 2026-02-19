@@ -1,10 +1,20 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import MonitorButton from "./MonitorButton";
 import TrackList from "./TrackList";
 import PurchaseLinksModal from "./PurchaseLinksModal";
 import useLidarr from "../hooks/useLidarr";
 import useReleaseTracks from "../hooks/useReleaseTracks";
 import { ReleaseGroup } from "../types";
+
+/** @returns {string} deterministic pastel HSL color derived from the input string */
+function pastelColorFromId(id: string): string {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = id.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const hue = Math.abs(hash) % 360;
+  return `hsl(${hue}, 70%, 85%)`;
+}
 
 interface ReleaseGroupCardProps {
   releaseGroup: ReleaseGroup;
@@ -14,14 +24,14 @@ export default function ReleaseGroupCard({
   releaseGroup,
 }: ReleaseGroupCardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [expanded, setExpanded] = useState(false);
 
   const artistName =
     releaseGroup["artist-credit"]?.[0]?.artist?.name || "Unknown Artist";
   const albumTitle = releaseGroup.title || "";
   const albumMbid = releaseGroup.id;
+  const pastelBg = useMemo(() => pastelColorFromId(albumMbid), [albumMbid]);
   const year = releaseGroup["first-release-date"]?.slice(0, 4) || "";
-  const coverUrl = `https://coverartarchive.org/release-group/${albumMbid}/front-250`;
+  const coverUrl = `https://coverartarchive.org/release-group/${albumMbid}/front-500`;
 
   const { state, errorMsg, addToLidarr } = useLidarr();
   const {
@@ -30,6 +40,12 @@ export default function ReleaseGroupCard({
     error: tracksError,
     fetchTracks,
   } = useReleaseTracks();
+
+  const handleMouseEnter = () => {
+    if (media.length === 0 && !tracksLoading) {
+      fetchTracks(albumMbid);
+    }
+  };
 
   const handleClick = () => {
     if (!albumTitle) {
@@ -46,69 +62,56 @@ export default function ReleaseGroupCard({
     addToLidarr({ albumMbid });
   };
 
-  const handleToggle = () => {
-    if (!expanded && media.length === 0 && !tracksLoading) {
-      fetchTracks(albumMbid);
-    }
-    setExpanded(!expanded);
-  };
-
   return (
     <>
-      <div className="bg-white rounded-xl border-2 border-black shadow-cartoon-md overflow-hidden hover:translate-y-[-2px] hover:shadow-cartoon-lg transition-all">
-        <div
-          className="flex gap-4 p-4 cursor-pointer"
-          onClick={handleToggle}
-        >
+      <div
+        className="group bg-white rounded-xl border-2 border-black shadow-cartoon-md overflow-hidden relative"
+        onMouseEnter={handleMouseEnter}
+        data-testid="release-group-card"
+      >
+        <div className="aspect-square" style={{ backgroundColor: pastelBg }}>
           <img
             src={coverUrl}
             alt={`${albumTitle} cover`}
-            className="w-24 h-24 rounded-lg object-cover bg-gray-100 flex-shrink-0 border-2 border-black"
+            className="w-full h-full object-cover"
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = "none";
             }}
           />
-          <div className="flex-1 min-w-0">
-            <h3 className="text-gray-900 font-semibold truncate">
-              {albumTitle}
-            </h3>
-            <p className="text-gray-500 text-sm">{artistName}</p>
-            {year && <p className="text-gray-400 text-xs mt-1">{year}</p>}
-            <p className="text-gray-300 text-xs mt-1 truncate">{albumMbid}</p>
-          </div>
-          <div className="flex items-start gap-2">
-            <div onClick={(e) => e.stopPropagation()}>
-              <MonitorButton
-                state={state}
-                onClick={handleClick}
-                errorMsg={errorMsg ?? undefined}
-              />
-            </div>
-            <svg
-              className={`w-5 h-5 mt-1.5 text-gray-400 transition-transform ${expanded ? "rotate-180" : ""}`}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
-          </div>
         </div>
 
-        {expanded && (
-          <div className="border-t-2 border-black px-4 py-3">
+        <div className="p-3 border-t-2 border-black">
+          <h3 className="text-gray-900 font-semibold text-sm truncate">
+            {albumTitle}
+          </h3>
+          <p className="text-gray-500 text-xs truncate">{artistName}</p>
+          {year && <p className="text-gray-400 text-xs mt-0.5">{year}</p>}
+        </div>
+
+        <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col p-4">
+          <div className="flex-shrink-0">
+            <h3 className="text-gray-900 font-semibold text-sm truncate">
+              {albumTitle}
+            </h3>
+            <p className="text-gray-500 text-xs">{artistName}</p>
+          </div>
+
+          <div className="flex-1 overflow-y-auto mt-3 min-h-0 overlay-scrollbar">
             <TrackList
               media={media}
               loading={tracksLoading}
               error={tracksError}
             />
           </div>
-        )}
+
+          <div className="flex-shrink-0 mt-2">
+            <MonitorButton
+              state={state}
+              onClick={handleClick}
+              errorMsg={errorMsg ?? undefined}
+            />
+          </div>
+        </div>
       </div>
 
       <PurchaseLinksModal

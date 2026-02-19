@@ -6,3 +6,11 @@
   --shadow-cartoon-lg: 6px 6px 0 0 black;
   --shadow-cartoon-pressed: 1px 1px 0 0 black;
 }
+
+.overlay-scrollbar {
+  scrollbar-width: none;
+}
+
+.overlay-scrollbar::-webkit-scrollbar {
+  display: none;
+}

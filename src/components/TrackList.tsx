@@ -13,14 +13,33 @@ interface TrackListProps {
   media: Medium[];
   loading: boolean;
   error: string | null;
+  dark?: boolean;
 }
 
-export default function TrackList({ media, loading, error }: TrackListProps) {
+export default function TrackList({
+  media,
+  loading,
+  error,
+  dark,
+}: TrackListProps) {
   if (loading)
-    return <p className="text-gray-400 text-sm">Loading tracks...</p>;
-  if (error) return <p className="text-red-400 text-sm">{error}</p>;
+    return (
+      <p className={`text-sm ${dark ? "text-gray-300" : "text-gray-400"}`}>
+        Loading tracks...
+      </p>
+    );
+  if (error)
+    return (
+      <p className={`text-sm ${dark ? "text-red-300" : "text-red-400"}`}>
+        {error}
+      </p>
+    );
   if (media.length === 0)
-    return <p className="text-gray-500 text-sm">No tracks found.</p>;
+    return (
+      <p className={`text-sm ${dark ? "text-gray-300" : "text-gray-500"}`}>
+        No tracks found.
+      </p>
+    );
 
   return (
     <>
@@ -38,14 +57,20 @@ export default function TrackList({ media, loading, error }: TrackListProps) {
                 key={track.position}
                 className="flex items-baseline gap-2 text-sm"
               >
-                <span className="text-gray-600 w-5 text-right flex-shrink-0">
+                <span
+                  className={`w-5 text-right flex-shrink-0 ${dark ? "text-gray-400" : "text-gray-600"}`}
+                >
                   {track.position}
                 </span>
-                <span className="text-gray-700 truncate">{track.title}</span>
+                <span
+                  className={`flex-1 min-w-0 truncate ${dark ? "text-gray-200" : "text-gray-700"}`}
+                >
+                  {track.title}
+                </span>
                 {track.length && (
                   <span
                     data-testid="track-duration"
-                    className="text-gray-600 text-xs ml-auto flex-shrink-0"
+                    className={`text-xs flex-shrink-0 ${dark ? "text-gray-400" : "text-gray-600"}`}
                   >
                     {formatDuration(track.length)}
                   </span>

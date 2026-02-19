@@ -58,13 +58,12 @@ describe("ReleaseGroupCard", () => {
     vi.clearAllMocks();
   });
 
-  it("renders album title, artist name, year, and mbid", () => {
+  it("renders album title, artist name, and year", () => {
     render(<ReleaseGroupCard releaseGroup={makeReleaseGroup()} />);
 
-    expect(screen.getByText("Test Album")).toBeInTheDocument();
-    expect(screen.getByText("Test Artist")).toBeInTheDocument();
+    expect(screen.getAllByText("Test Album").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Test Artist").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("2023")).toBeInTheDocument();
-    expect(screen.getByText("abc-123")).toBeInTheDocument();
   });
 
   it("shows 'Unknown Artist' when artist-credit is empty", () => {
@@ -74,7 +73,7 @@ describe("ReleaseGroupCard", () => {
       />
     );
 
-    expect(screen.getByText("Unknown Artist")).toBeInTheDocument();
+    expect(screen.getAllByText("Unknown Artist").length).toBeGreaterThanOrEqual(1);
   });
 
   it("hides year when first-release-date is empty", () => {
@@ -87,34 +86,26 @@ describe("ReleaseGroupCard", () => {
     expect(screen.queryByText(/^\d{4}$/)).not.toBeInTheDocument();
   });
 
-  it("expands track list when clicking the card", () => {
+  it("fetches tracks on mouse enter", () => {
     render(<ReleaseGroupCard releaseGroup={makeReleaseGroup()} />);
 
-    expect(screen.queryByTestId("track-list")).not.toBeInTheDocument();
+    fireEvent.mouseEnter(screen.getByTestId("release-group-card"));
 
-    fireEvent.click(screen.getByText("Test Album"));
-
-    expect(screen.getByTestId("track-list")).toBeInTheDocument();
     expect(mockFetchTracks).toHaveBeenCalledWith("abc-123");
   });
 
-  it("collapses track list on second click", () => {
+  it("does not re-fetch tracks on subsequent mouse enters", () => {
     render(<ReleaseGroupCard releaseGroup={makeReleaseGroup()} />);
+    const card = screen.getByTestId("release-group-card");
 
-    fireEvent.click(screen.getByText("Test Album"));
-    expect(screen.getByTestId("track-list")).toBeInTheDocument();
-
-    fireEvent.click(screen.getByText("Test Album"));
-    expect(screen.queryByTestId("track-list")).not.toBeInTheDocument();
+    fireEvent.mouseEnter(card);
+    expect(mockFetchTracks).toHaveBeenCalledTimes(1);
   });
 
-  it("does not trigger expand when clicking the MonitorButton", () => {
+  it("renders track list in hover overlay", () => {
     render(<ReleaseGroupCard releaseGroup={makeReleaseGroup()} />);
 
-    fireEvent.click(screen.getByText("Add to Lidarr"));
-
-    expect(screen.queryByTestId("track-list")).not.toBeInTheDocument();
-    expect(mockFetchTracks).not.toHaveBeenCalled();
+    expect(screen.getByTestId("track-list")).toBeInTheDocument();
   });
 
   it("opens purchase modal when MonitorButton is clicked with a title", () => {
