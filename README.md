@@ -79,10 +79,10 @@ All configuration is stored in `/config/config.json` inside the container. The `
 
 The following services can be configured through the Settings page:
 
-| Service     | Required | Purpose                                    |
-| ----------- | -------- | ------------------------------------------ |
-| Lidarr      | Yes      | Music library management                   |
-| Last.fm     | No       | Artist discovery and genre tags            |
-| Plex        | No       | Top artists from your listening history    |
+| Service | Required | Purpose                                 |
+| ------- | -------- | --------------------------------------- |
+| Lidarr  | Yes      | Music library management                |
+| Last.fm | No       | Artist discovery and genre tags         |
+| Plex    | No       | Top artists from your listening history |
 
 MusicBrainz and Deezer are used automatically and do not require configuration.
