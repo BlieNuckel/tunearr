@@ -1,5 +1,10 @@
 import { useState, useEffect } from "react";
 import { useLidarrContext } from "@/context/useLidarrContext";
+import LidarrConnectionSection from "./components/LidarrConnectionSection";
+import LidarrOptionsSection from "./components/LidarrOptionsSection";
+import LastfmSection from "./components/LastfmSection";
+import PlexSection from "./components/PlexSection";
+import ImportSection from "./components/ImportSection";
 
 export default function SettingsPage() {
   const { options, settings, isLoading, saveSettings, testConnection, loadLidarrOptionValues } =
@@ -81,7 +86,6 @@ export default function SettingsPage() {
       if (result.success) {
         await loadLidarrOptionValues();
       }
-
     } catch (err) {
       setError(err instanceof Error ? err.message : "Test failed");
     } finally {
@@ -108,164 +112,37 @@ export default function SettingsPage() {
       <h1 className="text-2xl font-bold text-white mb-6">Settings</h1>
 
       <form className="space-y-6" onSubmit={handleSave}>
-        <div className="space-y-4">
-          <h1 className="text-xl text-gray">Lidarr Connection</h1>
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              Lidarr URL
-            </label>
-            <input
-              type="text"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="http://localhost:8686"
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-gray-100 placeholder-gray-500 focus:outline-none focus:border-indigo-500"
-            />
-          </div>
+        <LidarrConnectionSection
+          url={url}
+          apiKey={apiKey}
+          testing={testing}
+          onUrlChange={setUrl}
+          onApiKeyChange={setApiKey}
+          onTest={handleTest}
+        />
 
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              API Key
-            </label>
-            <input
-              type="text"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder={
-                "Enter API key"}
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-gray-100 placeholder-gray-500 focus:outline-none focus:border-indigo-500"
-            />
-          </div>
+        <LidarrOptionsSection
+          rootFolders={rootFolders}
+          rootFolderPath={rootFolderPath}
+          qualityProfiles={qualityProfiles}
+          qualityProfileId={qualityProfileId}
+          metadataProfiles={metadataProfiles}
+          metadataProfileId={metadataProfileId}
+          onRootFolderChange={setRootFolderPath}
+          onQualityProfileChange={setQualityProfileId}
+          onMetadataProfileChange={setMetadataProfileId}
+        />
 
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={handleTest}
-              disabled={testing || !url || !apiKey}
-              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-white rounded-md text-sm transition-colors"
-            >
-              {testing ? "Testing..." : "Test Connection"}
-            </button>
-          </div>
-        </div>
+        <LastfmSection apiKey={lastfmApiKey} onApiKeyChange={setLastfmApiKey} />
 
-        <div className="space-y-4">
-          <h1 className="text-xl text-gray mb-6"></h1>
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Lidarr Root Path</label>
-            <select
-              key={rootFolders.length} // Force re-render when root folders change
-              value={rootFolderPath}
-              onChange={(e) => setRootFolderPath(e.target.value)}
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-gray-100 placeholder-gray-500 focus:outline-none focus:border-indigo-500"
-            >
-              {rootFolders.map((folder) => (
-                <option key={folder.id} value={folder.path}>
-                  {folder.path}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Quality Profile</label>
-            <select
-              key={qualityProfiles.length} // Force re-render when quality profiles change
-              value={qualityProfileId}
-              onChange={(e) => setQualityProfileId(Number(e.target.value))}
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-gray-100 placeholder-gray-500 focus:outline-none focus:border-indigo-500"
-            >
-              {qualityProfiles.map((profile) => (
-                <option key={profile.id} value={profile.id}>
-                  {profile.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Metadata Profile</label>
-            <select
-              key={metadataProfiles.length} // Force re-render when metadata profiles change
-              value={metadataProfileId}
-              onChange={(e) => setMetadataProfileId(Number(e.target.value))}
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-gray-100 placeholder-gray-500 focus:outline-none focus:border-indigo-500"
-            >
-              {metadataProfiles.map((profile) => (
-                <option key={profile.id} value={profile.id}>
-                  {profile.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
+        <PlexSection
+          url={plexUrl}
+          token={plexToken}
+          onUrlChange={setPlexUrl}
+          onTokenChange={setPlexToken}
+        />
 
-        <div className="space-y-4">
-          <h1 className="text-xl text-gray">Last.fm</h1>
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              Last.fm API Key
-            </label>
-            <input
-              type="text"
-              value={lastfmApiKey}
-              onChange={(e) => setLastfmApiKey(e.target.value)}
-              placeholder="Enter Last.fm API key"
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-gray-100 placeholder-gray-500 focus:outline-none focus:border-indigo-500"
-            />
-            <p className="text-gray-500 text-xs mt-1">
-              Get a free API key at last.fm/api/account/create
-            </p>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <h1 className="text-xl text-gray">Plex</h1>
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              Plex URL
-            </label>
-            <input
-              type="text"
-              value={plexUrl}
-              onChange={(e) => setPlexUrl(e.target.value)}
-              placeholder="http://localhost:32400"
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-gray-100 placeholder-gray-500 focus:outline-none focus:border-indigo-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              Plex Token
-            </label>
-            <input
-              type="text"
-              value={plexToken}
-              onChange={(e) => setPlexToken(e.target.value)}
-              placeholder="Enter Plex token"
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-gray-100 placeholder-gray-500 focus:outline-none focus:border-indigo-500"
-            />
-            <p className="text-gray-500 text-xs mt-1">
-              Used to show your most-played artists on the Discover page
-            </p>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <h1 className="text-xl text-gray">Manual Import</h1>
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">
-              Import Path
-            </label>
-            <input
-              type="text"
-              value={importPath}
-              onChange={(e) => setImportPath(e.target.value)}
-              placeholder="/imports"
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-gray-100 placeholder-gray-500 focus:outline-none focus:border-indigo-500"
-            />
-            <p className="text-gray-500 text-xs mt-1">
-              Shared volume path accessible by both this app and Lidarr for file uploads
-            </p>
-          </div>
-        </div>
+        <ImportSection importPath={importPath} onImportPathChange={setImportPath} />
 
         <button
           type="submit"
