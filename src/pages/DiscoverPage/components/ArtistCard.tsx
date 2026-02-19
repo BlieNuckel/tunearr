@@ -1,6 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import useArtistAlbums from "@/hooks/useArtistAlbums";
 import ReleaseGroupCard from "@/components/ReleaseGroupCard";
+
+const DEAL_ROTATIONS = [-4, 3.5, -3, 4.5, -3.5, 3];
+const EXIT_STAGGER_MS = 40;
+const EXIT_DURATION_MS = 250;
 
 interface ArtistCardProps {
   name: string;
@@ -17,13 +21,33 @@ export default function ArtistCard({
   inLibrary,
 }: ArtistCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const [animatingOut, setAnimatingOut] = useState(false);
   const { albums, loading, error, fetchAlbums } = useArtistAlbums();
+  const exitTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  useEffect(() => {
+    return () => {
+      if (exitTimeoutRef.current) clearTimeout(exitTimeoutRef.current);
+    };
+  }, []);
 
   const handleToggle = () => {
-    if (!expanded && albums.length === 0 && !loading) {
-      fetchAlbums(name);
+    if (animatingOut) return;
+
+    if (expanded) {
+      setAnimatingOut(true);
+      const cardCount = Math.max(albums.length, 1);
+      const totalExit = (cardCount - 1) * EXIT_STAGGER_MS + EXIT_DURATION_MS;
+      exitTimeoutRef.current = setTimeout(() => {
+        setAnimatingOut(false);
+        setExpanded(false);
+      }, totalExit);
+    } else {
+      if (albums.length === 0 && !loading) {
+        fetchAlbums(name);
+      }
+      setExpanded(true);
     }
-    setExpanded(!expanded);
   };
 
   return (
@@ -93,8 +117,19 @@ export default function ArtistCard({
           {!loading && !error && albums.length === 0 && (
             <p className="text-gray-400 text-sm">No albums found.</p>
           )}
-          {albums.map((rg) => (
-            <ReleaseGroupCard key={rg.id} releaseGroup={rg} />
+          {albums.map((rg, index) => (
+            <div
+              key={rg.id}
+              className={animatingOut ? "cascade-deal-out" : "cascade-deal-in"}
+              style={{
+                "--deal-index": animatingOut
+                  ? albums.length - 1 - index
+                  : index,
+                "--deal-rotate": `${DEAL_ROTATIONS[index % DEAL_ROTATIONS.length]}deg`,
+              } as React.CSSProperties}
+            >
+              <ReleaseGroupCard releaseGroup={rg} />
+            </div>
           ))}
         </div>
       )}
