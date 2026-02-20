@@ -18,6 +18,7 @@ export default function ImportStep({
         </label>
         <input
           type="text"
+          data-testid="import-path-input"
           value={importPath}
           onChange={(e) => onImportPathChange(e.target.value)}
           placeholder="/imports"

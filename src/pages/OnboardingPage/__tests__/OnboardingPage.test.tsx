@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import OnboardingPage from "../OnboardingPage";
 import {
@@ -8,6 +8,9 @@ import {
 
 const mockTestConnection = vi.fn();
 const mockSaveSettings = vi.fn();
+const mockFetch = vi.fn();
+
+vi.stubGlobal("fetch", mockFetch);
 
 function renderOnboarding(overrides: Partial<LidarrContextValue> = {}) {
   const defaultContext: LidarrContextValue = {
@@ -261,5 +264,109 @@ describe("OnboardingPage", () => {
 
     fireEvent.click(screen.getByText("Back"));
     expect(screen.getByText("Welcome to Tunearr")).toBeInTheDocument();
+  });
+
+  describe("import step validation", () => {
+    async function navigateToImportStep() {
+      mockTestConnection.mockResolvedValue({
+        success: true,
+        version: "2.0.0",
+        qualityProfiles: [{ id: 1, name: "Any" }],
+        metadataProfiles: [{ id: 1, name: "Standard" }],
+        rootFolderPaths: [{ id: 1, path: "/music" }],
+      });
+
+      renderOnboarding();
+      fireEvent.click(screen.getByText("Get Started"));
+
+      fireEvent.change(screen.getByTestId("lidarr-url-input"), {
+        target: { value: "http://lidarr:8686" },
+      });
+      fireEvent.change(screen.getByTestId("lidarr-apikey-input"), {
+        target: { value: "testkey" },
+      });
+      fireEvent.click(screen.getByText("Test Connection"));
+
+      await waitFor(() => {
+        expect(
+          screen.getByText("Connected! Lidarr v2.0.0")
+        ).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText("Next"));
+      fireEvent.click(screen.getByText("Next"));
+      fireEvent.click(screen.getByText("Skip"));
+      fireEvent.click(screen.getByText("Skip"));
+
+      expect(screen.getByTestId("import-path-input")).toBeInTheDocument();
+    }
+
+    it("shows loading state during validation", async () => {
+      let resolveFetch!: (value: unknown) => void;
+      mockFetch.mockReturnValue(
+        new Promise((resolve) => {
+          resolveFetch = resolve;
+        })
+      );
+
+      await navigateToImportStep();
+
+      fireEvent.change(screen.getByTestId("import-path-input"), {
+        target: { value: "/some/path" },
+      });
+
+      fireEvent.click(screen.getByText("Next"));
+
+      await waitFor(() => {
+        expect(screen.getByText("Checking...")).toBeInTheDocument();
+      });
+
+      await act(async () => {
+        resolveFetch({ ok: true, json: async () => ({ valid: true }) });
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText("Complete")).toBeInTheDocument();
+      });
+    });
+
+    it("shows error from preNext validation", async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        json: async () => ({
+          error:
+            'Import path "/bad" does not exist. Make sure the directory is created or the volume is mounted.',
+        }),
+      });
+
+      await navigateToImportStep();
+
+      fireEvent.change(screen.getByTestId("import-path-input"), {
+        target: { value: "/bad" },
+      });
+
+      fireEvent.click(screen.getByText("Next"));
+
+      await waitFor(() => {
+        expect(
+          screen.getByText(/does not exist/)
+        ).toBeInTheDocument();
+      });
+
+      expect(screen.getByTestId("import-path-input")).toBeInTheDocument();
+    });
+
+    it("skip bypasses validation on import step", async () => {
+      await navigateToImportStep();
+
+      fireEvent.change(screen.getByTestId("import-path-input"), {
+        target: { value: "/any/path" },
+      });
+
+      fireEvent.click(screen.getByText("Skip"));
+
+      expect(screen.getByText("Complete")).toBeInTheDocument();
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
   });
 });

@@ -4,6 +4,9 @@ import { useOnboarding, STEPS } from "../useOnboarding";
 const mockNavigate = vi.fn();
 const mockTestConnection = vi.fn();
 const mockSaveSettings = vi.fn();
+const mockFetch = vi.fn();
+
+vi.stubGlobal("fetch", mockFetch);
 
 vi.mock("react-router-dom", () => ({
   useNavigate: () => mockNavigate,
@@ -27,10 +30,10 @@ describe("useOnboarding", () => {
     expect(result.current.currentStep).toBe("welcome");
   });
 
-  it("navigates forward and backward", () => {
+  it("navigates forward and backward", async () => {
     const { result } = renderHook(() => useOnboarding());
 
-    act(() => result.current.next());
+    await act(async () => result.current.next());
     expect(result.current.stepIndex).toBe(1);
     expect(result.current.currentStep).toBe("lidarrConnection");
 
@@ -45,28 +48,30 @@ describe("useOnboarding", () => {
     expect(result.current.stepIndex).toBe(0);
   });
 
-  it("does not go above last step", () => {
+  it("does not go above last step", async () => {
+    mockFetch.mockResolvedValue({ ok: true, json: async () => ({ valid: true }) });
     const { result } = renderHook(() => useOnboarding());
     for (let i = 0; i < STEPS.length + 2; i++) {
-      act(() => result.current.next());
+      await act(async () => result.current.next());
     }
     expect(result.current.stepIndex).toBe(STEPS.length - 1);
   });
 
-  it("identifies optional steps", () => {
+  it("identifies optional steps", async () => {
     const { result } = renderHook(() => useOnboarding());
 
-    act(() => result.current.next());
-    act(() => result.current.next());
-    act(() => result.current.next());
+    await act(async () => result.current.next());
+    await act(async () => result.current.next());
+    await act(async () => result.current.next());
     expect(result.current.currentStep).toBe("lastfm");
     expect(result.current.isOptional).toBe(true);
 
-    act(() => result.current.next());
+    await act(async () => result.current.next());
     expect(result.current.currentStep).toBe("plex");
     expect(result.current.isOptional).toBe(true);
 
-    act(() => result.current.next());
+    mockFetch.mockResolvedValue({ ok: true, json: async () => ({ valid: true }) });
+    await act(async () => result.current.next());
     expect(result.current.currentStep).toBe("import");
     expect(result.current.isOptional).toBe(true);
   });
@@ -165,10 +170,109 @@ describe("useOnboarding", () => {
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 
-  it("clears error on navigation", () => {
+  it("clears error on navigation", async () => {
     const { result } = renderHook(() => useOnboarding());
 
-    act(() => result.current.next());
+    await act(async () => result.current.next());
     expect(result.current.error).toBeNull();
+  });
+
+  describe("preNext validation", () => {
+    async function goToImportStep(result: {
+      current: ReturnType<typeof useOnboarding>;
+    }) {
+      for (let i = 0; i < 5; i++) {
+        await act(async () => result.current.next());
+      }
+      expect(result.current.currentStep).toBe("import");
+    }
+
+    it("blocks next on import step when validation fails", async () => {
+      mockFetch.mockResolvedValue({
+        ok: false,
+        json: async () => ({
+          error: 'Import path "/bad" does not exist.',
+        }),
+      });
+
+      const { result } = renderHook(() => useOnboarding());
+      await goToImportStep(result);
+
+      act(() => result.current.updateField("importPath", "/bad"));
+
+      await act(async () => result.current.next());
+
+      expect(result.current.currentStep).toBe("import");
+      expect(result.current.error).toBe(
+        'Import path "/bad" does not exist.'
+      );
+    });
+
+    it("advances on import step when validation succeeds", async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({ valid: true }),
+      });
+
+      const { result } = renderHook(() => useOnboarding());
+      await goToImportStep(result);
+
+      act(() => result.current.updateField("importPath", "/good"));
+
+      await act(async () => result.current.next());
+
+      expect(result.current.currentStep).toBe("complete");
+      expect(result.current.error).toBeNull();
+    });
+
+    it("skips validation when importPath is empty", async () => {
+      const { result } = renderHook(() => useOnboarding());
+      await goToImportStep(result);
+
+      await act(async () => result.current.next());
+
+      expect(result.current.currentStep).toBe("complete");
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it("skip() always advances without running preNext", async () => {
+      const { result } = renderHook(() => useOnboarding());
+      await goToImportStep(result);
+
+      act(() => result.current.updateField("importPath", "/some/path"));
+
+      act(() => result.current.skip());
+
+      expect(result.current.currentStep).toBe("complete");
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it("sets validating during preNext check", async () => {
+      let resolveFetch!: (value: unknown) => void;
+      mockFetch.mockReturnValue(
+        new Promise((resolve) => {
+          resolveFetch = resolve;
+        })
+      );
+
+      const { result } = renderHook(() => useOnboarding());
+      await goToImportStep(result);
+
+      act(() => result.current.updateField("importPath", "/path"));
+
+      let nextPromise: Promise<void>;
+      act(() => {
+        nextPromise = result.current.next();
+      });
+
+      expect(result.current.validating).toBe(true);
+
+      await act(async () => {
+        resolveFetch({ ok: true, json: async () => ({ valid: true }) });
+        await nextPromise!;
+      });
+
+      expect(result.current.validating).toBe(false);
+    });
   });
 });

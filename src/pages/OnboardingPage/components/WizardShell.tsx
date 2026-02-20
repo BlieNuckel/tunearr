@@ -12,6 +12,7 @@ interface WizardShellProps {
   onSkip?: () => void;
   nextDisabled?: boolean;
   nextLabel?: string;
+  nextLoading?: boolean;
   showNav?: boolean;
 }
 
@@ -35,6 +36,7 @@ export default function WizardShell({
   onSkip,
   nextDisabled = false,
   nextLabel = "Next",
+  nextLoading = false,
   showNav = true,
 }: WizardShellProps) {
   return (
@@ -85,10 +87,10 @@ export default function WizardShell({
                 <button
                   type="button"
                   onClick={onNext}
-                  disabled={nextDisabled}
+                  disabled={nextDisabled || nextLoading}
                   className="px-4 py-2 bg-amber-300 hover:bg-amber-200 disabled:opacity-50 text-black font-bold rounded-lg text-sm border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all"
                 >
-                  {nextLabel}
+                  {nextLoading ? "Checking..." : nextLabel}
                 </button>
               </div>
             </div>

@@ -56,6 +56,7 @@ export function useOnboarding() {
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<TestResult | null>(null);
   const [saving, setSaving] = useState(false);
+  const [validating, setValidating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const currentStep = STEPS[stepIndex];
@@ -68,11 +69,46 @@ export function useOnboarding() {
     setFields((prev) => ({ ...prev, [key]: value }));
   };
 
-  const next = () => {
+  const preNextChecks: Partial<Record<StepId, () => Promise<void>>> = {
+    import: async () => {
+      if (!fields.importPath) return;
+      const res = await fetch("/api/settings/validate-import-path", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ importPath: fields.importPath }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Invalid import path");
+      }
+    },
+  };
+
+  const advance = () => {
     if (stepIndex < STEPS.length - 1) {
       setStepIndex(stepIndex + 1);
       setError(null);
     }
+  };
+
+  const next = async () => {
+    const check = preNextChecks[currentStep];
+    if (check) {
+      setValidating(true);
+      try {
+        await check();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Validation failed");
+        setValidating(false);
+        return;
+      }
+      setValidating(false);
+    }
+    advance();
+  };
+
+  const skip = () => {
+    advance();
   };
 
   const back = () => {
@@ -153,9 +189,11 @@ export function useOnboarding() {
     testing,
     testResult,
     saving,
+    validating,
     error,
     updateField,
     next,
+    skip,
     back,
     handleTestConnection,
     handleFinish,

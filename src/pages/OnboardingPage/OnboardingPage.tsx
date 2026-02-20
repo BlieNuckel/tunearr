@@ -37,8 +37,9 @@ export default function OnboardingPage() {
       isOptional={wizard.isOptional}
       onBack={wizard.back}
       onNext={wizard.next}
-      onSkip={wizard.isOptional ? wizard.next : undefined}
-      nextDisabled={getNextDisabled()}
+      onSkip={wizard.isOptional ? wizard.skip : undefined}
+      nextDisabled={getNextDisabled() || wizard.validating}
+      nextLoading={wizard.validating}
       showNav={showNav}
     >
       {wizard.currentStep === "welcome" && (

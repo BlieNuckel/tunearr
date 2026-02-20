@@ -68,6 +68,43 @@ describe("PUT /settings", () => {
   });
 });
 
+describe("POST /settings/validate-import-path", () => {
+  it("returns valid for empty path", async () => {
+    const res = await request(app)
+      .post("/settings/validate-import-path")
+      .send({ importPath: "" });
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ valid: true });
+  });
+
+  it("returns valid for missing importPath", async () => {
+    const res = await request(app)
+      .post("/settings/validate-import-path")
+      .send({});
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ valid: true });
+  });
+
+  it("returns valid for existing path", async () => {
+    mockExistsSync.mockReturnValue(true);
+    const res = await request(app)
+      .post("/settings/validate-import-path")
+      .send({ importPath: "/good/path" });
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ valid: true });
+    expect(mockExistsSync).toHaveBeenCalledWith("/good/path");
+  });
+
+  it("returns 400 for non-existent path", async () => {
+    mockExistsSync.mockReturnValue(false);
+    const res = await request(app)
+      .post("/settings/validate-import-path")
+      .send({ importPath: "/bad/path" });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain("/bad/path");
+  });
+});
+
 describe("POST /settings/test", () => {
   it("returns 400 without required fields", async () => {
     const res = await request(app).post("/settings/test").send({});

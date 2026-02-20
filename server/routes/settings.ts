@@ -25,6 +25,22 @@ router.put("/", (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
+router.post("/validate-import-path", (req: Request, res: Response) => {
+  const { importPath } = req.body;
+
+  if (!importPath) {
+    return res.json({ valid: true });
+  }
+
+  if (!fs.existsSync(importPath)) {
+    return res.status(400).json({
+      error: `Import path "${importPath}" does not exist. Make sure the directory is created or the volume is mounted.`,
+    });
+  }
+
+  res.json({ valid: true });
+});
+
 router.post("/test", async (req: Request, res: Response) => {
   const { lidarrUrl, lidarrApiKey } = req.body;
   if (!lidarrUrl || !lidarrApiKey) {
