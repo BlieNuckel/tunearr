@@ -29,7 +29,7 @@ function MobileNav() {
     width: 0,
   });
   const activeIndex = links.findIndex((link) =>
-    link.to === "/" ? pathname === "/" : pathname.startsWith(link.to),
+    link.to === "/" ? pathname === "/" : pathname.startsWith(link.to)
   );
 
   const measure = useCallback(() => {

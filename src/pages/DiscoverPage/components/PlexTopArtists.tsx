@@ -45,7 +45,8 @@ export default function PlexTopArtists({
             )}
             {artist.name}
             <span className="text-xs opacity-60">
-              {artist.viewCount}<span className="hidden sm:inline"> plays</span>
+              {artist.viewCount}
+              <span className="hidden sm:inline"> plays</span>
             </span>
           </button>
         ))}
