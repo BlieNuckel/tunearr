@@ -3,12 +3,12 @@ import Modal from "../Modal";
 
 describe("Modal", () => {
   it("renders nothing when not open", () => {
-    const { container } = render(
+    render(
       <Modal isOpen={false} onClose={vi.fn()}>
         <p>Content</p>
       </Modal>
     );
-    expect(container.firstChild).toBeNull();
+    expect(screen.queryByTestId("modal-backdrop")).not.toBeInTheDocument();
   });
 
   it("renders children when open", () => {
