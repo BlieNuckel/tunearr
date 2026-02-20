@@ -1,9 +1,0 @@
-services:
-  tunarr:
-    image: ghcr.io/blienuckel/tunarr:latest
-    user: "1000:1000"
-    ports:
-      - "3001:3001"
-    volumes:
-      - ./config:/config
-    restart: unless-stopped
