@@ -6,6 +6,7 @@ import {
   getTopArtistsByTag,
 } from '../lastfmApi/artists';
 import { getTopAlbumsByTag } from '../lastfmApi/albums';
+import { getArtistsArtwork } from '../appleApi/artists';
 
 const router = express.Router();
 
@@ -18,7 +19,15 @@ router.get('/similar', async (req: Request, res: Response) => {
   }
 
   const artists = await getSimilarArtists(artist);
-  res.json({ artists });
+
+  // Enrich with Apple Music artwork
+  const artworkMap = await getArtistsArtwork(artists.map((a) => a.name));
+  const enrichedArtists = artists.map((a) => ({
+    ...a,
+    imageUrl: artworkMap.get(a.name.toLowerCase()) || a.imageUrl,
+  }));
+
+  res.json({ artists: enrichedArtists });
 });
 
 router.get('/artist/tags', async (req: Request, res: Response) => {
@@ -43,7 +52,15 @@ router.get('/tag/artists', async (req: Request, res: Response) => {
     tag,
     typeof page === 'string' ? page : '1'
   );
-  res.json(result);
+
+  // Enrich with Apple Music artwork
+  const artworkMap = await getArtistsArtwork(result.artists.map((a) => a.name));
+  const enrichedArtists = result.artists.map((a) => ({
+    ...a,
+    imageUrl: artworkMap.get(a.name.toLowerCase()) || a.imageUrl,
+  }));
+
+  res.json({ ...result, artists: enrichedArtists });
 });
 
 router.get('/tag/albums', async (req: Request, res: Response) => {

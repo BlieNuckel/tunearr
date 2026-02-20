@@ -22,6 +22,7 @@ export default function ArtistCard({
 }: ArtistCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [animatingOut, setAnimatingOut] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const { albums, loading, error, fetchAlbums } = useArtistAlbums();
   const exitTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -55,14 +56,12 @@ export default function ArtistCard({
           onClick={handleToggle}
           className="w-full flex items-center gap-3 p-3 text-left hover:bg-amber-50 transition-colors"
         >
-          {imageUrl ? (
+          {imageUrl && !imageError ? (
             <img
               src={imageUrl}
               alt={name}
               className="w-12 h-12 rounded-lg object-cover bg-gray-100 flex-shrink-0 border-2 border-black"
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = "none";
-              }}
+              onError={() => setImageError(true)}
             />
           ) : (
             <div className="w-12 h-12 rounded-lg bg-amber-100 flex-shrink-0 flex items-center justify-center border-2 border-black">

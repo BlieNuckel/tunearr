@@ -67,6 +67,15 @@ describe("ArtistCard", () => {
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
   });
 
+  it("shows fallback icon when image fails to load", () => {
+    render(
+      <ArtistCard name="Radiohead" imageUrl="https://example.com/broken.jpg" />
+    );
+    const img = screen.getByAltText("Radiohead");
+    fireEvent.error(img);
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+  });
+
   it("shows match percentage when provided", () => {
     render(<ArtistCard name="Radiohead" match={0.87} />);
     expect(screen.getByText("87% match")).toBeInTheDocument();
