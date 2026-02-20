@@ -1,8 +1,9 @@
-import Modal from "./Modal";
-import PurchaseLinks from "./PurchaseLinks";
-import FileUploadZone from "./FileUploadZone";
-import ImportReview from "./ImportReview";
-import useManualImport from "../hooks/useManualImport";
+import Modal from './Modal';
+import PurchaseLinks from './PurchaseLinks';
+import FileUploadZone from './FileUploadZone';
+import ImportReview from './ImportReview';
+import Spinner from './Spinner';
+import useManualImport from '../hooks/useManualImport';
 
 interface PurchaseLinksModalProps {
   isOpen: boolean;
@@ -61,27 +62,9 @@ export default function PurchaseLinksModal({
             <FileUploadZone onFiles={(files) => upload(files, albumMbid)} />
           )}
 
-          {step === "uploading" && (
+          {step === 'uploading' && (
             <div className="flex items-center justify-center gap-2 py-6">
-              <svg
-                className="animate-spin h-5 w-5 text-amber-400"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                  fill="none"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                />
-              </svg>
+              <Spinner className="h-5 w-5 text-amber-400" />
               <p className="text-gray-600 text-sm">
                 Uploading and scanning files...
               </p>
@@ -96,27 +79,9 @@ export default function PurchaseLinksModal({
             />
           )}
 
-          {step === "importing" && (
+          {step === 'importing' && (
             <div className="flex items-center justify-center gap-2 py-6">
-              <svg
-                className="animate-spin h-5 w-5 text-emerald-500"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                  fill="none"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                />
-              </svg>
+              <Spinner className="h-5 w-5 text-emerald-500" />
               <p className="text-gray-600 text-sm">Importing to Lidarr...</p>
             </div>
           )}

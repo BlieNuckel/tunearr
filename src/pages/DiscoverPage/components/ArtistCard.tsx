@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from "react";
-import useArtistAlbums from "@/hooks/useArtistAlbums";
-import ReleaseGroupCard from "@/components/ReleaseGroupCard";
+import { useState, useEffect, useRef } from 'react';
+import useArtistAlbums from '@/hooks/useArtistAlbums';
+import ReleaseGroupCard from '@/components/ReleaseGroupCard';
+import { ChevronDownIcon, MusicalNoteIcon } from '@/components/icons';
 
 const DEAL_ROTATIONS = [-4, 3.5, -3, 4.5, -3.5, 3];
 const EXIT_DURATION_MS = 150;
@@ -65,13 +66,7 @@ export default function ArtistCard({
             />
           ) : (
             <div className="w-12 h-12 rounded-lg bg-amber-100 flex-shrink-0 flex items-center justify-center border-2 border-black">
-              <svg
-                className="w-6 h-6 text-amber-400"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z" />
-              </svg>
+              <MusicalNoteIcon className="w-6 h-6 text-amber-400" />
             </div>
           )}
           <div className="flex-1 min-w-0">
@@ -89,19 +84,9 @@ export default function ArtistCard({
               </p>
             )}
           </div>
-          <svg
-            className={`w-5 h-5 text-gray-400 transition-transform flex-shrink-0 ${expanded ? "rotate-180" : ""}`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M19 9l-7 7-7-7"
-            />
-          </svg>
+          <ChevronDownIcon
+            className={`w-5 h-5 text-gray-400 transition-transform flex-shrink-0 ${expanded ? 'rotate-180' : ''}`}
+          />
         </button>
       </div>
 

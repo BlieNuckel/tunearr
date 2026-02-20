@@ -1,10 +1,12 @@
-import { useMemo, useState } from "react";
-import MonitorButton from "./MonitorButton";
-import TrackList from "./TrackList";
-import PurchaseLinksModal from "./PurchaseLinksModal";
-import useLidarr from "../hooks/useLidarr";
-import useReleaseTracks from "../hooks/useReleaseTracks";
-import { MonitorState, ReleaseGroup } from "../types";
+import { useMemo, useState } from 'react';
+import MonitorButton from './MonitorButton';
+import TrackList from './TrackList';
+import PurchaseLinksModal from './PurchaseLinksModal';
+import Spinner from './Spinner';
+import { CheckIcon, PlusIcon } from '@/components/icons';
+import useLidarr from '../hooks/useLidarr';
+import useReleaseTracks from '../hooks/useReleaseTracks';
+import { MonitorState, ReleaseGroup } from '../types';
 
 /** @returns {string} deterministic pastel HSL color derived from the input string */
 function pastelColorFromId(id: string): string {
@@ -101,46 +103,12 @@ export default function ReleaseGroupCard({
   );
 
   const monitorIcon =
-    state === "adding" ? (
-      <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none">
-        <circle
-          cx="12"
-          cy="12"
-          r="10"
-          stroke="currentColor"
-          strokeWidth={3}
-          className="opacity-25"
-        />
-        <path
-          fill="currentColor"
-          className="opacity-75"
-          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-        />
-      </svg>
-    ) : state === "success" || state === "already_monitored" ? (
-      <svg
-        className="w-5 h-5"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-        strokeWidth={2.5}
-      >
-        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-      </svg>
+    state === 'adding' ? (
+      <Spinner />
+    ) : state === 'success' || state === 'already_monitored' ? (
+      <CheckIcon className="w-5 h-5" />
     ) : (
-      <svg
-        className="w-5 h-5"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-        strokeWidth={2.5}
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M12 5v14m-7-7h14"
-        />
-      </svg>
+      <PlusIcon className="w-5 h-5" />
     );
 
   return (
