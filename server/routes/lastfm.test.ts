@@ -4,7 +4,7 @@ const mockGetSimilarArtists = vi.fn();
 const mockGetArtistTopTags = vi.fn();
 const mockGetTopArtistsByTag = vi.fn();
 const mockGetTopAlbumsByTag = vi.fn();
-const mockGetArtistsArtwork = vi.fn();
+const mockGetArtistsImages = vi.fn();
 const mockGetAlbumsArtwork = vi.fn();
 
 vi.mock("../lastfmApi/artists", () => ({
@@ -18,8 +18,11 @@ vi.mock("../lastfmApi/albums", () => ({
 }));
 
 vi.mock("../appleApi/artists", () => ({
-  getArtistsArtwork: (...args: unknown[]) => mockGetArtistsArtwork(...args),
   getAlbumsArtwork: (...args: unknown[]) => mockGetAlbumsArtwork(...args),
+}));
+
+vi.mock("../deezerApi/artists", () => ({
+  getArtistsImages: (...args: unknown[]) => mockGetArtistsImages(...args),
 }));
 
 import express from "express";
@@ -43,8 +46,8 @@ describe("GET /similar", () => {
   it("returns similar artists with images", async () => {
     const artists = [{ name: "Thom Yorke", match: 0.9, imageUrl: "" }];
     mockGetSimilarArtists.mockResolvedValue(artists);
-    mockGetArtistsArtwork.mockResolvedValue(
-      new Map([["thom yorke", "https://apple.com/thom.jpg"]])
+    mockGetArtistsImages.mockResolvedValue(
+      new Map([["thom yorke", "https://deezer.com/thom.jpg"]])
     );
 
     const res = await request(app).get("/similar?artist=Radiohead");
@@ -54,12 +57,12 @@ describe("GET /similar", () => {
         {
           name: "Thom Yorke",
           match: 0.9,
-          imageUrl: "https://apple.com/thom.jpg",
+          imageUrl: "https://deezer.com/thom.jpg",
         },
       ],
     });
     expect(mockGetSimilarArtists).toHaveBeenCalledWith("Radiohead");
-    expect(mockGetArtistsArtwork).toHaveBeenCalledWith(["Thom Yorke"]);
+    expect(mockGetArtistsImages).toHaveBeenCalledWith(["Thom Yorke"]);
   });
 });
 
@@ -94,20 +97,20 @@ describe("GET /tag/artists", () => {
       pagination: { page: 1, totalPages: 5 },
     };
     mockGetTopArtistsByTag.mockResolvedValue(result);
-    mockGetArtistsArtwork.mockResolvedValue(
-      new Map([["radiohead", "https://apple.com/radiohead.jpg"]])
+    mockGetArtistsImages.mockResolvedValue(
+      new Map([["radiohead", "https://deezer.com/radiohead.jpg"]])
     );
 
     const res = await request(app).get("/tag/artists?tag=rock");
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
       artists: [
-        { name: "Radiohead", imageUrl: "https://apple.com/radiohead.jpg" },
+        { name: "Radiohead", imageUrl: "https://deezer.com/radiohead.jpg" },
       ],
       pagination: { page: 1, totalPages: 5 },
     });
     expect(mockGetTopArtistsByTag).toHaveBeenCalledWith("rock", "1");
-    expect(mockGetArtistsArtwork).toHaveBeenCalledWith(["Radiohead"]);
+    expect(mockGetArtistsImages).toHaveBeenCalledWith(["Radiohead"]);
   });
 
   it("forwards page parameter", async () => {
@@ -116,7 +119,7 @@ describe("GET /tag/artists", () => {
       pagination: { page: 3, totalPages: 5 },
     };
     mockGetTopArtistsByTag.mockResolvedValue(result);
-    mockGetArtistsArtwork.mockResolvedValue(new Map());
+    mockGetArtistsImages.mockResolvedValue(new Map());
 
     await request(app).get("/tag/artists?tag=rock&page=3");
     expect(mockGetTopArtistsByTag).toHaveBeenCalledWith("rock", "3");
