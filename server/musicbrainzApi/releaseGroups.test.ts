@@ -5,13 +5,14 @@ import {
   getReleaseGroupIdFromRelease,
 } from "./releaseGroups";
 
+const mockFetch = vi.fn();
+vi.stubGlobal("fetch", mockFetch);
+
 vi.mock("./config", () => ({
   MB_BASE: "https://musicbrainz.test/ws/2",
   MB_HEADERS: { "User-Agent": "test" },
+  rateLimitedMbFetch: (...args: unknown[]) => mockFetch(...args),
 }));
-
-const mockFetch = vi.fn();
-vi.stubGlobal("fetch", mockFetch);
 
 beforeEach(() => {
   vi.clearAllMocks();

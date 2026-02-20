@@ -146,16 +146,17 @@ export async function getPromotedAlbum(
   const shuffled = shuffle(allAlbums);
 
   // Convert Last.fm release MBIDs to release-group MBIDs
-  const albumsWithReleaseGroupIds = await Promise.all(
-    shuffled.map(async (album) => {
-      const releaseGroupId = await getReleaseGroupIdFromRelease(album.mbid);
-      return releaseGroupId ? { ...album, mbid: releaseGroupId } : null;
-    })
-  );
-
-  const validAlbums = albumsWithReleaseGroupIds.filter(
-    (a): a is NonNullable<typeof a> => a !== null
-  );
+  // Do this sequentially (not in parallel) to avoid MusicBrainz rate limiting
+  // Stop after finding enough valid albums
+  const validAlbums = [];
+  for (const album of shuffled) {
+    const releaseGroupId = await getReleaseGroupIdFromRelease(album.mbid);
+    if (releaseGroupId) {
+      validAlbums.push({ ...album, mbid: releaseGroupId });
+      // Stop after finding 10 valid albums - we only need one anyway
+      if (validAlbums.length >= 10) break;
+    }
+  }
 
   if (validAlbums.length === 0) return null;
 

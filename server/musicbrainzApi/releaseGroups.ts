@@ -1,4 +1,4 @@
-import { MB_BASE, MB_HEADERS } from "./config";
+import { MB_BASE, MB_HEADERS, rateLimitedMbFetch } from "./config";
 import type {
   MusicBrainzSearchResponse,
   MusicBrainzArtistSearchResponse,
@@ -68,7 +68,7 @@ export async function getReleaseGroupIdFromRelease(
   releaseMbid: string
 ): Promise<string | null> {
   const url = `${MB_BASE}/release/${releaseMbid}?inc=release-groups&fmt=json`;
-  const response = await fetch(url, { headers: MB_HEADERS });
+  const response = await rateLimitedMbFetch(url, { headers: MB_HEADERS });
 
   if (!response.ok) {
     return null;
