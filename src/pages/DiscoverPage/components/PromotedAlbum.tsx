@@ -31,9 +31,13 @@ export default function PromotedAlbum({ data, onRefresh }: PromotedAlbumProps) {
   const effectiveState = inLibrary ? "already_monitored" : state;
 
   const handleMonitorClick = () => {
-    if (effectiveState === "idle" || effectiveState === "error") {
+    if (effectiveState === 'idle' || effectiveState === 'error') {
       setIsModalOpen(true);
     }
+  };
+
+  const handlePreviewClick = () => {
+    setIsModalOpen(true);
   };
 
   const handleAddToLibrary = () => {
@@ -49,10 +53,11 @@ export default function PromotedAlbum({ data, onRefresh }: PromotedAlbumProps) {
           </h2>
           <button
             onClick={onRefresh}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-            aria-label="Refresh recommendation"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-gray-700 hover:text-gray-900 text-xs font-bold bg-white hover:bg-gray-50 rounded-lg border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all"
+            aria-label="Shuffle recommendation"
           >
             <RefreshIcon className="w-4 h-4" />
+            <span className="hidden sm:inline">Shuffle</span>
           </button>
         </div>
 
@@ -84,7 +89,13 @@ export default function PromotedAlbum({ data, onRefresh }: PromotedAlbumProps) {
               </span>
             </div>
 
-            <div className="mt-3 flex justify-end">
+            <div className="mt-3 flex gap-2 justify-end">
+              <button
+                onClick={handlePreviewClick}
+                className="px-4 py-2 bg-violet-100 hover:bg-violet-200 text-violet-700 font-bold text-sm rounded-lg border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all"
+              >
+                Preview
+              </button>
               <MonitorButton
                 state={effectiveState}
                 onClick={handleMonitorClick}

@@ -166,7 +166,9 @@ export async function getPromotedAlbum(
       mbid: chosen.mbid,
       artistName: chosen.artistName,
       artistMbid: chosen.artistMbid,
-      coverUrl: `https://coverartarchive.org/release-group/${chosen.mbid}/front-500`,
+      coverUrl:
+        chosen.imageUrl ||
+        `https://coverartarchive.org/release-group/${chosen.mbid}/front-500`,
     },
     tag: chosenTag.name,
     inLibrary,

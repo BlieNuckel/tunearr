@@ -39,6 +39,7 @@ export type LastfmTagAlbum = {
   name: string;
   mbid: string;
   artist: { name: string; mbid: string };
+  image?: Array<{ '#text': string; size: string }>;
 };
 
 export type LastfmTagAlbumsResponse = {

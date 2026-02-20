@@ -85,16 +85,22 @@ describe("PromotedAlbum", () => {
     expect(screen.queryByAltText("OK Computer cover")).not.toBeInTheDocument();
   });
 
-  it("calls onRefresh when refresh button clicked", () => {
+  it("calls onRefresh when shuffle button clicked", () => {
     render(<PromotedAlbum data={albumData} onRefresh={mockRefresh} />);
-    fireEvent.click(screen.getByLabelText("Refresh recommendation"));
+    fireEvent.click(screen.getByLabelText('Shuffle recommendation'));
     expect(mockRefresh).toHaveBeenCalled();
   });
 
-  it("opens modal on monitor button click", () => {
+  it('opens modal on preview button click', () => {
     render(<PromotedAlbum data={albumData} onRefresh={mockRefresh} />);
-    fireEvent.click(screen.getByTestId("monitor-button"));
-    expect(screen.getByTestId("purchase-modal")).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Preview'));
+    expect(screen.getByTestId('purchase-modal')).toBeInTheDocument();
+  });
+
+  it('opens modal on monitor button click', () => {
+    render(<PromotedAlbum data={albumData} onRefresh={mockRefresh} />);
+    fireEvent.click(screen.getByTestId('monitor-button'));
+    expect(screen.getByTestId('purchase-modal')).toBeInTheDocument();
   });
 
   it("calls addToLidarr via modal", () => {

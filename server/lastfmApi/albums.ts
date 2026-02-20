@@ -15,12 +15,19 @@ export const getTopAlbumsByTag = async (
   }
 
   const albumsContainer = data.albums;
-  const albums = (albumsContainer?.album || []).map((a) => ({
-    name: a.name,
-    mbid: a.mbid || "",
-    artistName: a.artist?.name || "",
-    artistMbid: a.artist?.mbid || "",
-  }));
+  const albums = (albumsContainer?.album || []).map((a) => {
+    const largeImage = a.image?.find((img) => img.size === 'large');
+    const extralargeImage = a.image?.find((img) => img.size === 'extralarge');
+    const imageUrl = extralargeImage?.['#text'] || largeImage?.['#text'] || '';
+
+    return {
+      name: a.name,
+      mbid: a.mbid || '',
+      artistName: a.artist?.name || '',
+      artistMbid: a.artist?.mbid || '',
+      imageUrl,
+    };
+  });
 
   const attr = albumsContainer?.["@attr"];
   return {
