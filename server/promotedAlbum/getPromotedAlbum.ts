@@ -80,18 +80,18 @@ function shuffle<T>(arr: T[]): T[] {
 export async function getPromotedAlbum(
   forceRefresh = false
 ): Promise<PromotedAlbumResult> {
-  if (!forceRefresh && cachedResult && Date.now() - cachedAt < CACHE_DURATION_MS) {
+  if (
+    !forceRefresh &&
+    cachedResult &&
+    Date.now() - cachedAt < CACHE_DURATION_MS
+  ) {
     return cachedResult;
   }
 
   const plexArtists = await getTopArtists(10);
   if (plexArtists.length === 0) return null;
 
-  const pickedArtists = weightedRandomPick(
-    plexArtists,
-    (a) => a.viewCount,
-    3
-  );
+  const pickedArtists = weightedRandomPick(plexArtists, (a) => a.viewCount, 3);
 
   const tagResults = await Promise.all(
     pickedArtists.map(async (artist) => {
@@ -147,9 +147,7 @@ export async function getPromotedAlbum(
   try {
     const result = await lidarrGet<LidarrArtist[]>("/artist");
     if (result.ok) {
-      libraryArtistMbids = new Set(
-        result.data.map((a) => a.foreignArtistId)
-      );
+      libraryArtistMbids = new Set(result.data.map((a) => a.foreignArtistId));
     }
   } catch {
     // Lidarr unavailable — treat all as not in library

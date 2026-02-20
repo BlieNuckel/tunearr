@@ -37,9 +37,7 @@ describe("useDiscover", () => {
   });
 
   it("loads library artists on mount", async () => {
-    const artists = [
-      { id: 1, name: "Radiohead", foreignArtistId: "a1" },
-    ];
+    const artists = [{ id: 1, name: "Radiohead", foreignArtistId: "a1" }];
     mockFetchResponses([
       { url: "/api/lidarr/artists", data: artists },
       { url: "/api/plex/top-artists", data: { artists: [] } },
@@ -54,7 +52,9 @@ describe("useDiscover", () => {
   });
 
   it("loads plex top artists on mount", async () => {
-    const artists = [{ name: "Pink Floyd", viewCount: 50, thumb: "", genres: [] }];
+    const artists = [
+      { name: "Pink Floyd", viewCount: 50, thumb: "", genres: [] },
+    ];
     mockFetchResponses([
       { url: "/api/lidarr/artists", data: [] },
       { url: "/api/plex/top-artists", data: { artists } },
@@ -71,13 +71,18 @@ describe("useDiscover", () => {
   });
 
   it("auto-discovers similar from top plex artist", async () => {
-    const plexArtists = [{ name: "Radiohead", viewCount: 100, thumb: "", genres: [] }];
+    const plexArtists = [
+      { name: "Radiohead", viewCount: 100, thumb: "", genres: [] },
+    ];
     const similar = [{ name: "Muse", mbid: "m1", match: 0.8, imageUrl: "" }];
     mockFetchResponses([
       { url: "/api/lidarr/artists", data: [] },
       { url: "/api/plex/top-artists", data: { artists: plexArtists } },
       { url: "/api/lastfm/similar", data: { artists: similar } },
-      { url: "/api/lastfm/artist/tags", data: { tags: [{ name: "rock", count: 100 }] } },
+      {
+        url: "/api/lastfm/artist/tags",
+        data: { tags: [{ name: "rock", count: 100 }] },
+      },
     ]);
 
     const { result } = renderHook(() => useDiscover());

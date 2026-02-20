@@ -83,10 +83,10 @@ docker compose up -d --build
 
 All configuration is stored in `/config/config.json` inside the container. The `./config` volume mount ensures settings persist across container restarts.
 
-| Service | Required | Purpose |
-| --- | --- | --- |
-| Lidarr | Yes | Music library management |
-| Last.fm | No | Artist discovery and genre tags |
-| Plex | No | Top artists from your listening history |
+| Service | Required | Purpose                                 |
+| ------- | -------- | --------------------------------------- |
+| Lidarr  | Yes      | Music library management                |
+| Last.fm | No       | Artist discovery and genre tags         |
+| Plex    | No       | Top artists from your listening history |
 
 MusicBrainz and Deezer are used automatically and do not require configuration.

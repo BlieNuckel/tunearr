@@ -46,8 +46,17 @@ vi.mock("crypto", () => ({
 
 vi.mock("multer", () => {
   const multerMock = () => ({
-    array: () =>
-      (req: { body: Record<string, unknown>; __uploadId: string; __uploadDir: string }, _res: unknown, next: () => void) => {
+    array:
+      () =>
+      (
+        req: {
+          body: Record<string, unknown>;
+          __uploadId: string;
+          __uploadDir: string;
+        },
+        _res: unknown,
+        next: () => void
+      ) => {
         req.__uploadId = "test-uuid-1234";
         req.__uploadDir = "/imports/test-uuid-1234";
         next();
@@ -285,7 +294,11 @@ describe("POST /import/confirm", () => {
       });
 
     const payload = mockLidarrPost.mock.calls[0][1] as {
-      files: { indexerFlags: number; downloadId: string; disableReleaseSwitching: boolean }[];
+      files: {
+        indexerFlags: number;
+        downloadId: string;
+        disableReleaseSwitching: boolean;
+      }[];
     };
     expect(payload.files[0].indexerFlags).toBe(0);
     expect(payload.files[0].downloadId).toBe("");

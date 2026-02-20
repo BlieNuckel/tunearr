@@ -2,9 +2,19 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import ArtistResultsList from "../ArtistResultsList";
 
 vi.mock("@/components/Pagination", () => ({
-  default: ({ page, totalPages, onPageChange }: { page: number; totalPages: number; onPageChange: (p: number) => void }) => (
+  default: ({
+    page,
+    totalPages,
+    onPageChange,
+  }: {
+    page: number;
+    totalPages: number;
+    onPageChange: (p: number) => void;
+  }) => (
     <div data-testid="pagination">
-      <span>Page {page} of {totalPages}</span>
+      <span>
+        Page {page} of {totalPages}
+      </span>
       <button onClick={() => onPageChange(page + 1)}>Next</button>
     </div>
   ),

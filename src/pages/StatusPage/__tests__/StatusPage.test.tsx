@@ -9,36 +9,35 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function mockAllEndpoints(overrides: {
-  queue?: unknown[];
-  wanted?: unknown[];
-  history?: unknown[];
-} = {}) {
+function mockAllEndpoints(
+  overrides: {
+    queue?: unknown[];
+    wanted?: unknown[];
+    history?: unknown[];
+  } = {}
+) {
   vi.mocked(fetch).mockImplementation((input) => {
     const url = typeof input === "string" ? input : (input as Request).url;
 
     if (url.includes("/api/lidarr/queue")) {
       return Promise.resolve(
-        new Response(
-          JSON.stringify({ records: overrides.queue ?? [] }),
-          { status: 200 }
-        )
+        new Response(JSON.stringify({ records: overrides.queue ?? [] }), {
+          status: 200,
+        })
       );
     }
     if (url.includes("/api/lidarr/wanted")) {
       return Promise.resolve(
-        new Response(
-          JSON.stringify({ records: overrides.wanted ?? [] }),
-          { status: 200 }
-        )
+        new Response(JSON.stringify({ records: overrides.wanted ?? [] }), {
+          status: 200,
+        })
       );
     }
     if (url.includes("/api/lidarr/history")) {
       return Promise.resolve(
-        new Response(
-          JSON.stringify({ records: overrides.history ?? [] }),
-          { status: 200 }
-        )
+        new Response(JSON.stringify({ records: overrides.history ?? [] }), {
+          status: 200,
+        })
       );
     }
     return Promise.resolve(new Response("{}", { status: 200 }));

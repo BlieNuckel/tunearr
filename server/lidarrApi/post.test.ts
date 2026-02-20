@@ -30,14 +30,11 @@ describe("lidarrPost", () => {
 
     await lidarrPost("/artist", { name: "Radiohead", monitored: true });
 
-    expect(mockFetch).toHaveBeenCalledWith(
-      "http://lidarr:8686/api/v1/artist",
-      {
-        method: "POST",
-        headers: { "X-Api-Key": "test-key", "Content-Type": "application/json" },
-        body: JSON.stringify({ name: "Radiohead", monitored: true }),
-      }
-    );
+    expect(mockFetch).toHaveBeenCalledWith("http://lidarr:8686/api/v1/artist", {
+      method: "POST",
+      headers: { "X-Api-Key": "test-key", "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Radiohead", monitored: true }),
+    });
   });
 
   it("returns status, data, and ok from response", async () => {

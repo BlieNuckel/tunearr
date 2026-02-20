@@ -12,7 +12,9 @@ describe("ArtistSearchForm", () => {
 
   it("disables button when input is empty", () => {
     render(<ArtistSearchForm onSearch={vi.fn()} />);
-    expect(screen.getByRole("button", { name: /find similar/i })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /find similar/i })
+    ).toBeDisabled();
   });
 
   it("enables button when input has value", () => {
@@ -20,7 +22,9 @@ describe("ArtistSearchForm", () => {
     fireEvent.change(screen.getByPlaceholderText("Type an artist name..."), {
       target: { value: "Radiohead" },
     });
-    expect(screen.getByRole("button", { name: /find similar/i })).not.toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: /find similar/i })
+    ).not.toBeDisabled();
   });
 
   it("calls onSearch with trimmed value on submit", () => {

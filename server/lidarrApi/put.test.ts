@@ -34,7 +34,10 @@ describe("lidarrPut", () => {
       "http://lidarr:8686/api/v1/album/monitor",
       {
         method: "PUT",
-        headers: { "X-Api-Key": "test-key", "Content-Type": "application/json" },
+        headers: {
+          "X-Api-Key": "test-key",
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({ albumIds: [10], monitored: true }),
       }
     );

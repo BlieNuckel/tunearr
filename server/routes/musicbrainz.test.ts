@@ -5,8 +5,7 @@ const mockSearchArtistReleaseGroups = vi.fn();
 const mockGetReleaseTracks = vi.fn();
 
 vi.mock("../musicbrainzApi/releaseGroups", () => ({
-  searchReleaseGroups: (...args: unknown[]) =>
-    mockSearchReleaseGroups(...args),
+  searchReleaseGroups: (...args: unknown[]) => mockSearchReleaseGroups(...args),
   searchArtistReleaseGroups: (...args: unknown[]) =>
     mockSearchArtistReleaseGroups(...args),
 }));
@@ -41,9 +40,7 @@ describe("GET /search", () => {
     const data = [{ id: "rg-1", title: "OK Computer" }];
     mockSearchArtistReleaseGroups.mockResolvedValue(data);
 
-    const res = await request(app).get(
-      "/search?q=Radiohead&searchType=artist"
-    );
+    const res = await request(app).get("/search?q=Radiohead&searchType=artist");
     expect(res.status).toBe(200);
     expect(res.body).toEqual(data);
     expect(mockSearchArtistReleaseGroups).toHaveBeenCalledWith("Radiohead");

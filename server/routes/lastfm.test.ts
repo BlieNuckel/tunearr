@@ -40,9 +40,7 @@ describe("GET /similar", () => {
   });
 
   it("returns similar artists with images", async () => {
-    const artists = [
-      { name: "Thom Yorke", match: 0.9, imageUrl: "" },
-    ];
+    const artists = [{ name: "Thom Yorke", match: 0.9, imageUrl: "" }];
     mockGetSimilarArtists.mockResolvedValue(artists);
 
     const res = await request(app).get("/similar?artist=Radiohead");
@@ -113,7 +111,14 @@ describe("GET /tag/albums", () => {
 
   it("returns albums by tag with default page", async () => {
     const result = {
-      albums: [{ name: "OK Computer", mbid: "a1", artistName: "Radiohead", artistMbid: "r1" }],
+      albums: [
+        {
+          name: "OK Computer",
+          mbid: "a1",
+          artistName: "Radiohead",
+          artistMbid: "r1",
+        },
+      ],
       pagination: { page: 1, totalPages: 3 },
     };
     mockGetTopAlbumsByTag.mockResolvedValue(result);

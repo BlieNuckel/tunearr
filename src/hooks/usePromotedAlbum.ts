@@ -13,8 +13,9 @@ export type PromotedAlbumData = {
 };
 
 export default function usePromotedAlbum() {
-  const [promotedAlbum, setPromotedAlbum] =
-    useState<PromotedAlbumData | null>(null);
+  const [promotedAlbum, setPromotedAlbum] = useState<PromotedAlbumData | null>(
+    null
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

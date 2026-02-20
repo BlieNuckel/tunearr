@@ -21,10 +21,7 @@ vi.mock("../lidarrApi/get", () => ({
   lidarrGet: (...args: unknown[]) => mockLidarrGet(...args),
 }));
 
-import {
-  getPromotedAlbum,
-  clearPromotedAlbumCache,
-} from "./getPromotedAlbum";
+import { getPromotedAlbum, clearPromotedAlbumCache } from "./getPromotedAlbum";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -44,8 +41,18 @@ const tags = [
 
 const albumsPage = {
   albums: [
-    { name: "OK Computer", mbid: "alb-1", artistName: "Radiohead", artistMbid: "art-1" },
-    { name: "Kid A", mbid: "alb-2", artistName: "Radiohead", artistMbid: "art-1" },
+    {
+      name: "OK Computer",
+      mbid: "alb-1",
+      artistName: "Radiohead",
+      artistMbid: "art-1",
+    },
+    {
+      name: "Kid A",
+      mbid: "alb-2",
+      artistName: "Radiohead",
+      artistMbid: "art-1",
+    },
   ],
   pagination: { page: 1, totalPages: 5 },
 };
@@ -67,7 +74,9 @@ describe("getPromotedAlbum", () => {
       mbid: expect.any(String),
       artistName: expect.any(String),
       artistMbid: expect.any(String),
-      coverUrl: expect.stringContaining("https://coverartarchive.org/release-group/"),
+      coverUrl: expect.stringContaining(
+        "https://coverartarchive.org/release-group/"
+      ),
     });
     expect(result!.album.coverUrl).toContain(result!.album.mbid);
     expect(result!.tag).toBe("alternative");
@@ -218,7 +227,12 @@ describe("getPromotedAlbum", () => {
 
     const duplicatedPage = {
       albums: [
-        { name: "OK Computer", mbid: "alb-1", artistName: "Radiohead", artistMbid: "art-1" },
+        {
+          name: "OK Computer",
+          mbid: "alb-1",
+          artistName: "Radiohead",
+          artistMbid: "art-1",
+        },
       ],
       pagination: { page: 1, totalPages: 1 },
     };

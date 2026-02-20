@@ -22,11 +22,7 @@ describe("TagList", () => {
 
   it("shows tag results heading when active tag", () => {
     render(
-      <TagList
-        {...defaultProps}
-        activeTag="rock"
-        showingTagResults={true}
-      />
+      <TagList {...defaultProps} activeTag="rock" showingTagResults={true} />
     );
     expect(screen.getByText('Top artists for "rock"')).toBeInTheDocument();
   });

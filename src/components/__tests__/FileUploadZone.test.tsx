@@ -30,9 +30,9 @@ describe("FileUploadZone", () => {
     const onFiles = vi.fn();
     render(<FileUploadZone onFiles={onFiles} />);
 
-    const dropZone = screen.getByText(
-      "Drop audio files here or click to browse"
-    ).closest("div")!;
+    const dropZone = screen
+      .getByText("Drop audio files here or click to browse")
+      .closest("div")!;
     const file = new File(["audio"], "track.mp3", { type: "audio/mpeg" });
 
     fireEvent.drop(dropZone, {
@@ -44,9 +44,9 @@ describe("FileUploadZone", () => {
 
   it("prevents default on dragover", () => {
     render(<FileUploadZone onFiles={vi.fn()} />);
-    const dropZone = screen.getByText(
-      "Drop audio files here or click to browse"
-    ).closest("div")!;
+    const dropZone = screen
+      .getByText("Drop audio files here or click to browse")
+      .closest("div")!;
 
     const event = new Event("dragover", { bubbles: true, cancelable: true });
     dropZone.dispatchEvent(event);

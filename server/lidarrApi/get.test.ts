@@ -32,7 +32,12 @@ describe("lidarrGet", () => {
 
     expect(mockFetch).toHaveBeenCalledWith(
       "http://lidarr:8686/api/v1/artist?page=1&pageSize=20",
-      { headers: { "X-Api-Key": "test-key", "Content-Type": "application/json" } }
+      {
+        headers: {
+          "X-Api-Key": "test-key",
+          "Content-Type": "application/json",
+        },
+      }
     );
   });
 

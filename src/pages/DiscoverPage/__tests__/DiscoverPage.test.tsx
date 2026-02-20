@@ -17,7 +17,13 @@ vi.mock("@/hooks/usePromotedAlbum", () => ({
 }));
 
 vi.mock("../components/PromotedAlbum", () => ({
-  default: ({ data, onRefresh }: { data: { album: { name: string } }; onRefresh: () => void }) => (
+  default: ({
+    data,
+    onRefresh,
+  }: {
+    data: { album: { name: string } };
+    onRefresh: () => void;
+  }) => (
     <div data-testid="promoted-album">
       <span>{data.album.name}</span>
       <button onClick={onRefresh}>Refresh</button>
@@ -27,18 +33,12 @@ vi.mock("../components/PromotedAlbum", () => ({
 
 vi.mock("@/hooks/useDiscover", () => ({
   default: () => ({
-    libraryArtists: [
-      { id: 1, name: "Radiohead", foreignArtistId: "a1" },
-    ],
+    libraryArtists: [{ id: 1, name: "Radiohead", foreignArtistId: "a1" }],
     libraryLoading: false,
-    plexTopArtists: [
-      { name: "Pink Floyd", viewCount: 80, thumb: "" },
-    ],
+    plexTopArtists: [{ name: "Pink Floyd", viewCount: 80, thumb: "" }],
     plexLoading: false,
     autoSelectedArtist: "Pink Floyd",
-    similarArtists: [
-      { name: "Muse", mbid: "m1", match: 0.8, imageUrl: "" },
-    ],
+    similarArtists: [{ name: "Muse", mbid: "m1", match: 0.8, imageUrl: "" }],
     similarLoading: false,
     similarError: null,
     artistTags: [{ name: "rock", count: 100 }],
@@ -53,7 +53,13 @@ vi.mock("@/hooks/useDiscover", () => ({
 }));
 
 vi.mock("@/components/Dropdown", () => ({
-  default: ({ onChange, placeholder }: { onChange: (v: string) => void; placeholder?: string }) => (
+  default: ({
+    onChange,
+    placeholder,
+  }: {
+    onChange: (v: string) => void;
+    placeholder?: string;
+  }) => (
     <select data-testid="dropdown" onChange={(e) => onChange(e.target.value)}>
       <option value="">{placeholder}</option>
       <option value="Radiohead">Radiohead</option>
@@ -118,7 +124,13 @@ describe("DiscoverPage", () => {
 
   it("renders promoted album when data is available", () => {
     mockPromotedAlbum = {
-      album: { name: "OK Computer", mbid: "alb-1", artistName: "Radiohead", artistMbid: "art-1", coverUrl: "" },
+      album: {
+        name: "OK Computer",
+        mbid: "alb-1",
+        artistName: "Radiohead",
+        artistMbid: "art-1",
+        coverUrl: "",
+      },
       tag: "alternative",
       inLibrary: false,
     };
@@ -135,7 +147,13 @@ describe("DiscoverPage", () => {
 
   it("calls refresh when promoted album refresh clicked", () => {
     mockPromotedAlbum = {
-      album: { name: "OK Computer", mbid: "alb-1", artistName: "Radiohead", artistMbid: "art-1", coverUrl: "" },
+      album: {
+        name: "OK Computer",
+        mbid: "alb-1",
+        artistName: "Radiohead",
+        artistMbid: "art-1",
+        coverUrl: "",
+      },
       tag: "alternative",
       inLibrary: false,
     };

@@ -55,7 +55,9 @@ describe("ArtistCard", () => {
   });
 
   it("renders artist image when imageUrl provided", () => {
-    render(<ArtistCard name="Radiohead" imageUrl="https://example.com/img.jpg" />);
+    render(
+      <ArtistCard name="Radiohead" imageUrl="https://example.com/img.jpg" />
+    );
     const img = screen.getByAltText("Radiohead");
     expect(img).toHaveAttribute("src", "https://example.com/img.jpg");
   });
@@ -140,7 +142,8 @@ describe("ArtistCard", () => {
     render(<ArtistCard name="Radiohead" />);
     fireEvent.click(screen.getByRole("button"));
 
-    const grid = screen.getByTestId(`release-group-${mockAlbums[0].id}`).parentElement!.parentElement!;
+    const grid = screen.getByTestId(`release-group-${mockAlbums[0].id}`)
+      .parentElement!.parentElement!;
     expect(grid.className).toContain("grid");
     expect(grid.className).toContain("grid-cols-1");
     expect(grid.className).toContain("sm:grid-cols-2");

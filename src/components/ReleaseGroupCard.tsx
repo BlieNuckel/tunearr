@@ -182,7 +182,9 @@ export default function ReleaseGroupCard({
         </div>
         <div
           className={`grid transition-[grid-template-rows] duration-300 ${isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
-          style={{ transitionTimingFunction: "cubic-bezier(0.34, 1.3, 0.64, 1)" }}
+          style={{
+            transitionTimingFunction: "cubic-bezier(0.34, 1.3, 0.64, 1)",
+          }}
         >
           <div className="overflow-hidden">
             <div

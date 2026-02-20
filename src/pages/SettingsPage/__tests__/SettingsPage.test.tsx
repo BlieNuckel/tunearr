@@ -85,9 +85,7 @@ describe("SettingsPage", () => {
     fireEvent.click(screen.getByText("Test Connection"));
 
     await waitFor(() => {
-      expect(
-        screen.getByText("Connected! Lidarr v2.0.0")
-      ).toBeInTheDocument();
+      expect(screen.getByText("Connected! Lidarr v2.0.0")).toBeInTheDocument();
     });
   });
 

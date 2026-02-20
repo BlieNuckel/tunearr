@@ -16,7 +16,11 @@ describe("PlexTopArtists", () => {
     ];
 
     render(
-      <PlexTopArtists artists={artists} selectedArtist={null} onSelect={vi.fn()} />
+      <PlexTopArtists
+        artists={artists}
+        selectedArtist={null}
+        onSelect={vi.fn()}
+      />
     );
 
     expect(screen.getByText("Radiohead")).toBeInTheDocument();

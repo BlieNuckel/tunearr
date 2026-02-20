@@ -67,10 +67,7 @@ export default function DiscoverPage() {
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Discover</h1>
 
       {promotedAlbum && (
-        <PromotedAlbum
-          data={promotedAlbum}
-          onRefresh={refreshPromotedAlbum}
-        />
+        <PromotedAlbum data={promotedAlbum} onRefresh={refreshPromotedAlbum} />
       )}
 
       {!plexLoading && (

@@ -42,7 +42,10 @@ const unconfiguredContext: LidarrContextValue = {
   isConnected: false,
 };
 
-vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(new Response("{}", { status: 200 }))));
+vi.stubGlobal(
+  "fetch",
+  vi.fn(() => Promise.resolve(new Response("{}", { status: 200 })))
+);
 
 function renderApp(path: string, context = connectedContext) {
   return render(
@@ -57,17 +60,23 @@ function renderApp(path: string, context = connectedContext) {
 describe("App", () => {
   it("renders discover page at /", () => {
     renderApp("/");
-    expect(screen.getByRole("heading", { level: 1, name: "Discover" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Discover" })
+    ).toBeInTheDocument();
   });
 
   it("renders search page at /search", () => {
     renderApp("/search");
-    expect(screen.getByRole("heading", { level: 1, name: "Search Albums" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Search Albums" })
+    ).toBeInTheDocument();
   });
 
   it("renders settings page at /settings", () => {
     renderApp("/settings");
-    expect(screen.getByRole("heading", { level: 1, name: "Settings" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Settings" })
+    ).toBeInTheDocument();
   });
 
   it("renders onboarding at /onboarding for unconfigured", () => {

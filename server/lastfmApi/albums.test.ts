@@ -67,18 +67,14 @@ describe("getTopAlbumsByTag", () => {
   });
 
   it("defaults pagination to page 1 of 1", async () => {
-    mockFetch.mockResolvedValue(
-      jsonResponse({ albums: { album: [] } })
-    );
+    mockFetch.mockResolvedValue(jsonResponse({ albums: { album: [] } }));
 
     const result = await getTopAlbumsByTag("niche");
     expect(result.pagination).toEqual({ page: 1, totalPages: 1 });
   });
 
   it("throws with default message when API error has no message", async () => {
-    mockFetch.mockResolvedValue(
-      jsonResponse({ error: 6 })
-    );
+    mockFetch.mockResolvedValue(jsonResponse({ error: 6 }));
 
     await expect(getTopAlbumsByTag("bad")).rejects.toThrow("Last.fm API error");
   });
@@ -87,9 +83,7 @@ describe("getTopAlbumsByTag", () => {
     mockFetch.mockResolvedValue(
       jsonResponse({
         albums: {
-          album: [
-            { name: "Album", mbid: "", artist: { name: "", mbid: "" } },
-          ],
+          album: [{ name: "Album", mbid: "", artist: { name: "", mbid: "" } }],
         },
       })
     );

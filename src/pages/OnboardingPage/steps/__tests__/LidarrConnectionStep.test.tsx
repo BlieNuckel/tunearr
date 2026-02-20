@@ -80,9 +80,7 @@ describe("LidarrConnectionStep", () => {
         testResult={{ success: true, version: "2.0.0" }}
       />
     );
-    expect(
-      screen.getByText("Connected! Lidarr v2.0.0")
-    ).toBeInTheDocument();
+    expect(screen.getByText("Connected! Lidarr v2.0.0")).toBeInTheDocument();
   });
 
   it("shows failure message", () => {

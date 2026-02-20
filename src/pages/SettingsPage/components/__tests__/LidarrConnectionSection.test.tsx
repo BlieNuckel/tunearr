@@ -25,17 +25,14 @@ describe("LidarrConnectionSection", () => {
     expect(
       screen.getByPlaceholderText("http://localhost:8686")
     ).toBeInTheDocument();
-    expect(
-      screen.getByPlaceholderText("Enter API key")
-    ).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Enter API key")).toBeInTheDocument();
   });
 
   it("calls onUrlChange on URL input change", () => {
     render(<LidarrConnectionSection {...defaultProps} />);
-    fireEvent.change(
-      screen.getByPlaceholderText("http://localhost:8686"),
-      { target: { value: "http://lidarr:8686" } }
-    );
+    fireEvent.change(screen.getByPlaceholderText("http://localhost:8686"), {
+      target: { value: "http://lidarr:8686" },
+    });
     expect(defaultProps.onUrlChange).toHaveBeenCalledWith("http://lidarr:8686");
   });
 

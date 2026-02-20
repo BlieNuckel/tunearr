@@ -35,13 +35,7 @@ vi.mock("@/components/PurchaseLinksModal", () => ({
 }));
 
 vi.mock("@/components/MonitorButton", () => ({
-  default: ({
-    state,
-    onClick,
-  }: {
-    state: string;
-    onClick: () => void;
-  }) => (
+  default: ({ state, onClick }: { state: string; onClick: () => void }) => (
     <button data-testid="monitor-button" data-state={state} onClick={onClick}>
       {state === "already_monitored" ? "Already Monitored" : "Add to Lidarr"}
     </button>

@@ -23,17 +23,14 @@ describe("PlexSection", () => {
     expect(
       screen.getByPlaceholderText("http://localhost:32400")
     ).toBeInTheDocument();
-    expect(
-      screen.getByPlaceholderText("Enter Plex token")
-    ).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Enter Plex token")).toBeInTheDocument();
   });
 
   it("calls onUrlChange on URL input change", () => {
     render(<PlexSection {...defaultProps} />);
-    fireEvent.change(
-      screen.getByPlaceholderText("http://localhost:32400"),
-      { target: { value: "http://plex:32400" } }
-    );
+    fireEvent.change(screen.getByPlaceholderText("http://localhost:32400"), {
+      target: { value: "http://plex:32400" },
+    });
     expect(defaultProps.onUrlChange).toHaveBeenCalledWith("http://plex:32400");
   });
 

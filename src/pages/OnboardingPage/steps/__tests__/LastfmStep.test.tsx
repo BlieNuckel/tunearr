@@ -19,10 +19,9 @@ describe("LastfmStep", () => {
   it("calls onApiKeyChange on input change", () => {
     const onApiKeyChange = vi.fn();
     render(<LastfmStep apiKey="" onApiKeyChange={onApiKeyChange} />);
-    fireEvent.change(
-      screen.getByPlaceholderText("Enter Last.fm API key"),
-      { target: { value: "abc123" } }
-    );
+    fireEvent.change(screen.getByPlaceholderText("Enter Last.fm API key"), {
+      target: { value: "abc123" },
+    });
     expect(onApiKeyChange).toHaveBeenCalledWith("abc123");
   });
 

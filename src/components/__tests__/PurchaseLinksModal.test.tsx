@@ -129,12 +129,7 @@ describe("PurchaseLinksModal", () => {
   });
 
   it("shows Add to Library button when onAddToLibrary provided", () => {
-    render(
-      <PurchaseLinksModal
-        {...defaultProps}
-        onAddToLibrary={vi.fn()}
-      />
-    );
+    render(<PurchaseLinksModal {...defaultProps} onAddToLibrary={vi.fn()} />);
     expect(screen.getByText("Add to Library")).toBeInTheDocument();
     expect(screen.getByText("Cancel")).toBeInTheDocument();
   });

@@ -56,9 +56,7 @@ describe("useSettings", () => {
     const { result } = renderHook(() => useSettings());
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    vi.mocked(fetch).mockResolvedValueOnce(
-      new Response("{}", { status: 200 })
-    );
+    vi.mocked(fetch).mockResolvedValueOnce(new Response("{}", { status: 200 }));
 
     const newSettings = {
       lidarrUrl: "http://new:8686",
@@ -87,9 +85,7 @@ describe("useSettings", () => {
       })
     );
 
-    await act(() =>
-      result.current.save({ lidarrUrl: "", lidarrApiKey: "" })
-    );
+    await act(() => result.current.save({ lidarrUrl: "", lidarrApiKey: "" }));
 
     expect(result.current.error).toBe("Validation failed");
   });
