@@ -27,7 +27,7 @@ export default function PlexTopArtists({
           <button
             key={artist.name}
             onClick={() => onSelect(artist.name)}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all ${
+            className={`flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-full text-sm border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all ${
               selectedArtist === artist.name
                 ? "bg-pink-400 text-black font-bold"
                 : "bg-white text-gray-700 hover:bg-pink-50"
@@ -44,7 +44,9 @@ export default function PlexTopArtists({
               />
             )}
             {artist.name}
-            <span className="text-xs opacity-60">{artist.viewCount} plays</span>
+            <span className="text-xs opacity-60">
+              {artist.viewCount}<span className="hidden sm:inline"> plays</span>
+            </span>
           </button>
         ))}
       </div>
