@@ -54,7 +54,24 @@ export async function searchArtistReleaseGroups(
   }
 
   const data: MusicBrainzSearchResponse = await response.json();
-  const sorted = data["release-groups"].sort((a, b) => b.score - a.score);
+
+  // Sort by release date (newest first), then by score
+  const sorted = data["release-groups"].sort((a, b) => {
+    const dateA = a["first-release-date"] || "";
+    const dateB = b["first-release-date"] || "";
+
+    // If both have dates, sort by date (newest first)
+    if (dateA && dateB) {
+      return dateB.localeCompare(dateA);
+    }
+
+    // If only one has a date, prioritize it
+    if (dateA) return -1;
+    if (dateB) return 1;
+
+    // If neither has a date, sort by score
+    return b.score - a.score;
+  });
 
   return {
     ...data,

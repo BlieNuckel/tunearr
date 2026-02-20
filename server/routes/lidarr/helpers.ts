@@ -29,9 +29,21 @@ const addAlbumToLidarr = async (albumMbid: string, artist: LidarrArtist) => {
   });
 
   if (addAlbumResult.status >= 300) {
-    throw new Error(
-      `Failed to add album: ${extractLidarrError(addAlbumResult.data)}`
-    );
+    const errorMsg = extractLidarrError(addAlbumResult.data);
+
+    // If Lidarr says "already added", fetch all albums and find it
+    if (errorMsg.toLowerCase().includes("already") && errorMsg.toLowerCase().includes("added")) {
+      const allAlbumsResult = await lidarrGet<LidarrAlbum[]>("/album");
+      const existingAlbum = allAlbumsResult.data.find(
+        (a) => a.foreignAlbumId === albumMbid
+      );
+
+      if (existingAlbum) {
+        return existingAlbum;
+      }
+    }
+
+    throw new Error(`Failed to add album: ${errorMsg}`);
   }
 
   return addAlbumResult.data;
