@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 interface ModalProps {
   isOpen: boolean;
@@ -9,7 +10,7 @@ interface ModalProps {
 export default function Modal({ isOpen, onClose, children }: ModalProps) {
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div
       data-testid="modal-backdrop"
       className="fixed inset-0 flex items-center justify-center z-50 p-4"
@@ -21,6 +22,7 @@ export default function Modal({ isOpen, onClose, children }: ModalProps) {
       >
         {children}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
