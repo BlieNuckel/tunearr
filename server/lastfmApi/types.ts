@@ -2,7 +2,7 @@ export type LastfmSimilarArtist = {
   name: string;
   mbid: string;
   match: string;
-  image?: Array<{ '#text': string; size: string }>;
+  image?: Array<{ "#text": string; size: string }>;
 };
 
 export type LastfmTag = {
@@ -13,7 +13,7 @@ export type LastfmTag = {
 export type LastfmTagArtist = {
   name: string;
   mbid: string;
-  image?: Array<{ '#text': string; size: string }>;
+  image?: Array<{ "#text": string; size: string }>;
 };
 
 export type LastfmSimilarResponse = {
@@ -41,7 +41,7 @@ export type LastfmTagAlbum = {
   name: string;
   mbid: string;
   artist: { name: string; mbid: string };
-  image?: Array<{ '#text': string; size: string }>;
+  image?: Array<{ "#text": string; size: string }>;
 };
 
 export type LastfmTagAlbumsResponse = {

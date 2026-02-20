@@ -10,4 +10,4 @@ export {
   MusicalNoteIcon,
   SparklesIcon,
   Squares2X2Icon as DiscoverIcon,
-} from '@heroicons/react/20/solid';
+} from "@heroicons/react/20/solid";

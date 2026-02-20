@@ -1,13 +1,13 @@
-import { useMemo, useState } from 'react';
-import MonitorButton from './MonitorButton';
-import TrackList from './TrackList';
-import PurchaseLinksModal from './PurchaseLinksModal';
-import Spinner from './Spinner';
-import { CheckIcon, PlusIcon } from '@/components/icons';
-import ImageWithShimmer from './ImageWithShimmer';
-import useLidarr from '../hooks/useLidarr';
-import useReleaseTracks from '../hooks/useReleaseTracks';
-import { MonitorState, ReleaseGroup } from '../types';
+import { useMemo, useState } from "react";
+import MonitorButton from "./MonitorButton";
+import TrackList from "./TrackList";
+import PurchaseLinksModal from "./PurchaseLinksModal";
+import Spinner from "./Spinner";
+import { CheckIcon, PlusIcon } from "@/components/icons";
+import ImageWithShimmer from "./ImageWithShimmer";
+import useLidarr from "../hooks/useLidarr";
+import useReleaseTracks from "../hooks/useReleaseTracks";
+import { MonitorState, ReleaseGroup } from "../types";
 
 /** @returns {string} deterministic pastel HSL color derived from the input string */
 function pastelColorFromId(id: string): string {
@@ -58,7 +58,9 @@ export default function ReleaseGroupCard({
 
   const effectiveState = inLibrary ? "already_monitored" : state;
   const disabled =
-    effectiveState === "adding" || effectiveState === "success" || effectiveState === "already_monitored";
+    effectiveState === "adding" ||
+    effectiveState === "success" ||
+    effectiveState === "already_monitored";
 
   const loadTracksIfNeeded = () => {
     if (media.length === 0 && !tracksLoading) {
@@ -109,9 +111,10 @@ export default function ReleaseGroupCard({
   ) : null;
 
   const monitorIcon =
-    effectiveState === 'adding' ? (
+    effectiveState === "adding" ? (
       <Spinner />
-    ) : effectiveState === 'success' || effectiveState === 'already_monitored' ? (
+    ) : effectiveState === "success" ||
+      effectiveState === "already_monitored" ? (
       <CheckIcon className="w-5 h-5" />
     ) : (
       <PlusIcon className="w-5 h-5" />

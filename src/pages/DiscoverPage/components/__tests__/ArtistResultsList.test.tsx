@@ -34,7 +34,11 @@ describe("ArtistResultsList", () => {
 
   it("returns null for empty artists", () => {
     const { container } = render(
-      <ArtistResultsList artists={[]} isInLibrary={isInLibrary} isAlbumInLibrary={isAlbumInLibrary} />
+      <ArtistResultsList
+        artists={[]}
+        isInLibrary={isInLibrary}
+        isAlbumInLibrary={isAlbumInLibrary}
+      />
     );
     expect(container.innerHTML).toBe("");
   });
@@ -45,7 +49,13 @@ describe("ArtistResultsList", () => {
       { name: "Muse", match: 0.8 },
     ];
 
-    render(<ArtistResultsList artists={artists} isInLibrary={isInLibrary} isAlbumInLibrary={isAlbumInLibrary} />);
+    render(
+      <ArtistResultsList
+        artists={artists}
+        isInLibrary={isInLibrary}
+        isAlbumInLibrary={isAlbumInLibrary}
+      />
+    );
 
     expect(screen.getByText("Radiohead (in library)")).toBeInTheDocument();
     expect(screen.getByText("Muse")).toBeInTheDocument();

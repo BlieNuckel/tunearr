@@ -6,22 +6,22 @@ import type {
 } from "./types";
 
 export const getSimilarArtists = async (artist: string) => {
-  const url = buildUrl('artist.getSimilar', { artist, limit: '30' });
+  const url = buildUrl("artist.getSimilar", { artist, limit: "30" });
   const response = await fetch(url);
   const data: LastfmSimilarResponse = await response.json();
 
   if (data.error) {
-    throw new Error(data.message || 'Last.fm API error');
+    throw new Error(data.message || "Last.fm API error");
   }
 
   return (data.similarartists?.artist || []).map((a) => {
-    const largeImage = a.image?.find((img) => img.size === 'large');
-    const extralargeImage = a.image?.find((img) => img.size === 'extralarge');
-    const imageUrl = extralargeImage?.['#text'] || largeImage?.['#text'] || '';
+    const largeImage = a.image?.find((img) => img.size === "large");
+    const extralargeImage = a.image?.find((img) => img.size === "extralarge");
+    const imageUrl = extralargeImage?.["#text"] || largeImage?.["#text"] || "";
 
     return {
       name: a.name,
-      mbid: a.mbid || '',
+      mbid: a.mbid || "",
       match: parseFloat(a.match),
       imageUrl,
     };
@@ -43,30 +43,30 @@ export const getArtistTopTags = async (artist: string) => {
   }));
 };
 
-export const getTopArtistsByTag = async (tag: string, page = '1') => {
-  const url = buildUrl('tag.getTopArtists', { tag, limit: '30', page });
+export const getTopArtistsByTag = async (tag: string, page = "1") => {
+  const url = buildUrl("tag.getTopArtists", { tag, limit: "30", page });
   const response = await fetch(url);
   const data: LastfmTagArtistsResponse = await response.json();
 
   if (data.error) {
-    throw new Error(data.message || 'Last.fm API error');
+    throw new Error(data.message || "Last.fm API error");
   }
 
   const topartists = data.topartists;
   const artists = (topartists?.artist || []).map((a, index) => {
-    const largeImage = a.image?.find((img) => img.size === 'large');
-    const extralargeImage = a.image?.find((img) => img.size === 'extralarge');
-    const imageUrl = extralargeImage?.['#text'] || largeImage?.['#text'] || '';
+    const largeImage = a.image?.find((img) => img.size === "large");
+    const extralargeImage = a.image?.find((img) => img.size === "extralarge");
+    const imageUrl = extralargeImage?.["#text"] || largeImage?.["#text"] || "";
 
     return {
       name: a.name,
-      mbid: a.mbid || '',
+      mbid: a.mbid || "",
       imageUrl,
       rank: index + 1,
     };
   });
 
-  const attr = topartists?.['@attr'];
+  const attr = topartists?.["@attr"];
   return {
     artists,
     pagination: {

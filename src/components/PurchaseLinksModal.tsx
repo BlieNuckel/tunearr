@@ -1,9 +1,9 @@
-import Modal from './Modal';
-import PurchaseLinks from './PurchaseLinks';
-import FileUploadZone from './FileUploadZone';
-import ImportReview from './ImportReview';
-import Spinner from './Spinner';
-import useManualImport from '../hooks/useManualImport';
+import Modal from "./Modal";
+import PurchaseLinks from "./PurchaseLinks";
+import FileUploadZone from "./FileUploadZone";
+import ImportReview from "./ImportReview";
+import Spinner from "./Spinner";
+import useManualImport from "../hooks/useManualImport";
 
 interface PurchaseLinksModalProps {
   isOpen: boolean;
@@ -62,7 +62,7 @@ export default function PurchaseLinksModal({
             <FileUploadZone onFiles={(files) => upload(files, albumMbid)} />
           )}
 
-          {step === 'uploading' && (
+          {step === "uploading" && (
             <div className="flex items-center justify-center gap-2 py-6">
               <Spinner className="h-5 w-5 text-amber-400" />
               <p className="text-gray-600 text-sm">
@@ -79,7 +79,7 @@ export default function PurchaseLinksModal({
             />
           )}
 
-          {step === 'importing' && (
+          {step === "importing" && (
             <div className="flex items-center justify-center gap-2 py-6">
               <Spinner className="h-5 w-5 text-emerald-500" />
               <p className="text-gray-600 text-sm">Importing to Lidarr...</p>

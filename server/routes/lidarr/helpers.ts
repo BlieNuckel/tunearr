@@ -32,7 +32,10 @@ const addAlbumToLidarr = async (albumMbid: string, artist: LidarrArtist) => {
     const errorMsg = extractLidarrError(addAlbumResult.data);
 
     // If Lidarr says "already added", fetch all albums and find it
-    if (errorMsg.toLowerCase().includes("already") && errorMsg.toLowerCase().includes("added")) {
+    if (
+      errorMsg.toLowerCase().includes("already") &&
+      errorMsg.toLowerCase().includes("added")
+    ) {
       const allAlbumsResult = await lidarrGet<LidarrAlbum[]>("/album");
       const existingAlbum = allAlbumsResult.data.find(
         (a) => a.foreignAlbumId === albumMbid

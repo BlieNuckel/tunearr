@@ -1,10 +1,10 @@
-import { useState } from 'react';
-import type { PromotedAlbumData } from '@/hooks/usePromotedAlbum';
-import MonitorButton from '@/components/MonitorButton';
-import PurchaseLinksModal from '@/components/PurchaseLinksModal';
-import { RefreshIcon } from '@/components/icons';
-import useLidarr from '@/hooks/useLidarr';
-import ImageWithShimmer from '@/components/ImageWithShimmer';
+import { useState } from "react";
+import type { PromotedAlbumData } from "@/hooks/usePromotedAlbum";
+import MonitorButton from "@/components/MonitorButton";
+import PurchaseLinksModal from "@/components/PurchaseLinksModal";
+import { RefreshIcon } from "@/components/icons";
+import useLidarr from "@/hooks/useLidarr";
+import ImageWithShimmer from "@/components/ImageWithShimmer";
 
 /** @returns deterministic pastel HSL color derived from the input string */
 function pastelColorFromId(id: string): string {
@@ -22,7 +22,11 @@ interface PromotedAlbumProps {
   onRefresh: () => void;
 }
 
-export default function PromotedAlbum({ data, loading, onRefresh }: PromotedAlbumProps) {
+export default function PromotedAlbum({
+  data,
+  loading,
+  onRefresh,
+}: PromotedAlbumProps) {
   const [coverError, setCoverError] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -31,12 +35,12 @@ export default function PromotedAlbum({ data, loading, onRefresh }: PromotedAlbu
   const album = data?.album;
   const tag = data?.tag;
   const inLibrary = data?.inLibrary ?? false;
-  const pastelBg = album ? pastelColorFromId(album.mbid) : 'hsl(200, 70%, 85%)';
+  const pastelBg = album ? pastelColorFromId(album.mbid) : "hsl(200, 70%, 85%)";
 
   const effectiveState = inLibrary ? "already_monitored" : state;
 
   const handleMonitorClick = () => {
-    if (effectiveState === 'idle' || effectiveState === 'error') {
+    if (effectiveState === "idle" || effectiveState === "error") {
       setIsModalOpen(true);
     }
   };
@@ -69,7 +73,9 @@ export default function PromotedAlbum({ data, loading, onRefresh }: PromotedAlbu
             className="flex items-center gap-1.5 px-3 py-1.5 text-gray-700 hover:text-gray-900 text-xs font-bold bg-white hover:bg-gray-50 rounded-lg border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Shuffle recommendation"
           >
-            <RefreshIcon className={`w-4 h-4 ${isAnimating || loading ? 'animate-spin' : ''}`} />
+            <RefreshIcon
+              className={`w-4 h-4 ${isAnimating || loading ? "animate-spin" : ""}`}
+            />
             <span className="hidden sm:inline">Shuffle</span>
           </button>
         </div>
@@ -77,8 +83,8 @@ export default function PromotedAlbum({ data, loading, onRefresh }: PromotedAlbu
         <div
           className={`bg-white rounded-xl border-2 border-black shadow-cartoon-md overflow-hidden flex flex-col sm:flex-row transition-all duration-300 ${
             isAnimating
-              ? 'opacity-0 -translate-x-4 scale-95'
-              : 'opacity-100 translate-x-0 scale-100'
+              ? "opacity-0 -translate-x-4 scale-95"
+              : "opacity-100 translate-x-0 scale-100"
           }`}
         >
           <div
@@ -86,9 +92,13 @@ export default function PromotedAlbum({ data, loading, onRefresh }: PromotedAlbu
             style={{ backgroundColor: pastelBg }}
           >
             {loading ? (
-              <div className="w-full h-full bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 animate-shimmer" style={{ backgroundSize: '200% 100%' }} />
+              <div
+                className="w-full h-full bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 animate-shimmer"
+                style={{ backgroundSize: "200% 100%" }}
+              />
             ) : (
-              !coverError && album && (
+              !coverError &&
+              album && (
                 <ImageWithShimmer
                   src={album.coverUrl}
                   alt={`${album.name} cover`}

@@ -38,14 +38,14 @@ describe("getTopAlbumsByTag", () => {
       })
     );
 
-    const result = await getTopAlbumsByTag('alternative');
+    const result = await getTopAlbumsByTag("alternative");
     expect(result.albums).toHaveLength(2);
     expect(result.albums[0]).toEqual({
-      name: 'OK Computer',
-      mbid: 'album-1',
-      artistName: 'Radiohead',
-      artistMbid: 'artist-1',
-      imageUrl: '',
+      name: "OK Computer",
+      mbid: "album-1",
+      artistName: "Radiohead",
+      artistMbid: "artist-1",
+      imageUrl: "",
     });
     expect(result.pagination).toEqual({ page: 1, totalPages: 3 });
   });
@@ -89,13 +89,13 @@ describe("getTopAlbumsByTag", () => {
       })
     );
 
-    const result = await getTopAlbumsByTag('rock');
+    const result = await getTopAlbumsByTag("rock");
     expect(result.albums[0]).toEqual({
-      name: 'Album',
-      mbid: '',
-      artistName: '',
-      artistMbid: '',
-      imageUrl: '',
+      name: "Album",
+      mbid: "",
+      artistName: "",
+      artistMbid: "",
+      imageUrl: "",
     });
   });
 });

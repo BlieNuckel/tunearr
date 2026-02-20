@@ -1,20 +1,20 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink } from "react-router-dom";
 import {
   DiscoverIcon,
   SearchIcon,
   SparklesIcon,
   SettingsIcon,
-} from '@/components/icons';
+} from "@/components/icons";
 
 const links: Array<{
   to: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
 }> = [
-  { to: '/', label: 'Discover', icon: DiscoverIcon },
-  { to: '/search', label: 'Search', icon: SearchIcon },
-  { to: '/status', label: 'Status', icon: SparklesIcon },
-  { to: '/settings', label: 'Settings', icon: SettingsIcon },
+  { to: "/", label: "Discover", icon: DiscoverIcon },
+  { to: "/search", label: "Search", icon: SearchIcon },
+  { to: "/status", label: "Status", icon: SparklesIcon },
+  { to: "/settings", label: "Settings", icon: SettingsIcon },
 ];
 
 export default function Sidebar() {
@@ -123,12 +123,12 @@ export default function Sidebar() {
               <li key={link.to}>
                 <NavLink
                   to={link.to}
-                  end={link.to === '/'}
+                  end={link.to === "/"}
                   className={({ isActive }) =>
                     `flex items-center gap-3 px-4 py-3 rounded-lg text-base font-bold transition-all border-2 ${
                       isActive
-                        ? 'bg-amber-300 text-black border-black shadow-cartoon-sm'
-                        : 'text-gray-700 border-transparent hover:bg-amber-50 hover:border-black hover:text-gray-900'
+                        ? "bg-amber-300 text-black border-black shadow-cartoon-sm"
+                        : "text-gray-700 border-transparent hover:bg-amber-50 hover:border-black hover:text-gray-900"
                     }`
                   }
                 >
@@ -148,12 +148,12 @@ export default function Sidebar() {
             <li key={link.to} className="flex-1">
               <NavLink
                 to={link.to}
-                end={link.to === '/'}
+                end={link.to === "/"}
                 className={({ isActive }) =>
                   `flex flex-col items-center justify-center gap-1 py-3 text-xs font-bold transition-all ${
                     isActive
-                      ? 'text-amber-500 bg-amber-50'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-amber-50'
+                      ? "text-amber-500 bg-amber-50"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-amber-50"
                   }`
                 }
               >

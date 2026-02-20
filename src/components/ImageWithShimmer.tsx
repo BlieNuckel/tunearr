@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from "react";
 
 interface ImageWithShimmerProps {
   src: string;
@@ -10,7 +10,7 @@ interface ImageWithShimmerProps {
 export default function ImageWithShimmer({
   src,
   alt,
-  className = '',
+  className = "",
   onError,
 }: ImageWithShimmerProps) {
   const [isLoading, setIsLoading] = useState(true);
@@ -37,15 +37,15 @@ export default function ImageWithShimmer({
           className={`absolute inset-0 bg-gray-200 animate-shimmer ${className}`}
           style={{
             backgroundImage:
-              'linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent)',
-            backgroundSize: '200% 100%',
+              "linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent)",
+            backgroundSize: "200% 100%",
           }}
         />
       )}
       <img
         src={src}
         alt={alt}
-        className={`${className} ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
+        className={`${className} ${isLoading ? "opacity-0" : "opacity-100"} transition-opacity duration-300`}
         onLoad={handleLoad}
         onError={handleError}
       />

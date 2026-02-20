@@ -1,4 +1,4 @@
-import { ExternalLinkIcon } from '@/components/icons';
+import { ExternalLinkIcon } from "@/components/icons";
 
 interface PurchaseLink {
   platform: string;

@@ -2,9 +2,13 @@ interface SpinnerProps {
   className?: string;
 }
 
-export default function Spinner({ className = 'w-5 h-5' }: SpinnerProps) {
+export default function Spinner({ className = "w-5 h-5" }: SpinnerProps) {
   return (
-    <svg className={`${className} animate-spin`} viewBox="0 0 24 24" fill="none">
+    <svg
+      className={`${className} animate-spin`}
+      viewBox="0 0 24 24"
+      fill="none"
+    >
       <circle
         cx="12"
         cy="12"

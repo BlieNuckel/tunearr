@@ -1,5 +1,5 @@
-import { useRef } from 'react';
-import { CloudUploadIcon } from '@/components/icons';
+import { useRef } from "react";
+import { CloudUploadIcon } from "@/components/icons";
 
 const ACCEPTED_TYPES = ".flac,.mp3,.ogg,.wav,.m4a,.aac";
 

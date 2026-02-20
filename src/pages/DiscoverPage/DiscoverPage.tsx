@@ -28,7 +28,11 @@ export default function DiscoverPage() {
     fetchTagArtists,
   } = useDiscover();
 
-  const { promotedAlbum, loading: promotedLoading, refresh: refreshPromotedAlbum } = usePromotedAlbum();
+  const {
+    promotedAlbum,
+    loading: promotedLoading,
+    refresh: refreshPromotedAlbum,
+  } = usePromotedAlbum();
 
   const [selectedArtist, setSelectedArtist] = useState<string | null>(null);
   const [activeTag, setActiveTag] = useState<string | null>(null);

@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
-import useArtistAlbums from '@/hooks/useArtistAlbums';
-import ReleaseGroupCard from '@/components/ReleaseGroupCard';
-import { ChevronDownIcon, MusicalNoteIcon } from '@/components/icons';
-import ImageWithShimmer from '@/components/ImageWithShimmer';
+import { useState, useEffect, useRef } from "react";
+import useArtistAlbums from "@/hooks/useArtistAlbums";
+import ReleaseGroupCard from "@/components/ReleaseGroupCard";
+import { ChevronDownIcon, MusicalNoteIcon } from "@/components/icons";
+import ImageWithShimmer from "@/components/ImageWithShimmer";
 
 const DEAL_ROTATIONS = [-4, 3.5, -3, 4.5, -3.5, 3];
 const EXIT_DURATION_MS = 150;
@@ -87,7 +87,7 @@ export default function ArtistCard({
             )}
           </div>
           <ChevronDownIcon
-            className={`w-5 h-5 text-gray-400 transition-transform flex-shrink-0 ${expanded ? 'rotate-180' : ''}`}
+            className={`w-5 h-5 text-gray-400 transition-transform flex-shrink-0 ${expanded ? "rotate-180" : ""}`}
           />
         </button>
       </div>
@@ -115,23 +115,26 @@ export default function ArtistCard({
           {!loading && !error && albums.length === 0 && (
             <p className="text-gray-400 text-sm">No albums found.</p>
           )}
-          {!loading && albums.map((rg, index) => (
-            <div
-              key={rg.id}
-              className={animatingOut ? "cascade-deal-out" : "cascade-deal-in"}
-              style={
-                {
-                  "--deal-index": index,
-                  "--deal-rotate": `${DEAL_ROTATIONS[index % DEAL_ROTATIONS.length]}deg`,
-                } as React.CSSProperties
-              }
-            >
-              <ReleaseGroupCard
-              releaseGroup={rg}
-              inLibrary={isAlbumInLibrary(rg.id)}
-            />
-            </div>
-          ))}
+          {!loading &&
+            albums.map((rg, index) => (
+              <div
+                key={rg.id}
+                className={
+                  animatingOut ? "cascade-deal-out" : "cascade-deal-in"
+                }
+                style={
+                  {
+                    "--deal-index": index,
+                    "--deal-rotate": `${DEAL_ROTATIONS[index % DEAL_ROTATIONS.length]}deg`,
+                  } as React.CSSProperties
+                }
+              >
+                <ReleaseGroupCard
+                  releaseGroup={rg}
+                  inLibrary={isAlbumInLibrary(rg.id)}
+                />
+              </div>
+            ))}
         </div>
       )}
     </>

@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { ChevronDownIcon } from '@/components/icons';
+import { useState, useEffect, useRef } from "react";
+import { ChevronDownIcon } from "@/components/icons";
 
 export interface DropdownOption {
   value: string;
@@ -70,11 +70,11 @@ export default function Dropdown({
           onClick={() => setOpen(!open)}
           className={`${triggerClasses} flex items-center justify-between`}
         >
-          <span className={selectedLabel ? 'text-gray-900' : 'text-gray-400'}>
+          <span className={selectedLabel ? "text-gray-900" : "text-gray-400"}>
             {selectedLabel || placeholder}
           </span>
           <ChevronDownIcon
-            className={`w-4 h-4 text-gray-500 ml-2 transition-transform ${open ? 'rotate-180' : ''}`}
+            className={`w-4 h-4 text-gray-500 ml-2 transition-transform ${open ? "rotate-180" : ""}`}
           />
         </button>
       )}

@@ -64,7 +64,9 @@ beforeEach(() => {
 
 describe("PromotedAlbum", () => {
   it("renders album info", () => {
-    render(<PromotedAlbum data={albumData} loading={false} onRefresh={mockRefresh} />);
+    render(
+      <PromotedAlbum data={albumData} loading={false} onRefresh={mockRefresh} />
+    );
     expect(screen.getByText("OK Computer")).toBeInTheDocument();
     expect(screen.getByText("Radiohead")).toBeInTheDocument();
     expect(
@@ -73,13 +75,17 @@ describe("PromotedAlbum", () => {
   });
 
   it("renders cover image", () => {
-    render(<PromotedAlbum data={albumData} loading={false} onRefresh={mockRefresh} />);
+    render(
+      <PromotedAlbum data={albumData} loading={false} onRefresh={mockRefresh} />
+    );
     const img = screen.getByAltText("OK Computer cover");
     expect(img).toHaveAttribute("src", albumData.album.coverUrl);
   });
 
   it("shows pastel fallback on cover error", () => {
-    render(<PromotedAlbum data={albumData} loading={false} onRefresh={mockRefresh} />);
+    render(
+      <PromotedAlbum data={albumData} loading={false} onRefresh={mockRefresh} />
+    );
     const img = screen.getByAltText("OK Computer cover");
     fireEvent.error(img);
     expect(screen.queryByAltText("OK Computer cover")).not.toBeInTheDocument();
@@ -87,8 +93,10 @@ describe("PromotedAlbum", () => {
 
   it("calls onRefresh when shuffle button clicked", () => {
     vi.useFakeTimers();
-    render(<PromotedAlbum data={albumData} loading={false} onRefresh={mockRefresh} />);
-    fireEvent.click(screen.getByLabelText('Shuffle recommendation'));
+    render(
+      <PromotedAlbum data={albumData} loading={false} onRefresh={mockRefresh} />
+    );
+    fireEvent.click(screen.getByLabelText("Shuffle recommendation"));
 
     expect(mockRefresh).not.toHaveBeenCalled();
 
@@ -103,8 +111,10 @@ describe("PromotedAlbum", () => {
 
   it("disables shuffle button during animation", () => {
     vi.useFakeTimers();
-    render(<PromotedAlbum data={albumData} loading={false} onRefresh={mockRefresh} />);
-    const button = screen.getByLabelText('Shuffle recommendation');
+    render(
+      <PromotedAlbum data={albumData} loading={false} onRefresh={mockRefresh} />
+    );
+    const button = screen.getByLabelText("Shuffle recommendation");
 
     fireEvent.click(button);
     expect(button).toBeDisabled();
@@ -118,14 +128,18 @@ describe("PromotedAlbum", () => {
     vi.useRealTimers();
   });
 
-  it('opens modal on monitor button click', () => {
-    render(<PromotedAlbum data={albumData} loading={false} onRefresh={mockRefresh} />);
-    fireEvent.click(screen.getByTestId('monitor-button'));
-    expect(screen.getByTestId('purchase-modal')).toBeInTheDocument();
+  it("opens modal on monitor button click", () => {
+    render(
+      <PromotedAlbum data={albumData} loading={false} onRefresh={mockRefresh} />
+    );
+    fireEvent.click(screen.getByTestId("monitor-button"));
+    expect(screen.getByTestId("purchase-modal")).toBeInTheDocument();
   });
 
   it("calls addToLidarr via modal", () => {
-    render(<PromotedAlbum data={albumData} loading={false} onRefresh={mockRefresh} />);
+    render(
+      <PromotedAlbum data={albumData} loading={false} onRefresh={mockRefresh} />
+    );
     fireEvent.click(screen.getByTestId("monitor-button"));
     fireEvent.click(screen.getByText("Add to Library"));
     expect(mockAddToLidarr).toHaveBeenCalledWith({ albumMbid: "alb-1" });
@@ -133,7 +147,13 @@ describe("PromotedAlbum", () => {
 
   it("shows already_monitored state when inLibrary", () => {
     const inLibraryData = { ...albumData, inLibrary: true };
-    render(<PromotedAlbum data={inLibraryData} loading={false} onRefresh={mockRefresh} />);
+    render(
+      <PromotedAlbum
+        data={inLibraryData}
+        loading={false}
+        onRefresh={mockRefresh}
+      />
+    );
     expect(screen.getByTestId("monitor-button")).toHaveAttribute(
       "data-state",
       "already_monitored"
@@ -142,13 +162,21 @@ describe("PromotedAlbum", () => {
 
   it("does not open modal when inLibrary is true", () => {
     const inLibraryData = { ...albumData, inLibrary: true };
-    render(<PromotedAlbum data={inLibraryData} loading={false} onRefresh={mockRefresh} />);
+    render(
+      <PromotedAlbum
+        data={inLibraryData}
+        loading={false}
+        onRefresh={mockRefresh}
+      />
+    );
     fireEvent.click(screen.getByTestId("monitor-button"));
     expect(screen.queryByTestId("purchase-modal")).not.toBeInTheDocument();
   });
 
   it("closes modal when close button clicked", () => {
-    render(<PromotedAlbum data={albumData} loading={false} onRefresh={mockRefresh} />);
+    render(
+      <PromotedAlbum data={albumData} loading={false} onRefresh={mockRefresh} />
+    );
     fireEvent.click(screen.getByTestId("monitor-button"));
     expect(screen.getByTestId("purchase-modal")).toBeInTheDocument();
     fireEvent.click(screen.getByText("Close"));
@@ -156,24 +184,34 @@ describe("PromotedAlbum", () => {
   });
 
   it("renders section heading", () => {
-    render(<PromotedAlbum data={albumData} loading={false} onRefresh={mockRefresh} />);
+    render(
+      <PromotedAlbum data={albumData} loading={false} onRefresh={mockRefresh} />
+    );
     expect(screen.getByText("Recommended for you")).toBeInTheDocument();
   });
 
   it("shows skeleton loaders when loading is true with no data", () => {
-    render(<PromotedAlbum data={null} loading={true} onRefresh={mockRefresh} />);
+    render(
+      <PromotedAlbum data={null} loading={true} onRefresh={mockRefresh} />
+    );
 
-    const skeletons = document.querySelectorAll('.animate-pulse, .animate-shimmer');
+    const skeletons = document.querySelectorAll(
+      ".animate-pulse, .animate-shimmer"
+    );
     expect(skeletons.length).toBeGreaterThan(0);
 
     expect(screen.queryByText("OK Computer")).not.toBeInTheDocument();
   });
 
   it("shows skeleton loaders when loading is true even with existing data (shuffle)", () => {
-    render(<PromotedAlbum data={albumData} loading={true} onRefresh={mockRefresh} />);
+    render(
+      <PromotedAlbum data={albumData} loading={true} onRefresh={mockRefresh} />
+    );
 
     // Should show skeleton loaders
-    const skeletons = document.querySelectorAll('.animate-pulse, .animate-shimmer');
+    const skeletons = document.querySelectorAll(
+      ".animate-pulse, .animate-shimmer"
+    );
     expect(skeletons.length).toBeGreaterThan(0);
 
     // Should not show the old album data
@@ -181,9 +219,11 @@ describe("PromotedAlbum", () => {
   });
 
   it("disables shuffle button when loading", () => {
-    render(<PromotedAlbum data={albumData} loading={true} onRefresh={mockRefresh} />);
+    render(
+      <PromotedAlbum data={albumData} loading={true} onRefresh={mockRefresh} />
+    );
 
-    const button = screen.getByLabelText('Shuffle recommendation');
+    const button = screen.getByLabelText("Shuffle recommendation");
     expect(button).toBeDisabled();
   });
 });

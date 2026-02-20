@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { SearchIcon } from '@/components/icons';
+import { useState } from "react";
+import { SearchIcon } from "@/components/icons";
 
 interface ArtistSearchFormProps {
   onSearch: (name: string) => void;

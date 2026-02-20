@@ -1,6 +1,6 @@
-import { useState, SubmitEvent } from 'react';
-import Dropdown from '@/components/Dropdown';
-import { SearchIcon } from '@/components/icons';
+import { useState, SubmitEvent } from "react";
+import Dropdown from "@/components/Dropdown";
+import { SearchIcon } from "@/components/icons";
 
 interface SearchBarProps {
   onSearch: (query: string, searchType: string) => void;

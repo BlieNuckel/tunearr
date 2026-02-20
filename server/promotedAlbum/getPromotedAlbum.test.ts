@@ -38,7 +38,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   clearPromotedAlbumCache();
   vi.spyOn(Math, "random").mockReturnValue(0.1);
-  mockGetAlbumArtwork.mockResolvedValue('https://apple.com/album.jpg');
+  mockGetAlbumArtwork.mockResolvedValue("https://apple.com/album.jpg");
   // Mock MusicBrainz conversion - by default, convert Last.fm release MBIDs to release-group MBIDs
   mockGetReleaseGroupIdFromRelease.mockImplementation((mbid: string) =>
     Promise.resolve(`rg-${mbid}`)
@@ -90,7 +90,7 @@ describe("getPromotedAlbum", () => {
       mbid: expect.any(String),
       artistName: expect.any(String),
       artistMbid: expect.any(String),
-      coverUrl: 'https://apple.com/album.jpg', // Apple artwork is now first
+      coverUrl: "https://apple.com/album.jpg", // Apple artwork is now first
     });
     expect(result!.tag).toBe("alternative");
     expect(result!.inLibrary).toBe(false);
