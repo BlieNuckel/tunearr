@@ -7,6 +7,14 @@ export type LibraryArtist = {
   foreignArtistId: string;
 };
 
+/** @typedef {Object} LibraryAlbum */
+export type LibraryAlbum = {
+  id: number;
+  title: string;
+  foreignAlbumId: string;
+  monitored: boolean;
+};
+
 /** @typedef {Object} SimilarArtist */
 export type SimilarArtist = {
   name: string;
@@ -39,6 +47,7 @@ export type PlexTopArtist = {
 
 export default function useDiscover() {
   const [libraryArtists, setLibraryArtists] = useState<LibraryArtist[]>([]);
+  const [libraryAlbums, setLibraryAlbums] = useState<LibraryAlbum[]>([]);
   const [libraryLoading, setLibraryLoading] = useState(true);
 
   const [plexTopArtists, setPlexTopArtists] = useState<PlexTopArtist[]>([]);
@@ -68,10 +77,19 @@ export default function useDiscover() {
   useEffect(() => {
     const loadLibrary = async () => {
       try {
-        const res = await fetch("/api/lidarr/artists");
-        if (res.ok) {
-          const data = await res.json();
+        const [artistsRes, albumsRes] = await Promise.all([
+          fetch("/api/lidarr/artists"),
+          fetch("/api/lidarr/albums"),
+        ]);
+
+        if (artistsRes.ok) {
+          const data = await artistsRes.json();
           setLibraryArtists(data);
+        }
+
+        if (albumsRes.ok) {
+          const data = await albumsRes.json();
+          setLibraryAlbums(data);
         }
       } catch {
         // Library may not be configured yet
@@ -176,6 +194,7 @@ export default function useDiscover() {
 
   return {
     libraryArtists,
+    libraryAlbums,
     libraryLoading,
     plexTopArtists,
     plexLoading,

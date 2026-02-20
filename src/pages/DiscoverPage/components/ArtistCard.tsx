@@ -13,6 +13,7 @@ interface ArtistCardProps {
   /** 0-1 similarity score, shown as percentage */
   match?: number;
   inLibrary?: boolean;
+  isAlbumInLibrary: (albumMbid: string) => boolean;
 }
 
 export default function ArtistCard({
@@ -20,6 +21,7 @@ export default function ArtistCard({
   imageUrl,
   match,
   inLibrary,
+  isAlbumInLibrary,
 }: ArtistCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [animatingOut, setAnimatingOut] = useState(false);
@@ -124,7 +126,10 @@ export default function ArtistCard({
                 } as React.CSSProperties
               }
             >
-              <ReleaseGroupCard releaseGroup={rg} />
+              <ReleaseGroupCard
+              releaseGroup={rg}
+              inLibrary={isAlbumInLibrary(rg.id)}
+            />
             </div>
           ))}
         </div>

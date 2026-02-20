@@ -11,6 +11,7 @@ import ArtistResultsList from "./components/ArtistResultsList";
 export default function DiscoverPage() {
   const {
     libraryArtists,
+    libraryAlbums,
     libraryLoading,
     plexTopArtists,
     plexLoading,
@@ -44,9 +45,18 @@ export default function DiscoverPage() {
     [libraryArtists]
   );
 
+  const libraryAlbumMbids = useMemo(
+    () => new Set(libraryAlbums.map((a) => a.foreignAlbumId)),
+    [libraryAlbums]
+  );
+
   const isInLibrary = (name: string, mbid?: string) => {
     if (mbid && libraryMbids.has(mbid)) return true;
     return libraryNames.has(name.toLowerCase());
+  };
+
+  const isAlbumInLibrary = (albumMbid: string) => {
+    return libraryAlbumMbids.has(albumMbid);
   };
 
   const handleArtistSelect = (name: string) => {
@@ -120,6 +130,7 @@ export default function DiscoverPage() {
         <ArtistResultsList
           artists={tagArtists}
           isInLibrary={isInLibrary}
+          isAlbumInLibrary={isAlbumInLibrary}
           pagination={{
             page: tagPagination.page,
             totalPages: tagPagination.totalPages,
@@ -127,7 +138,11 @@ export default function DiscoverPage() {
           }}
         />
       ) : (
-        <ArtistResultsList artists={similarArtists} isInLibrary={isInLibrary} />
+        <ArtistResultsList
+          artists={similarArtists}
+          isInLibrary={isInLibrary}
+          isAlbumInLibrary={isAlbumInLibrary}
+        />
       )}
 
       {!effectiveSelectedArtist && !similarLoading && (

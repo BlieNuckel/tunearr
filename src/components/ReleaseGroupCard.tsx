@@ -29,10 +29,12 @@ const mobileMonitorStyles: Record<MonitorState, string> = {
 
 interface ReleaseGroupCardProps {
   releaseGroup: ReleaseGroup;
+  inLibrary?: boolean;
 }
 
 export default function ReleaseGroupCard({
   releaseGroup,
+  inLibrary = false,
 }: ReleaseGroupCardProps) {
   const [isFlipped, setIsFlipped] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -95,12 +97,14 @@ export default function ReleaseGroupCard({
   const [coverError, setCoverError] = useState(false);
 
   const coverImage = !coverError ? (
-    <ImageWithShimmer
-      src={coverUrl}
-      alt={`${albumTitle} cover`}
-      className="w-full h-full object-cover"
-      onError={() => setCoverError(true)}
-    />
+    <div className="absolute inset-0">
+      <ImageWithShimmer
+        src={coverUrl}
+        alt={`${albumTitle} cover`}
+        className="w-full h-full object-cover"
+        onError={() => setCoverError(true)}
+      />
+    </div>
   ) : null;
 
   const monitorIcon =
@@ -124,15 +128,22 @@ export default function ReleaseGroupCard({
           onClick={handleMobileCardClick}
         >
           <div
-            className="w-18 aspect-square flex-shrink-0"
+            className="w-18 aspect-square flex-shrink-0 relative"
             style={{ backgroundColor: pastelBg }}
           >
             {coverImage}
           </div>
           <div className="flex-1 min-w-0 px-3 py-2">
-            <h3 className="text-gray-900 font-semibold text-sm truncate">
-              {albumTitle}
-            </h3>
+            <div className="flex items-center gap-1.5">
+              <h3 className="text-gray-900 font-semibold text-sm truncate">
+                {albumTitle}
+              </h3>
+              {inLibrary && (
+                <span className="text-xs bg-amber-300 text-black px-1.5 py-0.5 rounded-full flex-shrink-0 border-2 border-black font-bold shadow-cartoon-sm whitespace-nowrap">
+                  In Library
+                </span>
+              )}
+            </div>
             <p className="text-gray-500 text-xs truncate">{artistName}</p>
             {year && <p className="text-gray-400 text-xs">{year}</p>}
           </div>
@@ -182,16 +193,23 @@ export default function ReleaseGroupCard({
             data-testid="release-group-card"
           >
             <div
-              className="aspect-square"
+              className="aspect-square relative"
               style={{ backgroundColor: pastelBg }}
             >
               {coverImage}
             </div>
 
             <div className="p-3 border-t-2 border-black">
-              <h3 className="text-gray-900 font-semibold text-sm truncate">
-                {albumTitle}
-              </h3>
+              <div className="flex items-center gap-1.5 mb-1">
+                <h3 className="text-gray-900 font-semibold text-sm truncate">
+                  {albumTitle}
+                </h3>
+                {inLibrary && (
+                  <span className="text-xs bg-amber-300 text-black px-1.5 py-0.5 rounded-full flex-shrink-0 border-2 border-black font-bold shadow-cartoon-sm whitespace-nowrap">
+                    In Library
+                  </span>
+                )}
+              </div>
               <p className="text-gray-500 text-xs truncate">{artistName}</p>
               {year && <p className="text-gray-400 text-xs mt-0.5">{year}</p>}
             </div>

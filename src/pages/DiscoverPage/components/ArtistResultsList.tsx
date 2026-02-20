@@ -12,6 +12,7 @@ interface Artist {
 interface ArtistResultsListProps {
   artists: Artist[];
   isInLibrary: (name: string, mbid?: string) => boolean;
+  isAlbumInLibrary: (albumMbid: string) => boolean;
   pagination?: {
     page: number;
     totalPages: number;
@@ -22,6 +23,7 @@ interface ArtistResultsListProps {
 export default function ArtistResultsList({
   artists,
   isInLibrary,
+  isAlbumInLibrary,
   pagination,
 }: ArtistResultsListProps) {
   if (artists.length === 0) return null;
@@ -35,6 +37,7 @@ export default function ArtistResultsList({
           imageUrl={artist.imageUrl}
           match={artist.match}
           inLibrary={isInLibrary(artist.name, artist.mbid)}
+          isAlbumInLibrary={isAlbumInLibrary}
         />
       ))}
       {pagination && (

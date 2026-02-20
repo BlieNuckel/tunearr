@@ -204,4 +204,25 @@ describe("ReleaseGroupCard", () => {
 
     expect(screen.queryByTestId("detail-overlay")).not.toBeInTheDocument();
   });
+
+  describe("inLibrary badge", () => {
+    it('shows "In Library" badge when inLibrary is true', () => {
+      render(<ReleaseGroupCard releaseGroup={makeReleaseGroup()} inLibrary={true} />);
+
+      const badges = screen.getAllByText("In Library");
+      expect(badges.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('does not show "In Library" badge when inLibrary is false', () => {
+      render(<ReleaseGroupCard releaseGroup={makeReleaseGroup()} inLibrary={false} />);
+
+      expect(screen.queryByText("In Library")).not.toBeInTheDocument();
+    });
+
+    it('does not show "In Library" badge when inLibrary is undefined', () => {
+      render(<ReleaseGroupCard releaseGroup={makeReleaseGroup()} />);
+
+      expect(screen.queryByText("In Library")).not.toBeInTheDocument();
+    });
+  });
 });

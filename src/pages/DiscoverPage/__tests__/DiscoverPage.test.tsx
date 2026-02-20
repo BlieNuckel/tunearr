@@ -34,6 +34,7 @@ vi.mock("../components/PromotedAlbum", () => ({
 vi.mock("@/hooks/useDiscover", () => ({
   default: () => ({
     libraryArtists: [{ id: 1, name: "Radiohead", foreignArtistId: "a1" }],
+    libraryAlbums: [{ id: 1, foreignAlbumId: "alb-1" }],
     libraryLoading: false,
     plexTopArtists: [{ name: "Pink Floyd", viewCount: 80, thumb: "" }],
     plexLoading: false,

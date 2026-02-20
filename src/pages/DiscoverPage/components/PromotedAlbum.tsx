@@ -84,7 +84,7 @@ export default function PromotedAlbum({ data, loading, onRefresh }: PromotedAlbu
             className="w-full sm:w-48 aspect-square sm:aspect-auto sm:h-48 flex-shrink-0 overflow-hidden"
             style={{ backgroundColor: pastelBg }}
           >
-            {loading && !album ? (
+            {loading ? (
               <div className="w-full h-full bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 animate-shimmer" style={{ backgroundSize: '200% 100%' }} />
             ) : (
               !coverError && album && (
@@ -99,7 +99,7 @@ export default function PromotedAlbum({ data, loading, onRefresh }: PromotedAlbu
           </div>
 
           <div className="flex-1 p-4 flex flex-col justify-between min-w-0">
-            {loading && !album ? (
+            {loading ? (
               <div className="space-y-3">
                 <div className="h-6 bg-gray-200 rounded animate-pulse w-3/4" />
                 <div className="h-4 bg-gray-200 rounded animate-pulse w-1/2" />

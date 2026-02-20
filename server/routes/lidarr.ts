@@ -1,5 +1,6 @@
 import express from "express";
 import addRouter from "./lidarr/add";
+import albumsRouter from "./lidarr/albums";
 import artistsRouter from "./lidarr/artists";
 import historyRouter from "./lidarr/history";
 import importRouter from "./lidarr/import";
@@ -12,6 +13,7 @@ import wantedRouter from "./lidarr/wanted";
 const router = express.Router();
 
 router.use(addRouter);
+router.use(albumsRouter);
 router.use(artistsRouter);
 router.use(historyRouter);
 router.use(importRouter);
