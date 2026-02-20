@@ -3,8 +3,7 @@ import useArtistAlbums from "@/hooks/useArtistAlbums";
 import ReleaseGroupCard from "@/components/ReleaseGroupCard";
 
 const DEAL_ROTATIONS = [-4, 3.5, -3, 4.5, -3.5, 3];
-const EXIT_STAGGER_MS = 40;
-const EXIT_DURATION_MS = 250;
+const EXIT_DURATION_MS = 150;
 
 interface ArtistCardProps {
   name: string;
@@ -36,12 +35,10 @@ export default function ArtistCard({
 
     if (expanded) {
       setAnimatingOut(true);
-      const cardCount = Math.max(albums.length, 1);
-      const totalExit = (cardCount - 1) * EXIT_STAGGER_MS + EXIT_DURATION_MS;
       exitTimeoutRef.current = setTimeout(() => {
         setAnimatingOut(false);
         setExpanded(false);
-      }, totalExit);
+      }, EXIT_DURATION_MS);
     } else {
       if (albums.length === 0 && !loading) {
         fetchAlbums(name);
@@ -123,9 +120,7 @@ export default function ArtistCard({
               className={animatingOut ? "cascade-deal-out" : "cascade-deal-in"}
               style={
                 {
-                  "--deal-index": animatingOut
-                    ? albums.length - 1 - index
-                    : index,
+                  "--deal-index": index,
                   "--deal-rotate": `${DEAL_ROTATIONS[index % DEAL_ROTATIONS.length]}deg`,
                 } as React.CSSProperties
               }

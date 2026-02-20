@@ -49,8 +49,7 @@
 }
 
 .cascade-deal-out {
-  animation: cascade-deal-out 0.25s cubic-bezier(0.4, 0, 1, 1) both;
-  animation-delay: calc(var(--deal-index, 0) * 40ms);
+  animation: cascade-deal-out 0.15s cubic-bezier(0.4, 0, 1, 1) both;
 }
 
 .flip-card {
