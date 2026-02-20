@@ -1,8 +1,29 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import DiscoverPage from "../DiscoverPage";
 
 const mockFetchSimilar = vi.fn();
 const mockFetchTagArtists = vi.fn();
+const mockRefreshPromotedAlbum = vi.fn();
+
+let mockPromotedAlbum: unknown = null;
+
+vi.mock("@/hooks/usePromotedAlbum", () => ({
+  default: () => ({
+    promotedAlbum: mockPromotedAlbum,
+    loading: false,
+    error: null,
+    refresh: mockRefreshPromotedAlbum,
+  }),
+}));
+
+vi.mock("../components/PromotedAlbum", () => ({
+  default: ({ data, onRefresh }: { data: { album: { name: string } }; onRefresh: () => void }) => (
+    <div data-testid="promoted-album">
+      <span>{data.album.name}</span>
+      <button onClick={onRefresh}>Refresh</button>
+    </div>
+  ),
+}));
 
 vi.mock("@/hooks/useDiscover", () => ({
   default: () => ({
@@ -42,6 +63,7 @@ vi.mock("@/components/Dropdown", () => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockPromotedAlbum = null;
 });
 
 describe("DiscoverPage", () => {
@@ -92,5 +114,33 @@ describe("DiscoverPage", () => {
     render(<DiscoverPage />);
     fireEvent.click(screen.getByText("rock"));
     expect(mockFetchTagArtists).toHaveBeenCalledWith("rock");
+  });
+
+  it("renders promoted album when data is available", () => {
+    mockPromotedAlbum = {
+      album: { name: "OK Computer", mbid: "alb-1", artistName: "Radiohead", artistMbid: "art-1", coverUrl: "" },
+      tag: "alternative",
+      inLibrary: false,
+    };
+    render(<DiscoverPage />);
+    expect(screen.getByTestId("promoted-album")).toBeInTheDocument();
+    expect(screen.getByText("OK Computer")).toBeInTheDocument();
+  });
+
+  it("does not render promoted album when data is null", () => {
+    mockPromotedAlbum = null;
+    render(<DiscoverPage />);
+    expect(screen.queryByTestId("promoted-album")).not.toBeInTheDocument();
+  });
+
+  it("calls refresh when promoted album refresh clicked", () => {
+    mockPromotedAlbum = {
+      album: { name: "OK Computer", mbid: "alb-1", artistName: "Radiohead", artistMbid: "art-1", coverUrl: "" },
+      tag: "alternative",
+      inLibrary: false,
+    };
+    render(<DiscoverPage />);
+    fireEvent.click(screen.getByText("Refresh"));
+    expect(mockRefreshPromotedAlbum).toHaveBeenCalled();
   });
 });

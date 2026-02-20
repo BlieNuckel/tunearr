@@ -3,12 +3,17 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const mockGetSimilarArtists = vi.fn();
 const mockGetArtistTopTags = vi.fn();
 const mockGetTopArtistsByTag = vi.fn();
+const mockGetTopAlbumsByTag = vi.fn();
 const mockEnrichWithImages = vi.fn();
 
 vi.mock("../lastfmApi/artists", () => ({
   getSimilarArtists: (...args: unknown[]) => mockGetSimilarArtists(...args),
   getArtistTopTags: (...args: unknown[]) => mockGetArtistTopTags(...args),
   getTopArtistsByTag: (...args: unknown[]) => mockGetTopArtistsByTag(...args),
+}));
+
+vi.mock("../lastfmApi/albums", () => ({
+  getTopAlbumsByTag: (...args: unknown[]) => mockGetTopAlbumsByTag(...args),
 }));
 
 vi.mock("../deezerApi/artistImages", () => ({
@@ -96,5 +101,37 @@ describe("GET /tag/artists", () => {
 
     await request(app).get("/tag/artists?tag=rock&page=3");
     expect(mockGetTopArtistsByTag).toHaveBeenCalledWith("rock", "3");
+  });
+});
+
+describe("GET /tag/albums", () => {
+  it("returns 400 when tag param is missing", async () => {
+    const res = await request(app).get("/tag/albums");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain("tag");
+  });
+
+  it("returns albums by tag with default page", async () => {
+    const result = {
+      albums: [{ name: "OK Computer", mbid: "a1", artistName: "Radiohead", artistMbid: "r1" }],
+      pagination: { page: 1, totalPages: 3 },
+    };
+    mockGetTopAlbumsByTag.mockResolvedValue(result);
+
+    const res = await request(app).get("/tag/albums?tag=rock");
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual(result);
+    expect(mockGetTopAlbumsByTag).toHaveBeenCalledWith("rock", "1");
+  });
+
+  it("forwards page parameter", async () => {
+    const result = {
+      albums: [],
+      pagination: { page: 5, totalPages: 10 },
+    };
+    mockGetTopAlbumsByTag.mockResolvedValue(result);
+
+    await request(app).get("/tag/albums?tag=rock&page=5");
+    expect(mockGetTopAlbumsByTag).toHaveBeenCalledWith("rock", "5");
   });
 });

@@ -6,6 +6,7 @@ import {
   getArtistTopTags,
   getTopArtistsByTag,
 } from "../lastfmApi/artists";
+import { getTopAlbumsByTag } from "../lastfmApi/albums";
 
 const router = express.Router();
 
@@ -45,6 +46,19 @@ router.get("/tag/artists", async (req: Request, res: Response) => {
     typeof page === "string" ? page : "1"
   );
   await enrichWithImages(result.artists);
+  res.json(result);
+});
+
+router.get("/tag/albums", async (req: Request, res: Response) => {
+  const { tag, page } = req.query;
+  if (typeof tag !== "string") {
+    return res.status(400).json({ error: "tag query parameter is required" });
+  }
+
+  const result = await getTopAlbumsByTag(
+    tag,
+    typeof page === "string" ? page : "1"
+  );
   res.json(result);
 });
 

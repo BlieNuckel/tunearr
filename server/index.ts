@@ -5,6 +5,7 @@ import lastfmRoutes from "./routes/lastfm";
 import lidarrRoutes from "./routes/lidarr";
 import musicbrainzRoutes from "./routes/musicbrainz";
 import plexRoutes from "./routes/plex";
+import promotedAlbumRoutes from "./routes/promotedAlbum";
 import settingsRoutes from "./routes/settings";
 import { errorHandler } from "./middleware/errorHandler";
 
@@ -21,6 +22,7 @@ app.use("/api/musicbrainz", musicbrainzRoutes);
 app.use("/api/lidarr", lidarrRoutes);
 app.use("/api/lastfm", lastfmRoutes);
 app.use("/api/plex", plexRoutes);
+app.use("/api/promoted-album", promotedAlbumRoutes);
 
 if (process.env.NODE_ENV === "production") {
   app.use(express.static(path.join(__dirname, "..", "build")));

@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
 import useDiscover from "@/hooks/useDiscover";
+import usePromotedAlbum from "@/hooks/usePromotedAlbum";
+import PromotedAlbum from "./components/PromotedAlbum";
 import PlexTopArtists from "./components/PlexTopArtists";
 import LibraryPicker from "./components/LibraryPicker";
 import ArtistSearchForm from "./components/ArtistSearchForm";
@@ -24,6 +26,8 @@ export default function DiscoverPage() {
     fetchSimilar,
     fetchTagArtists,
   } = useDiscover();
+
+  const { promotedAlbum, refresh: refreshPromotedAlbum } = usePromotedAlbum();
 
   const [selectedArtist, setSelectedArtist] = useState<string | null>(null);
   const [activeTag, setActiveTag] = useState<string | null>(null);
@@ -61,6 +65,13 @@ export default function DiscoverPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Discover</h1>
+
+      {promotedAlbum && (
+        <PromotedAlbum
+          data={promotedAlbum}
+          onRefresh={refreshPromotedAlbum}
+        />
+      )}
 
       {!plexLoading && (
         <PlexTopArtists

@@ -34,3 +34,18 @@ export type LastfmTagArtistsResponse = {
     "@attr"?: { page: string; totalPages: string };
   };
 };
+
+export type LastfmTagAlbum = {
+  name: string;
+  mbid: string;
+  artist: { name: string; mbid: string };
+};
+
+export type LastfmTagAlbumsResponse = {
+  error?: number;
+  message?: string;
+  albums?: {
+    album: LastfmTagAlbum[];
+    "@attr"?: { page: string; totalPages: string };
+  };
+};
