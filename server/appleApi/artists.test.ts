@@ -9,21 +9,27 @@ beforeEach(() => {
 });
 
 function jsonResponse(data: unknown) {
-  return { json: () => Promise.resolve(data) };
+  return {
+    ok: true,
+    status: 200,
+    json: () => Promise.resolve(data),
+  };
 }
 
 describe('getArtistArtwork', () => {
-  it('returns 300x300 artwork URL when artist found', async () => {
+  it('returns 600x600 artwork URL when album found', async () => {
     mockFetch.mockResolvedValue(
       jsonResponse({
         resultCount: 1,
         results: [
           {
+            wrapperType: 'collection',
+            collectionId: 1234,
+            collectionName: 'OK Computer',
             artistId: 816,
             artistName: 'Radiohead',
-            artistLinkUrl: 'https://music.apple.com/us/artist/radiohead/816',
             artworkUrl100:
-              'https://is1-ssl.mzstatic.com/image/thumb/Features115/v4/75/9c/ff/759cff39-7fe4-a20a-3e63-d6a95db02b8c/mzl.xngtpwmz.jpg/100x100bb.jpg',
+              'https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/75/9c/ff/759cff39-7fe4-a20a-3e63-d6a95db02b8c/cover.jpg/100x100bb.jpg',
           },
         ],
       })
@@ -32,10 +38,10 @@ describe('getArtistArtwork', () => {
     const result = await getArtistArtwork('Radiohead');
 
     expect(result).toBe(
-      'https://is1-ssl.mzstatic.com/image/thumb/Features115/v4/75/9c/ff/759cff39-7fe4-a20a-3e63-d6a95db02b8c/mzl.xngtpwmz.jpg/300x300bb.jpg'
+      'https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/75/9c/ff/759cff39-7fe4-a20a-3e63-d6a95db02b8c/cover.jpg/600x600bb.jpg'
     );
     expect(mockFetch).toHaveBeenCalledWith(
-      'https://itunes.apple.com/search?term=Radiohead&entity=musicArtist&limit=1'
+      'https://itunes.apple.com/search?term=Radiohead&entity=album&limit=1'
     );
   });
 
@@ -57,9 +63,11 @@ describe('getArtistArtwork', () => {
         resultCount: 1,
         results: [
           {
+            wrapperType: 'collection',
+            collectionId: 999,
+            collectionName: 'Some Album',
             artistId: 999,
             artistName: 'Some Artist',
-            artistLinkUrl: 'https://music.apple.com/us/artist/some-artist/999',
           },
         ],
       })
@@ -78,6 +86,8 @@ describe('getArtistsArtwork', () => {
           resultCount: 1,
           results: [
             {
+              wrapperType: 'collection',
+              collectionId: 1,
               artistId: 816,
               artistName: 'Radiohead',
               artworkUrl100: 'https://example.com/radiohead/100x100bb.jpg',
@@ -90,6 +100,8 @@ describe('getArtistsArtwork', () => {
           resultCount: 1,
           results: [
             {
+              wrapperType: 'collection',
+              collectionId: 2,
               artistId: 1234,
               artistName: 'Portishead',
               artworkUrl100: 'https://example.com/portishead/100x100bb.jpg',
@@ -102,10 +114,10 @@ describe('getArtistsArtwork', () => {
 
     expect(result.size).toBe(2);
     expect(result.get('radiohead')).toBe(
-      'https://example.com/radiohead/300x300bb.jpg'
+      'https://example.com/radiohead/600x600bb.jpg'
     );
     expect(result.get('portishead')).toBe(
-      'https://example.com/portishead/300x300bb.jpg'
+      'https://example.com/portishead/600x600bb.jpg'
     );
   });
 
@@ -116,6 +128,8 @@ describe('getArtistsArtwork', () => {
           resultCount: 1,
           results: [
             {
+              wrapperType: 'collection',
+              collectionId: 1,
               artistId: 816,
               artistName: 'Radiohead',
               artworkUrl100: 'https://example.com/radiohead/100x100bb.jpg',
@@ -134,7 +148,7 @@ describe('getArtistsArtwork', () => {
 
     expect(result.size).toBe(2);
     expect(result.get('radiohead')).toBe(
-      'https://example.com/radiohead/300x300bb.jpg'
+      'https://example.com/radiohead/600x600bb.jpg'
     );
     expect(result.get('unknown artist')).toBe('');
   });

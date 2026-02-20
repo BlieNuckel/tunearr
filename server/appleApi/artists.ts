@@ -10,9 +10,11 @@ export const getArtistArtwork = async (
   artistName: string
 ): Promise<string> => {
   try {
+    // Search for albums by the artist instead of the artist entity
+    // Artist entities don't have artwork, but albums do
     const params = new URLSearchParams({
       term: artistName,
-      entity: 'musicArtist',
+      entity: 'album',
       limit: '1',
     });
 
@@ -29,8 +31,8 @@ export const getArtistArtwork = async (
     if (data.resultCount > 0 && data.results[0].artworkUrl100) {
       // Apple returns 100x100 by default, but we can request larger sizes
       // by replacing the size in the URL
-      const artworkUrl = data.results[0].artworkUrl100.replace('100x100', '300x300');
-      console.log(`[Apple API] Found artwork for ${artistName}: ${artworkUrl}`);
+      const artworkUrl = data.results[0].artworkUrl100.replace('100x100', '600x600');
+      console.log(`[Apple API] Found artwork for ${artistName}`);
       return artworkUrl;
     }
 
