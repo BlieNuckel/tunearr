@@ -2,6 +2,7 @@
   "name": "tunarr",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@10.30.1",
   "type": "module",
   "dependencies": {
     "@heroicons/react": "^2.2.0",
