@@ -15,6 +15,7 @@ export interface Track {
   position: number;
   title: string;
   length: number | null;
+  previewUrl?: string;
 }
 
 export interface Medium {

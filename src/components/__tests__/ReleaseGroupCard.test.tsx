@@ -4,6 +4,7 @@ import type { ReleaseGroup } from "../../types";
 
 const mockAddToLidarr = vi.fn();
 const mockFetchTracks = vi.fn();
+const mockStop = vi.fn();
 
 vi.mock("../../hooks/useLidarr", () => ({
   default: () => ({
@@ -19,6 +20,14 @@ vi.mock("../../hooks/useReleaseTracks", () => ({
     loading: false,
     error: null,
     fetchTracks: mockFetchTracks,
+  }),
+}));
+
+vi.mock("../../hooks/useAudioPreview", () => ({
+  default: () => ({
+    toggle: vi.fn(),
+    stop: mockStop,
+    isTrackPlaying: () => false,
   }),
 }));
 
@@ -98,7 +107,7 @@ describe("ReleaseGroupCard", () => {
       expect(screen.getByTestId("release-group-card-back")).toBeInTheDocument();
     });
 
-    it("flips card and fetches tracks on mouse enter", () => {
+    it("flips card and fetches tracks with artistName on mouse enter", () => {
       render(<ReleaseGroupCard releaseGroup={makeReleaseGroup()} />);
       const card = screen
         .getByTestId("release-group-card")
@@ -110,10 +119,10 @@ describe("ReleaseGroupCard", () => {
         .getByTestId("release-group-card")
         .closest(".flip-card-inner")!;
       expect(inner).toHaveClass("flipped");
-      expect(mockFetchTracks).toHaveBeenCalledWith("abc-123");
+      expect(mockFetchTracks).toHaveBeenCalledWith("abc-123", "Test Artist");
     });
 
-    it("flips back on mouse leave", () => {
+    it("flips back and stops audio on mouse leave", () => {
       render(<ReleaseGroupCard releaseGroup={makeReleaseGroup()} />);
       const card = screen
         .getByTestId("release-group-card")
@@ -127,6 +136,7 @@ describe("ReleaseGroupCard", () => {
 
       fireEvent.mouseLeave(card);
       expect(inner).not.toHaveClass("flipped");
+      expect(mockStop).toHaveBeenCalled();
     });
   });
 
@@ -149,10 +159,10 @@ describe("ReleaseGroupCard", () => {
       fireEvent.click(mobileCard.querySelector(".flex.items-center")!);
 
       expect(grid).toHaveClass("grid-rows-[1fr]");
-      expect(mockFetchTracks).toHaveBeenCalledWith("abc-123");
+      expect(mockFetchTracks).toHaveBeenCalledWith("abc-123", "Test Artist");
     });
 
-    it("collapses tracklist when expanded card is clicked again", () => {
+    it("collapses tracklist and stops audio when expanded card is clicked again", () => {
       render(<ReleaseGroupCard releaseGroup={makeReleaseGroup()} />);
 
       const clickTarget = screen
@@ -165,6 +175,7 @@ describe("ReleaseGroupCard", () => {
 
       fireEvent.click(clickTarget);
       expect(grid).toHaveClass("grid-rows-[0fr]");
+      expect(mockStop).toHaveBeenCalled();
     });
 
     it("opens purchase modal when + button is clicked", () => {

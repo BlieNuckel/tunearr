@@ -1,4 +1,5 @@
 import { Medium } from "../types";
+import { PlayIcon, PauseIcon } from "./icons";
 
 /** @param {number | null} ms - duration in milliseconds */
 function formatDuration(ms: number | null): string {
@@ -14,6 +15,8 @@ interface TrackListProps {
   loading: boolean;
   error: string | null;
   dark?: boolean;
+  onTogglePreview?: (url: string) => void;
+  isTrackPlaying?: (url: string) => boolean;
 }
 
 export default function TrackList({
@@ -21,6 +24,8 @@ export default function TrackList({
   loading,
   error,
   dark,
+  onTogglePreview,
+  isTrackPlaying,
 }: TrackListProps) {
   if (loading)
     return (
@@ -52,31 +57,61 @@ export default function TrackList({
             </p>
           )}
           <ol className="space-y-0.5">
-            {medium.tracks.map((track) => (
-              <li
-                key={track.position}
-                className="flex items-baseline gap-2 text-sm"
-              >
-                <span
-                  className={`w-5 text-right flex-shrink-0 ${dark ? "text-gray-400" : "text-gray-600"}`}
+            {medium.tracks.map((track) => {
+              const hasPreview =
+                !!track.previewUrl && !!onTogglePreview && !!isTrackPlaying;
+              const playing = hasPreview && isTrackPlaying(track.previewUrl!);
+
+              return (
+                <li
+                  key={track.position}
+                  className="flex items-baseline gap-2 text-sm"
                 >
-                  {track.position}
-                </span>
-                <span
-                  className={`flex-1 min-w-0 truncate ${dark ? "text-gray-200" : "text-gray-700"}`}
-                >
-                  {track.title}
-                </span>
-                {track.length && (
+                  {hasPreview ? (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onTogglePreview(track.previewUrl!);
+                      }}
+                      className={`w-5 h-5 flex-shrink-0 flex items-center justify-center rounded-full transition-colors ${
+                        playing
+                          ? "text-amber-500"
+                          : dark
+                            ? "text-gray-400 hover:text-amber-400"
+                            : "text-gray-500 hover:text-amber-500"
+                      }`}
+                      aria-label={playing ? "Pause preview" : "Play preview"}
+                      data-testid={`preview-button-${track.position}`}
+                    >
+                      {playing ? (
+                        <PauseIcon className="w-4 h-4" />
+                      ) : (
+                        <PlayIcon className="w-4 h-4" />
+                      )}
+                    </button>
+                  ) : (
+                    <span
+                      className={`w-5 text-right flex-shrink-0 ${dark ? "text-gray-400" : "text-gray-600"}`}
+                    >
+                      {track.position}
+                    </span>
+                  )}
                   <span
-                    data-testid="track-duration"
-                    className={`text-xs flex-shrink-0 ${dark ? "text-gray-400" : "text-gray-600"}`}
+                    className={`flex-1 min-w-0 truncate ${dark ? "text-gray-200" : "text-gray-700"}`}
                   >
-                    {formatDuration(track.length)}
+                    {track.title}
                   </span>
-                )}
-              </li>
-            ))}
+                  {track.length && (
+                    <span
+                      data-testid="track-duration"
+                      className={`text-xs flex-shrink-0 ${dark ? "text-gray-400" : "text-gray-600"}`}
+                    >
+                      {formatDuration(track.length)}
+                    </span>
+                  )}
+                </li>
+              );
+            })}
           </ol>
         </div>
       ))}

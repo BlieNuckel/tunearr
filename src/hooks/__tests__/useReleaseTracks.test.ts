@@ -31,6 +31,32 @@ describe("useReleaseTracks", () => {
     expect(result.current.loading).toBe(false);
   });
 
+  it("includes artistName as query param when provided", async () => {
+    const media = [{ position: 1, format: "CD", title: "", tracks: [] }];
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify({ media }), { status: 200 })
+    );
+
+    const { result } = renderHook(() => useReleaseTracks());
+    await act(() => result.current.fetchTracks("release-123", "Radiohead"));
+
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/musicbrainz/tracks/release-123?artistName=Radiohead"
+    );
+  });
+
+  it("does not append query string when artistName is absent", async () => {
+    const media = [{ position: 1, format: "CD", title: "", tracks: [] }];
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify({ media }), { status: 200 })
+    );
+
+    const { result } = renderHook(() => useReleaseTracks());
+    await act(() => result.current.fetchTracks("release-123"));
+
+    expect(fetch).toHaveBeenCalledWith("/api/musicbrainz/tracks/release-123");
+  });
+
   it("sets error on failed fetch", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(
       new Response(JSON.stringify({ error: "Not found" }), { status: 404 })

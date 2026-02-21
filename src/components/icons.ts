@@ -11,4 +11,6 @@ export {
   SparklesIcon,
   Squares2X2Icon as DiscoverIcon,
   EyeSlashIcon,
+  PlayIcon,
+  PauseIcon,
 } from "@heroicons/react/20/solid";

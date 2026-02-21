@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import TrackList from "../TrackList";
 import type { Medium } from "../../types";
 
@@ -85,5 +85,147 @@ describe("TrackList", () => {
     rerender(<TrackList media={multiMedia} loading={false} error={null} />);
     expect(screen.getByText("CD 1")).toBeInTheDocument();
     expect(screen.getByText(/Vinyl 2/)).toBeInTheDocument();
+  });
+
+  it("renders play button when track has previewUrl and handlers provided", () => {
+    const media: Medium[] = [
+      {
+        position: 1,
+        format: "CD",
+        title: "",
+        tracks: [
+          {
+            position: 1,
+            title: "Preview Track",
+            length: 180000,
+            previewUrl: "https://example.com/preview.mp3",
+          },
+        ],
+      },
+    ];
+
+    render(
+      <TrackList
+        media={media}
+        loading={false}
+        error={null}
+        onTogglePreview={vi.fn()}
+        isTrackPlaying={() => false}
+      />
+    );
+
+    expect(screen.getByTestId("preview-button-1")).toBeInTheDocument();
+    expect(screen.getByLabelText("Play preview")).toBeInTheDocument();
+  });
+
+  it("renders track number when no previewUrl", () => {
+    const media: Medium[] = [
+      {
+        position: 1,
+        format: "CD",
+        title: "",
+        tracks: [
+          { position: 1, title: "No Preview Track", length: 180000 },
+        ],
+      },
+    ];
+
+    render(
+      <TrackList
+        media={media}
+        loading={false}
+        error={null}
+        onTogglePreview={vi.fn()}
+        isTrackPlaying={() => false}
+      />
+    );
+
+    expect(screen.queryByTestId("preview-button-1")).not.toBeInTheDocument();
+    expect(screen.getByText("1")).toBeInTheDocument();
+  });
+
+  it("renders track number when no preview handlers provided", () => {
+    const media: Medium[] = [
+      {
+        position: 1,
+        format: "CD",
+        title: "",
+        tracks: [
+          {
+            position: 1,
+            title: "Has URL",
+            length: 180000,
+            previewUrl: "https://example.com/preview.mp3",
+          },
+        ],
+      },
+    ];
+
+    render(<TrackList media={media} loading={false} error={null} />);
+
+    expect(screen.queryByTestId("preview-button-1")).not.toBeInTheDocument();
+    expect(screen.getByText("1")).toBeInTheDocument();
+  });
+
+  it("calls onTogglePreview when play button is clicked", () => {
+    const onToggle = vi.fn();
+    const media: Medium[] = [
+      {
+        position: 1,
+        format: "CD",
+        title: "",
+        tracks: [
+          {
+            position: 1,
+            title: "Clickable Track",
+            length: 180000,
+            previewUrl: "https://example.com/preview.mp3",
+          },
+        ],
+      },
+    ];
+
+    render(
+      <TrackList
+        media={media}
+        loading={false}
+        error={null}
+        onTogglePreview={onToggle}
+        isTrackPlaying={() => false}
+      />
+    );
+
+    fireEvent.click(screen.getByTestId("preview-button-1"));
+    expect(onToggle).toHaveBeenCalledWith("https://example.com/preview.mp3");
+  });
+
+  it("shows pause icon for playing track", () => {
+    const media: Medium[] = [
+      {
+        position: 1,
+        format: "CD",
+        title: "",
+        tracks: [
+          {
+            position: 1,
+            title: "Playing Track",
+            length: 180000,
+            previewUrl: "https://example.com/preview.mp3",
+          },
+        ],
+      },
+    ];
+
+    render(
+      <TrackList
+        media={media}
+        loading={false}
+        error={null}
+        onTogglePreview={vi.fn()}
+        isTrackPlaying={(url) => url === "https://example.com/preview.mp3"}
+      />
+    );
+
+    expect(screen.getByLabelText("Pause preview")).toBeInTheDocument();
   });
 });

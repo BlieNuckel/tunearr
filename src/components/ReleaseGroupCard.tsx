@@ -7,6 +7,7 @@ import { CheckIcon, PlusIcon } from "@/components/icons";
 import ImageWithShimmer from "./ImageWithShimmer";
 import useLidarr from "../hooks/useLidarr";
 import useReleaseTracks from "../hooks/useReleaseTracks";
+import useAudioPreview from "../hooks/useAudioPreview";
 import { MonitorState, ReleaseGroup } from "../types";
 
 /** @returns {string} deterministic pastel HSL color derived from the input string */
@@ -55,6 +56,7 @@ export default function ReleaseGroupCard({
     error: tracksError,
     fetchTracks,
   } = useReleaseTracks();
+  const { toggle, stop, isTrackPlaying } = useAudioPreview();
 
   const effectiveState: MonitorState = inLibrary
     ? "already_monitored"
@@ -72,7 +74,7 @@ export default function ReleaseGroupCard({
 
   const loadTracksIfNeeded = () => {
     if (media.length === 0 && !tracksLoading) {
-      fetchTracks(albumMbid);
+      fetchTracks(albumMbid, artistName);
     }
   };
 
@@ -83,10 +85,12 @@ export default function ReleaseGroupCard({
 
   const handleMouseLeave = () => {
     setIsFlipped(false);
+    stop();
   };
 
   const handleMobileCardClick = () => {
     if (!isExpanded) loadTracksIfNeeded();
+    if (isExpanded) stop();
     setIsExpanded(!isExpanded);
   };
 
@@ -187,6 +191,8 @@ export default function ReleaseGroupCard({
                 media={media}
                 loading={tracksLoading}
                 error={tracksError}
+                onTogglePreview={toggle}
+                isTrackPlaying={isTrackPlaying}
               />
             </div>
           </div>
@@ -243,6 +249,8 @@ export default function ReleaseGroupCard({
                 media={media}
                 loading={tracksLoading}
                 error={tracksError}
+                onTogglePreview={toggle}
+                isTrackPlaying={isTrackPlaying}
               />
             </div>
 

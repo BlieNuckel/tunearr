@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const mockSearchReleaseGroups = vi.fn();
 const mockSearchArtistReleaseGroups = vi.fn();
 const mockGetReleaseTracks = vi.fn();
+const mockGetTrackPreviews = vi.fn();
 
 vi.mock("../musicbrainzApi/releaseGroups", () => ({
   searchReleaseGroups: (...args: unknown[]) => mockSearchReleaseGroups(...args),
@@ -12,6 +13,10 @@ vi.mock("../musicbrainzApi/releaseGroups", () => ({
 
 vi.mock("../musicbrainzApi/tracks", () => ({
   getReleaseTracks: (...args: unknown[]) => mockGetReleaseTracks(...args),
+}));
+
+vi.mock("../deezerApi/tracks", () => ({
+  getTrackPreviews: (...args: unknown[]) => mockGetTrackPreviews(...args),
 }));
 
 vi.mock("../middleware/rateLimiter", () => ({
@@ -70,5 +75,50 @@ describe("GET /tracks/:releaseGroupId", () => {
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ media });
     expect(mockGetReleaseTracks).toHaveBeenCalledWith("rg-123");
+    expect(mockGetTrackPreviews).not.toHaveBeenCalled();
+  });
+
+  it("enriches tracks with preview URLs when artistName is provided", async () => {
+    const media = [
+      {
+        position: 1,
+        tracks: [
+          { title: "Creep", position: 1 },
+          { title: "High and Dry", position: 2 },
+        ],
+      },
+    ];
+    mockGetReleaseTracks.mockResolvedValue(media);
+    mockGetTrackPreviews.mockResolvedValue(
+      new Map([
+        ["radiohead|creep", "https://example.com/creep.mp3"],
+        ["radiohead|high and dry", ""],
+      ])
+    );
+
+    const res = await request(app).get(
+      "/tracks/rg-123?artistName=Radiohead"
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.body.media[0].tracks[0].previewUrl).toBe(
+      "https://example.com/creep.mp3"
+    );
+    expect(res.body.media[0].tracks[1].previewUrl).toBeUndefined();
+    expect(mockGetTrackPreviews).toHaveBeenCalledWith([
+      { artistName: "Radiohead", title: "Creep" },
+      { artistName: "Radiohead", title: "High and Dry" },
+    ]);
+  });
+
+  it("skips preview enrichment when artistName is absent", async () => {
+    const media = [
+      { position: 1, tracks: [{ title: "Track 1", position: 1 }] },
+    ];
+    mockGetReleaseTracks.mockResolvedValue(media);
+
+    await request(app).get("/tracks/rg-456");
+
+    expect(mockGetTrackPreviews).not.toHaveBeenCalled();
   });
 });
