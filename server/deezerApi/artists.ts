@@ -29,7 +29,7 @@ const fetchArtistImage = async (artistName: string): Promise<string> => {
 
     const data: DeezerArtistSearchResponse = await response.json();
 
-    if (data.data.length > 0 && data.data[0].picture_xl) {
+    if (data.data?.length > 0 && data.data[0].picture_xl) {
       console.log(`[Deezer API] Found image for ${artistName}`);
       return data.data[0].picture_xl;
     }

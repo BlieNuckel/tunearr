@@ -29,7 +29,7 @@ const fetchTrackPreview = async (
 
     const data: DeezerTrackSearchResponse = await response.json();
 
-    if (data.data.length > 0 && data.data[0].preview) {
+    if (data.data?.length > 0 && data.data[0].preview) {
       return data.data[0].preview;
     }
 
