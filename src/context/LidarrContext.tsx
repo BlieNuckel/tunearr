@@ -23,6 +23,7 @@ export const LidarrContextProvider = ({
     plexUrl: "",
     plexToken: "",
     importPath: "",
+    theme: "system",
   });
   const [options, setOptions] = useState<LidarrOptions>({
     qualityProfiles: [],
@@ -47,6 +48,7 @@ export const LidarrContextProvider = ({
           plexUrl: data.plexUrl || "",
           plexToken: data.plexToken || "",
           importPath: data.importPath || "",
+          theme: data.theme || "system",
         });
 
         if (data.lidarrUrl && data.lidarrApiKey) {
@@ -123,6 +125,7 @@ export const LidarrContextProvider = ({
       plexUrl: newSettings.plexUrl || "",
       plexToken: newSettings.plexToken || "",
       importPath: newSettings.importPath || "",
+      theme: newSettings.theme || "system",
     });
 
     await loadLidarrOptionValues();

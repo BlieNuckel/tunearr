@@ -134,6 +134,7 @@ export function useOnboarding() {
         plexUrl: "",
         plexToken: "",
         importPath: "",
+        theme: "system",
       });
 
       setTestResult(result);
@@ -171,6 +172,7 @@ export function useOnboarding() {
         plexUrl: fields.plexUrl,
         plexToken: fields.plexToken,
         importPath: fields.importPath,
+        theme: "system",
       });
       navigate("/");
     } catch (err) {

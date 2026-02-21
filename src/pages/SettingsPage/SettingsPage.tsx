@@ -99,6 +99,7 @@ export default function SettingsPage() {
         plexUrl,
         plexToken,
         importPath,
+        theme: settings.theme,
       });
       setTestResult(result);
       if (result.success) {
@@ -127,6 +128,7 @@ export default function SettingsPage() {
         plexUrl,
         plexToken,
         importPath,
+        theme: settings.theme,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed");

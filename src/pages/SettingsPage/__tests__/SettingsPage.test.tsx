@@ -22,6 +22,7 @@ function renderSettingsPage(overrides: Partial<LidarrContextValue> = {}) {
       plexUrl: "http://plex:32400",
       plexToken: "plex-token",
       importPath: "/imports",
+      theme: "system",
     },
     isConnected: true,
     isLoading: false,

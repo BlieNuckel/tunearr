@@ -31,6 +31,7 @@ function renderOnboarding(overrides: Partial<LidarrContextValue> = {}) {
       plexUrl: "",
       plexToken: "",
       importPath: "",
+      theme: "system",
     },
     isConnected: false,
     isLoading: false,
@@ -74,6 +75,7 @@ describe("OnboardingPage", () => {
         plexUrl: "",
         plexToken: "",
         importPath: "",
+        theme: "system",
       },
     });
     expect(screen.getByText("Home Page")).toBeInTheDocument();

@@ -18,6 +18,7 @@ const connectedContext: LidarrContextValue = {
     plexUrl: "",
     plexToken: "",
     importPath: "",
+    theme: "system",
   },
   isConnected: true,
   isLoading: false,
@@ -38,6 +39,7 @@ const unconfiguredContext: LidarrContextValue = {
     plexUrl: "",
     plexToken: "",
     importPath: "",
+    theme: "system",
   },
   isConnected: false,
 };

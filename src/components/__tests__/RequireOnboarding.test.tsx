@@ -22,6 +22,7 @@ function renderWithContext(
       plexUrl: "",
       plexToken: "",
       importPath: "",
+      theme: "system",
     },
     isConnected: false,
     isLoading: false,
@@ -69,6 +70,7 @@ describe("RequireOnboarding", () => {
         plexUrl: "",
         plexToken: "",
         importPath: "",
+        theme: "system",
       },
     });
     expect(screen.getByText("Main App")).toBeInTheDocument();
