@@ -2,16 +2,6 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLidarrContext } from "@/context/useLidarrContext";
 
-export const STEPS = [
-  "welcome",
-  "lidarrConnection",
-  "lidarrOptions",
-  "lastfm",
-  "plex",
-  "import",
-  "complete",
-] as const;
-
 export type StepId = (typeof STEPS)[number];
 
 export interface OnboardingFields {
@@ -34,6 +24,16 @@ export interface TestResult {
   metadataProfiles?: { id: number; name: string }[];
   rootFolderPaths?: { id: number; path: string }[];
 }
+
+export const STEPS = [
+  "welcome",
+  "lidarrConnection",
+  "lidarrOptions",
+  "lastfm",
+  "plex",
+  "import",
+  "complete",
+] as const;
 
 const OPTIONAL_STEPS: StepId[] = ["lastfm", "plex", "import"];
 

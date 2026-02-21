@@ -9,6 +9,21 @@ import LastfmStep from "./steps/LastfmStep";
 import PlexStep from "./steps/PlexStep";
 import ImportStep from "./steps/ImportStep";
 import CompleteStep from "./steps/CompleteStep";
+import type { StepId, OnboardingFields, TestResult } from "@/hooks/useOnboarding";
+
+function getNextDisabled(
+  currentStep: StepId,
+  fields: OnboardingFields,
+  testResult: TestResult | null
+) {
+  if (currentStep === "lidarrConnection") {
+    return !testResult?.success;
+  }
+  if (currentStep === "lidarrOptions") {
+    return !fields.rootFolderPath || !fields.qualityProfileId;
+  }
+  return false;
+}
 
 export default function OnboardingPage() {
   const { settings, isLoading } = useLidarrContext();
@@ -20,16 +35,6 @@ export default function OnboardingPage() {
   const showNav =
     wizard.currentStep !== "welcome" && wizard.currentStep !== "complete";
 
-  const getNextDisabled = () => {
-    if (wizard.currentStep === "lidarrConnection") {
-      return !wizard.testResult?.success;
-    }
-    if (wizard.currentStep === "lidarrOptions") {
-      return !wizard.fields.rootFolderPath || !wizard.fields.qualityProfileId;
-    }
-    return false;
-  };
-
   return (
     <WizardShell
       stepIndex={wizard.stepIndex}
@@ -38,7 +43,7 @@ export default function OnboardingPage() {
       onBack={wizard.back}
       onNext={wizard.next}
       onSkip={wizard.isOptional ? wizard.skip : undefined}
-      nextDisabled={getNextDisabled() || wizard.validating}
+      nextDisabled={getNextDisabled(wizard.currentStep, wizard.fields, wizard.testResult) || wizard.validating}
       nextLoading={wizard.validating}
       showNav={showNav}
     >

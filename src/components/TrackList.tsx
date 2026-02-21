@@ -1,15 +1,6 @@
 import { Medium } from "../types";
 import { PlayIcon, PauseIcon } from "./icons";
 
-/** @param {number | null} ms - duration in milliseconds */
-function formatDuration(ms: number | null): string {
-  if (!ms) return "";
-  const totalSeconds = Math.floor(ms / 1000);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
-}
-
 interface TrackListProps {
   media: Medium[];
   loading: boolean;
@@ -17,6 +8,15 @@ interface TrackListProps {
   dark?: boolean;
   onTogglePreview?: (url: string) => void;
   isTrackPlaying?: (url: string) => boolean;
+}
+
+/** @param {number | null} ms - duration in milliseconds */
+function formatDuration(ms: number | null): string {
+  if (!ms) return "";
+  const totalSeconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
 export default function TrackList({

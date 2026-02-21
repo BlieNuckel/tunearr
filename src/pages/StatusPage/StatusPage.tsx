@@ -4,6 +4,14 @@ import WantedList from "./components/WantedList";
 import RecentImports from "./components/RecentImports";
 import { QueueItem, WantedItem, RecentImport } from "@/types";
 
+async function searchAlbum(albumId: number) {
+  await fetch("/api/lidarr/command", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: "AlbumSearch", albumIds: [albumId] }),
+  });
+}
+
 export default function StatusPage() {
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [wanted, setWanted] = useState<WantedItem[]>([]);
@@ -48,11 +56,7 @@ export default function StatusPage() {
 
   const handleAlbumSearch = async (albumId: number) => {
     try {
-      await fetch("/api/lidarr/command", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: "AlbumSearch", albumIds: [albumId] }),
-      });
+      await searchAlbum(albumId);
     } catch {
       // Silently fail — user can retry
     }

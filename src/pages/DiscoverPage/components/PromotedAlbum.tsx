@@ -6,16 +6,7 @@ import PurchaseLinksModal from "@/components/PurchaseLinksModal";
 import { RefreshIcon } from "@/components/icons";
 import useLidarr from "@/hooks/useLidarr";
 import ImageWithShimmer from "@/components/ImageWithShimmer";
-
-/** @returns deterministic pastel HSL color derived from the input string */
-function pastelColorFromId(id: string): string {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) {
-    hash = id.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const hue = Math.abs(hash) % 360;
-  return `hsl(${hue}, 70%, 85%)`;
-}
+import { pastelColorFromId } from "@/utils/pastelColor";
 
 interface PromotedAlbumProps {
   data: PromotedAlbumData | null;

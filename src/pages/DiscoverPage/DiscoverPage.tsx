@@ -8,6 +8,20 @@ import ArtistSearchForm from "./components/ArtistSearchForm";
 import TagList from "./components/TagList";
 import ArtistResultsList from "./components/ArtistResultsList";
 
+function isInLibrary(
+  name: string,
+  libraryMbids: Set<string>,
+  libraryNames: Set<string>,
+  mbid?: string
+) {
+  if (mbid && libraryMbids.has(mbid)) return true;
+  return libraryNames.has(name.toLowerCase());
+}
+
+function isAlbumInLibrary(albumMbid: string, libraryAlbumMbids: Set<string>) {
+  return libraryAlbumMbids.has(albumMbid);
+}
+
 export default function DiscoverPage() {
   const {
     libraryArtists,
@@ -54,14 +68,11 @@ export default function DiscoverPage() {
     [libraryAlbums]
   );
 
-  const isInLibrary = (name: string, mbid?: string) => {
-    if (mbid && libraryMbids.has(mbid)) return true;
-    return libraryNames.has(name.toLowerCase());
-  };
+  const checkInLibrary = (name: string, mbid?: string) =>
+    isInLibrary(name, libraryMbids, libraryNames, mbid);
 
-  const isAlbumInLibrary = (albumMbid: string) => {
-    return libraryAlbumMbids.has(albumMbid);
-  };
+  const checkAlbumInLibrary = (albumMbid: string) =>
+    isAlbumInLibrary(albumMbid, libraryAlbumMbids);
 
   const handleArtistSelect = (name: string) => {
     setSelectedArtist(name);
@@ -135,8 +146,8 @@ export default function DiscoverPage() {
       {showingTagResults ? (
         <ArtistResultsList
           artists={tagArtists}
-          isInLibrary={isInLibrary}
-          isAlbumInLibrary={isAlbumInLibrary}
+          isInLibrary={checkInLibrary}
+          isAlbumInLibrary={checkAlbumInLibrary}
           pagination={{
             page: tagPagination.page,
             totalPages: tagPagination.totalPages,
@@ -146,8 +157,8 @@ export default function DiscoverPage() {
       ) : (
         <ArtistResultsList
           artists={similarArtists}
-          isInLibrary={isInLibrary}
-          isAlbumInLibrary={isAlbumInLibrary}
+          isInLibrary={checkInLibrary}
+          isAlbumInLibrary={checkAlbumInLibrary}
         />
       )}
 

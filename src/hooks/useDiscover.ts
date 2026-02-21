@@ -1,21 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import useLibraryData from "./useLibraryData";
+import usePlexTopArtists from "./usePlexTopArtists";
 
-/** @typedef {Object} LibraryArtist */
-export type LibraryArtist = {
-  id: number;
-  name: string;
-  foreignArtistId: string;
-};
+export type { LibraryArtist, LibraryAlbum } from "./useLibraryData";
+export type { PlexTopArtist } from "./usePlexTopArtists";
 
-/** @typedef {Object} LibraryAlbum */
-export type LibraryAlbum = {
-  id: number;
-  title: string;
-  foreignAlbumId: string;
-  monitored: boolean;
-};
-
-/** @typedef {Object} SimilarArtist */
 export type SimilarArtist = {
   name: string;
   mbid: string;
@@ -23,13 +12,11 @@ export type SimilarArtist = {
   imageUrl: string;
 };
 
-/** @typedef {Object} ArtistTag */
 export type ArtistTag = {
   name: string;
   count: number;
 };
 
-/** @typedef {Object} TagArtist */
 export type TagArtist = {
   name: string;
   mbid: string;
@@ -37,21 +24,9 @@ export type TagArtist = {
   rank: number;
 };
 
-/** @typedef {Object} PlexTopArtist */
-export type PlexTopArtist = {
-  name: string;
-  viewCount: number;
-  thumb: string;
-  genres: string[];
-};
-
 export default function useDiscover() {
-  const [libraryArtists, setLibraryArtists] = useState<LibraryArtist[]>([]);
-  const [libraryAlbums, setLibraryAlbums] = useState<LibraryAlbum[]>([]);
-  const [libraryLoading, setLibraryLoading] = useState(true);
-
-  const [plexTopArtists, setPlexTopArtists] = useState<PlexTopArtist[]>([]);
-  const [plexLoading, setPlexLoading] = useState(true);
+  const { libraryArtists, libraryAlbums, libraryLoading } = useLibraryData();
+  const { plexTopArtists, plexLoading } = usePlexTopArtists();
 
   const [similarArtists, setSimilarArtists] = useState<SimilarArtist[]>([]);
   const [similarLoading, setSimilarLoading] = useState(false);
@@ -73,49 +48,6 @@ export default function useDiscover() {
   );
 
   const hasAutoTriggered = useRef(false);
-
-  useEffect(() => {
-    const loadLibrary = async () => {
-      try {
-        const [artistsRes, albumsRes] = await Promise.all([
-          fetch("/api/lidarr/artists"),
-          fetch("/api/lidarr/albums"),
-        ]);
-
-        if (artistsRes.ok) {
-          const data = await artistsRes.json();
-          setLibraryArtists(data);
-        }
-
-        if (albumsRes.ok) {
-          const data = await albumsRes.json();
-          setLibraryAlbums(data);
-        }
-      } catch {
-        // Library may not be configured yet
-      } finally {
-        setLibraryLoading(false);
-      }
-    };
-    loadLibrary();
-  }, []);
-
-  useEffect(() => {
-    const loadPlexTop = async () => {
-      try {
-        const res = await fetch("/api/plex/top-artists?limit=10");
-        if (res.ok) {
-          const data = await res.json();
-          setPlexTopArtists(data.artists || []);
-        }
-      } catch {
-        // Plex may not be configured
-      } finally {
-        setPlexLoading(false);
-      }
-    };
-    loadPlexTop();
-  }, []);
 
   const fetchSimilar = useCallback(async (artistName: string) => {
     setSimilarLoading(true);
@@ -153,7 +85,6 @@ export default function useDiscover() {
     }
   }, []);
 
-  // Auto-discover: when Plex top artists load, pick the top one and fetch similar
   useEffect(() => {
     if (hasAutoTriggered.current) return;
     if (plexLoading) return;

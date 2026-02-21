@@ -10,6 +10,42 @@ interface LidarrContextProviderProps {
   children: ReactNode;
 }
 
+async function testConnection(testSettings: LidarrSettings) {
+  const res = await fetch("/api/settings/test", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(testSettings),
+  });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    return { success: false, error: data.error || "Connection failed" };
+  }
+
+  return {
+    success: true,
+    version: data.version,
+    qualityProfiles: data.qualityProfiles,
+    metadataProfiles: data.metadataProfiles,
+    rootFolderPaths: data.rootFolderPaths,
+  };
+}
+
+async function fetchLidarrOptions(): Promise<Partial<LidarrOptions>> {
+  const [qualityRes, metadataRes, rootRes] = await Promise.all([
+    fetch("/api/lidarr/qualityprofiles"),
+    fetch("/api/lidarr/metadataprofiles"),
+    fetch("/api/lidarr/rootfolders"),
+  ]);
+
+  const opts: Partial<LidarrOptions> = {};
+  if (qualityRes.ok) opts.qualityProfiles = await qualityRes.json();
+  if (metadataRes.ok) opts.metadataProfiles = await metadataRes.json();
+  if (rootRes.ok) opts.rootFolderPaths = await rootRes.json();
+  return opts;
+}
+
 export const LidarrContextProvider = ({
   children,
 }: LidarrContextProviderProps) => {
@@ -73,27 +109,8 @@ export const LidarrContextProvider = ({
 
   const loadLidarrOptionValues = async () => {
     try {
-      const [qualityRes, metadataRes, rootRes] = await Promise.all([
-        fetch("/api/lidarr/qualityprofiles"),
-        fetch("/api/lidarr/metadataprofiles"),
-        fetch("/api/lidarr/rootfolders"),
-      ]);
-
-      const opts = { ...options };
-
-      if (qualityRes.ok) {
-        const data = await qualityRes.json();
-        opts.qualityProfiles = data;
-      }
-      if (metadataRes.ok) {
-        const data = await metadataRes.json();
-        opts.metadataProfiles = data;
-      }
-      if (rootRes.ok) {
-        const data = await rootRes.json();
-        opts.rootFolderPaths = data;
-      }
-      setOptions(opts);
+      const opts = await fetchLidarrOptions();
+      setOptions((prev) => ({ ...prev, ...opts }));
     } catch {
       // Silently fail - user can still save settings manually
     }
@@ -132,28 +149,6 @@ export const LidarrContextProvider = ({
     await loadSettings();
     const testResult = await testConnection(newSettings);
     setIsConnected(testResult.success);
-  };
-
-  const testConnection = async (testSettings: LidarrSettings) => {
-    const res = await fetch("/api/settings/test", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(testSettings),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      return { success: false, error: data.error || "Connection failed" };
-    }
-
-    return {
-      success: true,
-      version: data.version,
-      qualityProfiles: data.qualityProfiles,
-      metadataProfiles: data.metadataProfiles,
-      rootFolderPaths: data.rootFolderPaths,
-    };
   };
 
   const value: LidarrContextValue = {

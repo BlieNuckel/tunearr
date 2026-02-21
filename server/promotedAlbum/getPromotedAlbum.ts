@@ -5,6 +5,15 @@ import { lidarrGet } from "../lidarrApi/get";
 import type { LidarrArtist } from "../lidarrApi/types";
 import { getReleaseGroupIdFromRelease } from "../musicbrainzApi/releaseGroups";
 
+type WeightedTag = { name: string; weight: number };
+
+type LastfmAlbum = {
+  name: string;
+  mbid: string;
+  artistName: string;
+  artistMbid: string;
+};
+
 export type PromotedAlbumResult = {
   album: {
     name: string;
@@ -78,6 +87,80 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
+async function collectWeightedTags(
+  artists: { name: string; viewCount: number }[]
+): Promise<WeightedTag[]> {
+  const tagResults = await Promise.all(
+    artists.map(async (artist) => {
+      try {
+        const tags = await getArtistTopTags(artist.name);
+        return { artist, tags };
+      } catch {
+        return { artist, tags: [] };
+      }
+    })
+  );
+
+  const weightedTags: WeightedTag[] = [];
+  for (const { artist, tags } of tagResults) {
+    const filtered = tags
+      .filter((t) => !GENERIC_TAGS.has(t.name.toLowerCase()))
+      .slice(0, 5);
+
+    for (const tag of filtered) {
+      weightedTags.push({
+        name: tag.name,
+        weight: tag.count * artist.viewCount,
+      });
+    }
+  }
+  return weightedTags;
+}
+
+async function fetchCandidateAlbums(tagName: string): Promise<LastfmAlbum[]> {
+  const deepPage = String(Math.floor(Math.random() * 9) + 2);
+  const [page1, pageDeep] = await Promise.all([
+    getTopAlbumsByTag(tagName, "1"),
+    getTopAlbumsByTag(tagName, deepPage),
+  ]);
+
+  const seen = new Set<string>();
+  return [...page1.albums, ...pageDeep.albums].filter((a) => {
+    if (!a.mbid) return false;
+    if (seen.has(a.mbid)) return false;
+    seen.add(a.mbid);
+    return true;
+  });
+}
+
+// Sequential to avoid MusicBrainz rate limiting — stops after finding enough
+async function resolveReleaseGroupIds(
+  albums: LastfmAlbum[],
+  limit: number
+): Promise<LastfmAlbum[]> {
+  const resolved: LastfmAlbum[] = [];
+  for (const album of albums) {
+    const releaseGroupId = await getReleaseGroupIdFromRelease(album.mbid);
+    if (releaseGroupId) {
+      resolved.push({ ...album, mbid: releaseGroupId });
+      if (resolved.length >= limit) break;
+    }
+  }
+  return resolved;
+}
+
+async function getLibraryArtistMbids(): Promise<Set<string>> {
+  try {
+    const result = await lidarrGet<LidarrArtist[]>("/artist");
+    if (result.ok) {
+      return new Set(result.data.map((a) => a.foreignArtistId));
+    }
+  } catch {
+    // Lidarr unavailable — treat all as not in library
+  }
+  return new Set();
+}
+
 export async function getPromotedAlbum(
   forceRefresh = false
 ): Promise<PromotedAlbumResult> {
@@ -93,89 +176,24 @@ export async function getPromotedAlbum(
   if (plexArtists.length === 0) return null;
 
   const pickedArtists = weightedRandomPick(plexArtists, (a) => a.viewCount, 3);
-
-  const tagResults = await Promise.all(
-    pickedArtists.map(async (artist) => {
-      try {
-        const tags = await getArtistTopTags(artist.name);
-        return { artist, tags };
-      } catch {
-        return { artist, tags: [] };
-      }
-    })
-  );
-
-  type WeightedTag = { name: string; weight: number };
-  const weightedTags: WeightedTag[] = [];
-
-  for (const { artist, tags } of tagResults) {
-    const filtered = tags
-      .filter((t) => !GENERIC_TAGS.has(t.name.toLowerCase()))
-      .slice(0, 5);
-
-    for (const tag of filtered) {
-      weightedTags.push({
-        name: tag.name,
-        weight: tag.count * artist.viewCount,
-      });
-    }
-  }
-
+  const weightedTags = await collectWeightedTags(pickedArtists);
   if (weightedTags.length === 0) return null;
 
   const [chosenTag] = weightedRandomPick(weightedTags, (t) => t.weight, 1);
   if (!chosenTag) return null;
 
-  const deepPage = String(Math.floor(Math.random() * 9) + 2);
-  const [page1, pageDeep] = await Promise.all([
-    getTopAlbumsByTag(chosenTag.name, "1"),
-    getTopAlbumsByTag(chosenTag.name, deepPage),
-  ]);
-
-  const seen = new Set<string>();
-  const allAlbums = [...page1.albums, ...pageDeep.albums].filter((a) => {
-    if (!a.mbid) return false;
-    if (seen.has(a.mbid)) return false;
-    seen.add(a.mbid);
-    return true;
-  });
-
+  const allAlbums = await fetchCandidateAlbums(chosenTag.name);
   if (allAlbums.length === 0) return null;
 
-  const shuffled = shuffle(allAlbums);
-
-  // Convert Last.fm release MBIDs to release-group MBIDs
-  // Do this sequentially (not in parallel) to avoid MusicBrainz rate limiting
-  // Stop after finding enough valid albums
-  const validAlbums = [];
-  for (const album of shuffled) {
-    const releaseGroupId = await getReleaseGroupIdFromRelease(album.mbid);
-    if (releaseGroupId) {
-      validAlbums.push({ ...album, mbid: releaseGroupId });
-      // Stop after finding 10 valid albums - we only need one anyway
-      if (validAlbums.length >= 10) break;
-    }
-  }
-
+  const validAlbums = await resolveReleaseGroupIds(shuffle(allAlbums), 10);
   if (validAlbums.length === 0) return null;
 
-  let libraryArtistMbids = new Set<string>();
-  try {
-    const result = await lidarrGet<LidarrArtist[]>("/artist");
-    if (result.ok) {
-      libraryArtistMbids = new Set(result.data.map((a) => a.foreignArtistId));
-    }
-  } catch {
-    // Lidarr unavailable — treat all as not in library
-  }
-
+  const libraryArtistMbids = await getLibraryArtistMbids();
   const notInLibrary = validAlbums.find(
     (a) => !libraryArtistMbids.has(a.artistMbid)
   );
 
   const chosen = notInLibrary || validAlbums[0];
-  const inLibrary = !notInLibrary;
-
   const result: PromotedAlbumResult = {
     album: {
       name: chosen.name,
@@ -185,7 +203,7 @@ export async function getPromotedAlbum(
       coverUrl: `https://coverartarchive.org/release-group/${chosen.mbid}/front-500`,
     },
     tag: chosenTag.name,
-    inLibrary,
+    inLibrary: !notInLibrary,
   };
 
   cachedResult = result;

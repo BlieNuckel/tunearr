@@ -4,9 +4,6 @@ import ReleaseGroupCard from "@/components/ReleaseGroupCard";
 import { ChevronDownIcon, MusicalNoteIcon } from "@/components/icons";
 import ImageWithShimmer from "@/components/ImageWithShimmer";
 
-const DEAL_ROTATIONS = [-4, 3.5, -3, 4.5, -3.5, 3];
-const EXIT_DURATION_MS = 150;
-
 interface ArtistCardProps {
   name: string;
   imageUrl?: string;
@@ -15,6 +12,9 @@ interface ArtistCardProps {
   inLibrary?: boolean;
   isAlbumInLibrary: (albumMbid: string) => boolean;
 }
+
+const DEAL_ROTATIONS = [-4, 3.5, -3, 4.5, -3.5, 3];
+const EXIT_DURATION_MS = 150;
 
 export default function ArtistCard({
   name,
