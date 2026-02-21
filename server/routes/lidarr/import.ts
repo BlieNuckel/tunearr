@@ -9,10 +9,13 @@ import { lidarrPost } from "../../lidarrApi/post";
 import { LidarrManualImportItem } from "../../lidarrApi/types";
 import { getAlbumByMbid, getOrAddArtist, getOrAddAlbum } from "./helpers";
 
-declare module "express-serve-static-core" {
-  interface Request {
-    __uploadId?: string;
-    __uploadDir?: string;
+declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  namespace Express {
+    interface Request {
+      __uploadId?: string;
+      __uploadDir?: string;
+    }
   }
 }
 
