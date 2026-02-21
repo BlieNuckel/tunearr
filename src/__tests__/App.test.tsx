@@ -5,6 +5,7 @@ import {
   LidarrContext,
   type LidarrContextValue,
 } from "@/context/lidarrContextDef";
+import { ThemeContext } from "@/context/themeContextDef";
 
 const connectedContext: LidarrContextValue = {
   options: { qualityProfiles: [], metadataProfiles: [], rootFolderPaths: [] },
@@ -52,9 +53,18 @@ vi.stubGlobal(
 function renderApp(path: string, context = connectedContext) {
   return render(
     <LidarrContext.Provider value={context}>
-      <MemoryRouter initialEntries={[path]}>
-        <App />
-      </MemoryRouter>
+      <ThemeContext.Provider
+        value={{
+          theme: "system",
+          actualTheme: "light",
+          setTheme: vi.fn(),
+          isLoading: false,
+        }}
+      >
+        <MemoryRouter initialEntries={[path]}>
+          <App />
+        </MemoryRouter>
+      </ThemeContext.Provider>
     </LidarrContext.Provider>
   );
 }

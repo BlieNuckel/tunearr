@@ -4,6 +4,7 @@ import {
   LidarrContext,
   type LidarrContextValue,
 } from "@/context/lidarrContextDef";
+import { ThemeContext } from "@/context/themeContextDef";
 
 const mockSaveSettings = vi.fn();
 const mockTestConnection = vi.fn();
@@ -34,7 +35,16 @@ function renderSettingsPage(overrides: Partial<LidarrContextValue> = {}) {
 
   return render(
     <LidarrContext.Provider value={defaultContext}>
-      <SettingsPage />
+      <ThemeContext.Provider
+        value={{
+          theme: "system",
+          actualTheme: "light",
+          setTheme: vi.fn(),
+          isLoading: false,
+        }}
+      >
+        <SettingsPage />
+      </ThemeContext.Provider>
     </LidarrContext.Provider>
   );
 }
