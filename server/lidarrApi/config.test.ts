@@ -25,6 +25,7 @@ describe("getLidarrConfig", () => {
       plexUrl: "",
       plexToken: "",
       importPath: "",
+      theme: "system",
     });
 
     const config = getLidarrConfig();
@@ -44,6 +45,7 @@ describe("getLidarrConfig", () => {
       plexUrl: "",
       plexToken: "",
       importPath: "",
+      theme: "system",
     });
 
     expect(() => getLidarrConfig()).toThrow("Lidarr not configured");
@@ -60,6 +62,7 @@ describe("getLidarrConfig", () => {
       plexUrl: "",
       plexToken: "",
       importPath: "",
+      theme: "system",
     });
 
     expect(() => getLidarrConfig()).toThrow("Lidarr not configured");

@@ -43,10 +43,10 @@ export default function PurchaseLinksModal({
     <Modal isOpen={isOpen} onClose={handleClose}>
       <div className="space-y-4">
         <div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
             Purchase Options
           </h2>
-          <p className="text-gray-500 text-sm">
+          <p className="text-gray-500 dark:text-gray-400 text-sm">
             {albumTitle} by {artistName}
           </p>
         </div>
@@ -54,7 +54,7 @@ export default function PurchaseLinksModal({
         <PurchaseLinks artistName={artistName} albumTitle={albumTitle} />
 
         <div className="border-t-2 border-black pt-4">
-          <p className="text-gray-600 text-sm font-medium mb-2">
+          <p className="text-gray-600 dark:text-gray-400 text-sm font-medium mb-2">
             Upload purchased files:
           </p>
 
@@ -65,7 +65,7 @@ export default function PurchaseLinksModal({
           {step === "uploading" && (
             <div className="flex items-center justify-center gap-2 py-6">
               <Spinner className="h-5 w-5 text-amber-400" />
-              <p className="text-gray-600 text-sm">
+              <p className="text-gray-600 dark:text-gray-400 text-sm">
                 Uploading and scanning files...
               </p>
             </div>
@@ -82,7 +82,7 @@ export default function PurchaseLinksModal({
           {step === "importing" && (
             <div className="flex items-center justify-center gap-2 py-6">
               <Spinner className="h-5 w-5 text-emerald-500" />
-              <p className="text-gray-600 text-sm">Importing to Lidarr...</p>
+              <p className="text-gray-600 dark:text-gray-400 text-sm">Importing to Lidarr...</p>
             </div>
           )}
 
@@ -99,7 +99,7 @@ export default function PurchaseLinksModal({
               </div>
               <button
                 onClick={reset}
-                className="text-gray-500 hover:text-gray-700 text-sm underline"
+                className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-sm underline"
               >
                 Try again
               </button>
@@ -118,7 +118,7 @@ export default function PurchaseLinksModal({
               </button>
               <button
                 onClick={handleClose}
-                className="w-full bg-gray-100 hover:bg-gray-50 text-gray-600 font-medium py-2 px-4 rounded-xl border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all"
+                className="w-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 font-medium py-2 px-4 rounded-xl border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all"
               >
                 Cancel
               </button>
@@ -126,7 +126,7 @@ export default function PurchaseLinksModal({
           ) : (
             <button
               onClick={handleClose}
-              className="w-full bg-gray-100 hover:bg-gray-50 text-gray-600 font-medium py-2 px-4 rounded-xl border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all"
+              className="w-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 font-medium py-2 px-4 rounded-xl border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all"
             >
               Close
             </button>

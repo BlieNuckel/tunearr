@@ -32,7 +32,7 @@ export default function PurchaseLinks({
 
   return (
     <div className="space-y-2">
-      <p className="text-gray-600 text-sm font-medium">
+      <p className="text-gray-600 dark:text-gray-400 text-sm font-medium">
         Check availability and pricing:
       </p>
       {links.map((link) => (
@@ -42,14 +42,14 @@ export default function PurchaseLinks({
           href={link.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-3 p-3 bg-amber-50 rounded-xl border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all"
+          className="flex items-center gap-3 p-3 bg-amber-50 dark:bg-gray-700/50 rounded-xl border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all"
         >
           <img src={link.icon} className="h-12" />
           <div className="flex-1">
-            <p className="text-gray-900 font-medium">{link.platform}</p>
-            <p className="text-gray-400 text-xs">View pricing and purchase</p>
+            <p className="text-gray-900 dark:text-gray-100 font-medium">{link.platform}</p>
+            <p className="text-gray-400 dark:text-gray-500 text-xs">View pricing and purchase</p>
           </div>
-          <ExternalLinkIcon className="w-5 h-5 text-gray-400" />
+          <ExternalLinkIcon className="w-5 h-5 text-gray-400 dark:text-gray-500" />
         </a>
       ))}
     </div>

@@ -60,7 +60,7 @@ function MobileNav() {
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 px-3 pb-3">
-      <div className="relative bg-white border-3 border-black rounded-full px-4">
+      <div className="relative bg-white dark:bg-gray-800 border-3 border-black rounded-full px-4">
         <ul ref={navRef} className="relative flex items-center justify-around">
           {activeIndex !== -1 && (
             <div
@@ -82,7 +82,7 @@ function MobileNav() {
                 end={link.to === "/"}
                 className={({ isActive }) =>
                   `relative flex flex-col items-center justify-center gap-1 py-3 text-xs font-bold transition-colors ${
-                    isActive ? "text-black" : "text-gray-500"
+                    isActive ? "text-black dark:text-gray-100" : "text-gray-500 dark:text-gray-400"
                   }`
                 }
               >
@@ -101,8 +101,8 @@ export default function Sidebar() {
   return (
     <>
       {/* Mobile Header, shown only on mobile */}
-      <header className="md:hidden fixed top-0 left-0 right-0 bg-white border-b-4 border-black z-40">
-        <div className="px-4 py-3">
+      <header className="md:hidden fixed top-0 left-0 right-0 bg-white dark:bg-gray-800 border-b-4 border-black z-40">
+        <div className="px-4 py-3 flex items-center justify-between">
           <NavLink to="/" className="flex items-center gap-2 group">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -142,7 +142,7 @@ export default function Sidebar() {
                 strokeWidth="1.5"
               />
             </svg>
-            <span className="text-xl font-bold text-gray-900 group-hover:text-amber-500 transition-colors">
+            <span className="text-xl font-bold text-gray-900 dark:text-gray-100 group-hover:text-amber-500 transition-colors">
               Tunearr
             </span>
           </NavLink>
@@ -150,7 +150,7 @@ export default function Sidebar() {
       </header>
 
       {/* Desktop Sidebar, hidden on mobile */}
-      <aside className="hidden md:flex w-64 min-h-screen bg-white border-r-4 border-black flex-col">
+      <aside className="hidden md:flex w-64 min-h-screen bg-white dark:bg-gray-800 border-r-4 border-black flex-col">
         <div className="p-6 border-b-4 border-black">
           <NavLink to="/" className="flex items-center gap-3 group">
             <svg
@@ -191,7 +191,7 @@ export default function Sidebar() {
                 strokeWidth="1.5"
               />
             </svg>
-            <span className="text-2xl font-bold text-gray-900 group-hover:text-amber-500 transition-colors">
+            <span className="text-2xl font-bold text-gray-900 dark:text-gray-100 group-hover:text-amber-500 transition-colors">
               Tunearr
             </span>
           </NavLink>
@@ -207,8 +207,8 @@ export default function Sidebar() {
                   className={({ isActive }) =>
                     `flex items-center gap-3 px-4 py-3 rounded-lg text-base font-bold transition-all border-2 ${
                       isActive
-                        ? "bg-amber-300 text-black border-black shadow-cartoon-sm"
-                        : "text-gray-700 border-transparent hover:bg-amber-50 hover:border-black hover:text-gray-900"
+                        ? "bg-amber-300 text-black border-black shadow-cartoon-sm dark:text-black"
+                        : "text-gray-700 dark:text-gray-300 border-transparent hover:bg-amber-50 dark:hover:bg-gray-700 hover:border-black hover:text-gray-900 dark:hover:text-gray-100"
                     }`
                   }
                 >

@@ -54,10 +54,10 @@ export default function ArtistCard({
 
   return (
     <>
-      <div className="bg-white rounded-xl border-2 border-black shadow-cartoon-md overflow-hidden hover:translate-y-[-2px] hover:shadow-cartoon-lg transition-all">
+      <div className="bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-md overflow-hidden hover:translate-y-[-2px] hover:shadow-cartoon-lg transition-all">
         <button
           onClick={handleToggle}
-          className="w-full flex items-center gap-3 p-3 text-left hover:bg-amber-50 transition-colors"
+          className="w-full flex items-center gap-3 p-3 text-left hover:bg-amber-50 dark:hover:bg-gray-700 transition-colors"
         >
           {imageUrl && !imageError ? (
             <ImageWithShimmer
@@ -67,13 +67,13 @@ export default function ArtistCard({
               onError={() => setImageError(true)}
             />
           ) : (
-            <div className="w-12 h-12 rounded-lg bg-amber-100 flex-shrink-0 flex items-center justify-center border-2 border-black">
-              <MusicalNoteIcon className="w-6 h-6 text-amber-400" />
+            <div className="w-12 h-12 rounded-lg bg-amber-100 dark:bg-gray-700 flex-shrink-0 flex items-center justify-center border-2 border-black">
+              <MusicalNoteIcon className="w-6 h-6 text-amber-400 dark:text-amber-500" />
             </div>
           )}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <h3 className="text-gray-900 font-medium truncate">{name}</h3>
+              <h3 className="text-gray-900 dark:text-gray-100 font-medium truncate">{name}</h3>
               {inLibrary && (
                 <span className="text-xs bg-amber-300 text-black px-1.5 py-0.5 rounded-full flex-shrink-0 border-2 border-black font-bold shadow-cartoon-sm">
                   In Library
@@ -98,23 +98,23 @@ export default function ArtistCard({
             <>
               {[...Array(5)].map((_, i) => (
                 <div key={i}>
-                  <div className="sm:hidden bg-white rounded-xl border-2 border-black shadow-cartoon-sm overflow-hidden animate-pulse">
+                  <div className="sm:hidden bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-sm overflow-hidden animate-pulse">
                     <div className="flex items-center">
-                      <div className="w-24 aspect-square bg-gray-200 flex-shrink-0" />
+                      <div className="w-24 aspect-square bg-gray-200 dark:bg-gray-700 flex-shrink-0" />
                       <div className="flex-1 min-w-0 px-4 py-3 space-y-2">
-                        <div className="h-4 bg-gray-200 rounded w-3/4" />
-                        <div className="h-3 bg-gray-200 rounded w-1/2" />
-                        <div className="h-3 bg-gray-200 rounded w-1/3" />
+                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4" />
+                        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2" />
+                        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/3" />
                       </div>
-                      <div className="w-12 h-12 bg-gray-200 rounded-lg flex-shrink-0 mr-3" />
+                      <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-lg flex-shrink-0 mr-3" />
                     </div>
                   </div>
-                  <div className="hidden sm:block bg-white rounded-xl border-2 border-black shadow-cartoon-sm overflow-hidden animate-pulse">
-                    <div className="aspect-square bg-gray-200" />
+                  <div className="hidden sm:block bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-sm overflow-hidden animate-pulse">
+                    <div className="aspect-square bg-gray-200 dark:bg-gray-700" />
                     <div className="p-3 border-t-2 border-black space-y-2">
-                      <div className="h-4 bg-gray-200 rounded w-3/4" />
-                      <div className="h-3 bg-gray-200 rounded w-1/2" />
-                      <div className="h-3 bg-gray-200 rounded w-1/3" />
+                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4" />
+                      <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2" />
+                      <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/3" />
                     </div>
                   </div>
                 </div>
@@ -123,7 +123,7 @@ export default function ArtistCard({
           )}
           {error && <p className="text-rose-500 text-sm">{error}</p>}
           {!loading && !error && albums.length === 0 && (
-            <p className="text-gray-400 text-sm">No albums found.</p>
+            <p className="text-gray-400 dark:text-gray-500 text-sm">No albums found.</p>
           )}
           {!loading &&
             albums.map((rg, index) => (

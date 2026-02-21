@@ -73,13 +73,13 @@ export default function PromotedAlbum({
     <>
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
-          <h2 className="text-sm font-medium text-gray-500">
+          <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400">
             Recommended for you
           </h2>
           <button
             onClick={handleRefresh}
             disabled={isAnimating || loading}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-gray-700 hover:text-gray-900 text-xs font-bold bg-white hover:bg-gray-50 rounded-lg border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 text-xs font-bold bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Shuffle recommendation"
           >
             <RefreshIcon
@@ -90,7 +90,7 @@ export default function PromotedAlbum({
         </div>
 
         <div
-          className={`bg-white rounded-xl border-2 border-black shadow-cartoon-md overflow-hidden flex flex-col sm:flex-row transition-all duration-300 ${
+          className={`bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-md overflow-hidden flex flex-col sm:flex-row transition-all duration-300 ${
             isAnimating
               ? "opacity-0 -translate-x-4 scale-95"
               : "opacity-100 translate-x-0 scale-100"
@@ -102,7 +102,7 @@ export default function PromotedAlbum({
           >
             {loading ? (
               <div
-                className="w-full h-full bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 animate-shimmer"
+                className="w-full h-full bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 dark:from-gray-700 dark:via-gray-600 dark:to-gray-700 animate-shimmer"
                 style={{ backgroundSize: "200% 100%" }}
               />
             ) : (
@@ -121,21 +121,21 @@ export default function PromotedAlbum({
           <div className="flex-1 p-4 flex flex-col justify-between min-w-0">
             {loading ? (
               <div className="space-y-3">
-                <div className="h-6 bg-gray-200 rounded animate-pulse w-3/4" />
-                <div className="h-4 bg-gray-200 rounded animate-pulse w-1/2" />
-                <div className="h-5 bg-gray-200 rounded-full animate-pulse w-32 mt-2" />
+                <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-3/4" />
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-1/2" />
+                <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse w-32 mt-2" />
               </div>
             ) : album ? (
               <>
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900 truncate">
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 truncate">
                     {album.name}
                   </h3>
-                  <p className="text-gray-500 text-sm truncate">
+                  <p className="text-gray-500 dark:text-gray-400 text-sm truncate">
                     {album.artistName}
                   </p>
                   {tag && (
-                    <span className="inline-block mt-2 px-2 py-0.5 bg-violet-100 text-violet-700 text-xs font-medium rounded-full border border-violet-200">
+                    <span className="inline-block mt-2 px-2 py-0.5 bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 text-xs font-medium rounded-full border border-violet-200 dark:border-violet-700">
                       Because you listen to {tag}
                     </span>
                   )}

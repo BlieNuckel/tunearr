@@ -22,7 +22,7 @@ export default function TagList({
   return (
     <div className="mb-4">
       <div className="flex items-center flex-wrap gap-2 mb-2">
-        <h2 className="text-lg font-semibold text-gray-900">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
           {showingTagResults
             ? `Top artists for "${activeTag}"`
             : `Similar to "${selectedArtist}"`}
@@ -37,8 +37,8 @@ export default function TagList({
               onClick={() => onTagClick(tag.name)}
               className={`px-2.5 py-1 rounded-full text-xs border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all ${
                 activeTag === tag.name
-                  ? "bg-amber-300 text-black font-bold"
-                  : "bg-white text-gray-700 hover:bg-amber-50"
+                  ? "bg-amber-300 text-black font-bold dark:text-black"
+                  : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-amber-50 dark:hover:bg-gray-700"
               }`}
             >
               {tag.name}
@@ -47,7 +47,7 @@ export default function TagList({
           {activeTag && (
             <button
               onClick={onClearTag}
-              className="px-2.5 py-1 rounded-full text-xs bg-gray-100 text-gray-500 hover:text-gray-700 border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all"
+              className="px-2.5 py-1 rounded-full text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all"
             >
               Back to similar
             </button>

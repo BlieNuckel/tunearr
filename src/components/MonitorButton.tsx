@@ -26,7 +26,7 @@ export default function MonitorButton({
         {config.label}
       </button>
       {state === "error" && errorMsg && (
-        <p className="text-rose-400 text-xs max-w-48 text-right">{errorMsg}</p>
+        <p className="text-rose-400 dark:text-rose-300 text-xs max-w-48 text-right">{errorMsg}</p>
       )}
     </div>
   );

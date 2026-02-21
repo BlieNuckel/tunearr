@@ -26,7 +26,7 @@ export default function LidarrOptionsSection({
   return (
     <div className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-gray-600 mb-1">
+        <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
           Lidarr Root Path
         </label>
         <Dropdown
@@ -39,7 +39,7 @@ export default function LidarrOptionsSection({
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-600 mb-1">
+        <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
           Quality Profile
         </label>
         <Dropdown
@@ -52,7 +52,7 @@ export default function LidarrOptionsSection({
         />
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-600 mb-1">
+        <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
           Metadata Profile
         </label>
         <Dropdown

@@ -136,7 +136,7 @@ export default function ReleaseGroupCard({
     <>
       {/* Mobile: horizontal card with expand */}
       <div
-        className="sm:hidden bg-white rounded-xl border-2 border-black shadow-cartoon-md overflow-hidden"
+        className="sm:hidden bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-md overflow-hidden"
         data-testid="release-group-card-mobile"
       >
         <div
@@ -151,7 +151,7 @@ export default function ReleaseGroupCard({
           </div>
           <div className="flex-1 min-w-0 px-4 py-3">
             <div className="flex items-center gap-1.5">
-              <h3 className="text-gray-900 font-semibold text-base truncate">
+              <h3 className="text-gray-900 dark:text-gray-100 font-semibold text-base truncate">
                 {albumTitle}
               </h3>
               {inLibrary && (
@@ -160,8 +160,8 @@ export default function ReleaseGroupCard({
                 </span>
               )}
             </div>
-            <p className="text-gray-500 text-sm truncate">{artistName}</p>
-            {year && <p className="text-gray-400 text-xs">{year}</p>}
+            <p className="text-gray-500 dark:text-gray-400 text-sm truncate">{artistName}</p>
+            {year && <p className="text-gray-400 dark:text-gray-500 text-xs">{year}</p>}
           </div>
           <button
             onClick={(e) => {
@@ -207,7 +207,7 @@ export default function ReleaseGroupCard({
       >
         <div className={`flip-card-inner ${isFlipped ? "flipped" : ""}`}>
           <div
-            className="bg-white rounded-xl border-2 border-black shadow-cartoon-md overflow-hidden flip-card-face"
+            className="bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-md overflow-hidden flip-card-face"
             data-testid="release-group-card"
           >
             <div
@@ -219,7 +219,7 @@ export default function ReleaseGroupCard({
 
             <div className="p-3 border-t-2 border-black">
               <div className="flex items-center gap-1.5 mb-1">
-                <h3 className="text-gray-900 font-semibold text-sm truncate">
+                <h3 className="text-gray-900 dark:text-gray-100 font-semibold text-sm truncate">
                   {albumTitle}
                 </h3>
                 {inLibrary && (
@@ -228,20 +228,20 @@ export default function ReleaseGroupCard({
                   </span>
                 )}
               </div>
-              <p className="text-gray-500 text-xs truncate">{artistName}</p>
-              {year && <p className="text-gray-400 text-xs mt-0.5">{year}</p>}
+              <p className="text-gray-500 dark:text-gray-400 text-xs truncate">{artistName}</p>
+              {year && <p className="text-gray-400 dark:text-gray-500 text-xs mt-0.5">{year}</p>}
             </div>
           </div>
 
           <div
-            className="bg-white rounded-xl border-2 border-black overflow-hidden flex flex-col p-4 flip-card-face flip-card-back shadow-cartoon-md-flip"
+            className="bg-white dark:bg-gray-800 rounded-xl border-2 border-black overflow-hidden flex flex-col p-4 flip-card-face flip-card-back shadow-cartoon-md-flip"
             data-testid="release-group-card-back"
           >
             <div className="flex-shrink-0">
-              <h3 className="text-gray-900 font-semibold text-sm truncate">
+              <h3 className="text-gray-900 dark:text-gray-100 font-semibold text-sm truncate">
                 {albumTitle}
               </h3>
-              <p className="text-gray-500 text-xs truncate">{artistName}</p>
+              <p className="text-gray-500 dark:text-gray-400 text-xs truncate">{artistName}</p>
             </div>
 
             <div className="flex-1 overflow-y-auto mt-3 min-h-0 overlay-scrollbar">

@@ -19,6 +19,7 @@ const fullConfig = {
   plexUrl: "http://plex:32400",
   plexToken: "plex-token-123",
   importPath: "",
+  theme: "system" as const,
 };
 
 beforeEach(() => {

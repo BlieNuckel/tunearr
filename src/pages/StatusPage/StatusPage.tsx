@@ -77,7 +77,7 @@ export default function StatusPage() {
   };
 
   if (loading) {
-    return <p className="text-gray-500">Loading status...</p>;
+    return <p className="text-gray-500 dark:text-gray-400">Loading status...</p>;
   }
 
   if (error) {
@@ -94,12 +94,12 @@ export default function StatusPage() {
   return (
     <div className="space-y-8">
       <section>
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Download Queue</h2>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Download Queue</h2>
         <QueueTable items={queue} />
       </section>
 
       <section>
-        <h2 className="text-xl font-bold text-gray-900 mb-4">
+        <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
           Wanted / Missing
         </h2>
         <WantedList
@@ -110,7 +110,7 @@ export default function StatusPage() {
       </section>
 
       <section>
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Imports</h2>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Recent Imports</h2>
         <RecentImports items={history} />
       </section>
     </div>

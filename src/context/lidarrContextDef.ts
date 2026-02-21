@@ -10,6 +10,7 @@ export interface LidarrSettings {
   plexUrl: string;
   plexToken: string;
   importPath: string;
+  theme: "light" | "dark" | "system";
 }
 
 export type LidarrOptions = {
