@@ -81,7 +81,6 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       if (response.ok) {
         setThemeState(newTheme);
         setActualTheme(resolveTheme(newTheme));
-        localStorage.setItem("theme", newTheme);
       } else {
         console.error("Failed to save theme to backend");
       }

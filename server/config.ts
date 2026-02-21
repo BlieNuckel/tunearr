@@ -36,19 +36,31 @@ const CONFIG_DIR =
 const CONFIG_PATH = path.join(CONFIG_DIR, "config.json");
 
 const validateConfig = (config: Partial<IConfig>) => {
-  if (typeof config.lidarrUrl !== "string") {
+  if (config.lidarrUrl !== undefined && typeof config.lidarrUrl !== "string") {
     throw new Error("lidarrUrl must be a string");
   }
-  if (typeof config.lidarrApiKey !== "string") {
+  if (
+    config.lidarrApiKey !== undefined &&
+    typeof config.lidarrApiKey !== "string"
+  ) {
     throw new Error("lidarrApiKey must be a string");
   }
-  if (typeof config.lidarrQualityProfileId !== "number") {
+  if (
+    config.lidarrQualityProfileId !== undefined &&
+    typeof config.lidarrQualityProfileId !== "number"
+  ) {
     throw new Error("lidarrQualityProfileId must be a number");
   }
-  if (typeof config.lidarrRootFolderPath !== "string") {
+  if (
+    config.lidarrRootFolderPath !== undefined &&
+    typeof config.lidarrRootFolderPath !== "string"
+  ) {
     throw new Error("lidarrRootFolderPath must be a string");
   }
-  if (typeof config.lidarrMetadataProfileId !== "number") {
+  if (
+    config.lidarrMetadataProfileId !== undefined &&
+    typeof config.lidarrMetadataProfileId !== "number"
+  ) {
     throw new Error("lidarrMetadataProfileId must be a number");
   }
   if (
@@ -87,8 +99,6 @@ export const getConfig = (): IConfig => {
 };
 
 export const setConfig = (newConfig: Partial<IConfig>) => {
-  validateConfig(newConfig);
-
   if (!fs.existsSync(CONFIG_DIR)) {
     console.log(`config directory missing. creating it in ${CONFIG_DIR}`);
     fs.mkdirSync(CONFIG_DIR, { recursive: true });
@@ -96,6 +106,13 @@ export const setConfig = (newConfig: Partial<IConfig>) => {
 
   const currentConfig = getConfig();
   const mergedConfig = { ...currentConfig, ...newConfig };
+
+  if (
+    mergedConfig.theme &&
+    !["light", "dark", "system"].includes(mergedConfig.theme)
+  ) {
+    throw new Error("theme must be 'light', 'dark', or 'system'");
+  }
 
   fs.writeFileSync(CONFIG_PATH, JSON.stringify(mergedConfig, null, 2));
 };
