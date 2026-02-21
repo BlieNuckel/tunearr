@@ -35,60 +35,6 @@ const CONFIG_DIR =
   process.env.APP_CONFIG_DIR || path.join(__dirname, "..", "config");
 const CONFIG_PATH = path.join(CONFIG_DIR, "config.json");
 
-const validateConfig = (config: Partial<IConfig>) => {
-  if (config.lidarrUrl !== undefined && typeof config.lidarrUrl !== "string") {
-    throw new Error("lidarrUrl must be a string");
-  }
-  if (
-    config.lidarrApiKey !== undefined &&
-    typeof config.lidarrApiKey !== "string"
-  ) {
-    throw new Error("lidarrApiKey must be a string");
-  }
-  if (
-    config.lidarrQualityProfileId !== undefined &&
-    typeof config.lidarrQualityProfileId !== "number"
-  ) {
-    throw new Error("lidarrQualityProfileId must be a number");
-  }
-  if (
-    config.lidarrRootFolderPath !== undefined &&
-    typeof config.lidarrRootFolderPath !== "string"
-  ) {
-    throw new Error("lidarrRootFolderPath must be a string");
-  }
-  if (
-    config.lidarrMetadataProfileId !== undefined &&
-    typeof config.lidarrMetadataProfileId !== "number"
-  ) {
-    throw new Error("lidarrMetadataProfileId must be a number");
-  }
-  if (
-    config.lastfmApiKey !== undefined &&
-    typeof config.lastfmApiKey !== "string"
-  ) {
-    throw new Error("lastfmApiKey must be a string");
-  }
-  if (config.plexUrl !== undefined && typeof config.plexUrl !== "string") {
-    throw new Error("plexUrl must be a string");
-  }
-  if (config.plexToken !== undefined && typeof config.plexToken !== "string") {
-    throw new Error("plexToken must be a string");
-  }
-  if (
-    config.importPath !== undefined &&
-    typeof config.importPath !== "string"
-  ) {
-    throw new Error("importPath must be a string");
-  }
-  if (
-    config.theme !== undefined &&
-    !["light", "dark", "system"].includes(config.theme)
-  ) {
-    throw new Error("theme must be 'light', 'dark', or 'system'");
-  }
-};
-
 export const getConfig = (): IConfig => {
   try {
     const data = fs.readFileSync(CONFIG_PATH, "utf-8");
@@ -107,10 +53,35 @@ export const setConfig = (newConfig: Partial<IConfig>) => {
   const currentConfig = getConfig();
   const mergedConfig = { ...currentConfig, ...newConfig };
 
-  if (
-    mergedConfig.theme &&
-    !["light", "dark", "system"].includes(mergedConfig.theme)
-  ) {
+  // Validate the merged config
+  if (typeof mergedConfig.lidarrUrl !== "string") {
+    throw new Error("lidarrUrl must be a string");
+  }
+  if (typeof mergedConfig.lidarrApiKey !== "string") {
+    throw new Error("lidarrApiKey must be a string");
+  }
+  if (typeof mergedConfig.lidarrQualityProfileId !== "number") {
+    throw new Error("lidarrQualityProfileId must be a number");
+  }
+  if (typeof mergedConfig.lidarrRootFolderPath !== "string") {
+    throw new Error("lidarrRootFolderPath must be a string");
+  }
+  if (typeof mergedConfig.lidarrMetadataProfileId !== "number") {
+    throw new Error("lidarrMetadataProfileId must be a number");
+  }
+  if (typeof mergedConfig.lastfmApiKey !== "string") {
+    throw new Error("lastfmApiKey must be a string");
+  }
+  if (typeof mergedConfig.plexUrl !== "string") {
+    throw new Error("plexUrl must be a string");
+  }
+  if (typeof mergedConfig.plexToken !== "string") {
+    throw new Error("plexToken must be a string");
+  }
+  if (typeof mergedConfig.importPath !== "string") {
+    throw new Error("importPath must be a string");
+  }
+  if (!["light", "dark", "system"].includes(mergedConfig.theme)) {
     throw new Error("theme must be 'light', 'dark', or 'system'");
   }
 
