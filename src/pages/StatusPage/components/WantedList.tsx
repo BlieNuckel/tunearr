@@ -27,11 +27,11 @@ export default function WantedList({
           <div
             key={item.id}
             onClick={() => setSelectedItem(item)}
-            className="flex items-center justify-between bg-white rounded-xl px-4 py-3 border-2 border-black shadow-cartoon-md hover:-translate-y-0.5 hover:shadow-cartoon-lg transition-all cursor-pointer"
+            className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-xl px-4 py-3 border-2 border-black shadow-cartoon-md hover:-translate-y-0.5 hover:shadow-cartoon-lg transition-all cursor-pointer"
           >
             <div>
-              <p className="text-gray-900 font-medium">{item.title}</p>
-              <p className="text-gray-500 text-sm">
+              <p className="text-gray-900 dark:text-gray-100 font-medium">{item.title}</p>
+              <p className="text-gray-500 dark:text-gray-400 text-sm">
                 {item.artist?.artistName || "Unknown Artist"}
               </p>
             </div>
@@ -42,7 +42,7 @@ export default function WantedList({
                   onRemove(item.foreignAlbumId);
                 }}
                 aria-label="Unmonitor"
-                className="w-9 h-9 flex items-center justify-center bg-gray-200 hover:bg-gray-100 text-black rounded-lg border-2 border-black shadow-cartoon-sm hover:-translate-y-px hover:shadow-cartoon-md active:translate-y-px active:shadow-cartoon-pressed transition-all"
+                className="w-9 h-9 flex items-center justify-center bg-gray-200 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 text-black rounded-lg border-2 border-black shadow-cartoon-sm hover:-translate-y-px hover:shadow-cartoon-md active:translate-y-px active:shadow-cartoon-pressed transition-all"
               >
                 <EyeSlashIcon className="w-4 h-4" />
               </button>

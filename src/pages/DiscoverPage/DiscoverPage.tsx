@@ -78,7 +78,7 @@ export default function DiscoverPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Discover</h1>
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">Discover</h1>
 
       {(promotedAlbum || promotedLoading) && (
         <PromotedAlbum
@@ -118,9 +118,9 @@ export default function DiscoverPage() {
       )}
 
       {(similarLoading || tagArtistsLoading) && (
-        <div className="flex items-center justify-center gap-3 py-12 bg-amber-50 rounded-xl border-2 border-black shadow-cartoon-sm mt-4">
-          <div className="w-6 h-6 border-3 border-amber-400 border-t-transparent rounded-full animate-spin" />
-          <p className="text-gray-700 font-medium">
+        <div className="flex items-center justify-center gap-3 py-12 bg-amber-50 dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-sm mt-4">
+          <div className="w-6 h-6 border-3 border-amber-400 dark:border-amber-300 border-t-transparent rounded-full animate-spin" />
+          <p className="text-gray-700 dark:text-gray-300 font-medium">
             Discovering similar artists...
           </p>
         </div>
@@ -152,7 +152,7 @@ export default function DiscoverPage() {
       {!effectiveSelectedArtist && !similarLoading && (
         <div className="mt-16 flex flex-col items-center text-gray-400">
           {plexLoading ? (
-            <p className="text-gray-500">Loading your listening data...</p>
+            <p className="text-gray-500 dark:text-gray-400">Loading your listening data...</p>
           ) : (
             <>
               <svg
@@ -168,7 +168,7 @@ export default function DiscoverPage() {
                   d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 0 0-2.455 2.456Z"
                 />
               </svg>
-              <p className="text-lg font-medium text-gray-500">
+              <p className="text-lg font-medium text-gray-500 dark:text-gray-400">
                 Discover new music
               </p>
               <p className="mt-1">
