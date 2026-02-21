@@ -16,21 +16,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
+          cache: pnpm
 
-      - run: npm ci
+      - run: pnpm install --frozen-lockfile
 
       - name: Typecheck frontend
         run: tsc --noEmit
 
       - name: Typecheck server
-        run: npm run typecheck:server
+        run: pnpm run typecheck:server
 
       - name: Format
-        run: npm run format
+        run: pnpm run format
 
       - name: Commit formatting changes
         run: |
@@ -41,13 +43,13 @@ jobs:
           git push
 
       - name: Lint
-        run: npm run lint
+        run: pnpm run lint
 
       - name: Test frontend
-        run: npm test
+        run: pnpm test
 
       - name: Test server
-        run: npm run test:server
+        run: pnpm run test:server
 
   publish:
     needs: ci
