@@ -1,9 +1,9 @@
-import { getTopArtists } from "../plexApi/topArtists";
-import { getArtistTopTags } from "../lastfmApi/artists";
 import { getTopAlbumsByTag } from "../lastfmApi/albums";
+import { getArtistTopTags } from "../lastfmApi/artists";
 import { lidarrGet } from "../lidarrApi/get";
 import type { LidarrArtist } from "../lidarrApi/types";
 import { getReleaseGroupIdFromRelease } from "../musicbrainzApi/releaseGroups";
+import { getTopArtists } from "../plexApi/topArtists";
 
 export type PromotedAlbumResult = {
   album: {
@@ -16,6 +16,8 @@ export type PromotedAlbumResult = {
   tag: string;
   inLibrary: boolean;
 } | null;
+
+type WeightedTag = { name: string; weight: number };
 
 const GENERIC_TAGS = new Set([
   "seen live",
@@ -89,6 +91,18 @@ export async function getPromotedAlbum(
     return cachedResult;
   }
 
+  let libraryArtistMbids = new Set<string>();
+  try {
+    const result = await lidarrGet<LidarrArtist[]>("/artist");
+    if (result.ok) {
+      libraryArtistMbids = new Set(result.data.map((a) => a.foreignArtistId));
+    }
+  } catch {
+    // Lidarr unavailable — treat all as not in library
+  }
+
+  const inLibrary = (artistMbid: string) => libraryArtistMbids.has(artistMbid);
+
   const plexArtists = await getTopArtists(10);
   if (plexArtists.length === 0) return null;
 
@@ -105,7 +119,6 @@ export async function getPromotedAlbum(
     })
   );
 
-  type WeightedTag = { name: string; weight: number };
   const weightedTags: WeightedTag[] = [];
 
   for (const { artist, tags } of tagResults) {
@@ -147,45 +160,28 @@ export async function getPromotedAlbum(
   // Convert Last.fm release MBIDs to release-group MBIDs
   // Do this sequentially (not in parallel) to avoid MusicBrainz rate limiting
   // Stop after finding enough valid albums
-  const validAlbums = [];
+  let chosenAlbum;
   for (const album of shuffled) {
     const releaseGroupId = await getReleaseGroupIdFromRelease(album.mbid);
-    if (releaseGroupId) {
-      validAlbums.push({ ...album, mbid: releaseGroupId });
-      // Stop after finding 10 valid albums - we only need one anyway
-      if (validAlbums.length >= 10) break;
+    if (releaseGroupId && !inLibrary(album.artistMbid)) {
+      chosenAlbum = album;
+      // Stop after finding a valid album
+      if (chosenAlbum) break;
     }
   }
 
-  if (validAlbums.length === 0) return null;
-
-  let libraryArtistMbids = new Set<string>();
-  try {
-    const result = await lidarrGet<LidarrArtist[]>("/artist");
-    if (result.ok) {
-      libraryArtistMbids = new Set(result.data.map((a) => a.foreignArtistId));
-    }
-  } catch {
-    // Lidarr unavailable — treat all as not in library
-  }
-
-  const notInLibrary = validAlbums.find(
-    (a) => !libraryArtistMbids.has(a.artistMbid)
-  );
-
-  const chosen = notInLibrary || validAlbums[0];
-  const inLibrary = !notInLibrary;
+  if (!chosenAlbum) return null;
 
   const result: PromotedAlbumResult = {
     album: {
-      name: chosen.name,
-      mbid: chosen.mbid,
-      artistName: chosen.artistName,
-      artistMbid: chosen.artistMbid,
-      coverUrl: `https://coverartarchive.org/release-group/${chosen.mbid}/front-500`,
+      name: chosenAlbum.name,
+      mbid: chosenAlbum.mbid,
+      artistName: chosenAlbum.artistName,
+      artistMbid: chosenAlbum.artistMbid,
+      coverUrl: `https://coverartarchive.org/release-group/${chosenAlbum.mbid}/front-500`,
     },
     tag: chosenTag.name,
-    inLibrary,
+    inLibrary: false,
   };
 
   cachedResult = result;
