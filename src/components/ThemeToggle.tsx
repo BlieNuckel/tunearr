@@ -118,7 +118,7 @@ const ThemeToggle = () => {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 z-50 mt-2 w-40 rounded-lg border-2 border-black bg-white p-2 shadow-cartoon-lg dark:bg-gray-800">
+        <div className="absolute left-0 z-50 mt-2 w-40 rounded-lg border-2 border-black bg-white p-2 shadow-cartoon-lg dark:bg-gray-800">
           <div className="space-y-1">
             {options.map((option) => (
               <button
