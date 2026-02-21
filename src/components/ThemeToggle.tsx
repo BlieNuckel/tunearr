@@ -124,6 +124,7 @@ const ThemeToggle = () => {
               <button
                 key={option}
                 onClick={() => {
+                  console.log("🖱️ Theme option clicked:", option);
                   setTheme(option);
                   setIsOpen(false);
                 }}

@@ -67,10 +67,14 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   }, [theme]);
 
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", actualTheme === "dark");
+    const isDark = actualTheme === "dark";
+    console.log("🌓 Applying theme class, actualTheme:", actualTheme, "isDark:", isDark);
+    document.documentElement.classList.toggle("dark", isDark);
+    console.log("📋 Current classes:", document.documentElement.className);
   }, [actualTheme]);
 
   const setTheme = async (newTheme: Theme) => {
+    console.log("🎨 Setting theme to:", newTheme);
     try {
       const response = await fetch("/api/settings", {
         method: "PUT",
@@ -79,13 +83,17 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
       });
 
       if (response.ok) {
+        console.log("✅ Theme saved successfully, updating state");
         setThemeState(newTheme);
-        setActualTheme(resolveTheme(newTheme));
+        const resolved = resolveTheme(newTheme);
+        console.log("🎯 Resolved theme:", resolved);
+        setActualTheme(resolved);
       } else {
-        console.error("Failed to save theme to backend");
+        const error = await response.text();
+        console.error("❌ Failed to save theme to backend:", response.status, error);
       }
     } catch (error) {
-      console.error("Failed to save theme:", error);
+      console.error("❌ Failed to save theme:", error);
     }
   };
 
