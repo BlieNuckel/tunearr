@@ -6,7 +6,6 @@ import {
   SparklesIcon,
   SettingsIcon,
 } from "@/components/icons";
-import ThemeToggle from "@/components/ThemeToggle";
 
 const links: Array<{
   to: string;
@@ -147,7 +146,6 @@ export default function Sidebar() {
               Tunearr
             </span>
           </NavLink>
-          <ThemeToggle />
         </div>
       </header>
 
@@ -197,10 +195,6 @@ export default function Sidebar() {
               Tunearr
             </span>
           </NavLink>
-        </div>
-
-        <div className="p-4 border-b-4 border-black">
-          <ThemeToggle />
         </div>
 
         <nav className="flex-1 p-4">

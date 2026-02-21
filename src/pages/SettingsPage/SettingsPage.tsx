@@ -5,6 +5,7 @@ import LidarrOptionsSection from "./components/LidarrOptionsSection";
 import LastfmSection from "./components/LastfmSection";
 import PlexSection from "./components/PlexSection";
 import ImportSection from "./components/ImportSection";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export default function SettingsPage() {
   const {
@@ -137,6 +138,13 @@ export default function SettingsPage() {
   return (
     <div className="max-w-lg space-y-6">
       <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">Settings</h1>
+
+      <div className="bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-md p-4">
+        <h2 className="text-sm font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-3">
+          Theme
+        </h2>
+        <ThemeToggle />
+      </div>
 
       <form className="space-y-6" onSubmit={handleSave}>
         <LidarrConnectionSection
