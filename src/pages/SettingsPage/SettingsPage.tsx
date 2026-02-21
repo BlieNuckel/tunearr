@@ -79,7 +79,9 @@ export default function SettingsPage() {
   ]);
 
   if (isLoading) {
-    return <p className="text-gray-500 dark:text-gray-400">Loading settings...</p>;
+    return (
+      <p className="text-gray-500 dark:text-gray-400">Loading settings...</p>
+    );
   }
 
   const handleTest = async (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -139,10 +141,14 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-lg space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">Settings</h1>
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">
+        Settings
+      </h1>
 
       <div className="space-y-4">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Theme</h2>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+          Theme
+        </h2>
         <ThemeToggle />
       </div>
 

@@ -70,7 +70,13 @@ export default function Dropdown({
           onClick={() => setOpen(!open)}
           className={`${triggerClasses} flex items-center justify-between`}
         >
-          <span className={selectedLabel ? "text-gray-900 dark:text-gray-100" : "text-gray-400 dark:text-gray-500"}>
+          <span
+            className={
+              selectedLabel
+                ? "text-gray-900 dark:text-gray-100"
+                : "text-gray-400 dark:text-gray-500"
+            }
+          >
             {selectedLabel || placeholder}
           </span>
           <ChevronDownIcon
@@ -82,7 +88,9 @@ export default function Dropdown({
         <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 rounded-xl border-2 border-black p-2 shadow-cartoon-lg">
           <div className="max-h-64 overflow-y-auto space-y-1">
             {filteredOptions.length === 0 ? (
-              <p className="text-gray-400 dark:text-gray-500 text-sm px-3 py-2">No matches</p>
+              <p className="text-gray-400 dark:text-gray-500 text-sm px-3 py-2">
+                No matches
+              </p>
             ) : (
               filteredOptions.map((option) => (
                 <button

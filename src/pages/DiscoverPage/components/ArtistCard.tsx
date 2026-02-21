@@ -73,7 +73,9 @@ export default function ArtistCard({
           )}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <h3 className="text-gray-900 dark:text-gray-100 font-medium truncate">{name}</h3>
+              <h3 className="text-gray-900 dark:text-gray-100 font-medium truncate">
+                {name}
+              </h3>
               {inLibrary && (
                 <span className="text-xs bg-amber-300 text-black px-1.5 py-0.5 rounded-full flex-shrink-0 border-2 border-black font-bold shadow-cartoon-sm">
                   In Library
@@ -123,7 +125,9 @@ export default function ArtistCard({
           )}
           {error && <p className="text-rose-500 text-sm">{error}</p>}
           {!loading && !error && albums.length === 0 && (
-            <p className="text-gray-400 dark:text-gray-500 text-sm">No albums found.</p>
+            <p className="text-gray-400 dark:text-gray-500 text-sm">
+              No albums found.
+            </p>
           )}
           {!loading &&
             albums.map((rg, index) => (

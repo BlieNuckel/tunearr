@@ -13,7 +13,9 @@ export default function PlexSection({
 }: PlexSectionProps) {
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Plex</h2>
+      <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+        Plex
+      </h2>
       <div>
         <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
           Plex URL

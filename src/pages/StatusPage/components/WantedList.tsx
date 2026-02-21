@@ -30,7 +30,9 @@ export default function WantedList({
             className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-xl px-4 py-3 border-2 border-black shadow-cartoon-md hover:-translate-y-0.5 hover:shadow-cartoon-lg transition-all cursor-pointer"
           >
             <div>
-              <p className="text-gray-900 dark:text-gray-100 font-medium">{item.title}</p>
+              <p className="text-gray-900 dark:text-gray-100 font-medium">
+                {item.title}
+              </p>
               <p className="text-gray-500 dark:text-gray-400 text-sm">
                 {item.artist?.artistName || "Unknown Artist"}
               </p>

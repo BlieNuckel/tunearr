@@ -20,7 +20,9 @@ export default function ImportReview({
             className="flex items-center gap-2 p-2 bg-amber-50 dark:bg-gray-700/50 rounded-lg text-sm border-2 border-black shadow-cartoon-sm"
           >
             <div className="flex-1 min-w-0">
-              <p className="text-gray-900 dark:text-gray-100 truncate">{item.name}</p>
+              <p className="text-gray-900 dark:text-gray-100 truncate">
+                {item.name}
+              </p>
               <div className="flex gap-2 text-xs">
                 {item.tracks?.[0] && (
                   <span className="text-gray-500 dark:text-gray-400">

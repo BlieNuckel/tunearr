@@ -160,8 +160,12 @@ export default function ReleaseGroupCard({
                 </span>
               )}
             </div>
-            <p className="text-gray-500 dark:text-gray-400 text-sm truncate">{artistName}</p>
-            {year && <p className="text-gray-400 dark:text-gray-500 text-xs">{year}</p>}
+            <p className="text-gray-500 dark:text-gray-400 text-sm truncate">
+              {artistName}
+            </p>
+            {year && (
+              <p className="text-gray-400 dark:text-gray-500 text-xs">{year}</p>
+            )}
           </div>
           <button
             onClick={(e) => {
@@ -228,8 +232,14 @@ export default function ReleaseGroupCard({
                   </span>
                 )}
               </div>
-              <p className="text-gray-500 dark:text-gray-400 text-xs truncate">{artistName}</p>
-              {year && <p className="text-gray-400 dark:text-gray-500 text-xs mt-0.5">{year}</p>}
+              <p className="text-gray-500 dark:text-gray-400 text-xs truncate">
+                {artistName}
+              </p>
+              {year && (
+                <p className="text-gray-400 dark:text-gray-500 text-xs mt-0.5">
+                  {year}
+                </p>
+              )}
             </div>
           </div>
 
@@ -241,7 +251,9 @@ export default function ReleaseGroupCard({
               <h3 className="text-gray-900 dark:text-gray-100 font-semibold text-sm truncate">
                 {albumTitle}
               </h3>
-              <p className="text-gray-500 dark:text-gray-400 text-xs truncate">{artistName}</p>
+              <p className="text-gray-500 dark:text-gray-400 text-xs truncate">
+                {artistName}
+              </p>
             </div>
 
             <div className="flex-1 overflow-y-auto mt-3 min-h-0 overlay-scrollbar">

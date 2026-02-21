@@ -34,7 +34,10 @@ export default function QueueTable({ items }: QueueTableProps) {
               <td className="py-2 text-gray-500 dark:text-gray-400">
                 {item.quality?.quality?.name || "—"}
               </td>
-              <td data-testid="queue-progress" className="py-2 text-gray-600 dark:text-gray-400">
+              <td
+                data-testid="queue-progress"
+                className="py-2 text-gray-600 dark:text-gray-400"
+              >
                 {item.sizeleft != null && item.size
                   ? `${Math.round(((item.size - item.sizeleft) / item.size) * 100)}%`
                   : "—"}

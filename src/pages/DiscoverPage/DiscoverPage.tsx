@@ -78,7 +78,9 @@ export default function DiscoverPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">Discover</h1>
+      <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">
+        Discover
+      </h1>
 
       {(promotedAlbum || promotedLoading) && (
         <PromotedAlbum
@@ -152,7 +154,9 @@ export default function DiscoverPage() {
       {!effectiveSelectedArtist && !similarLoading && (
         <div className="mt-16 flex flex-col items-center text-gray-400">
           {plexLoading ? (
-            <p className="text-gray-500 dark:text-gray-400">Loading your listening data...</p>
+            <p className="text-gray-500 dark:text-gray-400">
+              Loading your listening data...
+            </p>
           ) : (
             <>
               <svg

@@ -82,7 +82,9 @@ export default function PurchaseLinksModal({
           {step === "importing" && (
             <div className="flex items-center justify-center gap-2 py-6">
               <Spinner className="h-5 w-5 text-emerald-500" />
-              <p className="text-gray-600 dark:text-gray-400 text-sm">Importing to Lidarr...</p>
+              <p className="text-gray-600 dark:text-gray-400 text-sm">
+                Importing to Lidarr...
+              </p>
             </div>
           )}
 

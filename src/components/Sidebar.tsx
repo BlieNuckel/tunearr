@@ -82,7 +82,9 @@ function MobileNav() {
                 end={link.to === "/"}
                 className={({ isActive }) =>
                   `relative flex flex-col items-center justify-center gap-1 py-3 text-xs font-bold transition-colors ${
-                    isActive ? "text-black dark:text-gray-100" : "text-gray-500 dark:text-gray-400"
+                    isActive
+                      ? "text-black dark:text-gray-100"
+                      : "text-gray-500 dark:text-gray-400"
                   }`
                 }
               >
