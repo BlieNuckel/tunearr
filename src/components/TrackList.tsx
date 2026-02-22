@@ -102,7 +102,9 @@ export default function TrackList({
                 <li
                   key={track.position}
                   className="stagger-fade-in"
-                  style={{ "--stagger-index": trackIndex } as React.CSSProperties}
+                  style={
+                    { "--stagger-index": trackIndex } as React.CSSProperties
+                  }
                 >
                   {hasPreview ? (
                     <button

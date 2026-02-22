@@ -46,10 +46,12 @@ export default function SearchPage() {
             <div
               key={rg.id}
               className="cascade-deal-in"
-              style={{
-                "--deal-index": index,
-                "--deal-rotate": `${DEAL_ROTATIONS[index % DEAL_ROTATIONS.length]}deg`,
-              } as React.CSSProperties}
+              style={
+                {
+                  "--deal-index": index,
+                  "--deal-rotate": `${DEAL_ROTATIONS[index % DEAL_ROTATIONS.length]}deg`,
+                } as React.CSSProperties
+              }
             >
               <ReleaseGroupCard releaseGroup={rg} />
             </div>
