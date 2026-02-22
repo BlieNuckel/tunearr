@@ -1,4 +1,5 @@
 import NodeCache from "node-cache";
+import { withRetry, type RetryOptions } from "./retry";
 
 const DEFAULT_TTL = 300;
 
@@ -11,6 +12,8 @@ export interface ExternalApiOptions {
   cacheTtlSeconds?: number;
   rateLimitMs?: number;
   fetchFn?: typeof fetch;
+  timeoutMs?: number;
+  retry?: RetryOptions | boolean;
 }
 
 export interface RequestConfig {
@@ -45,7 +48,16 @@ export function createExternalApi(options: ExternalApiOptions): ExternalApi {
     stdTTL: options.cacheTtlSeconds ?? DEFAULT_TTL,
   });
   const fetchFn = options.fetchFn ?? fetch;
+  const timeoutMs = options.timeoutMs ?? 10000;
+  const retryOptions: RetryOptions | undefined =
+    options.retry === true
+      ? {}
+      : options.retry === false || options.retry === undefined
+        ? undefined
+        : options.retry;
   let lastRequestTime = 0;
+
+  const inFlight = new Map<string, Promise<unknown>>();
 
   function serializeCacheKey(
     endpoint: string,
@@ -93,6 +105,19 @@ export function createExternalApi(options: ExternalApiOptions): ExternalApi {
     lastRequestTime = Date.now();
   }
 
+  async function fetchWithTimeout(
+    url: string,
+    init: RequestInit
+  ): Promise<Response> {
+    const signal = AbortSignal.timeout(timeoutMs);
+    return fetchFn(url, { ...init, signal });
+  }
+
+  function wrapWithRetry<T>(fn: () => Promise<T>): Promise<T> {
+    if (!retryOptions) return fn();
+    return withRetry(fn, retryOptions);
+  }
+
   async function get<T>(
     endpoint: string,
     config?: RequestConfig,
@@ -105,18 +130,30 @@ export function createExternalApi(options: ExternalApiOptions): ExternalApi {
     const cached = cache.get<T>(cacheKey);
     if (cached !== undefined) return cached;
 
-    await applyRateLimit();
-    const url = buildUrl(endpoint, config?.params);
-    const response = await fetchFn(url, {
-      headers: buildHeaders(config?.headers),
+    const existing = inFlight.get(cacheKey);
+    if (existing) return existing as Promise<T>;
+
+    const promise = wrapWithRetry(async () => {
+      await applyRateLimit();
+      const url = buildUrl(endpoint, config?.params);
+      const response = await fetchWithTimeout(url, {
+        headers: buildHeaders(config?.headers),
+      });
+      const data: T = await response.json();
+
+      if (ttl !== 0) {
+        cache.set(cacheKey, data, ttl ?? DEFAULT_TTL);
+      }
+
+      return data;
     });
-    const data: T = await response.json();
 
-    if (ttl !== 0) {
-      cache.set(cacheKey, data, ttl ?? DEFAULT_TTL);
+    inFlight.set(cacheKey, promise);
+    try {
+      return await promise;
+    } finally {
+      inFlight.delete(cacheKey);
     }
-
-    return data;
   }
 
   async function post<T>(
@@ -132,20 +169,22 @@ export function createExternalApi(options: ExternalApiOptions): ExternalApi {
     const cached = cache.get<T>(cacheKey);
     if (cached !== undefined) return cached;
 
-    await applyRateLimit();
-    const url = buildUrl(endpoint, config?.params);
-    const response = await fetchFn(url, {
-      method: "POST",
-      headers: buildHeaders(config?.headers),
-      body: JSON.stringify(data),
+    return wrapWithRetry(async () => {
+      await applyRateLimit();
+      const url = buildUrl(endpoint, config?.params);
+      const response = await fetchWithTimeout(url, {
+        method: "POST",
+        headers: buildHeaders(config?.headers),
+        body: JSON.stringify(data),
+      });
+      const result: T = await response.json();
+
+      if (ttl !== 0) {
+        cache.set(cacheKey, result, ttl ?? DEFAULT_TTL);
+      }
+
+      return result;
     });
-    const result: T = await response.json();
-
-    if (ttl !== 0) {
-      cache.set(cacheKey, result, ttl ?? DEFAULT_TTL);
-    }
-
-    return result;
   }
 
   async function getRolling<T>(
@@ -166,7 +205,7 @@ export function createExternalApi(options: ExternalApiOptions): ExternalApi {
       if (keyTtl - effectiveTtl * 1000 < Date.now() - DEFAULT_ROLLING_BUFFER) {
         applyRateLimit().then(() => {
           const url = buildUrl(endpoint, config?.params);
-          fetchFn(url, { headers: buildHeaders(config?.headers) })
+          fetchWithTimeout(url, { headers: buildHeaders(config?.headers) })
             .then((response) => response.json())
             .then((data: T) => {
               cache.set(cacheKey, data, effectiveTtl);
@@ -179,18 +218,30 @@ export function createExternalApi(options: ExternalApiOptions): ExternalApi {
       return cached;
     }
 
-    await applyRateLimit();
-    const url = buildUrl(endpoint, config?.params);
-    const response = await fetchFn(url, {
-      headers: buildHeaders(config?.headers),
+    const existing = inFlight.get(cacheKey);
+    if (existing) return existing as Promise<T>;
+
+    const promise = wrapWithRetry(async () => {
+      await applyRateLimit();
+      const url = buildUrl(endpoint, config?.params);
+      const response = await fetchWithTimeout(url, {
+        headers: buildHeaders(config?.headers),
+      });
+      const data: T = await response.json();
+
+      if (ttl !== 0) {
+        cache.set(cacheKey, data, effectiveTtl);
+      }
+
+      return data;
     });
-    const data: T = await response.json();
 
-    if (ttl !== 0) {
-      cache.set(cacheKey, data, effectiveTtl);
+    inFlight.set(cacheKey, promise);
+    try {
+      return await promise;
+    } finally {
+      inFlight.delete(cacheKey);
     }
-
-    return data;
   }
 
   function removeCache(

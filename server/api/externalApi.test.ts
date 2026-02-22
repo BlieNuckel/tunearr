@@ -379,4 +379,222 @@ describe("createExternalApi", () => {
       expect(customFetch).toHaveBeenCalled();
     });
   });
+
+  describe("timeouts", () => {
+    it("passes AbortSignal.timeout to fetch calls", async () => {
+      const fetchFn = mockFetchFn({ ok: true });
+      const api = createExternalApi({
+        baseUrl: "https://api.example.com",
+        fetchFn,
+        timeoutMs: 5000,
+      });
+
+      await api.get("/test");
+
+      expect(fetchFn).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          signal: expect.any(AbortSignal),
+        })
+      );
+    });
+
+    it("uses default 10s timeout when not specified", async () => {
+      const fetchFn = mockFetchFn({ ok: true });
+      const api = createExternalApi({
+        baseUrl: "https://api.example.com",
+        fetchFn,
+      });
+
+      await api.get("/test");
+
+      expect(fetchFn).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          signal: expect.any(AbortSignal),
+        })
+      );
+    });
+
+    it("applies timeout to POST requests", async () => {
+      const fetchFn = mockFetchFn({ ok: true });
+      const api = createExternalApi({
+        baseUrl: "https://api.example.com",
+        fetchFn,
+        timeoutMs: 3000,
+      });
+
+      await api.post("/test", { data: "value" });
+
+      expect(fetchFn).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          signal: expect.any(AbortSignal),
+        })
+      );
+    });
+  });
+
+  describe("retry", () => {
+    it("retries failed requests when retry is enabled", async () => {
+      const fetchFn = vi
+        .fn()
+        .mockRejectedValueOnce(new TypeError("fetch failed"))
+        .mockResolvedValue({
+          json: () => Promise.resolve({ data: "ok" }),
+          ok: true,
+          status: 200,
+        });
+
+      const api = createExternalApi({
+        baseUrl: "https://api.example.com",
+        fetchFn,
+        retry: { retries: 1, baseDelayMs: 100 },
+      });
+
+      const promise = api.get("/test", undefined, 0);
+      await vi.advanceTimersByTimeAsync(100);
+      const result = await promise;
+
+      expect(result).toEqual({ data: "ok" });
+      expect(fetchFn).toHaveBeenCalledTimes(2);
+    });
+
+    it("does not retry when retry is not configured", async () => {
+      const fetchFn = vi
+        .fn()
+        .mockRejectedValue(new TypeError("fetch failed"));
+
+      const api = createExternalApi({
+        baseUrl: "https://api.example.com",
+        fetchFn,
+      });
+
+      await expect(api.get("/test", undefined, 0)).rejects.toThrow(
+        "fetch failed"
+      );
+      expect(fetchFn).toHaveBeenCalledTimes(1);
+    });
+
+    it("supports retry: true for default options", async () => {
+      const fetchFn = vi
+        .fn()
+        .mockRejectedValueOnce(new TypeError("fetch failed"))
+        .mockResolvedValue({
+          json: () => Promise.resolve({ data: "ok" }),
+          ok: true,
+          status: 200,
+        });
+
+      const api = createExternalApi({
+        baseUrl: "https://api.example.com",
+        fetchFn,
+        retry: true,
+      });
+
+      const promise = api.get("/test", undefined, 0);
+      await vi.advanceTimersByTimeAsync(500);
+      const result = await promise;
+
+      expect(result).toEqual({ data: "ok" });
+      expect(fetchFn).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe("deduplication", () => {
+    it("deduplicates concurrent GET requests for the same endpoint", async () => {
+      let resolveJson: (value: unknown) => void;
+      const jsonPromise = new Promise((resolve) => {
+        resolveJson = resolve;
+      });
+
+      const fetchFn = vi.fn().mockResolvedValue({
+        json: () => jsonPromise,
+        ok: true,
+        status: 200,
+      });
+
+      const api = createExternalApi({
+        baseUrl: "https://api.example.com",
+        fetchFn,
+      });
+
+      const p1 = api.get("/test", undefined, 0);
+      const p2 = api.get("/test", undefined, 0);
+
+      resolveJson!({ data: "shared" });
+
+      const [r1, r2] = await Promise.all([p1, p2]);
+
+      expect(r1).toEqual({ data: "shared" });
+      expect(r2).toEqual({ data: "shared" });
+      expect(fetchFn).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not deduplicate requests with different params", async () => {
+      const fetchFn = vi.fn().mockImplementation(() =>
+        Promise.resolve({
+          json: () => Promise.resolve({ data: "result" }),
+          ok: true,
+          status: 200,
+        })
+      );
+
+      const api = createExternalApi({
+        baseUrl: "https://api.example.com",
+        fetchFn,
+      });
+
+      await Promise.all([
+        api.get("/test", { params: { q: "a" } }, 0),
+        api.get("/test", { params: { q: "b" } }, 0),
+      ]);
+
+      expect(fetchFn).toHaveBeenCalledTimes(2);
+    });
+
+    it("cleans up in-flight entries after completion", async () => {
+      const fetchFn = mockFetchFn({ data: "done" });
+
+      const api = createExternalApi({
+        baseUrl: "https://api.example.com",
+        fetchFn,
+      });
+
+      await api.get("/test", undefined, 0);
+
+      // Second call after first completes should make a new request
+      fetchFn.mockResolvedValueOnce({
+        json: () => Promise.resolve({ data: "done2" }),
+        ok: true,
+        status: 200,
+      });
+
+      const result = await api.get<{ data: string }>("/test", undefined, 0);
+      expect(result).toEqual({ data: "done2" });
+      expect(fetchFn).toHaveBeenCalledTimes(2);
+    });
+
+    it("cleans up in-flight entries on error", async () => {
+      const fetchFn = vi
+        .fn()
+        .mockRejectedValueOnce(new Error("fail"))
+        .mockResolvedValueOnce({
+          json: () => Promise.resolve({ data: "ok" }),
+          ok: true,
+          status: 200,
+        });
+
+      const api = createExternalApi({
+        baseUrl: "https://api.example.com",
+        fetchFn,
+      });
+
+      await expect(api.get("/test", undefined, 0)).rejects.toThrow("fail");
+
+      // Should be able to retry after failure
+      const result = await api.get<{ data: string }>("/test", undefined, 0);
+      expect(result).toEqual({ data: "ok" });
+    });
+  });
 });

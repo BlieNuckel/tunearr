@@ -7,6 +7,9 @@ import {
   LidarrArtist,
   extractLidarrError,
 } from "../../api/lidarr/types";
+import { AsyncLock } from "../../api/asyncLock";
+
+const upsertLock = new AsyncLock();
 
 export const getAlbumByMbid = async (albumMbid: string) => {
   const result = await lidarrGet<LidarrAlbum[]>("/album/lookup", {
@@ -86,34 +89,41 @@ const addArtistToLidarr = async (artistMbid: string) => {
 };
 
 export const getOrAddArtist = async (artistMbid: string) => {
-  const artistsResult = await lidarrGet<LidarrArtist[]>("/artist");
-  const artist = artistsResult.data.find(
-    (a) => a.foreignArtistId === artistMbid
-  );
+  return upsertLock.acquire(`artist:${artistMbid}`, async () => {
+    const artistsResult = await lidarrGet<LidarrArtist[]>("/artist");
+    const artist = artistsResult.data.find(
+      (a) => a.foreignArtistId === artistMbid
+    );
 
-  if (artist) {
-    return artist;
-  }
+    if (artist) {
+      return artist;
+    }
 
-  return await addArtistToLidarr(artistMbid);
+    return await addArtistToLidarr(artistMbid);
+  });
 };
 
 export const getOrAddAlbum = async (
   albumMbid: string,
   artist: LidarrArtist
 ) => {
-  // Check all albums in Lidarr, not just this artist's albums
-  // This prevents "already added" errors when the album exists under a different artist
-  const allAlbumsResult = await lidarrGet<LidarrAlbum[]>("/album");
-  const existingAlbum = allAlbumsResult.data.find(
-    (a) => a.foreignAlbumId === albumMbid
-  );
+  return upsertLock.acquire(`album:${albumMbid}`, async () => {
+    // Check all albums in Lidarr, not just this artist's albums
+    // This prevents "already added" errors when the album exists under a different artist
+    const allAlbumsResult = await lidarrGet<LidarrAlbum[]>("/album");
+    const existingAlbum = allAlbumsResult.data.find(
+      (a) => a.foreignAlbumId === albumMbid
+    );
 
-  if (existingAlbum) {
-    return { wasAdded: false, album: existingAlbum };
-  }
+    if (existingAlbum) {
+      return { wasAdded: false, album: existingAlbum };
+    }
 
-  return { wasAdded: true, album: await addAlbumToLidarr(albumMbid, artist) };
+    return {
+      wasAdded: true,
+      album: await addAlbumToLidarr(albumMbid, artist),
+    };
+  });
 };
 
 export const removeAlbum = async (albumMbid: string, artistMbid: string) => {

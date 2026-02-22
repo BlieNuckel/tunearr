@@ -1,6 +1,9 @@
 import NodeCache from "node-cache";
 import { withCache } from "../../cache";
+import { createLogger } from "../../logger";
 import type { DeezerArtistSearchResponse } from "./types";
+
+const log = createLogger("Deezer API");
 
 const DEEZER_SEARCH_BASE = "https://api.deezer.com/search/artist";
 const ONE_DAY_SECONDS = 24 * 60 * 60;
@@ -22,8 +25,8 @@ const fetchArtistImage = async (artistName: string): Promise<string> => {
     const response = await fetch(url);
 
     if (!response.ok) {
-      console.error(
-        `[Deezer API] Failed to fetch image for ${artistName}: ${response.status}`
+      log.error(
+        `Failed to fetch image for ${artistName}: ${response.status}`
       );
       return "";
     }
@@ -31,17 +34,14 @@ const fetchArtistImage = async (artistName: string): Promise<string> => {
     const data: DeezerArtistSearchResponse = await response.json();
 
     if (data.data?.length > 0 && data.data[0].picture_xl) {
-      console.log(`[Deezer API] Found image for ${artistName}`);
+      log.info(`Found image for ${artistName}`);
       return data.data[0].picture_xl;
     }
 
-    console.log(`[Deezer API] No image found for ${artistName}`);
+    log.info(`No image found for ${artistName}`);
     return "";
   } catch (error) {
-    console.error(
-      `[Deezer API] Error fetching image for ${artistName}:`,
-      error
-    );
+    log.error(`Error fetching image for ${artistName}`, error);
     return "";
   }
 };

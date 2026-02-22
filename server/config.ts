@@ -1,6 +1,9 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { createLogger } from "./logger";
+
+const log = createLogger("Config");
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -46,7 +49,7 @@ export const getConfig = (): IConfig => {
 
 export const setConfig = (newConfig: Partial<IConfig>) => {
   if (!fs.existsSync(CONFIG_DIR)) {
-    console.log(`config directory missing. creating it in ${CONFIG_DIR}`);
+    log.info(`Config directory missing, creating it in ${CONFIG_DIR}`);
     fs.mkdirSync(CONFIG_DIR, { recursive: true });
   }
 

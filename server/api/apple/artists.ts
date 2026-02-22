@@ -1,6 +1,9 @@
 import NodeCache from "node-cache";
 import { withCache } from "../../cache";
+import { createLogger } from "../../logger";
 import type { AppleSearchResponse } from "./types";
+
+const log = createLogger("Apple API");
 
 const ITUNES_SEARCH_BASE = "https://itunes.apple.com/search";
 const ONE_DAY_SECONDS = 24 * 60 * 60;
@@ -25,8 +28,8 @@ const fetchArtistArtwork = async (artistName: string): Promise<string> => {
     const response = await fetch(url);
 
     if (!response.ok) {
-      console.error(
-        `[Apple API] Failed to fetch artwork for ${artistName}: ${response.status}`
+      log.error(
+        `Failed to fetch artwork for ${artistName}: ${response.status}`
       );
       return "";
     }
@@ -40,17 +43,14 @@ const fetchArtistArtwork = async (artistName: string): Promise<string> => {
         "100x100",
         "600x600"
       );
-      console.log(`[Apple API] Found artwork for ${artistName}`);
+      log.info(`Found artwork for ${artistName}`);
       return artworkUrl;
     }
 
-    console.log(`[Apple API] No artwork found for ${artistName}`);
+    log.info(`No artwork found for ${artistName}`);
     return "";
   } catch (error) {
-    console.error(
-      `[Apple API] Error fetching artwork for ${artistName}:`,
-      error
-    );
+    log.error(`Error fetching artwork for ${artistName}`, error);
     return "";
   }
 };
@@ -74,8 +74,8 @@ const fetchAlbumArtwork = async (
     const response = await fetch(url);
 
     if (!response.ok) {
-      console.error(
-        `[Apple API] Failed to fetch album artwork for ${albumName} by ${artistName}: ${response.status}`
+      log.error(
+        `Failed to fetch album artwork for ${albumName} by ${artistName}: ${response.status}`
       );
       return "";
     }
@@ -87,17 +87,14 @@ const fetchAlbumArtwork = async (
         "100x100",
         "600x600"
       );
-      console.log(`[Apple API] Found album artwork for ${albumName}`);
+      log.info(`Found album artwork for ${albumName}`);
       return artworkUrl;
     }
 
-    console.log(`[Apple API] No album artwork found for ${albumName}`);
+    log.info(`No album artwork found for ${albumName}`);
     return "";
   } catch (error) {
-    console.error(
-      `[Apple API] Error fetching album artwork for ${albumName}:`,
-      error
-    );
+    log.error(`Error fetching album artwork for ${albumName}`, error);
     return "";
   }
 };

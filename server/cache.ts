@@ -1,4 +1,5 @@
 import NodeCache from "node-cache";
+import { createLogger } from "./logger";
 
 export type CachedFn<TArgs extends unknown[], TReturn> = ((
   ...args: TArgs
@@ -28,7 +29,8 @@ export function withCache<TArgs extends unknown[], TReturn>(
     const cached = options.cache.get<TReturn>(cacheKey);
     if (cached !== undefined) {
       if (options.label) {
-        console.log(`[${options.label}] Cache hit for ${cacheKey}`);
+        const log = createLogger(options.label);
+        log.info(`Cache hit for ${cacheKey}`);
       }
       return cached;
     }

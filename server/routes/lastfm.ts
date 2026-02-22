@@ -1,5 +1,8 @@
 import type { Request, Response } from "express";
 import express from "express";
+import { createLogger } from "../logger";
+
+const log = createLogger("Last.fm");
 import {
   getSimilarArtists,
   getArtistTopTags,
@@ -20,10 +23,10 @@ router.get("/similar", async (req: Request, res: Response) => {
   }
 
   const artists = await getSimilarArtists(artist);
-  console.log(`[Last.fm /similar] Got ${artists.length} artists from Last.fm`);
+  log.info(`/similar: Got ${artists.length} artists from Last.fm`);
 
   const imageMap = await getArtistsImages(artists.map((a) => a.name));
-  console.log(`[Last.fm /similar] Deezer API returned ${imageMap.size} images`);
+  log.info(`/similar: Deezer API returned ${imageMap.size} images`);
 
   const enrichedArtists = artists.map((a) => ({
     ...a,
@@ -75,17 +78,13 @@ router.get("/tag/albums", async (req: Request, res: Response) => {
     tag,
     typeof page === "string" ? page : "1"
   );
-  console.log(
-    `[Last.fm /tag/albums] Got ${result.albums.length} albums from Last.fm`
-  );
+  log.info(`/tag/albums: Got ${result.albums.length} albums from Last.fm`);
 
   // Enrich with Apple Music artwork
   const artworkMap = await getAlbumsArtwork(
     result.albums.map((a) => ({ name: a.name, artistName: a.artistName }))
   );
-  console.log(
-    `[Last.fm /tag/albums] Apple API returned ${artworkMap.size} artworks`
-  );
+  log.info(`/tag/albums: Apple API returned ${artworkMap.size} artworks`);
 
   const enrichedAlbums = result.albums.map((a) => {
     const key = `${a.name.toLowerCase()}|${a.artistName.toLowerCase()}`;

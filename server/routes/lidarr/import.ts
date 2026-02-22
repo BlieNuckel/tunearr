@@ -3,6 +3,9 @@ import multer from "multer";
 import fs from "fs";
 import path from "path";
 import crypto from "crypto";
+import { createLogger } from "../../logger";
+
+const log = createLogger("Import");
 import { getConfigValue } from "../../config";
 import { lidarrGet } from "../../api/lidarr/get";
 import { lidarrPost } from "../../api/lidarr/post";
@@ -134,7 +137,7 @@ router.post(
     }
 
     for (const item of scanResult.data) {
-      console.log("[import/upload] scan item:", {
+      log.info("upload scan item", {
         path: item.path,
         name: item.name,
         albumReleaseId: item.albumReleaseId,
@@ -173,10 +176,7 @@ router.post("/import/confirm", async (req: Request, res: Response) => {
     disableReleaseSwitching: item.disableReleaseSwitching ?? false,
   }));
 
-  console.log(
-    "[import/confirm] command payload:",
-    JSON.stringify({ files }, null, 2)
-  );
+  log.info("confirm command payload", { files });
 
   const result = await lidarrPost("/command", {
     name: "ManualImport",
@@ -184,7 +184,7 @@ router.post("/import/confirm", async (req: Request, res: Response) => {
     importMode: "move",
   });
 
-  console.log("[import/confirm] command response:", {
+  log.info("confirm command response", {
     ok: result.ok,
     status: result.status,
     data: result.data,
