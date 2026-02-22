@@ -18,7 +18,6 @@ beforeEach(() => {
 describe("PlexAuth", () => {
   const defaultProps = {
     token: "",
-    url: "",
     onToken: vi.fn(),
     onServerUrl: vi.fn(),
   };
@@ -95,7 +94,6 @@ describe("PlexAuth", () => {
     render(
       <PlexAuth
         token="my-token"
-        url="http://plex:32400"
         onToken={onToken}
         onServerUrl={onServerUrl}
       />,

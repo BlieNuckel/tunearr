@@ -2,14 +2,12 @@ import StepDescription from "../components/StepDescription";
 import PlexAuth from "@/components/PlexAuth";
 
 interface PlexStepProps {
-  url: string;
   token: string;
   onUrlChange: (url: string) => void;
   onTokenChange: (token: string) => void;
 }
 
 export default function PlexStep({
-  url,
   token,
   onUrlChange,
   onTokenChange,
@@ -19,7 +17,6 @@ export default function PlexStep({
       <StepDescription text="Connect Plex to show your most-played artists on the Discover page. You can skip this and add it later in Settings." />
       <PlexAuth
         token={token}
-        url={url}
         onToken={onTokenChange}
         onServerUrl={onUrlChange}
       />

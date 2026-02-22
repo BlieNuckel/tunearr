@@ -193,7 +193,6 @@ export default function SettingsPage() {
         <LastfmSection apiKey={lastfmApiKey} onApiKeyChange={setLastfmApiKey} />
 
         <PlexSection
-          url={plexUrl}
           token={plexToken}
           onUrlChange={setPlexUrl}
           onTokenChange={setPlexToken}

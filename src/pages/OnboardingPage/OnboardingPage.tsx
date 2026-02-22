@@ -81,7 +81,6 @@ export default function OnboardingPage() {
       )}
       {wizard.currentStep === "plex" && (
         <PlexStep
-          url={wizard.fields.plexUrl}
           token={wizard.fields.plexToken}
           onUrlChange={(v) => wizard.updateField("plexUrl", v)}
           onTokenChange={(v) => wizard.updateField("plexToken", v)}

@@ -8,7 +8,6 @@ vi.mock("@/hooks/usePlexLogin", () => ({
 import PlexSection from "../PlexSection";
 
 const defaultProps = {
-  url: "",
   token: "",
   onUrlChange: vi.fn(),
   onTokenChange: vi.fn(),

@@ -5,7 +5,6 @@ import type { PlexAccount, PlexServer } from "@/hooks/usePlexLogin";
 
 interface PlexAuthProps {
   token: string;
-  url: string;
   onToken: (token: string) => void;
   onServerUrl: (url: string) => void;
 }
@@ -49,7 +48,6 @@ function SignedInCard({
 
 export default function PlexAuth({
   token,
-  url,
   onToken,
   onServerUrl,
 }: PlexAuthProps) {

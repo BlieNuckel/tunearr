@@ -1,14 +1,12 @@
 import PlexAuth from "@/components/PlexAuth";
 
 interface PlexSectionProps {
-  url: string;
   token: string;
   onUrlChange: (url: string) => void;
   onTokenChange: (token: string) => void;
 }
 
 export default function PlexSection({
-  url,
   token,
   onUrlChange,
   onTokenChange,
@@ -20,7 +18,6 @@ export default function PlexSection({
       </h2>
       <PlexAuth
         token={token}
-        url={url}
         onToken={onTokenChange}
         onServerUrl={onUrlChange}
       />
