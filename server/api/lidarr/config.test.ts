@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { getLidarrConfig } from "./config";
 
-vi.mock("../config", () => ({
+vi.mock("../../config", () => ({
   getConfig: vi.fn(),
 }));
 
-import { getConfig } from "../config";
+import { getConfig } from "../../config";
 
 const mockGetConfig = vi.mocked(getConfig);
 

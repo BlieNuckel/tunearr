@@ -1,10 +1,10 @@
 import type { Request, Response } from "express";
 import express from "express";
-import { lidarrGet } from "../../lidarrApi/get.js";
+import { lidarrGet } from "../../api/lidarr/get.js";
 import {
   LidarrPaginatedResponse,
   LidarrHistoryRecord,
-} from "../../lidarrApi/types";
+} from "../../api/lidarr/types";
 
 const router = express.Router();
 

@@ -1,10 +1,14 @@
-import { ApiCache, withCache } from "../cache";
+import NodeCache from "node-cache";
+import { withCache } from "../../cache";
+import { createLogger } from "../../logger";
 import type { DeezerArtistSearchResponse } from "./types";
 
-const DEEZER_SEARCH_BASE = "https://api.deezer.com/search/artist";
-const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+const log = createLogger("Deezer API");
 
-const deezerCache = new ApiCache();
+const DEEZER_SEARCH_BASE = "https://api.deezer.com/search/artist";
+const ONE_DAY_SECONDS = 24 * 60 * 60;
+
+const deezerCache = new NodeCache({ stdTTL: 7 * ONE_DAY_SECONDS });
 
 /**
  * Search for an artist on Deezer and return their image URL
@@ -21,8 +25,8 @@ const fetchArtistImage = async (artistName: string): Promise<string> => {
     const response = await fetch(url);
 
     if (!response.ok) {
-      console.error(
-        `[Deezer API] Failed to fetch image for ${artistName}: ${response.status}`
+      log.error(
+        `Failed to fetch image for ${artistName}: ${response.status}`
       );
       return "";
     }
@@ -30,17 +34,14 @@ const fetchArtistImage = async (artistName: string): Promise<string> => {
     const data: DeezerArtistSearchResponse = await response.json();
 
     if (data.data?.length > 0 && data.data[0].picture_xl) {
-      console.log(`[Deezer API] Found image for ${artistName}`);
+      log.info(`Found image for ${artistName}`);
       return data.data[0].picture_xl;
     }
 
-    console.log(`[Deezer API] No image found for ${artistName}`);
+    log.info(`No image found for ${artistName}`);
     return "";
   } catch (error) {
-    console.error(
-      `[Deezer API] Error fetching image for ${artistName}:`,
-      error
-    );
+    log.error(`Error fetching image for ${artistName}`, error);
     return "";
   }
 };
@@ -48,7 +49,7 @@ const fetchArtistImage = async (artistName: string): Promise<string> => {
 export const getArtistImage = withCache(fetchArtistImage, {
   cache: deezerCache,
   key: (name) => name.toLowerCase(),
-  ttlMs: 7 * ONE_DAY_MS,
+  ttlMs: 7 * ONE_DAY_SECONDS * 1000,
   label: "Deezer API",
 });
 

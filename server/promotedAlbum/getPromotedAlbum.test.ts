@@ -6,23 +6,23 @@ const mockGetTopAlbumsByTag = vi.fn();
 const mockLidarrGet = vi.fn();
 const mockGetReleaseGroupIdFromRelease = vi.fn();
 
-vi.mock("../plexApi/topArtists", () => ({
+vi.mock("../api/plex/topArtists", () => ({
   getTopArtists: (...args: unknown[]) => mockGetTopArtists(...args),
 }));
 
-vi.mock("../lastfmApi/artists", () => ({
+vi.mock("../api/lastfm/artists", () => ({
   getArtistTopTags: (...args: unknown[]) => mockGetArtistTopTags(...args),
 }));
 
-vi.mock("../lastfmApi/albums", () => ({
+vi.mock("../api/lastfm/albums", () => ({
   getTopAlbumsByTag: (...args: unknown[]) => mockGetTopAlbumsByTag(...args),
 }));
 
-vi.mock("../lidarrApi/get", () => ({
+vi.mock("../api/lidarr/get", () => ({
   lidarrGet: (...args: unknown[]) => mockLidarrGet(...args),
 }));
 
-vi.mock("../musicbrainzApi/releaseGroups", () => ({
+vi.mock("../api/musicbrainz/releaseGroups", () => ({
   getReleaseGroupIdFromRelease: (...args: unknown[]) =>
     mockGetReleaseGroupIdFromRelease(...args),
 }));

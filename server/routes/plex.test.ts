@@ -4,11 +4,11 @@ const mockGetTopArtists = vi.fn();
 const mockGetPlexConfig = vi.fn();
 const mockFetch = vi.fn();
 
-vi.mock("../plexApi/topArtists", () => ({
+vi.mock("../api/plex/topArtists", () => ({
   getTopArtists: (...args: unknown[]) => mockGetTopArtists(...args),
 }));
 
-vi.mock("../plexApi/config", () => ({
+vi.mock("../api/plex/config", () => ({
   getPlexConfig: (...args: unknown[]) => mockGetPlexConfig(...args),
 }));
 

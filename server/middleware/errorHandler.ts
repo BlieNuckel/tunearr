@@ -7,6 +7,10 @@ export function errorHandler(
   res: Response,
   _next: NextFunction
 ) {
+  const status =
+    typeof (err as { status?: unknown })?.status === "number"
+      ? (err as { status: number }).status
+      : 500;
   const cause =
     err instanceof Error
       ? (err as NodeJS.ErrnoException & { cause?: unknown }).cause
@@ -16,6 +20,8 @@ export function errorHandler(
       ? cause.message
       : err instanceof Error
         ? err.message
-        : "Unknown error";
-  res.status(500).json({ error: message });
+        : typeof (err as { message?: unknown })?.message === "string"
+          ? (err as { message: string }).message
+          : "Unknown error";
+  res.status(status).json({ error: message });
 }

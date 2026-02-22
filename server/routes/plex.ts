@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import express from "express";
-import { getTopArtists } from "../plexApi/topArtists";
-import { getPlexConfig } from "../plexApi/config";
+import { getTopArtists } from "../api/plex/topArtists";
+import { getPlexConfig } from "../api/plex/config";
 
 const router = express.Router();
 

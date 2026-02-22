@@ -1,4 +1,4 @@
-import { getConfigValue } from "../config";
+import { getConfigValue } from "../../config";
 
 const LASTFM_BASE = "https://ws.audioscrobbler.com/2.0/";
 

@@ -1,75 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { ApiCache, withCache } from "./cache";
-
-describe("ApiCache", () => {
-  let cache: ApiCache;
-
-  beforeEach(() => {
-    cache = new ApiCache();
-    vi.useFakeTimers();
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  it("returns undefined for missing keys", () => {
-    expect(cache.get("missing")).toBeUndefined();
-  });
-
-  it("stores and retrieves values", () => {
-    cache.set("key", "value", 60_000);
-    expect(cache.get("key")).toBe("value");
-  });
-
-  it("caches empty strings", () => {
-    cache.set("empty", "", 60_000);
-    expect(cache.get("empty")).toBe("");
-  });
-
-  it("evicts expired entries on access", () => {
-    cache.set("key", "value", 1000);
-    expect(cache.get("key")).toBe("value");
-
-    vi.advanceTimersByTime(1001);
-    expect(cache.get("key")).toBeUndefined();
-  });
-
-  it("keeps entries that have not expired", () => {
-    cache.set("key", "value", 5000);
-
-    vi.advanceTimersByTime(4999);
-    expect(cache.get("key")).toBe("value");
-  });
-
-  it("tracks size including expired entries until accessed", () => {
-    cache.set("a", 1, 1000);
-    cache.set("b", 2, 5000);
-    expect(cache.size).toBe(2);
-
-    vi.advanceTimersByTime(2000);
-    expect(cache.size).toBe(2);
-
-    cache.get("a");
-    expect(cache.size).toBe(1);
-  });
-
-  it("clears all entries", () => {
-    cache.set("a", 1, 60_000);
-    cache.set("b", 2, 60_000);
-    expect(cache.size).toBe(2);
-
-    cache.clear();
-    expect(cache.size).toBe(0);
-    expect(cache.get("a")).toBeUndefined();
-  });
-});
+import NodeCache from "node-cache";
+import { withCache } from "./cache";
 
 describe("withCache", () => {
-  let cache: ApiCache;
+  let cache: NodeCache;
 
   beforeEach(() => {
-    cache = new ApiCache();
+    cache = new NodeCache({ checkperiod: 0 });
     vi.useFakeTimers();
   });
 
@@ -135,7 +72,7 @@ describe("withCache", () => {
     const first = await cached("test");
     expect(first).toBe("first");
 
-    vi.advanceTimersByTime(5001);
+    vi.advanceTimersByTime(6000);
 
     const second = await cached("test");
     expect(second).toBe("second");

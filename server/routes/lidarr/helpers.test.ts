@@ -5,27 +5,34 @@ import {
   getAlbumByMbid,
   removeAlbum,
 } from "./helpers";
-import type { LidarrArtist, LidarrAlbum } from "../../lidarrApi/types";
+import type { LidarrArtist, LidarrAlbum } from "../../api/lidarr/types";
 
 vi.mock("../../config", () => ({
   getConfigValue: vi.fn(() => 1),
 }));
 
-vi.mock("../../lidarrApi/get", () => ({
+vi.mock("../../api/lidarr/get", () => ({
   lidarrGet: vi.fn(),
 }));
 
-vi.mock("../../lidarrApi/post", () => ({
+vi.mock("../../api/lidarr/post", () => ({
   lidarrPost: vi.fn(),
 }));
 
-vi.mock("../../lidarrApi/put", () => ({
+vi.mock("../../api/lidarr/put", () => ({
   lidarrPut: vi.fn(),
 }));
 
-import { lidarrGet } from "../../lidarrApi/get";
-import { lidarrPost } from "../../lidarrApi/post";
-import { lidarrPut } from "../../lidarrApi/put";
+vi.mock("../../api/asyncLock", async () => {
+  const actual = await vi.importActual<
+    typeof import("../../api/asyncLock")
+  >("../../api/asyncLock");
+  return { AsyncLock: actual.AsyncLock };
+});
+
+import { lidarrGet } from "../../api/lidarr/get";
+import { lidarrPost } from "../../api/lidarr/post";
+import { lidarrPut } from "../../api/lidarr/put";
 
 const mockLidarrGet = vi.mocked(lidarrGet);
 const mockLidarrPost = vi.mocked(lidarrPost);
@@ -238,5 +245,43 @@ describe("removeAlbum", () => {
     await expect(removeAlbum("album-mbid-1", "artist-mbid-1")).rejects.toThrow(
       "Failed to unmonitor album"
     );
+  });
+});
+
+describe("getOrAddArtist concurrency", () => {
+  it("serializes concurrent calls for the same artist to prevent duplicates", async () => {
+    let callCount = 0;
+
+    // First call: artist not found, triggers add
+    // Second call: artist now exists (was added by first call)
+    mockLidarrGet.mockImplementation(async (path: string) => {
+      if (path === "/artist") {
+        callCount++;
+        // First GET returns empty (not found), second GET returns the artist (added by first call)
+        if (callCount === 1) {
+          await new Promise((r) => setTimeout(r, 20));
+          return { status: 200, data: [], ok: true };
+        }
+        return { status: 200, data: [mockArtist], ok: true };
+      }
+      // lookup
+      return { status: 200, data: [mockArtist], ok: true };
+    });
+
+    mockLidarrPost.mockResolvedValue({
+      status: 201,
+      data: mockArtist,
+      ok: true,
+    });
+
+    const [r1, r2] = await Promise.all([
+      getOrAddArtist("artist-mbid-1"),
+      getOrAddArtist("artist-mbid-1"),
+    ]);
+
+    expect(r1).toEqual(mockArtist);
+    expect(r2).toEqual(mockArtist);
+    // Only one POST should have been made — the second call should find the existing artist
+    expect(mockLidarrPost).toHaveBeenCalledTimes(1);
   });
 });

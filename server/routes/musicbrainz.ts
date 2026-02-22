@@ -4,9 +4,9 @@ import rateLimiter from "../middleware/rateLimiter";
 import {
   searchReleaseGroups,
   searchArtistReleaseGroups,
-} from "../musicbrainzApi/releaseGroups";
-import { getReleaseTracks } from "../musicbrainzApi/tracks";
-import { getTrackPreviews } from "../deezerApi/tracks";
+} from "../api/musicbrainz/releaseGroups";
+import { getReleaseTracks } from "../api/musicbrainz/tracks";
+import { getTrackPreviews } from "../api/deezer/tracks";
 
 const router = express.Router();
 
