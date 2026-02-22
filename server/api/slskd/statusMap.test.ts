@@ -54,10 +54,7 @@ describe("aggregateStatus", () => {
   });
 
   it("returns Completed when all transfers are completed", () => {
-    const transfers = [
-      transfer("Completed, Succeeded"),
-      transfer("Completed"),
-    ];
+    const transfers = [transfer("Completed, Succeeded"), transfer("Completed")];
     expect(aggregateStatus(transfers)).toBe("Completed");
   });
 
@@ -78,10 +75,7 @@ describe("aggregateStatus", () => {
   });
 
   it("returns Queued when any transfer is queued", () => {
-    const transfers = [
-      transfer("Completed, Succeeded"),
-      transfer("Queued"),
-    ];
+    const transfers = [transfer("Completed, Succeeded"), transfer("Queued")];
     expect(aggregateStatus(transfers)).toBe("Queued");
   });
 
@@ -94,10 +88,7 @@ describe("aggregateStatus", () => {
   });
 
   it("prioritises Downloading over Queued", () => {
-    const transfers = [
-      transfer("InProgress"),
-      transfer("Initializing"),
-    ];
+    const transfers = [transfer("InProgress"), transfer("Initializing")];
     expect(aggregateStatus(transfers)).toBe("Downloading");
   });
 });

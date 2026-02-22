@@ -46,12 +46,17 @@ export async function waitForSearch(searchId: string): Promise<void> {
   }
 }
 
-export async function getSearchResponses(searchId: string): Promise<SlskdSearchResponse[]> {
+export async function getSearchResponses(
+  searchId: string
+): Promise<SlskdSearchResponse[]> {
   const { baseUrl, headers } = getSlskdConfig();
 
-  const response = await fetch(`${baseUrl}/api/v0/searches/${searchId}/responses`, {
-    headers,
-  });
+  const response = await fetch(
+    `${baseUrl}/api/v0/searches/${searchId}/responses`,
+    {
+      headers,
+    }
+  );
 
   if (!response.ok) {
     throw new Error(`slskd search responses failed: ${response.status}`);

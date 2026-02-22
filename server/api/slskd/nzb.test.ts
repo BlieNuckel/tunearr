@@ -58,7 +58,7 @@ describe("decodeNzb", () => {
     expect(decodeNzb(xml)).toEqual(metadata);
   });
 
-  it('throws when the XML has no slskd meta tag', () => {
+  it("throws when the XML has no slskd meta tag", () => {
     const xml = [
       '<?xml version="1.0" encoding="UTF-8"?>',
       '<nzb xmlns="http://www.newzbin.com/DTD/2003/nzb">',
@@ -68,9 +68,7 @@ describe("decodeNzb", () => {
       "</nzb>",
     ].join("\n");
 
-    expect(() => decodeNzb(xml)).toThrow(
-      "NZB does not contain slskd metadata"
-    );
+    expect(() => decodeNzb(xml)).toThrow("NZB does not contain slskd metadata");
   });
 
   it("throws when given completely unrelated XML", () => {

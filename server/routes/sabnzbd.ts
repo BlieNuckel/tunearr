@@ -1,10 +1,23 @@
 import type { Request, Response } from "express";
-import type { SabnzbdQueueSlot, SabnzbdHistorySlot, SlskdTransfer } from "../api/slskd/types";
+import type {
+  SabnzbdQueueSlot,
+  SabnzbdHistorySlot,
+  SlskdTransfer,
+} from "../api/slskd/types";
 import express from "express";
 import multer from "multer";
 import { decodeNzb } from "../api/slskd/nzb";
-import { addDownload, getDownload, getAllDownloads, removeDownload } from "../api/slskd/downloadTracker";
-import { enqueueDownload, getDownloadTransfers, cancelDownload } from "../api/slskd/transfer";
+import {
+  addDownload,
+  getDownload,
+  getAllDownloads,
+  removeDownload,
+} from "../api/slskd/downloadTracker";
+import {
+  enqueueDownload,
+  getDownloadTransfers,
+  cancelDownload,
+} from "../api/slskd/transfer";
 import { aggregateStatus, mapTransferState } from "../api/slskd/statusMap";
 import { getSlskdConfig } from "../api/slskd/config";
 import { createLogger } from "../logger";
@@ -23,7 +36,11 @@ router.post("/api", upload.single("name"), (req: Request, res: Response) => {
 });
 
 async function handleApiRequest(req: Request, res: Response): Promise<void> {
-  const mode = (req.query.mode as string || req.body?.mode as string || "").toLowerCase();
+  const mode = (
+    (req.query.mode as string) ||
+    (req.body?.mode as string) ||
+    ""
+  ).toLowerCase();
 
   switch (mode) {
     case "version":
@@ -62,9 +79,7 @@ function handleGetConfig(res: Response): void {
       misc: {
         complete_dir: downloadPath,
       },
-      categories: [
-        { name: "music", dir: "music" },
-      ],
+      categories: [{ name: "music", dir: "music" }],
     },
   });
 }
@@ -92,14 +107,24 @@ async function handleQueue(req: Request, res: Response): Promise<void> {
     const slots: SabnzbdQueueSlot[] = [];
 
     for (const dl of tracked) {
-      const transfers = findMatchingTransfers(dl.username, dl.files, transferGroups);
+      const transfers = findMatchingTransfers(
+        dl.username,
+        dl.files,
+        transferGroups
+      );
       const status = aggregateStatus(transfers);
 
       if (status === "Completed" || status === "Failed") continue;
 
-      const bytesTransferred = transfers.reduce((sum, t) => sum + t.bytesTransferred, 0);
+      const bytesTransferred = transfers.reduce(
+        (sum, t) => sum + t.bytesTransferred,
+        0
+      );
       const remaining = dl.totalSize - bytesTransferred;
-      const percentage = dl.totalSize > 0 ? Math.round((bytesTransferred / dl.totalSize) * 100) : 0;
+      const percentage =
+        dl.totalSize > 0
+          ? Math.round((bytesTransferred / dl.totalSize) * 100)
+          : 0;
 
       slots.push({
         nzo_id: dl.nzoId,
@@ -135,7 +160,11 @@ async function handleHistory(req: Request, res: Response): Promise<void> {
     const slots: SabnzbdHistorySlot[] = [];
 
     for (const dl of tracked) {
-      const transfers = findMatchingTransfers(dl.username, dl.files, transferGroups);
+      const transfers = findMatchingTransfers(
+        dl.username,
+        dl.files,
+        transferGroups
+      );
       const status = aggregateStatus(transfers);
 
       if (status !== "Completed" && status !== "Failed") continue;
@@ -168,7 +197,8 @@ async function handleAddFile(req: Request, res: Response): Promise<void> {
   try {
     const nzbXml = file.buffer.toString("utf-8");
     const metadata = decodeNzb(nzbXml);
-    const category = (req.query.cat as string) || (req.body?.cat as string) || "music";
+    const category =
+      (req.query.cat as string) || (req.body?.cat as string) || "music";
     const nzoId = `slskd_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const title = metadata.files[0]?.filename
       ? extractDirectoryName(metadata.files[0].filename)
@@ -186,11 +216,18 @@ async function handleAddFile(req: Request, res: Response): Promise<void> {
       addedAt: Date.now(),
     });
 
-    log.info(`Queued download: ${title} from ${metadata.username} (${metadata.files.length} files)`);
+    log.info(
+      `Queued download: ${title} from ${metadata.username} (${metadata.files.length} files)`
+    );
     res.json({ status: true, nzo_ids: [nzoId] });
   } catch (err) {
     log.error("addfile failed:", err);
-    res.status(400).json({ status: false, error: err instanceof Error ? err.message : "Unknown error" });
+    res
+      .status(400)
+      .json({
+        status: false,
+        error: err instanceof Error ? err.message : "Unknown error",
+      });
   }
 }
 
@@ -205,8 +242,14 @@ async function handleQueueDelete(req: Request, res: Response): Promise<void> {
   if (dl) {
     try {
       const transferGroups = await getDownloadTransfers();
-      const transfers = findMatchingTransfers(dl.username, dl.files, transferGroups);
-      await Promise.all(transfers.map((t) => cancelDownload(dl.username, t.id)));
+      const transfers = findMatchingTransfers(
+        dl.username,
+        dl.files,
+        transferGroups
+      );
+      await Promise.all(
+        transfers.map((t) => cancelDownload(dl.username, t.id))
+      );
     } catch (err) {
       log.error("Cancel transfers failed:", err);
     }
@@ -227,7 +270,10 @@ function handleHistoryDelete(req: Request, res: Response): void {
 function findMatchingTransfers(
   username: string,
   files: { filename: string }[],
-  transferGroups: { username: string; directories: { directory: string; files: SlskdTransfer[] }[] }[]
+  transferGroups: {
+    username: string;
+    directories: { directory: string; files: SlskdTransfer[] }[];
+  }[]
 ): SlskdTransfer[] {
   const filenames = new Set(files.map((f) => f.filename));
   const matches: SlskdTransfer[] = [];
@@ -247,11 +293,19 @@ function findMatchingTransfers(
 }
 
 function estimateTimeLeft(transfers: SlskdTransfer[]): string {
-  const activeTransfers = transfers.filter((t) => mapTransferState(t.state) === "Downloading");
+  const activeTransfers = transfers.filter(
+    (t) => mapTransferState(t.state) === "Downloading"
+  );
   if (activeTransfers.length === 0) return "00:00:00";
 
-  const totalRemaining = activeTransfers.reduce((sum, t) => sum + (t.size - t.bytesTransferred), 0);
-  const totalSpeed = activeTransfers.reduce((sum, t) => sum + t.averageSpeed, 0);
+  const totalRemaining = activeTransfers.reduce(
+    (sum, t) => sum + (t.size - t.bytesTransferred),
+    0
+  );
+  const totalSpeed = activeTransfers.reduce(
+    (sum, t) => sum + t.averageSpeed,
+    0
+  );
 
   if (totalSpeed <= 0) return "99:99:99";
 
@@ -263,7 +317,10 @@ function estimateTimeLeft(transfers: SlskdTransfer[]): string {
 }
 
 function extractDirectoryName(filename: string): string {
-  const lastSlash = Math.max(filename.lastIndexOf("\\"), filename.lastIndexOf("/"));
+  const lastSlash = Math.max(
+    filename.lastIndexOf("\\"),
+    filename.lastIndexOf("/")
+  );
   if (lastSlash === -1) return filename;
   const dir = filename.slice(0, lastSlash);
   const parentSlash = Math.max(dir.lastIndexOf("\\"), dir.lastIndexOf("/"));

@@ -9,11 +9,20 @@ vi.mock("./config", () => ({
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
 
-import { startSearch, waitForSearch, getSearchResponses, deleteSearch } from "./search";
+import {
+  startSearch,
+  waitForSearch,
+  getSearchResponses,
+  deleteSearch,
+} from "./search";
 
 const CONFIG = {
   baseUrl: "http://slskd:5030",
-  headers: { "X-API-Key": "test-key", "Content-Type": "application/json", Accept: "application/json" },
+  headers: {
+    "X-API-Key": "test-key",
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  },
   downloadPath: "/downloads",
 };
 
@@ -24,7 +33,13 @@ beforeEach(() => {
 
 describe("startSearch", () => {
   it("posts search request and returns state", async () => {
-    const searchState = { id: "abc", searchText: "test", isComplete: false, responseCount: 0, fileCount: 0 };
+    const searchState = {
+      id: "abc",
+      searchText: "test",
+      isComplete: false,
+      responseCount: 0,
+      fileCount: 0,
+    };
     mockFetch.mockResolvedValue({ ok: true, json: async () => searchState });
 
     const result = await startSearch("test");
@@ -37,7 +52,9 @@ describe("startSearch", () => {
 
   it("throws on non-ok response", async () => {
     mockFetch.mockResolvedValue({ ok: false, status: 500 });
-    await expect(startSearch("test")).rejects.toThrow("slskd search failed: 500");
+    await expect(startSearch("test")).rejects.toThrow(
+      "slskd search failed: 500"
+    );
   });
 });
 
@@ -57,7 +74,9 @@ describe("waitForSearch", () => {
 
   it("throws on non-ok response", async () => {
     mockFetch.mockResolvedValue({ ok: false, status: 404 });
-    await expect(waitForSearch("abc")).rejects.toThrow("slskd search status failed: 404");
+    await expect(waitForSearch("abc")).rejects.toThrow(
+      "slskd search status failed: 404"
+    );
   });
 });
 
@@ -76,7 +95,9 @@ describe("getSearchResponses", () => {
 
   it("throws on non-ok response", async () => {
     mockFetch.mockResolvedValue({ ok: false, status: 500 });
-    await expect(getSearchResponses("abc")).rejects.toThrow("slskd search responses failed: 500");
+    await expect(getSearchResponses("abc")).rejects.toThrow(
+      "slskd search responses failed: 500"
+    );
   });
 });
 

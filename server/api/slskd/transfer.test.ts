@@ -9,11 +9,19 @@ vi.mock("./config", () => ({
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
 
-import { enqueueDownload, getDownloadTransfers, cancelDownload } from "./transfer";
+import {
+  enqueueDownload,
+  getDownloadTransfers,
+  cancelDownload,
+} from "./transfer";
 
 const CONFIG = {
   baseUrl: "http://slskd:5030",
-  headers: { "X-API-Key": "test-key", "Content-Type": "application/json", Accept: "application/json" },
+  headers: {
+    "X-API-Key": "test-key",
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  },
   downloadPath: "/downloads",
 };
 
@@ -41,7 +49,9 @@ describe("enqueueDownload", () => {
 
   it("throws on non-ok response", async () => {
     mockFetch.mockResolvedValue({ ok: false, status: 500 });
-    await expect(enqueueDownload("user", [])).rejects.toThrow("slskd enqueue download failed: 500");
+    await expect(enqueueDownload("user", [])).rejects.toThrow(
+      "slskd enqueue download failed: 500"
+    );
   });
 });
 
@@ -60,7 +70,9 @@ describe("getDownloadTransfers", () => {
 
   it("throws on non-ok response", async () => {
     mockFetch.mockResolvedValue({ ok: false, status: 500 });
-    await expect(getDownloadTransfers()).rejects.toThrow("slskd get transfers failed: 500");
+    await expect(getDownloadTransfers()).rejects.toThrow(
+      "slskd get transfers failed: 500"
+    );
   });
 });
 
@@ -78,6 +90,8 @@ describe("cancelDownload", () => {
 
   it("throws on non-ok response", async () => {
     mockFetch.mockResolvedValue({ ok: false, status: 404 });
-    await expect(cancelDownload("user", "id")).rejects.toThrow("slskd cancel download failed: 404");
+    await expect(cancelDownload("user", "id")).rejects.toThrow(
+      "slskd cancel download failed: 404"
+    );
   });
 });

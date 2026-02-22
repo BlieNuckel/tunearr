@@ -57,13 +57,18 @@ describe("GET /?t=caps", () => {
 
 describe("GET /?t=music", () => {
   it("searches with artist and album", async () => {
-    mockStartSearch.mockResolvedValue({ id: "s1", searchText: "Radiohead OK Computer" });
+    mockStartSearch.mockResolvedValue({
+      id: "s1",
+      searchText: "Radiohead OK Computer",
+    });
     mockWaitForSearch.mockResolvedValue(undefined);
     mockGetSearchResponses.mockResolvedValue([]);
     mockDeleteSearch.mockResolvedValue(undefined);
     mockGroupSearchResults.mockReturnValue([]);
 
-    const res = await request(app).get("/?t=music&artist=Radiohead&album=OK+Computer");
+    const res = await request(app).get(
+      "/?t=music&artist=Radiohead&album=OK+Computer"
+    );
     expect(res.status).toBe(200);
     expect(res.headers["content-type"]).toContain("xml");
     expect(mockStartSearch).toHaveBeenCalledWith("Radiohead OK Computer");
@@ -89,7 +94,9 @@ describe("GET /?t=music", () => {
       },
     ]);
 
-    const res = await request(app).get("/?t=music&artist=Radiohead&album=OK+Computer");
+    const res = await request(app).get(
+      "/?t=music&artist=Radiohead&album=OK+Computer"
+    );
     expect(res.status).toBe(200);
     expect(res.text).toContain("<item>");
     expect(res.text).toContain("user1");

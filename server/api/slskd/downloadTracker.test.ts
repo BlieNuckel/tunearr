@@ -10,7 +10,9 @@ import {
   removeDownload,
 } from "./downloadTracker.js";
 
-function createDownload(overrides: Partial<TrackedDownload> = {}): TrackedDownload {
+function createDownload(
+  overrides: Partial<TrackedDownload> = {}
+): TrackedDownload {
   return {
     nzoId: "nzo-1",
     title: "Test Album",

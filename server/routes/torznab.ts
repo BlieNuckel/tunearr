@@ -1,7 +1,12 @@
 import type { Request, Response } from "express";
 import type { GroupedSearchResult } from "../api/slskd/types";
 import express from "express";
-import { startSearch, waitForSearch, getSearchResponses, deleteSearch } from "../api/slskd/search";
+import {
+  startSearch,
+  waitForSearch,
+  getSearchResponses,
+  deleteSearch,
+} from "../api/slskd/search";
 import { groupSearchResults } from "../api/slskd/groupResults";
 import { encodeNzb } from "../api/slskd/nzb";
 import { createLogger } from "../logger";
@@ -29,7 +34,7 @@ function buildBaseUrl(req: Request): string {
 }
 
 router.get("/", async (req: Request, res: Response) => {
-  const t = (req.query.t as string || "").toLowerCase();
+  const t = ((req.query.t as string) || "").toLowerCase();
 
   if (t === "caps") {
     return sendCaps(res);
@@ -39,9 +44,12 @@ router.get("/", async (req: Request, res: Response) => {
     return handleSearch(req, res);
   }
 
-  res.status(400).type("text/xml").send(
-    `<?xml version="1.0" encoding="UTF-8"?><error code="202" description="No such function" />`
-  );
+  res
+    .status(400)
+    .type("text/xml")
+    .send(
+      `<?xml version="1.0" encoding="UTF-8"?><error code="202" description="No such function" />`
+    );
 });
 
 router.get("/download/:guid", (req: Request, res: Response) => {
@@ -50,9 +58,12 @@ router.get("/download/:guid", (req: Request, res: Response) => {
   const guid = req.params.guid as string;
   const cached = resultCache.get(guid);
   if (!cached) {
-    res.status(404).type("text/xml").send(
-      `<?xml version="1.0" encoding="UTF-8"?><error code="300" description="Item not found" />`
-    );
+    res
+      .status(404)
+      .type("text/xml")
+      .send(
+        `<?xml version="1.0" encoding="UTF-8"?><error code="300" description="Item not found" />`
+      );
     return;
   }
 
@@ -64,36 +75,44 @@ router.get("/download/:guid", (req: Request, res: Response) => {
   };
 
   const nzb = encodeNzb(title, metadata);
-  res.type("application/x-nzb").set("Content-Disposition", `attachment; filename="${result.guid}.nzb"`).send(nzb);
+  res
+    .type("application/x-nzb")
+    .set("Content-Disposition", `attachment; filename="${result.guid}.nzb"`)
+    .send(nzb);
 });
 
 function sendCaps(res: Response): void {
-  res.type("text/xml").send(
-    [
-      '<?xml version="1.0" encoding="UTF-8"?>',
-      "<caps>",
-      '  <server title="music-requester slskd" />',
-      '  <searching>',
-      '    <search available="yes" supportedParams="q" />',
-      '    <music-search available="yes" supportedParams="q,artist,album" />',
-      '  </searching>',
-      "  <categories>",
-      '    <category id="3000" name="Audio">',
-      '      <subcat id="3010" name="MP3" />',
-      '      <subcat id="3040" name="Lossless" />',
-      "    </category>",
-      "  </categories>",
-      "</caps>",
-    ].join("\n")
-  );
+  res
+    .type("text/xml")
+    .send(
+      [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        "<caps>",
+        '  <server title="music-requester slskd" />',
+        "  <searching>",
+        '    <search available="yes" supportedParams="q" />',
+        '    <music-search available="yes" supportedParams="q,artist,album" />',
+        "  </searching>",
+        "  <categories>",
+        '    <category id="3000" name="Audio">',
+        '      <subcat id="3010" name="MP3" />',
+        '      <subcat id="3040" name="Lossless" />',
+        "    </category>",
+        "  </categories>",
+        "</caps>",
+      ].join("\n")
+    );
 }
 
 async function handleSearch(req: Request, res: Response): Promise<void> {
   const query = buildSearchQuery(req);
   if (!query) {
-    res.status(400).type("text/xml").send(
-      `<?xml version="1.0" encoding="UTF-8"?><error code="100" description="Missing search query" />`
-    );
+    res
+      .status(400)
+      .type("text/xml")
+      .send(
+        `<?xml version="1.0" encoding="UTF-8"?><error code="100" description="Missing search query" />`
+      );
     return;
   }
 
@@ -118,9 +137,12 @@ async function handleSearch(req: Request, res: Response): Promise<void> {
     res.type("text/xml").send(xml);
   } catch (err) {
     log.error("Search failed:", err);
-    res.status(500).type("text/xml").send(
-      `<?xml version="1.0" encoding="UTF-8"?><error code="900" description="Internal error" />`
-    );
+    res
+      .status(500)
+      .type("text/xml")
+      .send(
+        `<?xml version="1.0" encoding="UTF-8"?><error code="900" description="Internal error" />`
+      );
   }
 }
 
@@ -136,7 +158,10 @@ function buildSearchQuery(req: Request): string {
   return "";
 }
 
-function buildResultsXml(results: GroupedSearchResult[], baseUrl: string): string {
+function buildResultsXml(
+  results: GroupedSearchResult[],
+  baseUrl: string
+): string {
   const items = results.map((r) => buildItemXml(r, baseUrl)).join("\n");
 
   return [
@@ -151,7 +176,9 @@ function buildResultsXml(results: GroupedSearchResult[], baseUrl: string): strin
 }
 
 function buildItemXml(result: GroupedSearchResult, baseUrl: string): string {
-  const title = escapeXml(`${result.username} - ${result.directory.split("\\").pop() || result.directory}`);
+  const title = escapeXml(
+    `${result.username} - ${result.directory.split("\\").pop() || result.directory}`
+  );
   const downloadUrl = `${baseUrl}/api/torznab/download/${result.guid}`;
 
   return [
@@ -161,10 +188,14 @@ function buildItemXml(result: GroupedSearchResult, baseUrl: string): string {
     `      <newznab:attr name="category" value="${result.category}" />`,
     `      <newznab:attr name="size" value="${result.totalSize}" />`,
     `      <newznab:attr name="files" value="${result.files.length}" />`,
-    result.bitRate > 0 ? `      <newznab:attr name="audio:bitrate" value="${result.bitRate}" />` : "",
+    result.bitRate > 0
+      ? `      <newznab:attr name="audio:bitrate" value="${result.bitRate}" />`
+      : "",
     `      <newznab:attr name="usenetdate" value="${new Date().toUTCString()}" />`,
     "    </item>",
-  ].filter(Boolean).join("\n");
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 function escapeXml(str: string): string {

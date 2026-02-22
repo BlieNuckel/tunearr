@@ -1,6 +1,11 @@
 import type { SlskdTransfer } from "./types";
 
-type SabnzbdStatus = "Downloading" | "Queued" | "Paused" | "Completed" | "Failed";
+type SabnzbdStatus =
+  | "Downloading"
+  | "Queued"
+  | "Paused"
+  | "Completed"
+  | "Failed";
 
 export function mapTransferState(stateFlags: string): SabnzbdStatus {
   const flags = stateFlags.split(", ").map((s) => s.trim());
@@ -9,13 +14,19 @@ export function mapTransferState(stateFlags: string): SabnzbdStatus {
     return "Completed";
   }
   if (flags.includes("Completed")) {
-    if (flags.includes("Cancelled") || flags.includes("TimedOut") || flags.includes("Errored") || flags.includes("Rejected")) {
+    if (
+      flags.includes("Cancelled") ||
+      flags.includes("TimedOut") ||
+      flags.includes("Errored") ||
+      flags.includes("Rejected")
+    ) {
       return "Failed";
     }
     return "Completed";
   }
   if (flags.includes("InProgress")) return "Downloading";
-  if (flags.includes("Queued") || flags.includes("Initializing")) return "Queued";
+  if (flags.includes("Queued") || flags.includes("Initializing"))
+    return "Queued";
 
   return "Queued";
 }

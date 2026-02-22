@@ -1,4 +1,8 @@
-import type { SlskdSearchResponse, SlskdFile, GroupedSearchResult } from "./types";
+import type {
+  SlskdSearchResponse,
+  SlskdFile,
+  GroupedSearchResult,
+} from "./types";
 
 type DirectoryGroup = {
   username: string;
@@ -9,24 +13,45 @@ type DirectoryGroup = {
 };
 
 const AUDIO_EXTENSIONS = new Set([
-  ".flac", ".mp3", ".ogg", ".opus", ".m4a", ".aac", ".wma",
-  ".wav", ".ape", ".wv", ".alac", ".aiff", ".aif",
+  ".flac",
+  ".mp3",
+  ".ogg",
+  ".opus",
+  ".m4a",
+  ".aac",
+  ".wma",
+  ".wav",
+  ".ape",
+  ".wv",
+  ".alac",
+  ".aiff",
+  ".aif",
 ]);
 
-const LOSSLESS_EXTENSIONS = new Set([".flac", ".ape", ".wv", ".wav", ".alac", ".aiff", ".aif"]);
+const LOSSLESS_EXTENSIONS = new Set([
+  ".flac",
+  ".ape",
+  ".wv",
+  ".wav",
+  ".alac",
+  ".aiff",
+  ".aif",
+]);
 
 const CATEGORY_LOSSLESS = 3040;
 const CATEGORY_MP3 = 3010;
 const CATEGORY_OTHER_AUDIO = 3000;
 
-export function groupSearchResults(responses: SlskdSearchResponse[]): GroupedSearchResult[] {
+export function groupSearchResults(
+  responses: SlskdSearchResponse[]
+): GroupedSearchResult[] {
   const groups = buildDirectoryGroups(responses);
-  return groups
-    .map(toGroupedResult)
-    .sort(compareResults);
+  return groups.map(toGroupedResult).sort(compareResults);
 }
 
-function buildDirectoryGroups(responses: SlskdSearchResponse[]): DirectoryGroup[] {
+function buildDirectoryGroups(
+  responses: SlskdSearchResponse[]
+): DirectoryGroup[] {
   const groupMap = new Map<string, DirectoryGroup>();
 
   for (const response of responses) {
@@ -71,7 +96,10 @@ function toGroupedResult(group: DirectoryGroup): GroupedSearchResult {
   };
 }
 
-function compareResults(a: GroupedSearchResult, b: GroupedSearchResult): number {
+function compareResults(
+  a: GroupedSearchResult,
+  b: GroupedSearchResult
+): number {
   if (a.hasFreeUploadSlot !== b.hasFreeUploadSlot) {
     return a.hasFreeUploadSlot ? -1 : 1;
   }
@@ -84,14 +112,19 @@ function isAudioFile(filename: string): boolean {
 }
 
 function extractDirectory(filename: string): string {
-  const lastSlash = Math.max(filename.lastIndexOf("\\"), filename.lastIndexOf("/"));
+  const lastSlash = Math.max(
+    filename.lastIndexOf("\\"),
+    filename.lastIndexOf("/")
+  );
   return lastSlash === -1 ? "" : filename.slice(0, lastSlash);
 }
 
 function computeAverageBitRate(files: SlskdFile[]): number {
   const withBitRate = files.filter((f) => f.bitRate && f.bitRate > 0);
   if (withBitRate.length === 0) return 0;
-  return Math.round(withBitRate.reduce((sum, f) => sum + f.bitRate!, 0) / withBitRate.length);
+  return Math.round(
+    withBitRate.reduce((sum, f) => sum + f.bitRate!, 0) / withBitRate.length
+  );
 }
 
 function categorizeFiles(files: SlskdFile[]): number {

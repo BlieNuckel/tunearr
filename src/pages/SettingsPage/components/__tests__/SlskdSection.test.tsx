@@ -17,9 +17,15 @@ describe("SlskdSection", () => {
     render(<SlskdSection {...defaultProps} />);
 
     expect(screen.getByText("slskd (Soulseek)")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("http://slskd:5030")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("Enter slskd API key")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("/downloads/slskd/complete")).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText("http://slskd:5030")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText("Enter slskd API key")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText("/downloads/slskd/complete")
+    ).toBeInTheDocument();
   });
 
   it("displays current values", () => {
@@ -32,7 +38,9 @@ describe("SlskdSection", () => {
       />
     );
 
-    expect(screen.getByDisplayValue("http://my-slskd:5030")).toBeInTheDocument();
+    expect(
+      screen.getByDisplayValue("http://my-slskd:5030")
+    ).toBeInTheDocument();
     expect(screen.getByDisplayValue("my-key")).toBeInTheDocument();
     expect(screen.getByDisplayValue("/my/path")).toBeInTheDocument();
   });
@@ -58,7 +66,10 @@ describe("SlskdSection", () => {
   it("calls onDownloadPathChange when path is typed", async () => {
     const onDownloadPathChange = vi.fn();
     render(
-      <SlskdSection {...defaultProps} onDownloadPathChange={onDownloadPathChange} />
+      <SlskdSection
+        {...defaultProps}
+        onDownloadPathChange={onDownloadPathChange}
+      />
     );
 
     const input = screen.getByPlaceholderText("/downloads/slskd/complete");
@@ -69,8 +80,6 @@ describe("SlskdSection", () => {
   it("shows description text for download path", () => {
     render(<SlskdSection {...defaultProps} />);
 
-    expect(
-      screen.getByText(/shared volume mount/i)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/shared volume mount/i)).toBeInTheDocument();
   });
 });

@@ -68,7 +68,8 @@ export default function SettingsPage() {
     if (settings.importPath) setImportPath(settings.importPath);
     if (settings.slskdUrl) setSlskdUrl(settings.slskdUrl);
     if (settings.slskdApiKey) setSlskdApiKey(settings.slskdApiKey);
-    if (settings.slskdDownloadPath) setSlskdDownloadPath(settings.slskdDownloadPath);
+    if (settings.slskdDownloadPath)
+      setSlskdDownloadPath(settings.slskdDownloadPath);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings.lidarrUrl]);
 
