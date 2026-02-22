@@ -420,9 +420,7 @@ describe("ArtistCard", () => {
     });
 
     it("shows Featured heading when only featured albums exist", () => {
-      mockAlbums = [
-        makeFeaturedAlbum({ id: "rg-1", title: "Collab Album" }),
-      ];
+      mockAlbums = [makeFeaturedAlbum({ id: "rg-1", title: "Collab Album" })];
       render(
         <ArtistCard
           name="Radiohead"
