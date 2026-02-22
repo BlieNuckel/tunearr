@@ -38,9 +38,9 @@ describe("withRetry", () => {
     const error = new TypeError("network error");
     const fn = vi.fn().mockRejectedValue(error);
 
-    await expect(
-      withRetry(fn, { retries: 2, baseDelayMs: 1 })
-    ).rejects.toThrow("network error");
+    await expect(withRetry(fn, { retries: 2, baseDelayMs: 1 })).rejects.toThrow(
+      "network error"
+    );
     expect(fn).toHaveBeenCalledTimes(3);
 
     vi.useFakeTimers();
@@ -56,10 +56,7 @@ describe("withRetry", () => {
 
   it("retries on 429 status errors", async () => {
     const error = Object.assign(new Error("Rate limited"), { status: 429 });
-    const fn = vi
-      .fn()
-      .mockRejectedValueOnce(error)
-      .mockResolvedValue("ok");
+    const fn = vi.fn().mockRejectedValueOnce(error).mockResolvedValue("ok");
 
     const promise = withRetry(fn, { baseDelayMs: 100 });
     await vi.advanceTimersByTimeAsync(100);
@@ -71,10 +68,7 @@ describe("withRetry", () => {
 
   it("retries on 500 status errors", async () => {
     const error = Object.assign(new Error("Server error"), { status: 500 });
-    const fn = vi
-      .fn()
-      .mockRejectedValueOnce(error)
-      .mockResolvedValue("ok");
+    const fn = vi.fn().mockRejectedValueOnce(error).mockResolvedValue("ok");
 
     const promise = withRetry(fn, { baseDelayMs: 100 });
     await vi.advanceTimersByTimeAsync(100);

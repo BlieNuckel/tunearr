@@ -25,9 +25,7 @@ const fetchArtistImage = async (artistName: string): Promise<string> => {
     const response = await fetch(url);
 
     if (!response.ok) {
-      log.error(
-        `Failed to fetch image for ${artistName}: ${response.status}`
-      );
+      log.error(`Failed to fetch image for ${artistName}: ${response.status}`);
       return "";
     }
 

@@ -24,9 +24,9 @@ vi.mock("../../api/lidarr/put", () => ({
 }));
 
 vi.mock("../../api/asyncLock", async () => {
-  const actual = await vi.importActual<
-    typeof import("../../api/asyncLock")
-  >("../../api/asyncLock");
+  const actual = await vi.importActual<typeof import("../../api/asyncLock")>(
+    "../../api/asyncLock"
+  );
   return { AsyncLock: actual.AsyncLock };
 });
 

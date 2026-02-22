@@ -14,7 +14,11 @@ const LEVEL_LABELS: Record<LogLevel, string> = {
   error: "ERROR",
 };
 
-function formatMessage(level: LogLevel, label: string, message: string): string {
+function formatMessage(
+  level: LogLevel,
+  label: string,
+  message: string
+): string {
   const timestamp = new Date().toISOString();
   return `${timestamp} [${LEVEL_LABELS[level]}] [${label}] ${message}`;
 }

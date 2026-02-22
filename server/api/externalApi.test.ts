@@ -461,9 +461,7 @@ describe("createExternalApi", () => {
     });
 
     it("does not retry when retry is not configured", async () => {
-      const fetchFn = vi
-        .fn()
-        .mockRejectedValue(new TypeError("fetch failed"));
+      const fetchFn = vi.fn().mockRejectedValue(new TypeError("fetch failed"));
 
       const api = createExternalApi({
         baseUrl: "https://api.example.com",
