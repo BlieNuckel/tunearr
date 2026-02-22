@@ -12,6 +12,7 @@ const defaultProps = {
   onUrlChange: vi.fn(),
   onTokenChange: vi.fn(),
   onSignOut: vi.fn(),
+  onLoginComplete: vi.fn(),
 };
 
 beforeEach(() => {

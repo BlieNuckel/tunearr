@@ -169,6 +169,56 @@ describe("usePlexLogin", () => {
     expect(onToken).toHaveBeenCalledWith("my-token");
     expect(onAccount).not.toHaveBeenCalled();
   });
+
+  it("calls onLoginComplete with token and serverUrl after successful login", async () => {
+    const onToken = vi.fn();
+    const onLoginComplete = vi.fn();
+    mockLogin.mockResolvedValue("my-token");
+    mockFetchResponses(
+      {
+        ok: true,
+        data: {
+          servers: [
+            { name: "My Server", uri: "http://plex:32400", local: true },
+          ],
+        },
+      },
+      { ok: true, data: { username: "test", thumb: "url" } },
+    );
+
+    const { result } = renderHook(() =>
+      usePlexLogin({ onToken, onLoginComplete }),
+    );
+
+    await act(async () => {
+      result.current.login();
+    });
+
+    expect(onLoginComplete).toHaveBeenCalledWith(
+      "my-token",
+      "http://plex:32400",
+    );
+  });
+
+  it("calls onLoginComplete with empty serverUrl when no servers available", async () => {
+    const onToken = vi.fn();
+    const onLoginComplete = vi.fn();
+    mockLogin.mockResolvedValue("my-token");
+    mockFetchResponses(
+      { ok: true, data: { servers: [] } },
+      { ok: true, data: { username: "test", thumb: "url" } },
+    );
+
+    const { result } = renderHook(() =>
+      usePlexLogin({ onToken, onLoginComplete }),
+    );
+
+    await act(async () => {
+      result.current.login();
+    });
+
+    expect(onLoginComplete).toHaveBeenCalledWith("my-token", "");
+  });
 });
 
 describe("fetchAccount", () => {

@@ -16,6 +16,7 @@ interface UsePlexLoginOptions {
   onToken: (token: string) => void;
   onServers?: (servers: PlexServer[]) => void;
   onAccount?: (account: PlexAccount) => void;
+  onLoginComplete?: (token: string, serverUrl: string) => void;
 }
 
 interface UsePlexLoginResult {
@@ -35,6 +36,7 @@ export default function usePlexLogin({
   onToken,
   onServers,
   onAccount,
+  onLoginComplete,
 }: UsePlexLoginOptions): UsePlexLoginResult {
   const [loading, setLoading] = useState(false);
 
@@ -57,14 +59,21 @@ export default function usePlexLogin({
         accountPromise,
       ]);
 
+      let serverUrl = "";
       if (serversRes.ok) {
         const data = await serversRes.json();
-        onServers?.(data.servers ?? []);
+        const servers = data.servers ?? [];
+        onServers?.(servers);
+        if (servers.length > 0) {
+          serverUrl = servers[0].uri;
+        }
       }
 
       if (account) {
         onAccount?.(account);
       }
+
+      onLoginComplete?.(token, serverUrl);
     } finally {
       setLoading(false);
     }

@@ -8,6 +8,7 @@ interface PlexAuthProps {
   onToken: (token: string) => void;
   onServerUrl: (url: string) => void;
   onSignOut?: () => void;
+  onLoginComplete?: (token: string, serverUrl: string) => void;
 }
 
 function SignedInCard({
@@ -57,6 +58,7 @@ export default function PlexAuth({
   onToken,
   onServerUrl,
   onSignOut: onSignOutProp,
+  onLoginComplete,
 }: PlexAuthProps) {
   const [fetchState, setFetchState] = useState<AccountFetch>({
     status: "idle",
@@ -79,6 +81,7 @@ export default function PlexAuth({
       }
     },
     onAccount: handleAccount,
+    onLoginComplete,
   });
 
   useEffect(() => {
@@ -108,7 +111,6 @@ export default function PlexAuth({
   const handleSignOut = () => {
     setFetchState({ status: "idle" });
     setServerName("");
-
     if (onSignOutProp) {
       onSignOutProp();
     } else {

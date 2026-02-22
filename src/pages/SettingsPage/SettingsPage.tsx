@@ -130,6 +130,30 @@ export default function SettingsPage() {
     }
   };
 
+  const handlePlexLoginComplete = async (token: string, serverUrl: string) => {
+    setSaving(true);
+    setError(null);
+
+    try {
+      await saveSettings({
+        lidarrUrl: url,
+        lidarrApiKey: apiKey,
+        lidarrQualityProfileId: qualityProfileId,
+        lidarrRootFolderPath: rootFolderPath,
+        lidarrMetadataProfileId: metadataProfileId,
+        lastfmApiKey,
+        plexUrl: serverUrl,
+        plexToken: token,
+        importPath,
+        theme: settings.theme,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Save failed");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handlePlexSignOut = async () => {
     setPlexToken("");
     setPlexUrl("");
@@ -201,6 +225,7 @@ export default function SettingsPage() {
           onUrlChange={setPlexUrl}
           onTokenChange={setPlexToken}
           onSignOut={handlePlexSignOut}
+          onLoginComplete={handlePlexLoginComplete}
         />
 
         <LidarrConnectionSection

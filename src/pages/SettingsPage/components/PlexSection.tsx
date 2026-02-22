@@ -5,6 +5,7 @@ interface PlexSectionProps {
   onUrlChange: (url: string) => void;
   onTokenChange: (token: string) => void;
   onSignOut: () => void;
+  onLoginComplete: (token: string, serverUrl: string) => void;
 }
 
 export default function PlexSection({
@@ -12,6 +13,7 @@ export default function PlexSection({
   onUrlChange,
   onTokenChange,
   onSignOut,
+  onLoginComplete,
 }: PlexSectionProps) {
   return (
     <div className="space-y-4">
@@ -23,6 +25,7 @@ export default function PlexSection({
         onToken={onTokenChange}
         onServerUrl={onUrlChange}
         onSignOut={onSignOut}
+        onLoginComplete={onLoginComplete}
       />
       <p className="text-gray-400 dark:text-gray-500 text-xs">
         Used to show your most-played artists on the Discover page

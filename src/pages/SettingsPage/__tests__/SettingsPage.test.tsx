@@ -1,8 +1,11 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 
+const mockFetchAccount = vi.fn();
+const mockLogin = vi.fn();
+const mockUsePlexLogin = vi.fn();
 vi.mock("@/hooks/usePlexLogin", () => ({
-  default: () => ({ loading: false, login: vi.fn() }),
-  fetchAccount: () => Promise.resolve(null),
+  default: (opts: unknown) => mockUsePlexLogin(opts),
+  fetchAccount: (...args: unknown[]) => mockFetchAccount(...args),
 }));
 
 import SettingsPage from "../SettingsPage";
@@ -58,6 +61,8 @@ function renderSettingsPage(overrides: Partial<LidarrContextValue> = {}) {
 beforeEach(() => {
   vi.clearAllMocks();
   mockLoadOptions.mockResolvedValue(undefined);
+  mockFetchAccount.mockResolvedValue(null);
+  mockUsePlexLogin.mockReturnValue({ loading: false, login: mockLogin });
 });
 
 describe("SettingsPage", () => {
@@ -143,6 +148,60 @@ describe("SettingsPage", () => {
 
     await waitFor(() => {
       expect(screen.getByText("Save failed")).toBeInTheDocument();
+    });
+  });
+
+  it("automatically saves settings when signing out of Plex", async () => {
+    mockSaveSettings.mockResolvedValue(undefined);
+    mockFetchAccount.mockResolvedValue({
+      username: "testuser",
+      thumb: "https://plex.tv/thumb.jpg",
+    });
+
+    renderSettingsPage();
+
+    await waitFor(() => {
+      expect(screen.getByText("Sign out")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText("Sign out"));
+
+    await waitFor(() => {
+      expect(mockSaveSettings).toHaveBeenCalledWith(
+        expect.objectContaining({
+          plexToken: "",
+          plexUrl: "",
+        }),
+      );
+    });
+  });
+
+  it("automatically saves settings when signing in to Plex", async () => {
+    mockSaveSettings.mockResolvedValue(undefined);
+
+    renderSettingsPage();
+
+    await waitFor(() => {
+      expect(screen.getByText("Sign in with Plex")).toBeInTheDocument();
+    });
+
+    const hookOpts = mockUsePlexLogin.mock.calls[0][0];
+
+    await act(async () => {
+      hookOpts.onToken("new-token");
+      hookOpts.onServers([
+        { name: "My Server", uri: "http://plex:32400", local: true },
+      ]);
+      hookOpts.onLoginComplete("new-token", "http://plex:32400");
+    });
+
+    await waitFor(() => {
+      expect(mockSaveSettings).toHaveBeenCalledWith(
+        expect.objectContaining({
+          plexToken: "new-token",
+          plexUrl: "http://plex:32400",
+        }),
+      );
     });
   });
 });

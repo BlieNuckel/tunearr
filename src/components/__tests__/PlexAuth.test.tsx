@@ -140,11 +140,10 @@ describe("PlexAuth", () => {
     });
   });
 
-  it("calls custom onSignOut propr when provided instead of default behavior", async () => {
+  it("calls custom onSignOut prop when provided instead of default behavior", async () => {
     const onToken = vi.fn();
     const onServerUrl = vi.fn();
     const onSignOut = vi.fn();
-
     mockUsePlexLogin.mockReturnValue({ loading: false, login: vi.fn() });
     mockFetchAccount.mockResolvedValue({
       username: "testuser",
@@ -157,7 +156,7 @@ describe("PlexAuth", () => {
         onToken={onToken}
         onServerUrl={onServerUrl}
         onSignOut={onSignOut}
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -169,5 +168,21 @@ describe("PlexAuth", () => {
     expect(onSignOut).toHaveBeenCalledTimes(1);
     expect(onToken).not.toHaveBeenCalled();
     expect(onServerUrl).not.toHaveBeenCalled();
+  });
+
+  it("passes onLoginComplete to usePlexLogin hook", () => {
+    const onLoginComplete = vi.fn();
+    mockUsePlexLogin.mockReturnValue({ loading: false, login: vi.fn() });
+
+    render(<PlexAuth {...defaultProps} onLoginComplete={onLoginComplete} />);
+
+    const hookOpts = mockUsePlexLogin.mock.calls[0][0];
+
+    hookOpts.onLoginComplete("test-token", "http://server:32400");
+
+    expect(onLoginComplete).toHaveBeenCalledWith(
+      "test-token",
+      "http://server:32400",
+    );
   });
 });
