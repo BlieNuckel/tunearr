@@ -1,4 +1,5 @@
 import StepDescription from "../components/StepDescription";
+import PlexLoginButton from "@/components/PlexLoginButton";
 
 interface PlexStepProps {
   url: string;
@@ -16,6 +17,12 @@ export default function PlexStep({
   return (
     <div className="space-y-4">
       <StepDescription text="Connect Plex to show your most-played artists on the Discover page. You can skip this and add it later in Settings." />
+      <PlexLoginButton onToken={onTokenChange} onServerUrl={onUrlChange} />
+      <div className="flex items-center gap-3">
+        <div className="h-px flex-1 bg-gray-200" />
+        <span className="text-xs text-gray-400">or enter manually</span>
+        <div className="h-px flex-1 bg-gray-200" />
+      </div>
       <div>
         <label className="block text-sm font-medium text-gray-600 mb-1">
           Plex URL

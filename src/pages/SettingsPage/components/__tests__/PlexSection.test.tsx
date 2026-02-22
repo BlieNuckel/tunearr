@@ -1,4 +1,9 @@
 import { render, screen, fireEvent } from "@testing-library/react";
+
+vi.mock("@/hooks/usePlexLogin", () => ({
+  default: () => ({ loading: false, login: vi.fn() }),
+}));
+
 import PlexSection from "../PlexSection";
 
 const defaultProps = {
@@ -18,10 +23,20 @@ describe("PlexSection", () => {
     expect(screen.getByText("Plex")).toBeInTheDocument();
   });
 
+  it("renders Sign in with Plex button", () => {
+    render(<PlexSection {...defaultProps} />);
+    expect(screen.getByText("Sign in with Plex")).toBeInTheDocument();
+  });
+
+  it("renders or-enter-manually divider", () => {
+    render(<PlexSection {...defaultProps} />);
+    expect(screen.getByText("or enter manually")).toBeInTheDocument();
+  });
+
   it("renders URL and token inputs", () => {
     render(<PlexSection {...defaultProps} />);
     expect(
-      screen.getByPlaceholderText("http://localhost:32400")
+      screen.getByPlaceholderText("http://localhost:32400"),
     ).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Enter Plex token")).toBeInTheDocument();
   });
@@ -45,7 +60,7 @@ describe("PlexSection", () => {
   it("renders help text", () => {
     render(<PlexSection {...defaultProps} />);
     expect(
-      screen.getByText(/Used to show your most-played artists/)
+      screen.getByText(/Used to show your most-played artists/),
     ).toBeInTheDocument();
   });
 });

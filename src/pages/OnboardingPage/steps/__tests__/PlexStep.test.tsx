@@ -1,4 +1,9 @@
 import { render, screen, fireEvent } from "@testing-library/react";
+
+vi.mock("@/hooks/usePlexLogin", () => ({
+  default: () => ({ loading: false, login: vi.fn() }),
+}));
+
 import PlexStep from "../PlexStep";
 
 const defaultProps = {
@@ -16,14 +21,24 @@ describe("PlexStep", () => {
   it("renders description", () => {
     render(<PlexStep {...defaultProps} />);
     expect(
-      screen.getByText(/Connect Plex to show your most-played/)
+      screen.getByText(/Connect Plex to show your most-played/),
     ).toBeInTheDocument();
+  });
+
+  it("renders Sign in with Plex button", () => {
+    render(<PlexStep {...defaultProps} />);
+    expect(screen.getByText("Sign in with Plex")).toBeInTheDocument();
+  });
+
+  it("renders or-enter-manually divider", () => {
+    render(<PlexStep {...defaultProps} />);
+    expect(screen.getByText("or enter manually")).toBeInTheDocument();
   });
 
   it("renders URL and token inputs", () => {
     render(<PlexStep {...defaultProps} />);
     expect(
-      screen.getByPlaceholderText("http://localhost:32400")
+      screen.getByPlaceholderText("http://localhost:32400"),
     ).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Enter Plex token")).toBeInTheDocument();
   });

@@ -1,3 +1,5 @@
+import PlexLoginButton from "@/components/PlexLoginButton";
+
 interface PlexSectionProps {
   url: string;
   token: string;
@@ -16,6 +18,14 @@ export default function PlexSection({
       <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
         Plex
       </h2>
+      <PlexLoginButton onToken={onTokenChange} onServerUrl={onUrlChange} />
+      <div className="flex items-center gap-3">
+        <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
+        <span className="text-xs text-gray-400 dark:text-gray-500">
+          or enter manually
+        </span>
+        <div className="h-px flex-1 bg-gray-200 dark:bg-gray-700" />
+      </div>
       <div>
         <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
           Plex URL

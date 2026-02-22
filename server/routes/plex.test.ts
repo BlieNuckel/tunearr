@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockGetTopArtists = vi.fn();
 const mockGetPlexConfig = vi.fn();
+const mockGetPlexServers = vi.fn();
 const mockFetch = vi.fn();
 
 vi.mock("../api/plex/topArtists", () => ({
@@ -10,6 +11,10 @@ vi.mock("../api/plex/topArtists", () => ({
 
 vi.mock("../api/plex/config", () => ({
   getPlexConfig: (...args: unknown[]) => mockGetPlexConfig(...args),
+}));
+
+vi.mock("../api/plex/servers", () => ({
+  getPlexServers: (...args: unknown[]) => mockGetPlexServers(...args),
 }));
 
 vi.stubGlobal("fetch", mockFetch);
@@ -103,5 +108,33 @@ describe("GET /thumb", () => {
 
     const res = await request(app).get("/thumb?path=/bad/path");
     expect(res.status).toBe(404);
+  });
+});
+
+describe("GET /servers", () => {
+  it("returns 400 when token param is missing", async () => {
+    const res = await request(app).get("/servers");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain("Missing token");
+  });
+
+  it("returns servers from getPlexServers", async () => {
+    const servers = [
+      { name: "My Server", uri: "http://plex:32400", local: true },
+    ];
+    mockGetPlexServers.mockResolvedValue(servers);
+
+    const res = await request(app).get("/servers?token=test-token");
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ servers });
+    expect(mockGetPlexServers).toHaveBeenCalledWith("test-token");
+  });
+
+  it("returns 500 when getPlexServers throws", async () => {
+    mockGetPlexServers.mockRejectedValue(new Error("Plex returned 401"));
+
+    const res = await request(app).get("/servers?token=bad-token");
+    expect(res.status).toBe(500);
+    expect(res.body.error).toContain("Plex returned 401");
   });
 });
