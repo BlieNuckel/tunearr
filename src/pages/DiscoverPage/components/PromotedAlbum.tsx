@@ -6,6 +6,7 @@ import PurchaseLinksModal from "@/components/PurchaseLinksModal";
 import { RefreshIcon } from "@/components/icons";
 import useLidarr from "@/hooks/useLidarr";
 import ImageWithShimmer from "@/components/ImageWithShimmer";
+import Skeleton from "@/components/Skeleton";
 
 /** @returns deterministic pastel HSL color derived from the input string */
 function pastelColorFromId(id: string): string {
@@ -101,10 +102,7 @@ export default function PromotedAlbum({
             style={{ backgroundColor: pastelBg }}
           >
             {loading ? (
-              <div
-                className="w-full h-full bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 dark:from-gray-700 dark:via-gray-600 dark:to-gray-700 animate-shimmer"
-                style={{ backgroundSize: "200% 100%" }}
-              />
+              <Skeleton className="w-full h-full rounded-none" />
             ) : (
               !coverError &&
               album && (
@@ -121,9 +119,9 @@ export default function PromotedAlbum({
           <div className="flex-1 p-4 flex flex-col justify-between min-w-0">
             {loading ? (
               <div className="space-y-3">
-                <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-3/4" />
-                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse w-1/2" />
-                <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse w-32 mt-2" />
+                <Skeleton className="h-6 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+                <Skeleton className="h-5 w-32 rounded-full mt-2" />
               </div>
             ) : album ? (
               <>

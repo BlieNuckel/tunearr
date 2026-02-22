@@ -2,6 +2,7 @@ import { useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import SearchBar from "./components/SearchBar";
 import ReleaseGroupCard from "@/components/ReleaseGroupCard";
+import Skeleton from "@/components/Skeleton";
 import useSearch from "@/hooks/useSearch";
 
 const DEAL_ROTATIONS = [-4, 3.5, -3, 4.5, -3.5, 3];
@@ -36,7 +37,32 @@ export default function SearchPage() {
         initialSearchType={searchType}
       />
 
-      {loading && <p className="text-gray-500 mt-4">Searching...</p>}
+      {loading && (
+        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-3 sm:gap-4">
+          {[...Array(6)].map((_, i) => (
+            <div key={i}>
+              <div className="sm:hidden bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-sm overflow-hidden">
+                <div className="flex items-center">
+                  <Skeleton className="w-24 aspect-square flex-shrink-0 rounded-none" />
+                  <div className="flex-1 min-w-0 px-4 py-3 space-y-2">
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-1/2" />
+                    <Skeleton className="h-3 w-1/3" />
+                  </div>
+                </div>
+              </div>
+              <div className="hidden sm:block bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-sm overflow-hidden">
+                <Skeleton className="aspect-square rounded-none" />
+                <div className="p-3 border-t-2 border-black space-y-2">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-3 w-1/2" />
+                  <Skeleton className="h-3 w-1/3" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {error && <p className="text-rose-500 mt-4">Error: {error}</p>}
 

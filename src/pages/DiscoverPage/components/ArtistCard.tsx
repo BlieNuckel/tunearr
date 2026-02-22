@@ -3,6 +3,7 @@ import useArtistAlbums from "@/hooks/useArtistAlbums";
 import ReleaseGroupCard from "@/components/ReleaseGroupCard";
 import { ChevronDownIcon, MusicalNoteIcon } from "@/components/icons";
 import ImageWithShimmer from "@/components/ImageWithShimmer";
+import Skeleton from "@/components/Skeleton";
 
 const DEAL_ROTATIONS = [-4, 3.5, -3, 4.5, -3.5, 3];
 const EXIT_DURATION_MS = 150;
@@ -100,23 +101,23 @@ export default function ArtistCard({
             <>
               {[...Array(5)].map((_, i) => (
                 <div key={i}>
-                  <div className="sm:hidden bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-sm overflow-hidden animate-pulse">
+                  <div className="sm:hidden bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-sm overflow-hidden">
                     <div className="flex items-center">
-                      <div className="w-24 aspect-square bg-gray-200 dark:bg-gray-700 flex-shrink-0" />
+                      <Skeleton className="w-24 aspect-square flex-shrink-0 rounded-none" />
                       <div className="flex-1 min-w-0 px-4 py-3 space-y-2">
-                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4" />
-                        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2" />
-                        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/3" />
+                        <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="h-3 w-1/2" />
+                        <Skeleton className="h-3 w-1/3" />
                       </div>
-                      <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-lg flex-shrink-0 mr-3" />
+                      <Skeleton className="w-12 h-12 rounded-lg flex-shrink-0 mr-3" />
                     </div>
                   </div>
-                  <div className="hidden sm:block bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-sm overflow-hidden animate-pulse">
-                    <div className="aspect-square bg-gray-200 dark:bg-gray-700" />
+                  <div className="hidden sm:block bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-sm overflow-hidden">
+                    <Skeleton className="aspect-square rounded-none" />
                     <div className="p-3 border-t-2 border-black space-y-2">
-                      <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4" />
-                      <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2" />
-                      <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/3" />
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-3 w-1/2" />
+                      <Skeleton className="h-3 w-1/3" />
                     </div>
                   </div>
                 </div>

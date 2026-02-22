@@ -1,4 +1,5 @@
 import Dropdown from "@/components/Dropdown";
+import Skeleton from "@/components/Skeleton";
 
 interface LibraryArtist {
   id: number;
@@ -23,7 +24,7 @@ export default function LibraryPicker({
     <div className="lg:col-span-1">
       <h2 className="text-sm font-medium text-gray-500 mb-2">Your Library</h2>
       {loading ? (
-        <p className="text-gray-400 text-sm">Loading library...</p>
+        <Skeleton className="h-10 w-full rounded-lg" />
       ) : artists.length === 0 ? (
         <p className="text-gray-400 text-sm">
           No artists in library. Connect Lidarr in Settings.

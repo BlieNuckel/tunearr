@@ -4,8 +4,11 @@ import type { Medium } from "../../types";
 
 describe("TrackList", () => {
   it("shows loading state", () => {
-    render(<TrackList media={[]} loading={true} error={null} />);
-    expect(screen.getByText("Loading tracks...")).toBeInTheDocument();
+    const { container } = render(
+      <TrackList media={[]} loading={true} error={null} />
+    );
+    const skeletons = container.querySelectorAll(".animate-shimmer");
+    expect(skeletons.length).toBeGreaterThan(0);
   });
 
   it("shows error state", () => {

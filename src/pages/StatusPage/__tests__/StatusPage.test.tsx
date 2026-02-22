@@ -47,8 +47,9 @@ function mockAllEndpoints(
 describe("StatusPage", () => {
   it("shows loading state initially", () => {
     vi.mocked(fetch).mockReturnValue(new Promise(() => {}));
-    render(<StatusPage />);
-    expect(screen.getByText("Loading status...")).toBeInTheDocument();
+    const { container } = render(<StatusPage />);
+    const skeletons = container.querySelectorAll(".animate-shimmer");
+    expect(skeletons.length).toBeGreaterThan(0);
   });
 
   it("renders all sections after loading", async () => {
@@ -56,7 +57,7 @@ describe("StatusPage", () => {
     render(<StatusPage />);
 
     await waitFor(() => {
-      expect(screen.queryByText("Loading status...")).not.toBeInTheDocument();
+      expect(screen.getByText("Download Queue")).toBeInTheDocument();
     });
 
     expect(screen.getByText("Download Queue")).toBeInTheDocument();
@@ -95,7 +96,7 @@ describe("StatusPage", () => {
     render(<StatusPage />);
 
     await waitFor(() => {
-      expect(screen.queryByText("Loading status...")).not.toBeInTheDocument();
+      expect(screen.getByText("Download Queue")).toBeInTheDocument();
     });
   });
 
@@ -114,7 +115,7 @@ describe("StatusPage", () => {
     render(<StatusPage />);
 
     await waitFor(() => {
-      expect(screen.queryByText("Loading status...")).not.toBeInTheDocument();
+      expect(screen.getByText("Download Queue")).toBeInTheDocument();
     });
   });
 
