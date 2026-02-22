@@ -61,6 +61,9 @@ Full-stack TypeScript app: React 19 frontend + Express 5 backend. Vite proxies `
 - TypeScript strict mode enabled with `noUnusedLocals` and `noUnusedParameters`
 - ESLint flat config with separate rules for client (`src/`), server (`server/`), and CJS files
 - Separate tsconfig for server (`server/tsconfig.json`) using Node module resolution vs root tsconfig using bundler resolution for frontend
+- **Types at top of file**: All `type` and `interface` declarations must appear before any function/const declarations at the module level
+- **No nested function definitions**: Extract functions to module level with explicit parameters instead of closures. Exceptions: React event handlers and hook functions that genuinely need closure over state/props, and inline callbacks to array methods (`.map()`, `.filter()`, etc.)
+- **Function length ~50 lines**: Break down functions exceeding ~50 lines of logic. Use judgement — JSX length in React components doesn't count the same as logic, but 100+ line components should still be split into sub-components
 
 ## Deployment
 
