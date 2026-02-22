@@ -159,29 +159,36 @@ export async function getPromotedAlbum(
 
   // Convert Last.fm release MBIDs to release-group MBIDs
   // Do this sequentially (not in parallel) to avoid MusicBrainz rate limiting
-  // Stop after finding enough valid albums
-  let chosenAlbum;
+  // Prefer non-library albums, but fall back to in-library if all are in library
+  let chosenAlbum: { album: (typeof shuffled)[0]; rgMbid: string } | undefined;
+  let fallbackAlbum: { album: (typeof shuffled)[0]; rgMbid: string } | undefined;
+
   for (const album of shuffled) {
     const releaseGroupId = await getReleaseGroupIdFromRelease(album.mbid);
-    if (releaseGroupId && !inLibrary(album.artistMbid)) {
-      chosenAlbum = album;
-      // Stop after finding a valid album
-      if (chosenAlbum) break;
+    if (!releaseGroupId) continue;
+
+    if (!inLibrary(album.artistMbid)) {
+      chosenAlbum = { album, rgMbid: releaseGroupId };
+      break;
+    }
+    if (!fallbackAlbum) {
+      fallbackAlbum = { album, rgMbid: releaseGroupId };
     }
   }
 
-  if (!chosenAlbum) return null;
+  const picked = chosenAlbum ?? fallbackAlbum;
+  if (!picked) return null;
 
   const result: PromotedAlbumResult = {
     album: {
-      name: chosenAlbum.name,
-      mbid: chosenAlbum.mbid,
-      artistName: chosenAlbum.artistName,
-      artistMbid: chosenAlbum.artistMbid,
-      coverUrl: `https://coverartarchive.org/release-group/${chosenAlbum.mbid}/front-500`,
+      name: picked.album.name,
+      mbid: picked.rgMbid,
+      artistName: picked.album.artistName,
+      artistMbid: picked.album.artistMbid,
+      coverUrl: `https://coverartarchive.org/release-group/${picked.rgMbid}/front-500`,
     },
     tag: chosenTag.name,
-    inLibrary: false,
+    inLibrary: inLibrary(picked.album.artistMbid),
   };
 
   cachedResult = result;
