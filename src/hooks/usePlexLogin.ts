@@ -26,7 +26,7 @@ interface UsePlexLoginResult {
 
 async function fetchAccount(token: string): Promise<PlexAccount | null> {
   const res = await fetch(
-    `/api/plex/account?token=${encodeURIComponent(token)}&clientId=${encodeURIComponent(getClientId())}`,
+    `/api/plex/account?token=${encodeURIComponent(token)}&clientId=${encodeURIComponent(getClientId())}`
   );
   if (!res.ok) return null;
   return res.json();
@@ -50,7 +50,7 @@ export default function usePlexLogin({
 
       const clientId = getClientId();
       const serversPromise = fetch(
-        `/api/plex/servers?token=${encodeURIComponent(token)}&clientId=${encodeURIComponent(clientId)}`,
+        `/api/plex/servers?token=${encodeURIComponent(token)}&clientId=${encodeURIComponent(clientId)}`
       );
       const accountPromise = fetchAccount(token);
 

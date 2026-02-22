@@ -156,7 +156,7 @@ describe("PlexAuth", () => {
         onToken={onToken}
         onServerUrl={onServerUrl}
         onSignOut={onSignOut}
-      />,
+      />
     );
 
     await waitFor(() => {
@@ -182,7 +182,7 @@ describe("PlexAuth", () => {
 
     expect(onLoginComplete).toHaveBeenCalledWith(
       "test-token",
-      "http://server:32400",
+      "http://server:32400"
     );
   });
 });

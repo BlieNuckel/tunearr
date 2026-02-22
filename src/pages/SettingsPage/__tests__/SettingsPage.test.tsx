@@ -1,4 +1,10 @@
-import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  act,
+} from "@testing-library/react";
 
 const mockFetchAccount = vi.fn();
 const mockLogin = vi.fn();
@@ -171,7 +177,7 @@ describe("SettingsPage", () => {
         expect.objectContaining({
           plexToken: "",
           plexUrl: "",
-        }),
+        })
       );
     });
   });
@@ -200,7 +206,7 @@ describe("SettingsPage", () => {
         expect.objectContaining({
           plexToken: "new-token",
           plexUrl: "http://plex:32400",
-        }),
+        })
       );
     });
   });

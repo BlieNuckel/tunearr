@@ -18,7 +18,7 @@ beforeEach(() => {
 
 function mockFetchResponses(
   servers: { ok: boolean; data?: unknown },
-  account: { ok: boolean; data?: unknown },
+  account: { ok: boolean; data?: unknown }
 ) {
   mockFetch.mockImplementation((url: string) => {
     if (url.includes("/api/plex/servers")) {
@@ -55,11 +55,11 @@ describe("usePlexLogin", () => {
       {
         ok: true,
         data: { username: "testuser", thumb: "https://plex.tv/thumb" },
-      },
+      }
     );
 
     const { result } = renderHook(() =>
-      usePlexLogin({ onToken, onServers, onAccount }),
+      usePlexLogin({ onToken, onServers, onAccount })
     );
 
     await act(async () => {
@@ -96,7 +96,7 @@ describe("usePlexLogin", () => {
     mockLogin.mockReturnValue(
       new Promise((r) => {
         resolveLogin = r;
-      }),
+      })
     );
 
     const { result } = renderHook(() => usePlexLogin({ onToken }));
@@ -110,10 +110,7 @@ describe("usePlexLogin", () => {
 
     expect(result.current.loading).toBe(true);
 
-    mockFetchResponses(
-      { ok: true, data: { servers: [] } },
-      { ok: false },
-    );
+    mockFetchResponses({ ok: true, data: { servers: [] } }, { ok: false });
 
     await act(async () => {
       resolveLogin!("token");
@@ -133,11 +130,11 @@ describe("usePlexLogin", () => {
       {
         ok: true,
         data: { username: "testuser", thumb: "https://plex.tv/thumb" },
-      },
+      }
     );
 
     const { result } = renderHook(() =>
-      usePlexLogin({ onToken, onServers, onAccount }),
+      usePlexLogin({ onToken, onServers, onAccount })
     );
 
     await act(async () => {
@@ -153,14 +150,9 @@ describe("usePlexLogin", () => {
     const onToken = vi.fn();
     const onAccount = vi.fn();
     mockLogin.mockResolvedValue("my-token");
-    mockFetchResponses(
-      { ok: true, data: { servers: [] } },
-      { ok: false },
-    );
+    mockFetchResponses({ ok: true, data: { servers: [] } }, { ok: false });
 
-    const { result } = renderHook(() =>
-      usePlexLogin({ onToken, onAccount }),
-    );
+    const { result } = renderHook(() => usePlexLogin({ onToken, onAccount }));
 
     await act(async () => {
       result.current.login();
@@ -183,11 +175,11 @@ describe("usePlexLogin", () => {
           ],
         },
       },
-      { ok: true, data: { username: "test", thumb: "url" } },
+      { ok: true, data: { username: "test", thumb: "url" } }
     );
 
     const { result } = renderHook(() =>
-      usePlexLogin({ onToken, onLoginComplete }),
+      usePlexLogin({ onToken, onLoginComplete })
     );
 
     await act(async () => {
@@ -196,7 +188,7 @@ describe("usePlexLogin", () => {
 
     expect(onLoginComplete).toHaveBeenCalledWith(
       "my-token",
-      "http://plex:32400",
+      "http://plex:32400"
     );
   });
 
@@ -206,11 +198,11 @@ describe("usePlexLogin", () => {
     mockLogin.mockResolvedValue("my-token");
     mockFetchResponses(
       { ok: true, data: { servers: [] } },
-      { ok: true, data: { username: "test", thumb: "url" } },
+      { ok: true, data: { username: "test", thumb: "url" } }
     );
 
     const { result } = renderHook(() =>
-      usePlexLogin({ onToken, onLoginComplete }),
+      usePlexLogin({ onToken, onLoginComplete })
     );
 
     await act(async () => {

@@ -5,7 +5,7 @@ export type PlexAccount = {
 
 export async function getPlexAccount(
   token: string,
-  clientId: string,
+  clientId: string
 ): Promise<PlexAccount> {
   const res = await fetch("https://plex.tv/users/account.json", {
     headers: {

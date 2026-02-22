@@ -21,7 +21,7 @@ describe("PlexStep", () => {
   it("renders description", () => {
     render(<PlexStep {...defaultProps} />);
     expect(
-      screen.getByText(/Connect Plex to show your most-played/),
+      screen.getByText(/Connect Plex to show your most-played/)
     ).toBeInTheDocument();
   });
 
@@ -33,10 +33,10 @@ describe("PlexStep", () => {
   it("does not render manual input fields", () => {
     render(<PlexStep {...defaultProps} />);
     expect(
-      screen.queryByPlaceholderText("http://localhost:32400"),
+      screen.queryByPlaceholderText("http://localhost:32400")
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByPlaceholderText("Enter Plex token"),
+      screen.queryByPlaceholderText("Enter Plex token")
     ).not.toBeInTheDocument();
     expect(screen.queryByText("or enter manually")).not.toBeInTheDocument();
   });

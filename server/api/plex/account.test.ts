@@ -36,7 +36,7 @@ describe("getPlexAccount", () => {
           "X-Plex-Token": "test-token",
           "X-Plex-Client-Identifier": "client-123",
         },
-      },
+      }
     );
   });
 
@@ -44,7 +44,7 @@ describe("getPlexAccount", () => {
     mockFetch.mockResolvedValue({ ok: false, status: 401 });
 
     await expect(getPlexAccount("bad-token", "client-123")).rejects.toThrow(
-      "Plex returned 401",
+      "Plex returned 401"
     );
   });
 });

@@ -58,7 +58,7 @@ describe("plexOAuth", () => {
 
       expect(mockFetch).toHaveBeenCalledTimes(2);
       expect(mockFetch.mock.calls[0][0]).toContain(
-        "https://plex.tv/api/v2/pins?strong=true",
+        "https://plex.tv/api/v2/pins?strong=true"
       );
       expect(mockFetch.mock.calls[0][1].method).toBe("POST");
       expect(mockOpen).toHaveBeenCalledTimes(1);
@@ -106,7 +106,7 @@ describe("plexOAuth", () => {
 
       expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
         "tunearr-plex-client-id",
-        expect.stringMatching(/^[0-9a-f-]+$/),
+        expect.stringMatching(/^[0-9a-f-]+$/)
       );
     });
 
