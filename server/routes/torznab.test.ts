@@ -104,11 +104,13 @@ describe("GET /?t=music", () => {
     expect(res.text).toContain('value="3040"');
   });
 
-  it("returns empty results when search query is missing", async () => {
+  it("returns placeholder item when search query is missing", async () => {
     const res = await request(app).get("/?t=music");
     expect(res.status).toBe(200);
     expect(res.text).toContain("<rss");
-    expect(res.text).not.toContain("<item>");
+    expect(res.text).toContain("<item>");
+    expect(res.text).toContain('value="3000"');
+    expect(mockStartSearch).not.toHaveBeenCalled();
   });
 });
 

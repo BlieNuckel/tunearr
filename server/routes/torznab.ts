@@ -107,7 +107,7 @@ function sendCaps(res: Response): void {
 async function handleSearch(req: Request, res: Response): Promise<void> {
   const query = buildSearchQuery(req);
   if (!query) {
-    res.type("text/xml").send(buildResultsXml([], ""));
+    res.type("text/xml").send(buildTestResultXml());
     return;
   }
 
@@ -151,6 +151,23 @@ function buildSearchQuery(req: Request): string {
   if (artist) return artist;
 
   return "";
+}
+
+function buildTestResultXml(): string {
+  return [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<rss version="2.0" xmlns:newznab="http://www.newznab.com/DTD/2010/feeds/attributes/">',
+    "  <channel>",
+    "    <title>music-requester slskd</title>",
+    "    <item>",
+    "      <title>slskd indexer test</title>",
+    '      <newznab:attr name="category" value="3000" />',
+    '      <newznab:attr name="size" value="0" />',
+    `      <newznab:attr name="usenetdate" value="${new Date().toUTCString()}" />`,
+    "    </item>",
+    "  </channel>",
+    "</rss>",
+  ].join("\n");
 }
 
 function buildResultsXml(
