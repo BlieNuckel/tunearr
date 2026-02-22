@@ -10,6 +10,9 @@ export interface LidarrSettings {
   plexUrl: string;
   plexToken: string;
   importPath: string;
+  slskdUrl: string;
+  slskdApiKey: string;
+  slskdDownloadPath: string;
   theme: "light" | "dark" | "system";
 }
 

@@ -36,6 +36,9 @@ describe("getConfig", () => {
     expect(config.plexUrl).toBe("");
     expect(config.plexToken).toBe("");
     expect(config.importPath).toBe("");
+    expect(config.slskdUrl).toBe("");
+    expect(config.slskdApiKey).toBe("");
+    expect(config.slskdDownloadPath).toBe("");
   });
 
   it("reads and merges saved config with defaults", async () => {

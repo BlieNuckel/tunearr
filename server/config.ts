@@ -18,6 +18,9 @@ export type IConfig = {
   plexUrl: string;
   plexToken: string;
   importPath: string;
+  slskdUrl: string;
+  slskdApiKey: string;
+  slskdDownloadPath: string;
   theme: "light" | "dark" | "system";
 };
 
@@ -31,6 +34,9 @@ const DEFAULT_CONFIG: IConfig = {
   plexUrl: "",
   plexToken: "",
   importPath: "",
+  slskdUrl: "",
+  slskdApiKey: "",
+  slskdDownloadPath: "",
   theme: "system",
 };
 
@@ -82,6 +88,15 @@ export const setConfig = (newConfig: Partial<IConfig>) => {
   }
   if (typeof mergedConfig.importPath !== "string") {
     throw new Error("importPath must be a string");
+  }
+  if (typeof mergedConfig.slskdUrl !== "string") {
+    throw new Error("slskdUrl must be a string");
+  }
+  if (typeof mergedConfig.slskdApiKey !== "string") {
+    throw new Error("slskdApiKey must be a string");
+  }
+  if (typeof mergedConfig.slskdDownloadPath !== "string") {
+    throw new Error("slskdDownloadPath must be a string");
   }
   if (!["light", "dark", "system"].includes(mergedConfig.theme)) {
     throw new Error("theme must be 'light', 'dark', or 'system'");

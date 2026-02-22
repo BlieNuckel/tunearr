@@ -134,6 +134,9 @@ export function useOnboarding() {
         plexUrl: "",
         plexToken: "",
         importPath: "",
+        slskdUrl: "",
+        slskdApiKey: "",
+        slskdDownloadPath: "",
         theme: "system",
       });
 
@@ -172,6 +175,9 @@ export function useOnboarding() {
         plexUrl: fields.plexUrl,
         plexToken: fields.plexToken,
         importPath: fields.importPath,
+        slskdUrl: "",
+        slskdApiKey: "",
+        slskdDownloadPath: "",
         theme: "system",
       });
       navigate("/");

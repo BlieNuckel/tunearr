@@ -4,6 +4,7 @@ import LidarrConnectionSection from "./components/LidarrConnectionSection";
 import LidarrOptionsSection from "./components/LidarrOptionsSection";
 import LastfmSection from "./components/LastfmSection";
 import PlexSection from "./components/PlexSection";
+import SlskdSection from "./components/SlskdSection";
 import ImportSection from "./components/ImportSection";
 import ThemeToggle from "@/components/ThemeToggle";
 import Skeleton from "@/components/Skeleton";
@@ -35,6 +36,9 @@ export default function SettingsPage() {
   const [plexUrl, setPlexUrl] = useState("");
   const [plexToken, setPlexToken] = useState("");
   const [importPath, setImportPath] = useState("");
+  const [slskdUrl, setSlskdUrl] = useState("");
+  const [slskdApiKey, setSlskdApiKey] = useState("");
+  const [slskdDownloadPath, setSlskdDownloadPath] = useState("");
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{
@@ -62,6 +66,9 @@ export default function SettingsPage() {
     if (settings.plexUrl) setPlexUrl(settings.plexUrl);
     if (settings.plexToken) setPlexToken(settings.plexToken);
     if (settings.importPath) setImportPath(settings.importPath);
+    if (settings.slskdUrl) setSlskdUrl(settings.slskdUrl);
+    if (settings.slskdApiKey) setSlskdApiKey(settings.slskdApiKey);
+    if (settings.slskdDownloadPath) setSlskdDownloadPath(settings.slskdDownloadPath);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings.lidarrUrl]);
 
@@ -117,6 +124,9 @@ export default function SettingsPage() {
         plexUrl,
         plexToken,
         importPath,
+        slskdUrl,
+        slskdApiKey,
+        slskdDownloadPath,
         theme: settings.theme,
       });
       setTestResult(result);
@@ -145,6 +155,9 @@ export default function SettingsPage() {
         plexUrl: serverUrl,
         plexToken: token,
         importPath,
+        slskdUrl,
+        slskdApiKey,
+        slskdDownloadPath,
         theme: settings.theme,
       });
     } catch (err) {
@@ -172,6 +185,9 @@ export default function SettingsPage() {
         plexUrl: "",
         plexToken: "",
         importPath,
+        slskdUrl,
+        slskdApiKey,
+        slskdDownloadPath,
         theme: settings.theme,
       });
     } catch (err) {
@@ -197,6 +213,9 @@ export default function SettingsPage() {
         plexUrl,
         plexToken,
         importPath,
+        slskdUrl,
+        slskdApiKey,
+        slskdDownloadPath,
         theme: settings.theme,
       });
     } catch (err) {
@@ -250,6 +269,15 @@ export default function SettingsPage() {
         />
 
         <LastfmSection apiKey={lastfmApiKey} onApiKeyChange={setLastfmApiKey} />
+
+        <SlskdSection
+          url={slskdUrl}
+          apiKey={slskdApiKey}
+          downloadPath={slskdDownloadPath}
+          onUrlChange={setSlskdUrl}
+          onApiKeyChange={setSlskdApiKey}
+          onDownloadPathChange={setSlskdDownloadPath}
+        />
 
         <ImportSection
           importPath={importPath}

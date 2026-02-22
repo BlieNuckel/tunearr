@@ -29,6 +29,9 @@ async function loadSettings(
         plexUrl: data.plexUrl || "",
         plexToken: data.plexToken || "",
         importPath: data.importPath || "",
+        slskdUrl: data.slskdUrl || "",
+        slskdApiKey: data.slskdApiKey || "",
+        slskdDownloadPath: data.slskdDownloadPath || "",
         theme: data.theme || "system",
       });
 
@@ -96,6 +99,9 @@ export const LidarrContextProvider = ({
     plexUrl: "",
     plexToken: "",
     importPath: "",
+    slskdUrl: "",
+    slskdApiKey: "",
+    slskdDownloadPath: "",
     theme: "system",
   });
   const [options, setOptions] = useState<LidarrOptions>({
@@ -132,6 +138,9 @@ export const LidarrContextProvider = ({
       plexUrl: newSettings.plexUrl || "",
       plexToken: newSettings.plexToken || "",
       importPath: newSettings.importPath || "",
+      slskdUrl: newSettings.slskdUrl || "",
+      slskdApiKey: newSettings.slskdApiKey || "",
+      slskdDownloadPath: newSettings.slskdDownloadPath || "",
       theme: newSettings.theme || "system",
     });
 

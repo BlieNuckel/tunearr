@@ -7,7 +7,9 @@ import lidarrRoutes from "./routes/lidarr";
 import musicbrainzRoutes from "./routes/musicbrainz";
 import plexRoutes from "./routes/plex";
 import promotedAlbumRoutes from "./routes/promotedAlbum";
+import sabnzbdRoutes from "./routes/sabnzbd";
 import settingsRoutes from "./routes/settings";
+import torznabRoutes from "./routes/torznab";
 import { errorHandler } from "./middleware/errorHandler";
 
 const log = createLogger("Server");
@@ -26,6 +28,8 @@ app.use("/api/lidarr", lidarrRoutes);
 app.use("/api/lastfm", lastfmRoutes);
 app.use("/api/plex", plexRoutes);
 app.use("/api/promoted-album", promotedAlbumRoutes);
+app.use("/api/torznab", torznabRoutes);
+app.use("/api/sabnzbd", sabnzbdRoutes);
 
 if (process.env.NODE_ENV === "production") {
   app.use(express.static(path.join(__dirname, "..", "build")));

@@ -19,6 +19,9 @@ const fullConfig = {
   plexUrl: "http://plex:32400",
   plexToken: "plex-token-123",
   importPath: "",
+  slskdUrl: "",
+  slskdApiKey: "",
+  slskdDownloadPath: "",
   theme: "system" as const,
 };
 

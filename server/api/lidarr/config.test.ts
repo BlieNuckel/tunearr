@@ -25,6 +25,9 @@ describe("getLidarrConfig", () => {
       plexUrl: "",
       plexToken: "",
       importPath: "",
+      slskdUrl: "",
+      slskdApiKey: "",
+      slskdDownloadPath: "",
       theme: "system",
     });
 
@@ -45,6 +48,9 @@ describe("getLidarrConfig", () => {
       plexUrl: "",
       plexToken: "",
       importPath: "",
+      slskdUrl: "",
+      slskdApiKey: "",
+      slskdDownloadPath: "",
       theme: "system",
     });
 
@@ -62,6 +68,9 @@ describe("getLidarrConfig", () => {
       plexUrl: "",
       plexToken: "",
       importPath: "",
+      slskdUrl: "",
+      slskdApiKey: "",
+      slskdDownloadPath: "",
       theme: "system",
     });
 
