@@ -107,12 +107,7 @@ function sendCaps(res: Response): void {
 async function handleSearch(req: Request, res: Response): Promise<void> {
   const query = buildSearchQuery(req);
   if (!query) {
-    res
-      .status(400)
-      .type("text/xml")
-      .send(
-        `<?xml version="1.0" encoding="UTF-8"?><error code="100" description="Missing search query" />`
-      );
+    res.type("text/xml").send(buildResultsXml([], ""));
     return;
   }
 
