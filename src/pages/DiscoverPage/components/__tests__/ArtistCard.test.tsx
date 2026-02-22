@@ -171,8 +171,7 @@ describe("ArtistCard", () => {
     );
     fireEvent.click(screen.getByRole("button"));
 
-    // Should show 5 skeleton cards with animate-pulse class
-    const skeletons = document.querySelectorAll(".animate-pulse");
+    const skeletons = document.querySelectorAll(".animate-shimmer");
     expect(skeletons.length).toBeGreaterThan(0);
   });
 

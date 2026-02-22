@@ -9,7 +9,7 @@ vi.mock("@/components/Dropdown", () => ({
 
 describe("LibraryPicker", () => {
   it("shows loading state", () => {
-    render(
+    const { container } = render(
       <LibraryPicker
         artists={[]}
         loading={true}
@@ -17,7 +17,8 @@ describe("LibraryPicker", () => {
         onSelect={vi.fn()}
       />
     );
-    expect(screen.getByText("Loading library...")).toBeInTheDocument();
+    const skeletons = container.querySelectorAll(".animate-shimmer");
+    expect(skeletons.length).toBeGreaterThan(0);
   });
 
   it("shows empty state when no artists", () => {

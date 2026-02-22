@@ -56,8 +56,10 @@ beforeEach(() => {
 
 describe("SettingsPage", () => {
   it("shows loading state", () => {
-    renderSettingsPage({ isLoading: true });
-    expect(screen.getByText("Loading settings...")).toBeInTheDocument();
+    const { container } = renderSettingsPage({ isLoading: true });
+    const skeletons = container.querySelectorAll(".animate-shimmer");
+    expect(skeletons.length).toBeGreaterThan(0);
+    expect(screen.queryByText("Settings")).not.toBeInTheDocument();
   });
 
   it("renders the heading", () => {

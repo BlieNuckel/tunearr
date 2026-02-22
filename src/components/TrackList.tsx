@@ -1,5 +1,6 @@
 import { Medium } from "../types";
 import { PlayIcon, PauseIcon } from "./icons";
+import Skeleton from "./Skeleton";
 
 /** @param {number | null} ms - duration in milliseconds */
 function formatDuration(ms: number | null): string {
@@ -29,9 +30,14 @@ export default function TrackList({
 }: TrackListProps) {
   if (loading)
     return (
-      <p className={`text-sm ${dark ? "text-gray-300" : "text-gray-400"}`}>
-        Loading tracks...
-      </p>
+      <div className="space-y-3">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="flex items-center gap-2 min-h-[44px]">
+            <Skeleton className="h-3.5 flex-1" />
+            <Skeleton className="h-3.5 w-8" />
+          </div>
+        ))}
+      </div>
     );
   if (error)
     return (

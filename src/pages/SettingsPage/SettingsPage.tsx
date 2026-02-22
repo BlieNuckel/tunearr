@@ -6,6 +6,7 @@ import LastfmSection from "./components/LastfmSection";
 import PlexSection from "./components/PlexSection";
 import ImportSection from "./components/ImportSection";
 import ThemeToggle from "@/components/ThemeToggle";
+import Skeleton from "@/components/Skeleton";
 
 export default function SettingsPage() {
   const {
@@ -80,7 +81,22 @@ export default function SettingsPage() {
 
   if (isLoading) {
     return (
-      <p className="text-gray-500 dark:text-gray-400">Loading settings...</p>
+      <div className="max-w-lg space-y-6">
+        <Skeleton className="h-8 w-32" />
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="space-y-4">
+            <Skeleton className="h-6 w-48" />
+            <div className="space-y-3">
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-10 w-full rounded-lg" />
+            </div>
+            <div className="space-y-3">
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-10 w-full rounded-lg" />
+            </div>
+          </div>
+        ))}
+      </div>
     );
   }
 

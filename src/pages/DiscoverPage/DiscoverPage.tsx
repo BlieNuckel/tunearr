@@ -7,6 +7,7 @@ import LibraryPicker from "./components/LibraryPicker";
 import ArtistSearchForm from "./components/ArtistSearchForm";
 import TagList from "./components/TagList";
 import ArtistResultsList from "./components/ArtistResultsList";
+import Skeleton from "@/components/Skeleton";
 
 export default function DiscoverPage() {
   const {
@@ -120,11 +121,21 @@ export default function DiscoverPage() {
       )}
 
       {(similarLoading || tagArtistsLoading) && (
-        <div className="flex items-center justify-center gap-3 py-12 bg-amber-50 dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-sm mt-4">
-          <div className="w-6 h-6 border-3 border-amber-400 dark:border-amber-300 border-t-transparent rounded-full animate-spin" />
-          <p className="text-gray-700 dark:text-gray-300 font-medium">
-            Discovering similar artists...
-          </p>
+        <div className="mt-4 space-y-3">
+          {[...Array(4)].map((_, i) => (
+            <div
+              key={i}
+              className="bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-sm overflow-hidden"
+            >
+              <div className="flex items-center gap-3 p-3">
+                <Skeleton className="w-12 h-12 rounded-lg flex-shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-1/3" />
+                  <Skeleton className="h-3 w-1/5" />
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
       {similarError && <p className="text-rose-500 mt-4">{similarError}</p>}
@@ -154,9 +165,10 @@ export default function DiscoverPage() {
       {!effectiveSelectedArtist && !similarLoading && (
         <div className="mt-16 flex flex-col items-center text-gray-400 animate-fade-in">
           {plexLoading ? (
-            <p className="text-gray-500 dark:text-gray-400">
-              Loading your listening data...
-            </p>
+            <div className="space-y-3 w-full max-w-xs">
+              <Skeleton className="h-5 w-48 mx-auto" />
+              <Skeleton className="h-4 w-64 mx-auto" />
+            </div>
           ) : (
             <>
               <svg

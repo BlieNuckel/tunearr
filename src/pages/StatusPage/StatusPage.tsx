@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import QueueTable from "./components/QueueTable";
 import WantedList from "./components/WantedList";
 import RecentImports from "./components/RecentImports";
+import Skeleton from "@/components/Skeleton";
 import { QueueItem, WantedItem, RecentImport } from "@/types";
 
 export default function StatusPage() {
@@ -78,7 +79,27 @@ export default function StatusPage() {
 
   if (loading) {
     return (
-      <p className="text-gray-500 dark:text-gray-400">Loading status...</p>
+      <div className="space-y-8">
+        {[...Array(3)].map((_, sectionIndex) => (
+          <section key={sectionIndex}>
+            <Skeleton className="h-7 w-40 mb-4" />
+            <div className="space-y-2">
+              {[...Array(3)].map((_, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-xl px-4 py-3 border-2 border-black shadow-cartoon-sm"
+                >
+                  <div className="space-y-2 flex-1">
+                    <Skeleton className="h-4 w-1/3" />
+                    <Skeleton className="h-3 w-1/4" />
+                  </div>
+                  <Skeleton className="h-6 w-20 rounded-full" />
+                </div>
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
     );
   }
 

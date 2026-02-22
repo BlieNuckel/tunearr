@@ -34,12 +34,7 @@ export default function ImageWithShimmer({
     <div className="relative">
       {isLoading && (
         <div
-          className={`absolute inset-0 bg-gray-200 animate-shimmer ${className}`}
-          style={{
-            backgroundImage:
-              "linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent)",
-            backgroundSize: "200% 100%",
-          }}
+          className={`absolute inset-0 bg-gray-200 dark:bg-gray-700 animate-shimmer ${className}`}
         />
       )}
       <img
