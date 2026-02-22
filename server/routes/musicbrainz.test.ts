@@ -5,17 +5,17 @@ const mockSearchArtistReleaseGroups = vi.fn();
 const mockGetReleaseTracks = vi.fn();
 const mockGetTrackPreviews = vi.fn();
 
-vi.mock("../musicbrainzApi/releaseGroups", () => ({
+vi.mock("../api/musicbrainz/releaseGroups", () => ({
   searchReleaseGroups: (...args: unknown[]) => mockSearchReleaseGroups(...args),
   searchArtistReleaseGroups: (...args: unknown[]) =>
     mockSearchArtistReleaseGroups(...args),
 }));
 
-vi.mock("../musicbrainzApi/tracks", () => ({
+vi.mock("../api/musicbrainz/tracks", () => ({
   getReleaseTracks: (...args: unknown[]) => mockGetReleaseTracks(...args),
 }));
 
-vi.mock("../deezerApi/tracks", () => ({
+vi.mock("../api/deezer/tracks", () => ({
   getTrackPreviews: (...args: unknown[]) => mockGetTrackPreviews(...args),
 }));
 

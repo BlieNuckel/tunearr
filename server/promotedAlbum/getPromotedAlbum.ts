@@ -1,9 +1,9 @@
-import { getTopArtists } from "../plexApi/topArtists";
-import { getArtistTopTags } from "../lastfmApi/artists";
-import { getTopAlbumsByTag } from "../lastfmApi/albums";
-import { lidarrGet } from "../lidarrApi/get";
-import type { LidarrArtist } from "../lidarrApi/types";
-import { getReleaseGroupIdFromRelease } from "../musicbrainzApi/releaseGroups";
+import { getTopArtists } from "../api/plex/topArtists";
+import { getArtistTopTags } from "../api/lastfm/artists";
+import { getTopAlbumsByTag } from "../api/lastfm/albums";
+import { lidarrGet } from "../api/lidarr/get";
+import type { LidarrArtist } from "../api/lidarr/types";
+import { getReleaseGroupIdFromRelease } from "../api/musicbrainz/releaseGroups";
 
 export type PromotedAlbumResult = {
   album: {

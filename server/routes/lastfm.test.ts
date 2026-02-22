@@ -7,21 +7,21 @@ const mockGetTopAlbumsByTag = vi.fn();
 const mockGetArtistsImages = vi.fn();
 const mockGetAlbumsArtwork = vi.fn();
 
-vi.mock("../lastfmApi/artists", () => ({
+vi.mock("../api/lastfm/artists", () => ({
   getSimilarArtists: (...args: unknown[]) => mockGetSimilarArtists(...args),
   getArtistTopTags: (...args: unknown[]) => mockGetArtistTopTags(...args),
   getTopArtistsByTag: (...args: unknown[]) => mockGetTopArtistsByTag(...args),
 }));
 
-vi.mock("../lastfmApi/albums", () => ({
+vi.mock("../api/lastfm/albums", () => ({
   getTopAlbumsByTag: (...args: unknown[]) => mockGetTopAlbumsByTag(...args),
 }));
 
-vi.mock("../appleApi/artists", () => ({
+vi.mock("../api/apple/artists", () => ({
   getAlbumsArtwork: (...args: unknown[]) => mockGetAlbumsArtwork(...args),
 }));
 
-vi.mock("../deezerApi/artists", () => ({
+vi.mock("../api/deezer/artists", () => ({
   getArtistsImages: (...args: unknown[]) => mockGetArtistsImages(...args),
 }));
 

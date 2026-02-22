@@ -1,10 +1,14 @@
-import { ApiCache, withCache } from "../cache";
+import NodeCache from "node-cache";
+import { withCache } from "../../cache";
+import { createLogger } from "../../logger";
 import type { DeezerTrackSearchResponse } from "./types";
 
-const DEEZER_SEARCH_BASE = "https://api.deezer.com/search/track";
-const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+const log = createLogger("Deezer API");
 
-const deezerTrackCache = new ApiCache();
+const DEEZER_SEARCH_BASE = "https://api.deezer.com/search/track";
+const ONE_DAY_SECONDS = 24 * 60 * 60;
+
+const deezerTrackCache = new NodeCache({ stdTTL: 7 * ONE_DAY_SECONDS });
 
 /** @returns 30-second MP3 preview URL, or empty string if not found */
 const fetchTrackPreview = async (
@@ -21,8 +25,8 @@ const fetchTrackPreview = async (
     const response = await fetch(url);
 
     if (!response.ok) {
-      console.error(
-        `[Deezer API] Failed to fetch preview for "${trackTitle}": ${response.status}`
+      log.error(
+        `Failed to fetch preview for "${trackTitle}": ${response.status}`
       );
       return "";
     }
@@ -35,10 +39,7 @@ const fetchTrackPreview = async (
 
     return "";
   } catch (error) {
-    console.error(
-      `[Deezer API] Error fetching preview for "${trackTitle}":`,
-      error
-    );
+    log.error(`Error fetching preview for "${trackTitle}"`, error);
     return "";
   }
 };
@@ -46,7 +47,7 @@ const fetchTrackPreview = async (
 export const getTrackPreview = withCache(fetchTrackPreview, {
   cache: deezerTrackCache,
   key: (artist, title) => `${artist.toLowerCase()}|${title.toLowerCase()}`,
-  ttlMs: 7 * ONE_DAY_MS,
+  ttlMs: 7 * ONE_DAY_SECONDS * 1000,
   label: "Deezer API",
 });
 

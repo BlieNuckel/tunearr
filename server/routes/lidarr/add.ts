@@ -1,6 +1,6 @@
 import express, { Request, Response } from "express";
-import { lidarrPost } from "../../lidarrApi/post";
-import { lidarrPut } from "../../lidarrApi/put";
+import { lidarrPost } from "../../api/lidarr/post";
+import { lidarrPut } from "../../api/lidarr/put";
 import {
   getAlbumByMbid,
   getOrAddArtist,

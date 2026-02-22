@@ -2,7 +2,7 @@ import type { Request, Response } from "express";
 import express from "express";
 import fs from "fs";
 import { getConfig, setConfig } from "../config";
-import { lidarrFetch } from "../lidarrApi/fetch";
+import { lidarrFetch } from "../api/lidarr/fetch";
 
 const router = express.Router();
 

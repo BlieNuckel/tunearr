@@ -1,6 +1,9 @@
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
+import { createLogger } from "./logger";
+
+const log = createLogger("Server");
 import lastfmRoutes from "./routes/lastfm";
 import lidarrRoutes from "./routes/lidarr";
 import musicbrainzRoutes from "./routes/musicbrainz";
@@ -34,5 +37,5 @@ if (process.env.NODE_ENV === "production") {
 app.use(errorHandler);
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  log.info(`Listening on port ${PORT}`);
 });

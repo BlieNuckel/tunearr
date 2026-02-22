@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockLidarrGet = vi.fn();
 
-vi.mock("../../lidarrApi/get.js", () => ({
+vi.mock("../../api/lidarr/get.js", () => ({
   lidarrGet: (...args: unknown[]) => mockLidarrGet(...args),
 }));
 

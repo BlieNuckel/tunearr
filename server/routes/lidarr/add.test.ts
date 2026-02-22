@@ -14,11 +14,11 @@ vi.mock("./helpers", () => ({
   removeAlbum: (...args: unknown[]) => mockRemoveAlbum(...args),
 }));
 
-vi.mock("../../lidarrApi/post", () => ({
+vi.mock("../../api/lidarr/post", () => ({
   lidarrPost: (...args: unknown[]) => mockLidarrPost(...args),
 }));
 
-vi.mock("../../lidarrApi/put", () => ({
+vi.mock("../../api/lidarr/put", () => ({
   lidarrPut: (...args: unknown[]) => mockLidarrPut(...args),
 }));
 
