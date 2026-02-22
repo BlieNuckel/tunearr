@@ -105,7 +105,7 @@ export default function SearchPage() {
               <p className="text-lg font-medium text-gray-500">
                 No results found
               </p>
-              <p className="mt-1">
+              <p className="mt-1 text-center">
                 Try a different search term or change the search type.
               </p>
             </>
@@ -114,7 +114,7 @@ export default function SearchPage() {
               <p className="text-lg font-medium text-gray-500">
                 Search for music
               </p>
-              <p className="mt-1">
+              <p className="mt-1 text-center">
                 Find albums or artists by name to add to your library.
               </p>
             </>
