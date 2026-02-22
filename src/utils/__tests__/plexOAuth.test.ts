@@ -7,7 +7,10 @@ const mockOpen = vi.fn();
 vi.stubGlobal("open", mockOpen);
 
 const mockCrypto = {
-  randomUUID: vi.fn(() => "test-uuid-1234"),
+  getRandomValues: vi.fn((arr: Uint8Array) => {
+    for (let i = 0; i < arr.length; i++) arr[i] = i + 1;
+    return arr;
+  }),
 };
 vi.stubGlobal("crypto", mockCrypto);
 
@@ -103,7 +106,7 @@ describe("plexOAuth", () => {
 
       expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
         "tunearr-plex-client-id",
-        "test-uuid-1234",
+        expect.stringMatching(/^[0-9a-f-]+$/),
       );
     });
 
