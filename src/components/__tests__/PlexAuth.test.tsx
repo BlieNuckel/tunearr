@@ -58,7 +58,7 @@ describe("PlexAuth", () => {
     expect(screen.getByText("Sign out")).toBeInTheDocument();
     expect(screen.getByAltText("testuser")).toHaveAttribute(
       "src",
-      "https://plex.tv/thumb.jpg",
+      "https://plex.tv/thumb.jpg"
     );
   });
 
@@ -92,11 +92,7 @@ describe("PlexAuth", () => {
     });
 
     render(
-      <PlexAuth
-        token="my-token"
-        onToken={onToken}
-        onServerUrl={onServerUrl}
-      />,
+      <PlexAuth token="my-token" onToken={onToken} onServerUrl={onServerUrl} />
     );
 
     await waitFor(() => {
@@ -142,5 +138,36 @@ describe("PlexAuth", () => {
       username: "testuser",
       thumb: "https://plex.tv/thumb.jpg",
     });
+  });
+
+  it("calls custom onSignOut propr when provided instead of default behavior", async () => {
+    const onToken = vi.fn();
+    const onServerUrl = vi.fn();
+    const onSignOut = vi.fn();
+
+    mockUsePlexLogin.mockReturnValue({ loading: false, login: vi.fn() });
+    mockFetchAccount.mockResolvedValue({
+      username: "testuser",
+      thumb: "https://plex.tv/thumb.jpg",
+    });
+
+    render(
+      <PlexAuth
+        token="my-token"
+        onToken={onToken}
+        onServerUrl={onServerUrl}
+        onSignOut={onSignOut}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Sign out")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText("Sign out"));
+
+    expect(onSignOut).toHaveBeenCalledTimes(1);
+    expect(onToken).not.toHaveBeenCalled();
+    expect(onServerUrl).not.toHaveBeenCalled();
   });
 });

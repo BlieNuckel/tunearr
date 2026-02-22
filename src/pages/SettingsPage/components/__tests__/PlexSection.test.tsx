@@ -11,6 +11,7 @@ const defaultProps = {
   token: "",
   onUrlChange: vi.fn(),
   onTokenChange: vi.fn(),
+  onSignOut: vi.fn(),
 };
 
 beforeEach(() => {
@@ -31,17 +32,17 @@ describe("PlexSection", () => {
   it("renders help text", () => {
     render(<PlexSection {...defaultProps} />);
     expect(
-      screen.getByText(/Used to show your most-played artists/),
+      screen.getByText(/Used to show your most-played artists/)
     ).toBeInTheDocument();
   });
 
   it("does not render manual input fields", () => {
     render(<PlexSection {...defaultProps} />);
     expect(
-      screen.queryByPlaceholderText("http://localhost:32400"),
+      screen.queryByPlaceholderText("http://localhost:32400")
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByPlaceholderText("Enter Plex token"),
+      screen.queryByPlaceholderText("Enter Plex token")
     ).not.toBeInTheDocument();
     expect(screen.queryByText("or enter manually")).not.toBeInTheDocument();
   });
