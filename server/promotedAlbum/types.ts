@@ -24,7 +24,9 @@ export type TraceAlbumPoolInfo = {
   totalAfterDedup: number;
 };
 
-export type TraceSelectionReason = "preferred_non_library" | "fallback_in_library";
+export type TraceSelectionReason =
+  | "preferred_non_library"
+  | "fallback_in_library";
 
 export type RecommendationTrace = {
   plexArtists: TraceArtistEntry[];

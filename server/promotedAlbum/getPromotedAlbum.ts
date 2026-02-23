@@ -85,9 +85,10 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-function mergeTagsFromResults(
-  tagResults: TagResultEntry[]
-): { weightedTags: WeightedTag[]; tagMap: Map<string, TagAccumulator> } {
+function mergeTagsFromResults(tagResults: TagResultEntry[]): {
+  weightedTags: WeightedTag[];
+  tagMap: Map<string, TagAccumulator>;
+} {
   const tagMap = new Map<string, TagAccumulator>();
 
   for (const { artist, tags } of tagResults) {

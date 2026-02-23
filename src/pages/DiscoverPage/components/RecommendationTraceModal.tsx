@@ -118,9 +118,7 @@ function TagPoolStage({
         {tags.map((t) => (
           <span
             key={t.name}
-            data-testid={
-              t.name === chosenTagName ? "chosen-tag" : "pool-tag"
-            }
+            data-testid={t.name === chosenTagName ? "chosen-tag" : "pool-tag"}
             className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border ${
               t.name === chosenTagName
                 ? "bg-violet-100 dark:bg-violet-900/30 text-violet-800 dark:text-violet-200 border-violet-300 dark:border-violet-700 font-bold"

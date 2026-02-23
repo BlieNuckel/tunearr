@@ -27,9 +27,7 @@ const trace: RecommendationTrace = {
       name: "Bjork",
       viewCount: 50,
       picked: true,
-      tagContributions: [
-        { tagName: "electronic", rawCount: 90, weight: 4500 },
-      ],
+      tagContributions: [{ tagName: "electronic", rawCount: 90, weight: 4500 }],
     },
     {
       name: "Portishead",
@@ -117,7 +115,9 @@ describe("RecommendationTraceModal", () => {
   it("shows album name and artist in result stage", () => {
     renderModal();
     expect(screen.getByText("OK Computer")).toBeInTheDocument();
-    const resultStage = screen.getByTestId("selection-reason").closest("[data-testid='stage-card']")!;
+    const resultStage = screen
+      .getByTestId("selection-reason")
+      .closest("[data-testid='stage-card']")!;
     expect(resultStage).toHaveTextContent("Radiohead");
   });
 
