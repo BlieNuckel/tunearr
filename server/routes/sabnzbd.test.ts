@@ -182,7 +182,9 @@ describe("GET /api?mode=history", () => {
     expect(res.body.history.slots).toHaveLength(1);
     expect(res.body.history.slots[0].nzo_id).toBe("nzo1");
     expect(res.body.history.slots[0].status).toBe("Completed");
-    expect(res.body.history.slots[0].storage).toBe("/downloads/complete/Test Album");
+    expect(res.body.history.slots[0].storage).toBe(
+      "/downloads/complete/Test Album"
+    );
   });
 });
 
