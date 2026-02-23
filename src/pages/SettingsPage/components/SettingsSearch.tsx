@@ -27,7 +27,7 @@ export default function SettingsSearch({
         value={query}
         onChange={(e) => onQueryChange(e.target.value)}
         placeholder="Search settings..."
-        className="w-full pl-10 pr-3 py-2 bg-white dark:bg-gray-800 border-2 border-black rounded-lg text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-amber-400 shadow-cartoon-sm"
+        className="w-full pl-10 pr-3 py-2 bg-white dark:bg-gray-800 border-2 border-black rounded-lg text-base sm:text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-amber-400 shadow-cartoon-sm"
       />
     </div>
   );

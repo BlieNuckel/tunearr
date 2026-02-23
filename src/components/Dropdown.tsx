@@ -47,7 +47,7 @@ export default function Dropdown({
       : options;
 
   const triggerClasses =
-    "w-full px-3 py-2 bg-white dark:bg-gray-800 border-2 border-black rounded-lg text-sm text-left shadow-cartoon-md focus:outline-none focus:border-amber-400";
+    "w-full px-3 py-2 bg-white dark:bg-gray-800 border-2 border-black rounded-lg text-base sm:text-sm text-left shadow-cartoon-md focus:outline-none focus:border-amber-400";
 
   return (
     <div className="relative" ref={ref}>

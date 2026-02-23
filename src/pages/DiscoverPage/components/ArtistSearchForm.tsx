@@ -26,7 +26,7 @@ export default function ArtistSearchForm({ onSearch }: ArtistSearchFormProps) {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Type an artist name..."
-          className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border-2 border-black rounded-lg text-gray-900 dark:text-gray-100 placeholder-gray-200 dark:placeholder-gray-600 focus:outline-none focus:border-amber-400 text-sm shadow-cartoon-md"
+          className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border-2 border-black rounded-lg text-gray-900 dark:text-gray-100 placeholder-gray-200 dark:placeholder-gray-600 focus:outline-none focus:border-amber-400 text-base sm:text-sm shadow-cartoon-md"
         />
         <button
           type="submit"
