@@ -14,7 +14,9 @@ export function startSearch(searchText: string): Promise<SlskdSearchState> {
     const { baseUrl, headers } = getSlskdConfig();
     const id = crypto.randomUUID();
 
-    log.info(`POST ${baseUrl}/api/v0/searches (id=${id}, query="${searchText}")`);
+    log.info(
+      `POST ${baseUrl}/api/v0/searches (id=${id}, query="${searchText}")`
+    );
     const response = await fetch(`${baseUrl}/api/v0/searches`, {
       method: "POST",
       headers,
