@@ -48,6 +48,7 @@ export interface RecentImport {
   id: number;
   albumId: number;
   date: string;
+  sourceIndexer: string | null;
   artist: {
     artistName: string;
     id: number;

@@ -153,6 +153,26 @@ describe("StatusPage", () => {
     });
   });
 
+  it("refreshes data when Refresh button is clicked", async () => {
+    mockAllEndpoints();
+
+    render(<StatusPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Download Queue")).toBeInTheDocument();
+    });
+
+    const initialCallCount = vi.mocked(fetch).mock.calls.length;
+
+    fireEvent.click(screen.getByRole("button", { name: "Refresh queue" }));
+
+    await waitFor(() => {
+      expect(vi.mocked(fetch).mock.calls.length).toBeGreaterThan(
+        initialCallCount
+      );
+    });
+  });
+
   it("removes wanted item from list when Unmonitor succeeds", async () => {
     const wantedItem = {
       id: 1,

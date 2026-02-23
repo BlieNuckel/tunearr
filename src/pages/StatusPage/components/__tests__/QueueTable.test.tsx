@@ -27,18 +27,17 @@ describe("QueueTable", () => {
     render(<QueueTable items={[makeQueueItem()]} />);
     expect(screen.getByText("Test Artist")).toBeInTheDocument();
     expect(screen.getByText("Test Album")).toBeInTheDocument();
-    expect(screen.getByText("FLAC")).toBeInTheDocument();
   });
 
-  it("calculates progress percentage", () => {
+  it("shows quality and progress", () => {
     render(
       <QueueTable items={[makeQueueItem({ size: 1000, sizeleft: 250 })]} />
     );
-    expect(screen.getByText("75%")).toBeInTheDocument();
+    expect(screen.getByText("FLAC · 75%")).toBeInTheDocument();
   });
 
   it("shows dash when size data is missing", () => {
     render(<QueueTable items={[makeQueueItem({ size: 0, sizeleft: 0 })]} />);
-    expect(screen.getByTestId("queue-progress")).toHaveTextContent("—");
+    expect(screen.getByText("FLAC · —")).toBeInTheDocument();
   });
 });

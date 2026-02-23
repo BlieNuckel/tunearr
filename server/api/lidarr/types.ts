@@ -54,6 +54,8 @@ export type LidarrHistoryRecord = {
   id: number;
   albumId: number;
   date: string;
+  downloadId: string;
+  data: Record<string, string>;
   artist: { id: number; artistName: string };
   album: { id: number; title: string };
 };

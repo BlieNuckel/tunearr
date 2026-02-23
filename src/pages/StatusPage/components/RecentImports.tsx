@@ -40,6 +40,9 @@ export default function RecentImports({ items }: RecentImportsProps) {
             <p className="text-gray-400 text-xs mt-1">
               {new Date(item.date).toLocaleString()}
             </p>
+            {item.sourceIndexer && (
+              <p className="text-gray-400 text-xs">via {item.sourceIndexer}</p>
+            )}
           </div>
           <StatusBadge status="imported" />
         </div>

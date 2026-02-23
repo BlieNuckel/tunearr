@@ -3,6 +3,7 @@ import QueueTable from "./components/QueueTable";
 import WantedList from "./components/WantedList";
 import RecentImports from "./components/RecentImports";
 import Skeleton from "@/components/Skeleton";
+import { RefreshIcon } from "@/components/icons";
 import { QueueItem, WantedItem, RecentImport } from "@/types";
 
 export default function StatusPage() {
@@ -10,6 +11,7 @@ export default function StatusPage() {
   const [wanted, setWanted] = useState<WantedItem[]>([]);
   const [history, setHistory] = useState<RecentImport[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchAll = useCallback(async () => {
@@ -17,7 +19,7 @@ export default function StatusPage() {
       const [queueRes, wantedRes, historyRes] = await Promise.all([
         fetch("/api/lidarr/queue"),
         fetch("/api/lidarr/wanted/missing"),
-        fetch("/api/lidarr/history?eventType=3"),
+        fetch("/api/lidarr/history"),
       ]);
 
       if (queueRes.ok) {
@@ -46,6 +48,12 @@ export default function StatusPage() {
     const interval = setInterval(fetchAll, 30000);
     return () => clearInterval(interval);
   }, [fetchAll]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchAll();
+    setRefreshing(false);
+  };
 
   const handleAlbumSearch = async (albumId: number) => {
     try {
@@ -117,9 +125,22 @@ export default function StatusPage() {
   return (
     <div className="space-y-8">
       <section>
-        <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-          Download Queue
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+            Download Queue
+          </h2>
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 text-xs font-bold bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            aria-label="Refresh queue"
+          >
+            <RefreshIcon
+              className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`}
+            />
+            <span className="hidden sm:inline">Refresh</span>
+          </button>
+        </div>
         <QueueTable items={queue} />
       </section>
 
