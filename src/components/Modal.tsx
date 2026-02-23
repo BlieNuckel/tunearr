@@ -31,7 +31,7 @@ export default function Modal({
       onClick={onClose}
     >
       <div
-        className={`bg-white dark:bg-gray-800 w-full h-full p-6 md:h-auto ${panelClassName ?? "md:max-w-md"} md:rounded-xl md:border-4 md:border-black md:shadow-cartoon-lg ${closing ? "animate-pop-out" : "animate-pop"}`}
+        className={`bg-white dark:bg-gray-800 w-full h-full p-6 flex flex-col md:h-auto ${panelClassName ?? "md:max-w-md"} md:rounded-xl md:border-4 md:border-black md:shadow-cartoon-lg ${closing ? "animate-pop-out" : "animate-pop"}`}
         onAnimationEnd={() => {
           if (closing) setClosing(false);
         }}

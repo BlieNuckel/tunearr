@@ -223,7 +223,7 @@ export default function RecommendationTraceModal({
 }: RecommendationTraceModalProps) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} panelClassName="md:max-w-2xl">
-      <div className="overflow-y-auto max-h-[80vh] px-1 -mx-1 pb-1">
+      <div className="flex-1 min-h-0 overflow-y-auto md:flex-initial md:max-h-[80vh] px-1 -mx-1 pb-1">
         <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
           How this was recommended
         </h3>
