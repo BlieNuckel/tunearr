@@ -286,10 +286,124 @@ describe("getPromotedAlbum", () => {
     mockGetArtistTopTags.mockResolvedValue(tags);
     mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
     mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
-    // Simulate MusicBrainz not finding release-groups
     mockGetReleaseGroupIdFromRelease.mockResolvedValue(null);
 
     const result = await getPromotedAlbum();
     expect(result).toBeNull();
+  });
+
+  describe("trace", () => {
+    it("has correct number of plexArtists entries", async () => {
+      mockGetTopArtists.mockResolvedValue(plexArtists);
+      mockGetArtistTopTags.mockResolvedValue(tags);
+      mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
+      mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
+
+      const result = await getPromotedAlbum();
+      expect(result!.trace.plexArtists).toHaveLength(2);
+      expect(result!.trace.plexArtists.map((a) => a.name)).toEqual([
+        "Radiohead",
+        "Bjork",
+      ]);
+    });
+
+    it("marks the correct artists as picked", async () => {
+      mockGetTopArtists.mockResolvedValue(plexArtists);
+      mockGetArtistTopTags.mockResolvedValue(tags);
+      mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
+      mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
+
+      const result = await getPromotedAlbum();
+      const picked = result!.trace.plexArtists.filter((a) => a.picked);
+      expect(picked).toHaveLength(2);
+    });
+
+    it("chosenTag name matches result tag", async () => {
+      mockGetTopArtists.mockResolvedValue(plexArtists);
+      mockGetArtistTopTags.mockResolvedValue(tags);
+      mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
+      mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
+
+      const result = await getPromotedAlbum();
+      expect(result!.trace.chosenTag.name).toBe(result!.tag);
+    });
+
+    it("albumPool counts are accurate", async () => {
+      mockGetTopArtists.mockResolvedValue(plexArtists);
+      mockGetArtistTopTags.mockResolvedValue(tags);
+      mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
+      mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
+
+      const result = await getPromotedAlbum();
+      expect(result!.trace.albumPool.page1Count).toBe(2);
+      expect(result!.trace.albumPool.deepPageCount).toBe(2);
+      expect(result!.trace.albumPool.totalAfterDedup).toBe(2);
+      expect(result!.trace.albumPool.deepPage).toBeGreaterThanOrEqual(2);
+      expect(result!.trace.albumPool.deepPage).toBeLessThanOrEqual(10);
+    });
+
+    it("selectionReason is preferred_non_library when artist not in library", async () => {
+      mockGetTopArtists.mockResolvedValue(plexArtists);
+      mockGetArtistTopTags.mockResolvedValue(tags);
+      mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
+      mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
+
+      const result = await getPromotedAlbum();
+      expect(result!.trace.selectionReason).toBe("preferred_non_library");
+    });
+
+    it("selectionReason is fallback_in_library when all artists are in library", async () => {
+      mockGetTopArtists.mockResolvedValue(plexArtists);
+      mockGetArtistTopTags.mockResolvedValue(tags);
+      mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
+      mockLidarrGet.mockImplementation((path: string) => {
+        if (path === "/artist") {
+          return Promise.resolve({
+            ok: true,
+            data: [{ foreignArtistId: "art-1" }],
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          data: [
+            { foreignAlbumId: "rg-alb-1" },
+            { foreignAlbumId: "rg-alb-2" },
+          ],
+        });
+      });
+
+      const result = await getPromotedAlbum();
+      expect(result!.trace.selectionReason).toBe("fallback_in_library");
+    });
+
+    it("merges same tags from multiple artists with combined weight", async () => {
+      mockGetTopArtists.mockResolvedValue(plexArtists);
+      mockGetArtistTopTags.mockResolvedValue(tags);
+      mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
+      mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
+
+      const result = await getPromotedAlbum();
+      const altTag = result!.trace.weightedTags.find(
+        (t) => t.name === "alternative"
+      );
+      expect(altTag).toBeDefined();
+      expect(altTag!.fromArtists).toContain("Radiohead");
+      expect(altTag!.fromArtists).toContain("Bjork");
+      expect(altTag!.weight).toBe(100 * 100 + 100 * 50);
+    });
+
+    it("picked artists have tagContributions populated", async () => {
+      mockGetTopArtists.mockResolvedValue(plexArtists);
+      mockGetArtistTopTags.mockResolvedValue(tags);
+      mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
+      mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
+
+      const result = await getPromotedAlbum();
+      const radiohead = result!.trace.plexArtists.find(
+        (a) => a.name === "Radiohead"
+      );
+      expect(radiohead!.tagContributions).toHaveLength(2);
+      expect(radiohead!.tagContributions[0].tagName).toBe("alternative");
+    });
   });
 });

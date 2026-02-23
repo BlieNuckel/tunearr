@@ -1,5 +1,43 @@
 import { useState, useEffect, useCallback } from "react";
 
+export type TraceArtistTagContribution = {
+  tagName: string;
+  rawCount: number;
+  weight: number;
+};
+
+export type TraceArtistEntry = {
+  name: string;
+  viewCount: number;
+  picked: boolean;
+  tagContributions: TraceArtistTagContribution[];
+};
+
+export type TraceWeightedTag = {
+  name: string;
+  weight: number;
+  fromArtists: string[];
+};
+
+export type TraceAlbumPoolInfo = {
+  page1Count: number;
+  deepPage: number;
+  deepPageCount: number;
+  totalAfterDedup: number;
+};
+
+export type TraceSelectionReason =
+  | "preferred_non_library"
+  | "fallback_in_library";
+
+export type RecommendationTrace = {
+  plexArtists: TraceArtistEntry[];
+  weightedTags: TraceWeightedTag[];
+  chosenTag: { name: string; weight: number };
+  albumPool: TraceAlbumPoolInfo;
+  selectionReason: TraceSelectionReason;
+};
+
 export type PromotedAlbumData = {
   album: {
     name: string;
@@ -10,6 +48,7 @@ export type PromotedAlbumData = {
   };
   tag: string;
   inLibrary: boolean;
+  trace: RecommendationTrace;
 };
 
 export default function usePromotedAlbum() {

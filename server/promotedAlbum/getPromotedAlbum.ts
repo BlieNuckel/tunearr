@@ -4,20 +4,25 @@ import { getTopAlbumsByTag } from "../api/lastfm/albums";
 import { lidarrGet } from "../api/lidarr/get";
 import type { LidarrAlbum, LidarrArtist } from "../api/lidarr/types";
 import { getReleaseGroupIdFromRelease } from "../api/musicbrainz/releaseGroups";
+import type {
+  PromotedAlbumResult,
+  RecommendationTrace,
+  TraceArtistEntry,
+  TraceAlbumPoolInfo,
+  TraceSelectionReason,
+  TraceWeightedTag,
+} from "./types";
 
-export type PromotedAlbumResult = {
-  album: {
-    name: string;
-    mbid: string;
-    artistName: string;
-    artistMbid: string;
-    coverUrl: string;
-  };
-  tag: string;
-  inLibrary: boolean;
-} | null;
+export type { PromotedAlbumResult } from "./types";
 
 type WeightedTag = { name: string; weight: number };
+
+type TagAccumulator = { weight: number; fromArtists: Set<string> };
+
+type TagResultEntry = {
+  artist: { name: string; viewCount: number };
+  tags: { name: string; count: number }[];
+};
 
 const GENERIC_TAGS = new Set([
   "seen live",
@@ -80,6 +85,95 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
+function mergeTagsFromResults(
+  tagResults: TagResultEntry[]
+): { weightedTags: WeightedTag[]; tagMap: Map<string, TagAccumulator> } {
+  const tagMap = new Map<string, TagAccumulator>();
+
+  for (const { artist, tags } of tagResults) {
+    const filtered = tags
+      .filter((t) => !GENERIC_TAGS.has(t.name.toLowerCase()))
+      .slice(0, 5);
+
+    for (const tag of filtered) {
+      const key = tag.name.toLowerCase();
+      const existing = tagMap.get(key);
+      const weight = tag.count * artist.viewCount;
+
+      if (existing) {
+        existing.weight += weight;
+        existing.fromArtists.add(artist.name);
+      } else {
+        tagMap.set(key, {
+          weight,
+          fromArtists: new Set([artist.name]),
+        });
+      }
+    }
+  }
+
+  const weightedTags: WeightedTag[] = Array.from(tagMap.entries()).map(
+    ([key, { weight }]) => {
+      const originalName =
+        tagResults
+          .flatMap((r) => r.tags)
+          .find((t) => t.name.toLowerCase() === key)?.name ?? key;
+      return { name: originalName, weight };
+    }
+  );
+
+  return { weightedTags, tagMap };
+}
+
+function buildTrace(
+  plexArtists: { name: string; viewCount: number }[],
+  pickedArtistNames: Set<string>,
+  tagResults: TagResultEntry[],
+  tagMap: Map<string, TagAccumulator>,
+  chosenTag: WeightedTag,
+  albumPool: TraceAlbumPoolInfo,
+  selectionReason: TraceSelectionReason
+): RecommendationTrace {
+  const traceArtists: TraceArtistEntry[] = plexArtists.map((a) => {
+    const picked = pickedArtistNames.has(a.name);
+    const result = tagResults.find((r) => r.artist.name === a.name);
+    const filtered = (result?.tags ?? [])
+      .filter((t) => !GENERIC_TAGS.has(t.name.toLowerCase()))
+      .slice(0, 5);
+
+    return {
+      name: a.name,
+      viewCount: a.viewCount,
+      picked,
+      tagContributions: picked
+        ? filtered.map((t) => ({
+            tagName: t.name,
+            rawCount: t.count,
+            weight: t.count * a.viewCount,
+          }))
+        : [],
+    };
+  });
+
+  const traceWeightedTags: TraceWeightedTag[] = Array.from(
+    tagMap.entries()
+  ).map(([key, { weight, fromArtists }]) => {
+    const originalName =
+      tagResults
+        .flatMap((r) => r.tags)
+        .find((t) => t.name.toLowerCase() === key)?.name ?? key;
+    return { name: originalName, weight, fromArtists: Array.from(fromArtists) };
+  });
+
+  return {
+    plexArtists: traceArtists,
+    weightedTags: traceWeightedTags,
+    chosenTag: { name: chosenTag.name, weight: chosenTag.weight },
+    albumPool,
+    selectionReason,
+  };
+}
+
 export async function getPromotedAlbum(
   forceRefresh = false
 ): Promise<PromotedAlbumResult> {
@@ -120,8 +214,9 @@ export async function getPromotedAlbum(
   if (plexArtists.length === 0) return null;
 
   const pickedArtists = weightedRandomPick(plexArtists, (a) => a.viewCount, 3);
+  const pickedArtistNames = new Set(pickedArtists.map((a) => a.name));
 
-  const tagResults = await Promise.all(
+  const tagResults: TagResultEntry[] = await Promise.all(
     pickedArtists.map(async (artist) => {
       try {
         const tags = await getArtistTopTags(artist.name);
@@ -132,20 +227,7 @@ export async function getPromotedAlbum(
     })
   );
 
-  const weightedTags: WeightedTag[] = [];
-
-  for (const { artist, tags } of tagResults) {
-    const filtered = tags
-      .filter((t) => !GENERIC_TAGS.has(t.name.toLowerCase()))
-      .slice(0, 5);
-
-    for (const tag of filtered) {
-      weightedTags.push({
-        name: tag.name,
-        weight: tag.count * artist.viewCount,
-      });
-    }
-  }
+  const { weightedTags, tagMap } = mergeTagsFromResults(tagResults);
 
   if (weightedTags.length === 0) return null;
 
@@ -170,9 +252,6 @@ export async function getPromotedAlbum(
 
   const shuffled = shuffle(allAlbums);
 
-  // Convert Last.fm release MBIDs to release-group MBIDs
-  // Do this sequentially (not in parallel) to avoid MusicBrainz rate limiting
-  // Prefer non-library albums, but fall back to in-library if all are in library
   let chosenAlbum: { album: (typeof shuffled)[0]; rgMbid: string } | undefined;
   let fallbackAlbum:
     | { album: (typeof shuffled)[0]; rgMbid: string }
@@ -194,6 +273,27 @@ export async function getPromotedAlbum(
   const picked = chosenAlbum ?? fallbackAlbum;
   if (!picked) return null;
 
+  const selectionReason: TraceSelectionReason = chosenAlbum
+    ? "preferred_non_library"
+    : "fallback_in_library";
+
+  const albumPoolInfo: TraceAlbumPoolInfo = {
+    page1Count: page1.albums.length,
+    deepPage: Number(deepPage),
+    deepPageCount: pageDeep.albums.length,
+    totalAfterDedup: allAlbums.length,
+  };
+
+  const trace = buildTrace(
+    plexArtists,
+    pickedArtistNames,
+    tagResults,
+    tagMap,
+    chosenTag,
+    albumPoolInfo,
+    selectionReason
+  );
+
   const result: PromotedAlbumResult = {
     album: {
       name: picked.album.name,
@@ -204,6 +304,7 @@ export async function getPromotedAlbum(
     },
     tag: chosenTag.name,
     inLibrary: albumInLibrary(picked.rgMbid),
+    trace,
   };
 
   cachedResult = result;

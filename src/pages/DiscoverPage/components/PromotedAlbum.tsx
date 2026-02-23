@@ -4,6 +4,7 @@ import type { PromotedAlbumData } from "@/hooks/usePromotedAlbum";
 import type { MonitorState } from "@/types";
 import MonitorButton from "@/components/MonitorButton";
 import PurchaseLinksModal from "@/components/PurchaseLinksModal";
+import RecommendationTraceModal from "./RecommendationTraceModal";
 import { RefreshIcon } from "@/components/icons";
 import useLidarr from "@/hooks/useLidarr";
 import ImageWithShimmer from "@/components/ImageWithShimmer";
@@ -32,6 +33,7 @@ export default function PromotedAlbum({
 }: PromotedAlbumProps) {
   const [coverError, setCoverError] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isTraceOpen, setIsTraceOpen] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const { state, errorMsg, addToLidarr } = useLidarr();
 
@@ -137,9 +139,12 @@ export default function PromotedAlbum({
                     {album.artistName}
                   </Link>
                   {tag && (
-                    <span className="inline-block mt-2 px-2 py-0.5 bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 text-xs font-medium rounded-full border border-violet-200 dark:border-violet-700">
+                    <button
+                      onClick={() => setIsTraceOpen(true)}
+                      className="inline-block mt-2 px-2 py-0.5 bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 text-xs font-medium rounded-full border border-violet-200 dark:border-violet-700 hover:bg-violet-200 dark:hover:bg-violet-900/50 transition-colors cursor-pointer"
+                    >
                       Because you listen to {tag}
-                    </span>
+                    </button>
                   )}
                 </div>
 
@@ -164,6 +169,16 @@ export default function PromotedAlbum({
           albumTitle={album.name}
           albumMbid={album.mbid}
           onAddToLibrary={handleAddToLibrary}
+        />
+      )}
+
+      {data?.trace && album && (
+        <RecommendationTraceModal
+          isOpen={isTraceOpen}
+          onClose={() => setIsTraceOpen(false)}
+          trace={data.trace}
+          albumName={album.name}
+          artistName={album.artistName}
         />
       )}
     </>

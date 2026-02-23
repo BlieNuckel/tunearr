@@ -5,9 +5,15 @@ interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   children: ReactNode;
+  panelClassName?: string;
 }
 
-export default function Modal({ isOpen, onClose, children }: ModalProps) {
+export default function Modal({
+  isOpen,
+  onClose,
+  children,
+  panelClassName,
+}: ModalProps) {
   const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
   const [closing, setClosing] = useState(false);
 
@@ -25,7 +31,7 @@ export default function Modal({ isOpen, onClose, children }: ModalProps) {
       onClick={onClose}
     >
       <div
-        className={`bg-white dark:bg-gray-800 w-full h-full p-6 md:h-auto md:max-w-md md:rounded-xl md:border-4 md:border-black md:shadow-cartoon-lg ${closing ? "animate-pop-out" : "animate-pop"}`}
+        className={`bg-white dark:bg-gray-800 w-full h-full p-6 md:h-auto ${panelClassName ?? "md:max-w-md"} md:rounded-xl md:border-4 md:border-black md:shadow-cartoon-lg ${closing ? "animate-pop-out" : "animate-pop"}`}
         onAnimationEnd={() => {
           if (closing) setClosing(false);
         }}

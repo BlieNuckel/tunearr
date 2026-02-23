@@ -43,6 +43,15 @@ vi.mock("@/components/MonitorButton", () => ({
   ),
 }));
 
+vi.mock("../RecommendationTraceModal", () => ({
+  default: ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) =>
+    isOpen ? (
+      <div data-testid="trace-modal">
+        <button onClick={onClose}>Close Trace</button>
+      </div>
+    ) : null,
+}));
+
 const albumData: PromotedAlbumData = {
   album: {
     name: "OK Computer",
@@ -53,6 +62,36 @@ const albumData: PromotedAlbumData = {
   },
   tag: "alternative",
   inLibrary: false,
+  trace: {
+    plexArtists: [
+      {
+        name: "Radiohead",
+        viewCount: 100,
+        picked: true,
+        tagContributions: [
+          { tagName: "alternative", rawCount: 100, weight: 10000 },
+        ],
+      },
+      {
+        name: "Bjork",
+        viewCount: 50,
+        picked: false,
+        tagContributions: [],
+      },
+    ],
+    weightedTags: [
+      { name: "alternative", weight: 10000, fromArtists: ["Radiohead"] },
+      { name: "rock", weight: 8000, fromArtists: ["Radiohead"] },
+    ],
+    chosenTag: { name: "alternative", weight: 10000 },
+    albumPool: {
+      page1Count: 50,
+      deepPage: 4,
+      deepPageCount: 50,
+      totalAfterDedup: 95,
+    },
+    selectionReason: "preferred_non_library",
+  },
 };
 
 const mockRefresh = vi.fn();
@@ -241,5 +280,31 @@ describe("PromotedAlbum", () => {
 
     const button = screen.getByLabelText("Shuffle recommendation");
     expect(button).toBeDisabled();
+  });
+
+  it("tag chip is a clickable button", () => {
+    renderWithRouter(
+      <PromotedAlbum data={albumData} loading={false} onRefresh={mockRefresh} />
+    );
+    const tagChip = screen.getByText("Because you listen to alternative");
+    expect(tagChip.tagName).toBe("BUTTON");
+  });
+
+  it("clicking tag chip opens trace modal", () => {
+    renderWithRouter(
+      <PromotedAlbum data={albumData} loading={false} onRefresh={mockRefresh} />
+    );
+    fireEvent.click(screen.getByText("Because you listen to alternative"));
+    expect(screen.getByTestId("trace-modal")).toBeInTheDocument();
+  });
+
+  it("closes trace modal when close button clicked", () => {
+    renderWithRouter(
+      <PromotedAlbum data={albumData} loading={false} onRefresh={mockRefresh} />
+    );
+    fireEvent.click(screen.getByText("Because you listen to alternative"));
+    expect(screen.getByTestId("trace-modal")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Close Trace"));
+    expect(screen.queryByTestId("trace-modal")).not.toBeInTheDocument();
   });
 });
