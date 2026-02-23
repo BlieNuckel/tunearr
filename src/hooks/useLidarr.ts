@@ -94,5 +94,10 @@ export default function useLidarr() {
     []
   );
 
-  return { state, errorMsg, addToLidarr, removeFromLidarr };
+  const reset = useCallback(() => {
+    setState("idle");
+    setErrorMsg(null);
+  }, []);
+
+  return { state, errorMsg, addToLidarr, removeFromLidarr, reset };
 }

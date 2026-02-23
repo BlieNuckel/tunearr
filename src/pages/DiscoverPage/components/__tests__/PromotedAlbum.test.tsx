@@ -4,6 +4,7 @@ import PromotedAlbum from "../PromotedAlbum";
 import type { PromotedAlbumData } from "@/hooks/usePromotedAlbum";
 
 const mockAddToLidarr = vi.fn();
+const mockReset = vi.fn();
 let mockLidarrState = "idle";
 let mockLidarrError: string | null = null;
 
@@ -12,6 +13,7 @@ vi.mock("@/hooks/useLidarr", () => ({
     state: mockLidarrState,
     errorMsg: mockLidarrError,
     addToLidarr: mockAddToLidarr,
+    reset: mockReset,
   }),
 }));
 
@@ -161,6 +163,17 @@ describe("PromotedAlbum", () => {
 
     expect(mockRefresh).toHaveBeenCalled();
 
+    vi.useRealTimers();
+  });
+
+  it("resets lidarr state when shuffle button clicked", () => {
+    vi.useFakeTimers();
+    mockLidarrState = "success";
+    renderWithRouter(
+      <PromotedAlbum data={albumData} loading={false} onRefresh={mockRefresh} />
+    );
+    fireEvent.click(screen.getByLabelText("Shuffle recommendation"));
+    expect(mockReset).toHaveBeenCalled();
     vi.useRealTimers();
   });
 

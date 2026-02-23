@@ -35,7 +35,7 @@ export default function PromotedAlbum({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isTraceOpen, setIsTraceOpen] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
-  const { state, errorMsg, addToLidarr } = useLidarr();
+  const { state, errorMsg, addToLidarr, reset: resetLidarr } = useLidarr();
 
   const album = data?.album;
   const tag = data?.tag;
@@ -64,8 +64,9 @@ export default function PromotedAlbum({
   };
 
   const handleRefresh = () => {
-    if (loading) return; // Prevent refresh while already loading
+    if (loading) return;
     setIsAnimating(true);
+    resetLidarr();
     setTimeout(() => {
       onRefresh();
       setCoverError(false);
