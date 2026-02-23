@@ -151,10 +151,17 @@ describe("getTopArtistsByTag", () => {
       );
 
     const result = await getTopArtistsByTag(["grunge", "alternative"], "1");
-    expect(result.artists).toHaveLength(5);
-    expect(result.artists[0].name).toBe("Nirvana");
-    expect(result.artists.map((a) => a.name)).toContain("Pearl Jam");
-    expect(result.artists.map((a) => a.name)).toContain("Radiohead");
+    expect(result.sections).toHaveLength(2);
+    expect(result.sections[0].tagCount).toBe(2);
+    expect(result.sections[0].artists[0].name).toBe("Nirvana");
+    expect(result.sections[1].tagCount).toBe(1);
+
+    const allArtistNames = result.sections.flatMap((s) =>
+      s.artists.map((a) => a.name)
+    );
+    expect(allArtistNames).toContain("Nirvana");
+    expect(allArtistNames).toContain("Pearl Jam");
+    expect(allArtistNames).toContain("Radiohead");
   });
 
   it("defaults pagination to page 1 of 1", async () => {

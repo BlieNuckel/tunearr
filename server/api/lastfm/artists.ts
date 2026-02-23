@@ -80,12 +80,17 @@ export const getTopArtistsByTag = async (tags: string[], page = "1") => {
   if (tags.length === 0) {
     return {
       artists: [],
+      sections: [],
       pagination: { page: 1, totalPages: 1 },
     };
   }
 
   if (tags.length === 1) {
-    return fetchSingleTagArtists(tags[0], page);
+    const result = await fetchSingleTagArtists(tags[0], page);
+    return {
+      ...result,
+      sections: [],
+    };
   }
 
   const results = await Promise.all(
@@ -124,7 +129,7 @@ export const getTopArtistsByTag = async (tags: string[], page = "1") => {
     }
   }
 
-  const artists = Array.from(artistsByName.values())
+  const enrichedArtists = Array.from(artistsByName.values())
     .map((entry) => ({
       ...entry.artist,
       tagCount: entry.count,
@@ -134,16 +139,31 @@ export const getTopArtistsByTag = async (tags: string[], page = "1") => {
       if (a.tagCount !== b.tagCount) return b.tagCount - a.tagCount;
       return a.avgRank - b.avgRank;
     })
-    .slice(0, 30)
-    .map((artist, index) => ({
-      name: artist.name,
-      mbid: artist.mbid,
-      imageUrl: artist.imageUrl,
-      rank: index + 1,
+    .slice(0, 50);
+
+  const groups = new Map<number, typeof enrichedArtists>();
+  for (const artist of enrichedArtists) {
+    const existing = groups.get(artist.tagCount) || [];
+    existing.push(artist);
+    groups.set(artist.tagCount, existing);
+  }
+
+  const sections = Array.from(groups.entries())
+    .sort(([a], [b]) => b - a)
+    .map(([tagCount, artists]) => ({
+      tagCount,
+      tagNames: tags,
+      artists: artists.slice(0, 30).map((artist, index) => ({
+        name: artist.name,
+        mbid: artist.mbid,
+        imageUrl: artist.imageUrl,
+        rank: index + 1,
+      })),
     }));
 
   return {
-    artists,
+    artists: [],
+    sections,
     pagination: {
       page: Number(page) || 1,
       totalPages: 1,

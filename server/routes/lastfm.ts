@@ -62,13 +62,30 @@ router.get("/tag/artists", async (req: Request, res: Response) => {
     typeof page === "string" ? page : "1"
   );
 
-  const imageMap = await getArtistsImages(result.artists.map((a) => a.name));
-  const enrichedArtists = result.artists.map((a) => ({
-    ...a,
-    imageUrl: imageMap.get(a.name.toLowerCase()) || a.imageUrl,
-  }));
+  if (result.sections.length > 0) {
+    const allArtistNames = result.sections.flatMap((s) =>
+      s.artists.map((a) => a.name)
+    );
+    const imageMap = await getArtistsImages(allArtistNames);
 
-  res.json({ ...result, artists: enrichedArtists });
+    const enrichedSections = result.sections.map((section) => ({
+      ...section,
+      artists: section.artists.map((a) => ({
+        ...a,
+        imageUrl: imageMap.get(a.name.toLowerCase()) || a.imageUrl,
+      })),
+    }));
+
+    res.json({ ...result, sections: enrichedSections });
+  } else {
+    const imageMap = await getArtistsImages(result.artists.map((a) => a.name));
+    const enrichedArtists = result.artists.map((a) => ({
+      ...a,
+      imageUrl: imageMap.get(a.name.toLowerCase()) || a.imageUrl,
+    }));
+
+    res.json({ ...result, artists: enrichedArtists });
+  }
 });
 
 router.get("/tag/albums", async (req: Request, res: Response) => {

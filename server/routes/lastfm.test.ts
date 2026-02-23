@@ -94,6 +94,7 @@ describe("GET /tag/artists", () => {
   it("returns artists by single tag with default page", async () => {
     const result = {
       artists: [{ name: "Radiohead", imageUrl: "" }],
+      sections: [],
       pagination: { page: 1, totalPages: 5 },
     };
     mockGetTopArtistsByTag.mockResolvedValue(result);
@@ -107,15 +108,23 @@ describe("GET /tag/artists", () => {
       artists: [
         { name: "Radiohead", imageUrl: "https://deezer.com/radiohead.jpg" },
       ],
+      sections: [],
       pagination: { page: 1, totalPages: 5 },
     });
     expect(mockGetTopArtistsByTag).toHaveBeenCalledWith(["rock"], "1");
     expect(mockGetArtistsImages).toHaveBeenCalledWith(["Radiohead"]);
   });
 
-  it("returns artists by multiple tags", async () => {
+  it("returns artists by multiple tags with sections", async () => {
     const result = {
-      artists: [{ name: "Nirvana", imageUrl: "" }],
+      artists: [],
+      sections: [
+        {
+          tagCount: 2,
+          tagNames: ["grunge", "rock"],
+          artists: [{ name: "Nirvana", mbid: "n1", imageUrl: "", rank: 1 }],
+        },
+      ],
       pagination: { page: 1, totalPages: 1 },
     };
     mockGetTopArtistsByTag.mockResolvedValue(result);
@@ -125,12 +134,10 @@ describe("GET /tag/artists", () => {
 
     const res = await request(app).get("/tag/artists?tags=grunge,rock");
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({
-      artists: [
-        { name: "Nirvana", imageUrl: "https://deezer.com/nirvana.jpg" },
-      ],
-      pagination: { page: 1, totalPages: 1 },
-    });
+    expect(res.body.sections).toHaveLength(1);
+    expect(res.body.sections[0].artists[0].imageUrl).toBe(
+      "https://deezer.com/nirvana.jpg"
+    );
     expect(mockGetTopArtistsByTag).toHaveBeenCalledWith(
       ["grunge", "rock"],
       "1"
@@ -141,6 +148,7 @@ describe("GET /tag/artists", () => {
   it("forwards page parameter", async () => {
     const result = {
       artists: [],
+      sections: [],
       pagination: { page: 3, totalPages: 5 },
     };
     mockGetTopArtistsByTag.mockResolvedValue(result);

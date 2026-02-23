@@ -45,6 +45,7 @@ vi.mock("@/hooks/useDiscover", () => ({
     artistTags: [{ name: "rock", count: 100 }],
     tagsLoading: false,
     tagArtists: [],
+    tagArtistSections: [],
     tagArtistsLoading: false,
     tagArtistsError: null,
     tagPagination: { page: 1, totalPages: 1 },

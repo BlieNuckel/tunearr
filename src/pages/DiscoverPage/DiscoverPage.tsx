@@ -22,6 +22,7 @@ export default function DiscoverPage() {
     similarError,
     artistTags,
     tagArtists,
+    tagArtistSections,
     tagArtistsLoading,
     tagArtistsError,
     tagPagination,
@@ -82,7 +83,9 @@ export default function DiscoverPage() {
     }
   };
 
-  const showingTagResults = activeTags.length > 0 && tagArtists.length > 0;
+  const showingTagResults =
+    activeTags.length > 0 &&
+    (tagArtists.length > 0 || tagArtistSections.length > 0);
 
   return (
     <div>
@@ -152,6 +155,7 @@ export default function DiscoverPage() {
       {showingTagResults ? (
         <ArtistResultsList
           artists={tagArtists}
+          sections={tagArtistSections}
           isInLibrary={isInLibrary}
           isAlbumInLibrary={isAlbumInLibrary}
           pagination={{

@@ -37,6 +37,13 @@ export type TagArtist = {
   rank: number;
 };
 
+/** @typedef {Object} TagArtistSection */
+export type TagArtistSection = {
+  tagCount: number;
+  tagNames: string[];
+  artists: TagArtist[];
+};
+
 /** @typedef {Object} PlexTopArtist */
 export type PlexTopArtist = {
   name: string;
@@ -61,6 +68,9 @@ export default function useDiscover() {
   const [tagsLoading, setTagsLoading] = useState(false);
 
   const [tagArtists, setTagArtists] = useState<TagArtist[]>([]);
+  const [tagArtistSections, setTagArtistSections] = useState<
+    TagArtistSection[]
+  >([]);
   const [tagArtistsLoading, setTagArtistsLoading] = useState(false);
   const [tagArtistsError, setTagArtistsError] = useState<string | null>(null);
   const [tagPagination, setTagPagination] = useState({
@@ -167,7 +177,10 @@ export default function useDiscover() {
   const fetchTagArtists = useCallback(async (tags: string[], page = 1) => {
     setTagArtistsLoading(true);
     setTagArtistsError(null);
-    if (page === 1) setTagArtists([]);
+    if (page === 1) {
+      setTagArtists([]);
+      setTagArtistSections([]);
+    }
 
     try {
       const tagsParam = encodeURIComponent(tags.join(","));
@@ -181,7 +194,13 @@ export default function useDiscover() {
       }
 
       const data = await res.json();
-      setTagArtists(data.artists);
+      if (data.sections && data.sections.length > 0) {
+        setTagArtistSections(data.sections);
+        setTagArtists([]);
+      } else {
+        setTagArtists(data.artists);
+        setTagArtistSections([]);
+      }
       setTagPagination(data.pagination);
     } catch (err) {
       setTagArtistsError(
@@ -205,6 +224,7 @@ export default function useDiscover() {
     artistTags,
     tagsLoading,
     tagArtists,
+    tagArtistSections,
     tagArtistsLoading,
     tagArtistsError,
     tagPagination,
