@@ -125,16 +125,20 @@ export const getTopArtistsByTag = async (tags: string[], page = "1") => {
   }
 
   const artists = Array.from(artistsByName.values())
-    .filter((entry) => entry.count === tags.length)
+    .map((entry) => ({
+      ...entry.artist,
+      tagCount: entry.count,
+      avgRank: entry.totalRank / entry.count,
+    }))
     .sort((a, b) => {
-      if (a.count !== b.count) return b.count - a.count;
-      const avgRankA = a.totalRank / a.count;
-      const avgRankB = b.totalRank / b.count;
-      return avgRankA - avgRankB;
+      if (a.tagCount !== b.tagCount) return b.tagCount - a.tagCount;
+      return a.avgRank - b.avgRank;
     })
     .slice(0, 30)
-    .map((entry, index) => ({
-      ...entry.artist,
+    .map((artist, index) => ({
+      name: artist.name,
+      mbid: artist.mbid,
+      imageUrl: artist.imageUrl,
       rank: index + 1,
     }));
 

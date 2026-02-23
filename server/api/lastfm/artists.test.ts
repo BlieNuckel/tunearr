@@ -123,7 +123,7 @@ describe("getTopArtistsByTag", () => {
     expect(result.pagination).toEqual({ page: 1, totalPages: 1 });
   });
 
-  it("intersects results for multiple tags", async () => {
+  it("returns union with priority for artists in multiple tags", async () => {
     mockFetch
       .mockResolvedValueOnce(
         jsonResponse({
@@ -151,8 +151,10 @@ describe("getTopArtistsByTag", () => {
       );
 
     const result = await getTopArtistsByTag(["grunge", "alternative"], "1");
-    expect(result.artists).toHaveLength(1);
+    expect(result.artists).toHaveLength(5);
     expect(result.artists[0].name).toBe("Nirvana");
+    expect(result.artists.map((a) => a.name)).toContain("Pearl Jam");
+    expect(result.artists.map((a) => a.name)).toContain("Radiohead");
   });
 
   it("defaults pagination to page 1 of 1", async () => {
