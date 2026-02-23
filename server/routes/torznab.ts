@@ -18,12 +18,19 @@ const router = express.Router();
 type CachedResult = { result: GroupedSearchResult; expiresAt: number };
 const resultCache = new Map<string, CachedResult>();
 
-const CACHE_TTL_MS = 30 * 60 * 1000;
+type CachedSearch = { results: GroupedSearchResult[]; expiresAt: number };
+const searchCache = new Map<string, CachedSearch>();
 
-function cleanExpiredCache(): void {
+const CACHE_TTL_MS = 30 * 60 * 1000;
+const DEFAULT_LIMIT = 100;
+
+function cleanExpiredCaches(): void {
   const now = Date.now();
   for (const [key, entry] of resultCache) {
     if (entry.expiresAt < now) resultCache.delete(key);
+  }
+  for (const [key, entry] of searchCache) {
+    if (entry.expiresAt < now) searchCache.delete(key);
   }
 }
 
@@ -53,7 +60,7 @@ router.get("/", async (req: Request, res: Response) => {
 });
 
 router.get("/download/:guid", (req: Request, res: Response) => {
-  cleanExpiredCache();
+  cleanExpiredCaches();
 
   const guid = req.params.guid as string;
   const cached = resultCache.get(guid);
@@ -111,35 +118,23 @@ async function handleSearch(req: Request, res: Response): Promise<void> {
     return;
   }
 
-  log.info(`Searching slskd for: "${query}"`);
+  const offset = parseInt((req.query.offset as string) || "0", 10) || 0;
+  const limit =
+    parseInt((req.query.limit as string) || String(DEFAULT_LIMIT), 10) ||
+    DEFAULT_LIMIT;
 
   try {
-    const searchState = await startSearch(query);
-    const waitResult = await waitForSearch(searchState.id);
-
-    if (!waitResult.completed) {
-      log.warn(`Search timed out for "${query}", returning partial results`);
-    }
-
-    const responses = await getSearchResponses(searchState.id);
-    log.info(
-      `Search "${query}": ${responses.length} responses, ${responses.reduce((n, r) => n + r.fileCount, 0)} files`
-    );
-    deleteSearch(searchState.id).catch(() => {});
-
-    const results = groupSearchResults(responses);
-    log.info(
-      `Search "${query}": ${results.length} grouped results after filtering`
-    );
-
-    cleanExpiredCache();
+    const results = await getOrSearchResults(query);
     const baseUrl = buildBaseUrl(req);
-    const now = Date.now();
-    for (const result of results) {
-      resultCache.set(result.guid, { result, expiresAt: now + CACHE_TTL_MS });
-    }
 
-    const xml = buildResultsXml(results, baseUrl);
+    cacheResultsForDownload(results);
+
+    const page = results.slice(offset, offset + limit);
+    log.info(
+      `Search "${query}": returning ${page.length} of ${results.length} results (offset=${offset}, limit=${limit})`
+    );
+
+    const xml = buildResultsXml(page, results.length, offset, baseUrl);
     res.type("text/xml").send(xml);
   } catch (err) {
     log.error("Search failed:", err);
@@ -149,6 +144,53 @@ async function handleSearch(req: Request, res: Response): Promise<void> {
       .send(
         `<?xml version="1.0" encoding="UTF-8"?><error code="900" description="Internal error" />`
       );
+  }
+}
+
+async function getOrSearchResults(
+  query: string
+): Promise<GroupedSearchResult[]> {
+  const cacheKey = query.toLowerCase().trim();
+  const cached = searchCache.get(cacheKey);
+
+  if (cached && cached.expiresAt > Date.now()) {
+    log.info(`Search "${query}": serving from cache (${cached.results.length} results)`);
+    return cached.results;
+  }
+
+  log.info(`Searching slskd for: "${query}"`);
+
+  const searchState = await startSearch(query);
+  const waitResult = await waitForSearch(searchState.id);
+
+  if (!waitResult.completed) {
+    log.warn(`Search timed out for "${query}", returning partial results`);
+  }
+
+  const responses = await getSearchResponses(searchState.id);
+  log.info(
+    `Search "${query}": ${responses.length} responses, ${responses.reduce((n, r) => n + r.fileCount, 0)} files`
+  );
+  deleteSearch(searchState.id).catch(() => {});
+
+  const results = groupSearchResults(responses);
+  log.info(
+    `Search "${query}": ${results.length} grouped results after filtering`
+  );
+
+  cleanExpiredCaches();
+  searchCache.set(cacheKey, {
+    results,
+    expiresAt: Date.now() + CACHE_TTL_MS,
+  });
+
+  return results;
+}
+
+function cacheResultsForDownload(results: GroupedSearchResult[]): void {
+  const now = Date.now();
+  for (const result of results) {
+    resultCache.set(result.guid, { result, expiresAt: now + CACHE_TTL_MS });
   }
 }
 
@@ -183,6 +225,8 @@ function buildTestResultXml(): string {
 
 function buildResultsXml(
   results: GroupedSearchResult[],
+  total: number,
+  offset: number,
   baseUrl: string
 ): string {
   const items = results.map((r) => buildItemXml(r, baseUrl)).join("\n");
@@ -192,6 +236,7 @@ function buildResultsXml(
     '<rss version="2.0" xmlns:newznab="http://www.newznab.com/DTD/2010/feeds/attributes/">',
     "  <channel>",
     "    <title>music-requester slskd</title>",
+    `    <newznab:response offset="${offset}" total="${total}" />`,
     items,
     "  </channel>",
     "</rss>",

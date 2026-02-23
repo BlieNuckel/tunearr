@@ -39,6 +39,14 @@ app.use(
   }
 );
 
+function setupSearchMocks(results: unknown[] = []) {
+  mockStartSearch.mockResolvedValue({ id: "s1" });
+  mockWaitForSearch.mockResolvedValue({ completed: true, fileCount: 0 });
+  mockGetSearchResponses.mockResolvedValue([]);
+  mockDeleteSearch.mockResolvedValue(undefined);
+  mockGroupSearchResults.mockReturnValue(results);
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
 });
@@ -57,30 +65,19 @@ describe("GET /?t=caps", () => {
 
 describe("GET /?t=music", () => {
   it("searches with artist and album", async () => {
-    mockStartSearch.mockResolvedValue({
-      id: "s1",
-      searchText: "Radiohead OK Computer",
-    });
-    mockWaitForSearch.mockResolvedValue({ completed: true, fileCount: 0 });
-    mockGetSearchResponses.mockResolvedValue([]);
-    mockDeleteSearch.mockResolvedValue(undefined);
-    mockGroupSearchResults.mockReturnValue([]);
+    setupSearchMocks();
 
     const res = await request(app).get(
-      "/?t=music&artist=Radiohead&album=OK+Computer"
+      "/?t=music&artist=Portishead&album=Dummy"
     );
     expect(res.status).toBe(200);
     expect(res.headers["content-type"]).toContain("xml");
-    expect(mockStartSearch).toHaveBeenCalledWith("Radiohead OK Computer");
+    expect(mockStartSearch).toHaveBeenCalledWith("Portishead Dummy");
     expect(res.text).toContain("<rss");
   });
 
-  it("returns results as RSS items", async () => {
-    mockStartSearch.mockResolvedValue({ id: "s1" });
-    mockWaitForSearch.mockResolvedValue({ completed: true, fileCount: 0 });
-    mockGetSearchResponses.mockResolvedValue([{}]);
-    mockDeleteSearch.mockResolvedValue(undefined);
-    mockGroupSearchResults.mockReturnValue([
+  it("returns results as RSS items with newznab:response", async () => {
+    setupSearchMocks([
       {
         guid: "abc123",
         username: "user1",
@@ -102,6 +99,7 @@ describe("GET /?t=music", () => {
     expect(res.text).toContain("user1");
     expect(res.text).toContain("OK Computer");
     expect(res.text).toContain('value="3040"');
+    expect(res.text).toContain('offset="0" total="1"');
   });
 
   it("returns placeholder item when search query is missing", async () => {
@@ -116,15 +114,72 @@ describe("GET /?t=music", () => {
 
 describe("GET /?t=search", () => {
   it("searches with q parameter", async () => {
-    mockStartSearch.mockResolvedValue({ id: "s1" });
-    mockWaitForSearch.mockResolvedValue({ completed: true, fileCount: 0 });
-    mockGetSearchResponses.mockResolvedValue([]);
-    mockDeleteSearch.mockResolvedValue(undefined);
-    mockGroupSearchResults.mockReturnValue([]);
+    setupSearchMocks();
 
     const res = await request(app).get("/?t=search&q=radiohead");
     expect(res.status).toBe(200);
     expect(mockStartSearch).toHaveBeenCalledWith("radiohead");
+  });
+});
+
+describe("pagination", () => {
+  it("serves subsequent pages from cache without re-searching", async () => {
+    const results = Array.from({ length: 3 }, (_, i) => ({
+      guid: `guid-${i}`,
+      username: `user${i}`,
+      directory: `Music\\Album${i}`,
+      files: [{ filename: `track${i}.flac`, size: 1000 }],
+      totalSize: 1000,
+      hasFreeUploadSlot: true,
+      uploadSpeed: 100,
+      bitRate: 320,
+      category: 3040,
+    }));
+    setupSearchMocks(results);
+
+    const res1 = await request(app).get(
+      "/?t=search&q=test&offset=0&limit=2"
+    );
+    expect(res1.status).toBe(200);
+    expect(res1.text).toContain('offset="0" total="3"');
+    expect(res1.text).toContain("user0");
+    expect(res1.text).toContain("user1");
+    expect(res1.text).not.toContain("user2");
+    expect(mockStartSearch).toHaveBeenCalledTimes(1);
+
+    const res2 = await request(app).get(
+      "/?t=search&q=test&offset=2&limit=2"
+    );
+    expect(res2.status).toBe(200);
+    expect(res2.text).toContain('offset="2" total="3"');
+    expect(res2.text).toContain("user2");
+    expect(res2.text).not.toContain("user0");
+    expect(mockStartSearch).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns empty page when offset exceeds results", async () => {
+    setupSearchMocks([
+      {
+        guid: "g1",
+        username: "user1",
+        directory: "Music\\Album",
+        files: [{ filename: "track.flac", size: 1000 }],
+        totalSize: 1000,
+        hasFreeUploadSlot: true,
+        uploadSpeed: 100,
+        bitRate: 320,
+        category: 3040,
+      },
+    ]);
+
+    await request(app).get("/?t=search&q=test2&offset=0&limit=100");
+
+    const res = await request(app).get(
+      "/?t=search&q=test2&offset=100&limit=100"
+    );
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('offset="100" total="1"');
+    expect(res.text).not.toContain("<item>");
   });
 });
 
@@ -136,11 +191,6 @@ describe("GET /download/:guid", () => {
   });
 
   it("returns NZB for cached result", async () => {
-    mockStartSearch.mockResolvedValue({ id: "s1" });
-    mockWaitForSearch.mockResolvedValue({ completed: true, fileCount: 0 });
-    mockGetSearchResponses.mockResolvedValue([]);
-    mockDeleteSearch.mockResolvedValue(undefined);
-
     const result = {
       guid: "cached-guid-123",
       username: "user1",
@@ -152,10 +202,10 @@ describe("GET /download/:guid", () => {
       bitRate: 320,
       category: 3040,
     };
-    mockGroupSearchResults.mockReturnValue([result]);
+    setupSearchMocks([result]);
     mockEncodeNzb.mockReturnValue("<nzb>test</nzb>");
 
-    await request(app).get("/?t=search&q=test");
+    await request(app).get("/?t=search&q=dltest");
 
     const res = await request(app).get("/download/cached-guid-123");
     expect(res.status).toBe(200);
