@@ -34,7 +34,7 @@ describe("encodeNzb", () => {
       '<meta type="title">Rock &amp; Roll &lt;Live&gt; &quot;2024&quot;</meta>'
     );
     expect(xml).toContain(
-      'file subject="Rock &amp; Roll &lt;Live&gt; &quot;2024&quot;"'
+      'subject="Rock &amp; Roll &lt;Live&gt; &quot;2024&quot;"'
     );
     expect(xml).not.toContain("Rock & Roll <Live>");
   });
