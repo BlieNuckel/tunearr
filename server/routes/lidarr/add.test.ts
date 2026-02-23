@@ -6,6 +6,12 @@ const mockGetOrAddAlbum = vi.fn();
 const mockRemoveAlbum = vi.fn();
 const mockLidarrPost = vi.fn();
 const mockLidarrPut = vi.fn();
+const mockClearPromotedAlbumCache = vi.fn();
+
+vi.mock("../../promotedAlbum/getPromotedAlbum", () => ({
+  clearPromotedAlbumCache: (...args: unknown[]) =>
+    mockClearPromotedAlbumCache(...args),
+}));
 
 vi.mock("./helpers", () => ({
   getAlbumByMbid: (...args: unknown[]) => mockGetAlbumByMbid(...args),
@@ -119,6 +125,35 @@ describe("POST /add", () => {
       name: "AlbumSearch",
       albumIds: [10],
     });
+  });
+
+  it("clears promoted album cache on successful add", async () => {
+    mockGetAlbumByMbid.mockResolvedValue({
+      artist: { foreignArtistId: "artist-mbid" },
+    });
+    mockGetOrAddArtist.mockResolvedValue({ id: 1 });
+    mockGetOrAddAlbum.mockResolvedValue({
+      wasAdded: true,
+      album: { id: 10, monitored: true },
+    });
+    mockLidarrPost.mockResolvedValue({ ok: true });
+
+    await request(app).post("/add").send({ albumMbid: "mbid-1" });
+    expect(mockClearPromotedAlbumCache).toHaveBeenCalled();
+  });
+
+  it("does not clear promoted album cache when already monitored", async () => {
+    mockGetAlbumByMbid.mockResolvedValue({
+      artist: { foreignArtistId: "artist-mbid" },
+    });
+    mockGetOrAddArtist.mockResolvedValue({ id: 1 });
+    mockGetOrAddAlbum.mockResolvedValue({
+      wasAdded: false,
+      album: { id: 10, monitored: true },
+    });
+
+    await request(app).post("/add").send({ albumMbid: "mbid-1" });
+    expect(mockClearPromotedAlbumCache).not.toHaveBeenCalled();
   });
 
   it("throws when monitor call fails", async () => {

@@ -1,6 +1,7 @@
 import express, { Request, Response } from "express";
 import { lidarrPost } from "../../api/lidarr/post";
 import { lidarrPut } from "../../api/lidarr/put";
+import { clearPromotedAlbumCache } from "../../promotedAlbum/getPromotedAlbum";
 import {
   getAlbumByMbid,
   getOrAddArtist,
@@ -47,6 +48,8 @@ router.post("/add", async (req: Request, res: Response) => {
     name: "AlbumSearch",
     albumIds: [album.id],
   });
+
+  clearPromotedAlbumCache();
 
   res.json({ status: "success" });
 });
