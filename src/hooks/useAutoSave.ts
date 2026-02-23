@@ -3,7 +3,9 @@ import type { LidarrSettings } from "@/context/lidarrContextDef";
 
 export type SaveStatus = "idle" | "saving" | "saved" | "error";
 
-type DebounceTimers = Partial<Record<keyof LidarrSettings, ReturnType<typeof setTimeout>>>;
+type DebounceTimers = Partial<
+  Record<keyof LidarrSettings, ReturnType<typeof setTimeout>>
+>;
 
 const TEXT_DEBOUNCE_MS = 800;
 

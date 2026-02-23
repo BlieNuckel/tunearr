@@ -20,9 +20,7 @@ describe("SaveStatusIndicator", () => {
   });
 
   it("shows error message", () => {
-    render(
-      <SaveStatusIndicator status="error" error="Network error" />
-    );
+    render(<SaveStatusIndicator status="error" error="Network error" />);
     expect(screen.getByText("Save failed: Network error")).toBeInTheDocument();
   });
 

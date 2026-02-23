@@ -195,9 +195,7 @@ export default function SettingsPage() {
               qualityProfileId={fields.lidarrQualityProfileId}
               metadataProfiles={options.metadataProfiles}
               metadataProfileId={fields.lidarrMetadataProfileId}
-              onRootFolderChange={(v) =>
-                updateField("lidarrRootFolderPath", v)
-              }
+              onRootFolderChange={(v) => updateField("lidarrRootFolderPath", v)}
               onQualityProfileChange={(v) =>
                 updateField("lidarrQualityProfileId", v)
               }
@@ -240,9 +238,7 @@ export default function SettingsPage() {
               downloadPath={fields.slskdDownloadPath}
               onUrlChange={(v) => updateField("slskdUrl", v)}
               onApiKeyChange={(v) => updateField("slskdApiKey", v)}
-              onDownloadPathChange={(v) =>
-                updateField("slskdDownloadPath", v)
-              }
+              onDownloadPathChange={(v) => updateField("slskdDownloadPath", v)}
             />
           </div>
         )}

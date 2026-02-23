@@ -38,9 +38,7 @@ export default function TrackList({
       </div>
     );
   if (error)
-    return (
-      <p className="text-sm text-red-400 dark:text-red-300">{error}</p>
-    );
+    return <p className="text-sm text-red-400 dark:text-red-300">{error}</p>;
   if (media.length === 0)
     return (
       <p className="text-sm text-gray-500 dark:text-gray-300">
@@ -82,9 +80,7 @@ export default function TrackList({
                       )}
                     </span>
                   )}
-                  <span
-                    className="flex-1 min-w-0 truncate text-gray-700 dark:text-gray-200"
-                  >
+                  <span className="flex-1 min-w-0 truncate text-gray-700 dark:text-gray-200">
                     {track.title}
                   </span>
                   {track.length && (
