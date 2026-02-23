@@ -3,11 +3,10 @@ import TagList from "../TagList";
 
 const defaultProps = {
   tags: [{ name: "rock" }, { name: "alternative" }],
-  activeTag: null,
+  activeTags: [] as string[],
   showingTagResults: false,
   selectedArtist: "Radiohead",
   onTagClick: vi.fn(),
-  onClearTag: vi.fn(),
 };
 
 beforeEach(() => {
@@ -22,7 +21,11 @@ describe("TagList", () => {
 
   it("shows tag results heading when active tag", () => {
     render(
-      <TagList {...defaultProps} activeTag="rock" showingTagResults={true} />
+      <TagList
+        {...defaultProps}
+        activeTags={["rock"]}
+        showingTagResults={true}
+      />
     );
     expect(screen.getByText('Top artists for "rock"')).toBeInTheDocument();
   });
@@ -40,29 +43,34 @@ describe("TagList", () => {
   });
 
   it("highlights active tag", () => {
-    render(<TagList {...defaultProps} activeTag="rock" />);
+    render(<TagList {...defaultProps} activeTags={["rock"]} />);
     const rockButton = screen.getByText("rock").closest("button")!;
     expect(rockButton.className).toContain("bg-amber-300");
-  });
-
-  it("shows back button when tag is active", () => {
-    render(<TagList {...defaultProps} activeTag="rock" />);
-    expect(screen.getByText("Back to similar")).toBeInTheDocument();
-  });
-
-  it("does not show back button when no active tag", () => {
-    render(<TagList {...defaultProps} />);
-    expect(screen.queryByText("Back to similar")).not.toBeInTheDocument();
-  });
-
-  it("calls onClearTag when back button clicked", () => {
-    render(<TagList {...defaultProps} activeTag="rock" />);
-    fireEvent.click(screen.getByText("Back to similar"));
-    expect(defaultProps.onClearTag).toHaveBeenCalled();
   });
 
   it("renders nothing when tags is empty", () => {
     render(<TagList {...defaultProps} tags={[]} />);
     expect(screen.queryByText("rock")).not.toBeInTheDocument();
+  });
+
+  it("highlights multiple active tags", () => {
+    render(<TagList {...defaultProps} activeTags={["rock", "alternative"]} />);
+    const rockButton = screen.getByText("rock").closest("button")!;
+    const altButton = screen.getByText("alternative").closest("button")!;
+    expect(rockButton.className).toContain("bg-amber-300");
+    expect(altButton.className).toContain("bg-amber-300");
+  });
+
+  it("shows comma-separated tags in heading for multiple tags", () => {
+    render(
+      <TagList
+        {...defaultProps}
+        activeTags={["rock", "alternative"]}
+        showingTagResults={true}
+      />
+    );
+    expect(
+      screen.getByText('Top artists for "rock", "alternative"')
+    ).toBeInTheDocument();
   });
 });

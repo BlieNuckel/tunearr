@@ -92,7 +92,7 @@ describe("getArtistTopTags", () => {
 });
 
 describe("getTopArtistsByTag", () => {
-  it("maps response with pagination", async () => {
+  it("maps response with pagination for single tag", async () => {
     mockFetch.mockResolvedValue(
       jsonResponse({
         topartists: {
@@ -105,7 +105,7 @@ describe("getTopArtistsByTag", () => {
       })
     );
 
-    const result = await getTopArtistsByTag("rock", "2");
+    const result = await getTopArtistsByTag(["rock"], "2");
     expect(result.artists).toHaveLength(2);
     expect(result.artists[0]).toEqual({
       name: "Artist One",
@@ -117,10 +117,48 @@ describe("getTopArtistsByTag", () => {
     expect(result.pagination).toEqual({ page: 2, totalPages: 5 });
   });
 
+  it("returns empty array for empty tags", async () => {
+    const result = await getTopArtistsByTag([]);
+    expect(result.artists).toEqual([]);
+    expect(result.pagination).toEqual({ page: 1, totalPages: 1 });
+  });
+
+  it("intersects results for multiple tags", async () => {
+    mockFetch
+      .mockResolvedValueOnce(
+        jsonResponse({
+          topartists: {
+            artist: [
+              { name: "Nirvana", mbid: "n1" },
+              { name: "Pearl Jam", mbid: "p1" },
+              { name: "Soundgarden", mbid: "s1" },
+            ],
+            "@attr": { page: "1", totalPages: "1" },
+          },
+        })
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          topartists: {
+            artist: [
+              { name: "Nirvana", mbid: "n1" },
+              { name: "Radiohead", mbid: "r1" },
+              { name: "The Smashing Pumpkins", mbid: "t1" },
+            ],
+            "@attr": { page: "1", totalPages: "1" },
+          },
+        })
+      );
+
+    const result = await getTopArtistsByTag(["grunge", "alternative"], "1");
+    expect(result.artists).toHaveLength(1);
+    expect(result.artists[0].name).toBe("Nirvana");
+  });
+
   it("defaults pagination to page 1 of 1", async () => {
     mockFetch.mockResolvedValue(jsonResponse({ topartists: { artist: [] } }));
 
-    const result = await getTopArtistsByTag("niche");
+    const result = await getTopArtistsByTag(["niche"]);
     expect(result.pagination).toEqual({ page: 1, totalPages: 1 });
   });
 
@@ -129,6 +167,6 @@ describe("getTopArtistsByTag", () => {
       jsonResponse({ error: 6, message: "Tag not found" })
     );
 
-    await expect(getTopArtistsByTag("bad")).rejects.toThrow("Tag not found");
+    await expect(getTopArtistsByTag(["bad"])).rejects.toThrow("Tag not found");
   });
 });

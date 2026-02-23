@@ -4,27 +4,30 @@ interface Tag {
 
 interface TagListProps {
   tags: Tag[];
-  activeTag: string | null;
+  activeTags: string[];
   showingTagResults: boolean;
   selectedArtist: string;
   onTagClick: (tag: string) => void;
-  onClearTag: () => void;
 }
 
 export default function TagList({
   tags,
-  activeTag,
+  activeTags,
   showingTagResults,
   selectedArtist,
   onTagClick,
-  onClearTag,
 }: TagListProps) {
+  const tagsDisplay =
+    activeTags.length === 1
+      ? `"${activeTags[0]}"`
+      : activeTags.map((t) => `"${t}"`).join(", ");
+
   return (
     <div className="mb-4">
       <div className="flex items-center flex-wrap gap-2 mb-2">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
           {showingTagResults
-            ? `Top artists for "${activeTag}"`
+            ? `Top artists for ${tagsDisplay}`
             : `Similar to "${selectedArtist}"`}
         </h2>
       </div>
@@ -37,7 +40,7 @@ export default function TagList({
               onClick={() => onTagClick(tag.name)}
               style={{ "--stagger-index": index } as React.CSSProperties}
               className={`stagger-fade-in px-2.5 py-1 rounded-full text-xs border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all ${
-                activeTag === tag.name
+                activeTags.includes(tag.name)
                   ? "bg-amber-300 text-black font-bold dark:text-black"
                   : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-amber-50 dark:hover:bg-gray-700"
               }`}
@@ -45,14 +48,6 @@ export default function TagList({
               {tag.name}
             </button>
           ))}
-          {activeTag && (
-            <button
-              onClick={onClearTag}
-              className="px-2.5 py-1 rounded-full text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all"
-            >
-              Back to similar
-            </button>
-          )}
         </div>
       )}
     </div>

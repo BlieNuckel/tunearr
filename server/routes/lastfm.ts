@@ -49,13 +49,16 @@ router.get("/artist/tags", async (req: Request, res: Response) => {
 });
 
 router.get("/tag/artists", async (req: Request, res: Response) => {
-  const { tag, page } = req.query;
-  if (typeof tag !== "string") {
-    return res.status(400).json({ error: "tag query parameter is required" });
+  const { tags, page } = req.query;
+  if (typeof tags !== "string") {
+    return res.status(400).json({ error: "tags query parameter is required" });
   }
 
+  const tagList = decodeURIComponent(tags)
+    .split(",")
+    .map((t) => t.trim());
   const result = await getTopArtistsByTag(
-    tag,
+    tagList,
     typeof page === "string" ? page : "1"
   );
 

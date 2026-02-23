@@ -36,7 +36,7 @@ export default function DiscoverPage() {
   } = usePromotedAlbum();
 
   const [selectedArtist, setSelectedArtist] = useState<string | null>(null);
-  const [activeTag, setActiveTag] = useState<string | null>(null);
+  const [activeTags, setActiveTags] = useState<string[]>([]);
 
   const effectiveSelectedArtist = selectedArtist ?? autoSelectedArtist;
 
@@ -66,16 +66,23 @@ export default function DiscoverPage() {
 
   const handleArtistSelect = (name: string) => {
     setSelectedArtist(name);
-    setActiveTag(null);
+    setActiveTags([]);
     fetchSimilar(name);
   };
 
   const handleTagClick = (tag: string) => {
-    setActiveTag(tag);
-    fetchTagArtists(tag);
+    const newTags = activeTags.includes(tag)
+      ? activeTags.filter((t) => t !== tag)
+      : [...activeTags, tag];
+
+    setActiveTags(newTags);
+
+    if (newTags.length > 0) {
+      fetchTagArtists(newTags);
+    }
   };
 
-  const showingTagResults = activeTag && tagArtists.length > 0;
+  const showingTagResults = activeTags.length > 0 && tagArtists.length > 0;
 
   return (
     <div>
@@ -112,11 +119,10 @@ export default function DiscoverPage() {
       {effectiveSelectedArtist && (
         <TagList
           tags={artistTags}
-          activeTag={activeTag}
+          activeTags={activeTags}
           showingTagResults={!!showingTagResults}
           selectedArtist={effectiveSelectedArtist}
           onTagClick={handleTagClick}
-          onClearTag={() => setActiveTag(null)}
         />
       )}
 
@@ -151,7 +157,7 @@ export default function DiscoverPage() {
           pagination={{
             page: tagPagination.page,
             totalPages: tagPagination.totalPages,
-            onPageChange: (page) => fetchTagArtists(activeTag!, page),
+            onPageChange: (page) => fetchTagArtists(activeTags, page),
           }}
         />
       ) : (

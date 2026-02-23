@@ -164,14 +164,15 @@ export default function useDiscover() {
     fetchSimilar(topArtist);
   }, [plexLoading, plexTopArtists, fetchSimilar]);
 
-  const fetchTagArtists = useCallback(async (tag: string, page = 1) => {
+  const fetchTagArtists = useCallback(async (tags: string[], page = 1) => {
     setTagArtistsLoading(true);
     setTagArtistsError(null);
     if (page === 1) setTagArtists([]);
 
     try {
+      const tagsParam = encodeURIComponent(tags.join(","));
       const res = await fetch(
-        `/api/lastfm/tag/artists?tag=${encodeURIComponent(tag)}&page=${page}`
+        `/api/lastfm/tag/artists?tags=${tagsParam}&page=${page}`
       );
 
       if (!res.ok) {

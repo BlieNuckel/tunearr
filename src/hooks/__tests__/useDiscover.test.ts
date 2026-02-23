@@ -135,7 +135,7 @@ describe("useDiscover", () => {
       )
     );
 
-    await act(() => result.current.fetchTagArtists("grunge"));
+    await act(() => result.current.fetchTagArtists(["grunge"]));
 
     expect(result.current.tagArtists).toEqual(tagArtists);
     expect(result.current.tagPagination).toEqual({ page: 1, totalPages: 3 });
@@ -154,7 +154,7 @@ describe("useDiscover", () => {
       new Response(JSON.stringify({ error: "Tag not found" }), { status: 404 })
     );
 
-    await act(() => result.current.fetchTagArtists("unknown-tag"));
+    await act(() => result.current.fetchTagArtists(["unknown-tag"]));
 
     expect(result.current.tagArtistsError).toBe("Tag not found");
   });
@@ -179,5 +179,34 @@ describe("useDiscover", () => {
       expect(result.current.libraryLoading).toBe(false);
     });
     expect(result.current.libraryArtists).toEqual([]);
+  });
+
+  it("fetchTagArtists sends comma-separated tags for multiple tags", async () => {
+    mockFetchResponses([
+      { url: "/api/lidarr/artists", data: [] },
+      { url: "/api/plex/top-artists", data: { artists: [] } },
+    ]);
+
+    const { result } = renderHook(() => useDiscover());
+    await waitFor(() => expect(result.current.plexLoading).toBe(false));
+
+    const tagArtists = [{ name: "Nirvana", mbid: "n1", imageUrl: "", rank: 1 }];
+    vi.mocked(fetch).mockClear();
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          artists: tagArtists,
+          pagination: { page: 1, totalPages: 1 },
+        }),
+        { status: 200 }
+      )
+    );
+
+    await act(() => result.current.fetchTagArtists(["grunge", "rock"]));
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("tags=grunge%2Crock")
+    );
+    expect(result.current.tagArtists).toEqual(tagArtists);
   });
 });
