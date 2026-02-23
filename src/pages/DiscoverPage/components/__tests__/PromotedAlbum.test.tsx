@@ -364,9 +364,7 @@ describe("PromotedAlbum", () => {
       renderWithRouter(
         <PromotedAlbum data={null} loading={true} onRefresh={mockRefresh} />
       );
-      expect(
-        screen.queryByLabelText("Preview tracks")
-      ).not.toBeInTheDocument();
+      expect(screen.queryByLabelText("Preview tracks")).not.toBeInTheDocument();
     });
 
     it("fetches tracks when preview button is clicked the first time", () => {

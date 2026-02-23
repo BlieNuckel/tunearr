@@ -109,7 +109,12 @@ export default function PromotedAlbum({
   };
 
   const handleTracksToggle = () => {
-    if (!isTracksOpen && album && fetchedMbid !== album.mbid && !tracksLoading) {
+    if (
+      !isTracksOpen &&
+      album &&
+      fetchedMbid !== album.mbid &&
+      !tracksLoading
+    ) {
       fetchTracks(album.mbid, album.artistName);
       setFetchedMbid(album.mbid);
     }
