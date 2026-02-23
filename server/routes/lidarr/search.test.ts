@@ -50,7 +50,9 @@ describe("POST /search", () => {
   it("calls lidarrPost with AlbumSearch command and returns success", async () => {
     mockLidarrPost.mockResolvedValue({ ok: true });
 
-    const res = await request(app).post("/search").send({ albumIds: [10, 20] });
+    const res = await request(app)
+      .post("/search")
+      .send({ albumIds: [10, 20] });
     expect(res.status).toBe(200);
     expect(res.body.status).toBe("success");
     expect(mockLidarrPost).toHaveBeenCalledWith("/command", {
@@ -62,7 +64,9 @@ describe("POST /search", () => {
   it("returns 500 when lidarrPost throws", async () => {
     mockLidarrPost.mockRejectedValue(new Error("Lidarr unavailable"));
 
-    const res = await request(app).post("/search").send({ albumIds: [1] });
+    const res = await request(app)
+      .post("/search")
+      .send({ albumIds: [1] });
     expect(res.status).toBe(500);
     expect(res.body.error).toBe("Lidarr unavailable");
   });

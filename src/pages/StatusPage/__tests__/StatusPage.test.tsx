@@ -138,10 +138,12 @@ describe("StatusPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Search" }));
 
     await waitFor(() => {
-      const searchCall = vi.mocked(fetch).mock.calls.find(
-        ([input]) =>
-          typeof input === "string" && input.includes("/api/lidarr/search")
-      );
+      const searchCall = vi
+        .mocked(fetch)
+        .mock.calls.find(
+          ([input]) =>
+            typeof input === "string" && input.includes("/api/lidarr/search")
+        );
       expect(searchCall).toBeDefined();
       const options = searchCall![1] as RequestInit;
       expect(options.method).toBe("POST");

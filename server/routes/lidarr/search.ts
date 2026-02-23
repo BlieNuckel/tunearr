@@ -7,7 +7,9 @@ router.post("/search", async (req: Request, res: Response) => {
   const { albumIds } = req.body;
 
   if (!Array.isArray(albumIds) || albumIds.length === 0) {
-    return res.status(400).json({ error: "albumIds must be a non-empty array" });
+    return res
+      .status(400)
+      .json({ error: "albumIds must be a non-empty array" });
   }
 
   await lidarrPost("/command", {
