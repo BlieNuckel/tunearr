@@ -4,6 +4,8 @@ import { getTopAlbumsByTag } from "../api/lastfm/albums";
 import { lidarrGet } from "../api/lidarr/get";
 import type { LidarrAlbum, LidarrArtist } from "../api/lidarr/types";
 import { getReleaseGroupIdFromRelease } from "../api/musicbrainz/releaseGroups";
+import { getConfigValue } from "../config";
+import type { LibraryPreference } from "../config";
 import type {
   PromotedAlbumResult,
   RecommendationTrace,
@@ -23,23 +25,6 @@ type TagResultEntry = {
   artist: { name: string; viewCount: number };
   tags: { name: string; count: number }[];
 };
-
-const GENERIC_TAGS = new Set([
-  "seen live",
-  "favorites",
-  "favourite",
-  "my favorite",
-  "love",
-  "awesome",
-  "beautiful",
-  "cool",
-  "check out",
-  "spotify",
-  "under 2000 listeners",
-  "all",
-]);
-
-const CACHE_DURATION_MS = 30 * 60 * 1000;
 
 let cachedResult: PromotedAlbumResult = null;
 let cachedAt = 0;
@@ -85,7 +70,11 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-function mergeTagsFromResults(tagResults: TagResultEntry[]): {
+function mergeTagsFromResults(
+  tagResults: TagResultEntry[],
+  genericTags: Set<string>,
+  tagsPerArtist: number
+): {
   weightedTags: WeightedTag[];
   tagMap: Map<string, TagAccumulator>;
 } {
@@ -93,8 +82,8 @@ function mergeTagsFromResults(tagResults: TagResultEntry[]): {
 
   for (const { artist, tags } of tagResults) {
     const filtered = tags
-      .filter((t) => !GENERIC_TAGS.has(t.name.toLowerCase()))
-      .slice(0, 5);
+      .filter((t) => !genericTags.has(t.name.toLowerCase()))
+      .slice(0, tagsPerArtist);
 
     for (const tag of filtered) {
       const key = tag.name.toLowerCase();
@@ -133,14 +122,16 @@ function buildTrace(
   tagMap: Map<string, TagAccumulator>,
   chosenTag: WeightedTag,
   albumPool: TraceAlbumPoolInfo,
-  selectionReason: TraceSelectionReason
+  selectionReason: TraceSelectionReason,
+  genericTags: Set<string>,
+  tagsPerArtist: number
 ): RecommendationTrace {
   const traceArtists: TraceArtistEntry[] = plexArtists.map((a) => {
     const picked = pickedArtistNames.has(a.name);
     const result = tagResults.find((r) => r.artist.name === a.name);
     const filtered = (result?.tags ?? [])
-      .filter((t) => !GENERIC_TAGS.has(t.name.toLowerCase()))
-      .slice(0, 5);
+      .filter((t) => !genericTags.has(t.name.toLowerCase()))
+      .slice(0, tagsPerArtist);
 
     return {
       name: a.name,
@@ -175,16 +166,86 @@ function buildTrace(
   };
 }
 
+function selectAlbumPreferNew(
+  shuffled: { mbid: string; artistMbid: string; name: string; artistName: string }[],
+  artistInLibrary: (mbid: string) => boolean,
+  getRgId: (mbid: string) => Promise<string | null>
+): Promise<{ album: (typeof shuffled)[0]; rgMbid: string; reason: TraceSelectionReason } | null> {
+  return selectAlbumWithPreference(shuffled, (a) => !artistInLibrary(a.artistMbid), getRgId, "preferred_non_library", "fallback_in_library");
+}
+
+function selectAlbumPreferLibrary(
+  shuffled: { mbid: string; artistMbid: string; name: string; artistName: string }[],
+  artistInLibrary: (mbid: string) => boolean,
+  getRgId: (mbid: string) => Promise<string | null>
+): Promise<{ album: (typeof shuffled)[0]; rgMbid: string; reason: TraceSelectionReason } | null> {
+  return selectAlbumWithPreference(shuffled, (a) => artistInLibrary(a.artistMbid), getRgId, "preferred_library", "fallback_non_library");
+}
+
+async function selectAlbumNoPreference(
+  shuffled: { mbid: string; artistMbid: string; name: string; artistName: string }[],
+  getRgId: (mbid: string) => Promise<string | null>
+): Promise<{ album: (typeof shuffled)[0]; rgMbid: string; reason: TraceSelectionReason } | null> {
+  for (const album of shuffled) {
+    const releaseGroupId = await getRgId(album.mbid);
+    if (releaseGroupId) {
+      return { album, rgMbid: releaseGroupId, reason: "no_preference" };
+    }
+  }
+  return null;
+}
+
+async function selectAlbumWithPreference(
+  shuffled: { mbid: string; artistMbid: string; name: string; artistName: string }[],
+  isPreferred: (album: (typeof shuffled)[0]) => boolean,
+  getRgId: (mbid: string) => Promise<string | null>,
+  preferredReason: TraceSelectionReason,
+  fallbackReason: TraceSelectionReason
+): Promise<{ album: (typeof shuffled)[0]; rgMbid: string; reason: TraceSelectionReason } | null> {
+  let fallback: { album: (typeof shuffled)[0]; rgMbid: string } | undefined;
+
+  for (const album of shuffled) {
+    const releaseGroupId = await getRgId(album.mbid);
+    if (!releaseGroupId) continue;
+
+    if (isPreferred(album)) {
+      return { album, rgMbid: releaseGroupId, reason: preferredReason };
+    }
+    if (!fallback) {
+      fallback = { album, rgMbid: releaseGroupId };
+    }
+  }
+
+  return fallback ? { ...fallback, reason: fallbackReason } : null;
+}
+
+function selectAlbum(
+  shuffled: { mbid: string; artistMbid: string; name: string; artistName: string }[],
+  artistInLibrary: (mbid: string) => boolean,
+  libraryPreference: LibraryPreference,
+  getRgId: (mbid: string) => Promise<string | null>
+) {
+  switch (libraryPreference) {
+    case "prefer_new":
+      return selectAlbumPreferNew(shuffled, artistInLibrary, getRgId);
+    case "prefer_library":
+      return selectAlbumPreferLibrary(shuffled, artistInLibrary, getRgId);
+    case "no_preference":
+      return selectAlbumNoPreference(shuffled, getRgId);
+  }
+}
+
 export async function getPromotedAlbum(
   forceRefresh = false
 ): Promise<PromotedAlbumResult> {
-  if (
-    !forceRefresh &&
-    cachedResult &&
-    Date.now() - cachedAt < CACHE_DURATION_MS
-  ) {
+  const config = getConfigValue("promotedAlbum");
+  const cacheDurationMs = config.cacheDurationMinutes * 60 * 1000;
+
+  if (!forceRefresh && cachedResult && Date.now() - cachedAt < cacheDurationMs) {
     return cachedResult;
   }
+
+  const genericTags = new Set(config.genericTags.map((t) => t.toLowerCase()));
 
   let libraryArtistMbids = new Set<string>();
   let libraryAlbumMbids = new Set<string>();
@@ -211,10 +272,14 @@ export async function getPromotedAlbum(
     libraryArtistMbids.has(artistMbid);
   const albumInLibrary = (rgMbid: string) => libraryAlbumMbids.has(rgMbid);
 
-  const plexArtists = await getTopArtists(10);
+  const plexArtists = await getTopArtists(config.topArtistsCount);
   if (plexArtists.length === 0) return null;
 
-  const pickedArtists = weightedRandomPick(plexArtists, (a) => a.viewCount, 3);
+  const pickedArtists = weightedRandomPick(
+    plexArtists,
+    (a) => a.viewCount,
+    config.pickedArtistsCount
+  );
   const pickedArtistNames = new Set(pickedArtists.map((a) => a.name));
 
   const tagResults: TagResultEntry[] = await Promise.all(
@@ -228,14 +293,21 @@ export async function getPromotedAlbum(
     })
   );
 
-  const { weightedTags, tagMap } = mergeTagsFromResults(tagResults);
+  const { weightedTags, tagMap } = mergeTagsFromResults(
+    tagResults,
+    genericTags,
+    config.tagsPerArtist
+  );
 
   if (weightedTags.length === 0) return null;
 
   const [chosenTag] = weightedRandomPick(weightedTags, (t) => t.weight, 1);
   if (!chosenTag) return null;
 
-  const deepPage = String(Math.floor(Math.random() * 9) + 2);
+  const range = config.deepPageMax - config.deepPageMin + 1;
+  const deepPage = String(
+    Math.floor(Math.random() * range) + config.deepPageMin
+  );
   const [page1, pageDeep] = await Promise.all([
     getTopAlbumsByTag(chosenTag.name, "1"),
     getTopAlbumsByTag(chosenTag.name, deepPage),
@@ -253,30 +325,13 @@ export async function getPromotedAlbum(
 
   const shuffled = shuffle(allAlbums);
 
-  let chosenAlbum: { album: (typeof shuffled)[0]; rgMbid: string } | undefined;
-  let fallbackAlbum:
-    | { album: (typeof shuffled)[0]; rgMbid: string }
-    | undefined;
-
-  for (const album of shuffled) {
-    const releaseGroupId = await getReleaseGroupIdFromRelease(album.mbid);
-    if (!releaseGroupId) continue;
-
-    if (!artistInLibrary(album.artistMbid)) {
-      chosenAlbum = { album, rgMbid: releaseGroupId };
-      break;
-    }
-    if (!fallbackAlbum) {
-      fallbackAlbum = { album, rgMbid: releaseGroupId };
-    }
-  }
-
-  const picked = chosenAlbum ?? fallbackAlbum;
+  const picked = await selectAlbum(
+    shuffled,
+    artistInLibrary,
+    config.libraryPreference,
+    getReleaseGroupIdFromRelease
+  );
   if (!picked) return null;
-
-  const selectionReason: TraceSelectionReason = chosenAlbum
-    ? "preferred_non_library"
-    : "fallback_in_library";
 
   const albumPoolInfo: TraceAlbumPoolInfo = {
     page1Count: page1.albums.length,
@@ -292,7 +347,9 @@ export async function getPromotedAlbum(
     tagMap,
     chosenTag,
     albumPoolInfo,
-    selectionReason
+    picked.reason,
+    genericTags,
+    config.tagsPerArtist
   );
 
   const result: PromotedAlbumResult = {

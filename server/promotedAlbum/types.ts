@@ -26,7 +26,10 @@ export type TraceAlbumPoolInfo = {
 
 export type TraceSelectionReason =
   | "preferred_non_library"
-  | "fallback_in_library";
+  | "preferred_library"
+  | "fallback_in_library"
+  | "fallback_non_library"
+  | "no_preference";
 
 export type RecommendationTrace = {
   plexArtists: TraceArtistEntry[];

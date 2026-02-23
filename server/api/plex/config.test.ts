@@ -1,9 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { getPlexConfig } from "./config";
+import { DEFAULT_PROMOTED_ALBUM } from "../../config";
 
-vi.mock("../../config", () => ({
-  getConfig: vi.fn(),
-}));
+vi.mock("../../config", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../config")>();
+  return { ...actual, getConfig: vi.fn() };
+});
 
 import { getConfig } from "../../config";
 
@@ -23,6 +25,7 @@ const fullConfig = {
   slskdApiKey: "",
   slskdDownloadPath: "",
   theme: "system" as const,
+  promotedAlbum: DEFAULT_PROMOTED_ALBUM,
 };
 
 beforeEach(() => {

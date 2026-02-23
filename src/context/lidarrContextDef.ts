@@ -1,5 +1,18 @@
 import { createContext } from "react";
 
+export type LibraryPreference = "prefer_new" | "prefer_library" | "no_preference";
+
+export interface PromotedAlbumSettings {
+  cacheDurationMinutes: number;
+  topArtistsCount: number;
+  pickedArtistsCount: number;
+  tagsPerArtist: number;
+  deepPageMin: number;
+  deepPageMax: number;
+  genericTags: string[];
+  libraryPreference: LibraryPreference;
+}
+
 export interface LidarrSettings {
   lidarrUrl: string;
   lidarrApiKey: string;
@@ -14,6 +27,7 @@ export interface LidarrSettings {
   slskdApiKey: string;
   slskdDownloadPath: string;
   theme: "light" | "dark" | "system";
+  promotedAlbum?: PromotedAlbumSettings;
 }
 
 export type LidarrOptions = {

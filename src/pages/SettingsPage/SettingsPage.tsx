@@ -7,6 +7,8 @@ import LastfmSection from "./components/LastfmSection";
 import PlexSection from "./components/PlexSection";
 import SlskdSection from "./components/SlskdSection";
 import ImportSection from "./components/ImportSection";
+import RecommendationsSection from "./components/RecommendationsSection";
+import { DEFAULT_PROMOTED_ALBUM } from "@/context/promotedAlbumDefaults";
 import ThemeToggle from "@/components/ThemeToggle";
 import Skeleton from "@/components/Skeleton";
 import SettingsTabs from "./components/SettingsTabs";
@@ -25,11 +27,17 @@ type TestResult = {
   error?: string;
 };
 
+const TAB_LABELS: Record<SettingsTab, string> = {
+  general: "General",
+  integrations: "Integrations",
+  recommendations: "Recommendations",
+};
+
 function SectionBadge({ section }: { section: SettingsSection }) {
   const meta = SECTION_META[section];
   return (
     <span className="inline-block text-xs font-medium px-2 py-0.5 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
-      {meta.tab === "general" ? "General" : "Integrations"}
+      {TAB_LABELS[meta.tab]}
     </span>
   );
 }
@@ -239,6 +247,18 @@ export default function SettingsPage() {
               onUrlChange={(v) => updateField("slskdUrl", v)}
               onApiKeyChange={(v) => updateField("slskdApiKey", v)}
               onDownloadPathChange={(v) => updateField("slskdDownloadPath", v)}
+            />
+          </div>
+        )}
+
+        {visible("recommendations") && (
+          <div>
+            {isSearching && <SectionBadge section="recommendations" />}
+            <RecommendationsSection
+              config={fields.promotedAlbum ?? DEFAULT_PROMOTED_ALBUM}
+              onConfigChange={(updated) =>
+                updateField("promotedAlbum", updated)
+              }
             />
           </div>
         )}

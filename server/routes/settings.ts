@@ -3,6 +3,7 @@ import express from "express";
 import fs from "fs";
 import { getConfig, setConfig } from "../config";
 import { lidarrFetch } from "../api/lidarr/fetch";
+import { clearPromotedAlbumCache } from "../promotedAlbum/getPromotedAlbum";
 
 const router = express.Router();
 
@@ -22,6 +23,10 @@ router.put("/", (req: Request, res: Response) => {
   }
 
   setConfig(partialConfig);
+
+  if (partialConfig.promotedAlbum) {
+    clearPromotedAlbumCache();
+  }
 
   res.json({ success: true });
 });

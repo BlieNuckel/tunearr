@@ -14,6 +14,7 @@ const IMMEDIATE_FIELDS: Set<keyof LidarrSettings> = new Set([
   "lidarrRootFolderPath",
   "lidarrMetadataProfileId",
   "theme",
+  "promotedAlbum",
 ]);
 
 function isImmediateField(key: keyof LidarrSettings): boolean {

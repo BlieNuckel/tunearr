@@ -7,7 +7,8 @@ export type SettingsSection =
   | "lidarrOptions"
   | "lastfm"
   | "plex"
-  | "slskd";
+  | "slskd"
+  | "recommendations";
 
 type SectionMeta = {
   label: string;
@@ -58,6 +59,22 @@ export const SECTION_META: Record<SettingsSection, SectionMeta> = {
     label: "slskd",
     tab: "integrations",
     keywords: ["slskd", "soulseek", "download", "api", "key", "path"],
+  },
+  recommendations: {
+    label: "Recommendations",
+    tab: "recommendations",
+    keywords: [
+      "recommendation",
+      "promoted",
+      "algorithm",
+      "cache",
+      "tags",
+      "discovery",
+      "artist",
+      "library",
+      "preference",
+      "generic",
+    ],
   },
 };
 

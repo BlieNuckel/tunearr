@@ -5,6 +5,7 @@ import {
   type LidarrOptions,
   type LidarrContextValue,
 } from "./lidarrContextDef";
+import { DEFAULT_PROMOTED_ALBUM } from "./promotedAlbumDefaults";
 
 interface LidarrContextProviderProps {
   children: ReactNode;
@@ -33,6 +34,10 @@ async function loadSettings(
         slskdApiKey: data.slskdApiKey || "",
         slskdDownloadPath: data.slskdDownloadPath || "",
         theme: data.theme || "system",
+        promotedAlbum: {
+          ...DEFAULT_PROMOTED_ALBUM,
+          ...(data.promotedAlbum ?? {}),
+        },
       });
 
       if (data.lidarrUrl && data.lidarrApiKey) {
@@ -103,6 +108,7 @@ export const LidarrContextProvider = ({
     slskdApiKey: "",
     slskdDownloadPath: "",
     theme: "system",
+    promotedAlbum: DEFAULT_PROMOTED_ALBUM,
   });
   const [options, setOptions] = useState<LidarrOptions>({
     qualityProfiles: [],
