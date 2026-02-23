@@ -11,7 +11,7 @@ router.get("/albums", async (_req: Request, res: Response) => {
     return res.status(result.status).json({ error: "Failed to fetch albums" });
   }
 
-  res.json(result.data);
+  res.json(result.data.filter((album) => album.monitored));
 });
 
 export default router;
