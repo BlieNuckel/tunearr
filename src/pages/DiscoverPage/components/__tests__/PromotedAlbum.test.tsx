@@ -87,6 +87,7 @@ const albumData: PromotedAlbumData = {
     artistName: "Radiohead",
     artistMbid: "art-1",
     coverUrl: "https://coverartarchive.org/release-group/alb-1/front-500",
+    year: "1997",
   },
   tag: "alternative",
   inLibrary: false,
@@ -141,9 +142,22 @@ describe("PromotedAlbum", () => {
     );
     expect(screen.getByText("OK Computer")).toBeInTheDocument();
     expect(screen.getByText("Radiohead")).toBeInTheDocument();
+    expect(screen.getByText("· 1997")).toBeInTheDocument();
     expect(
       screen.getByText("Because you listen to alternative")
     ).toBeInTheDocument();
+  });
+
+  it("does not render year separator when year is empty", () => {
+    const noYearData: PromotedAlbumData = {
+      ...albumData,
+      album: { ...albumData.album, year: "" },
+    };
+    renderWithRouter(
+      <PromotedAlbum data={noYearData} loading={false} onRefresh={mockRefresh} />
+    );
+    expect(screen.getByText("Radiohead")).toBeInTheDocument();
+    expect(screen.queryByText(/·/)).not.toBeInTheDocument();
   });
 
   it("links artist name to search page with artist search type", () => {

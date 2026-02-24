@@ -16,6 +16,7 @@ const albumData = {
     artistName: "Radiohead",
     artistMbid: "art-1",
     coverUrl: "https://coverartarchive.org/release-group/alb-1/front-500",
+    year: "1997",
   },
   tag: "alternative",
   inLibrary: false,

@@ -4,6 +4,7 @@ import type {
   MusicBrainzArtistSearchResponse,
   ReleaseGroupSearchResult,
   MusicBrainzRelease,
+  ReleaseGroupInfo,
 } from "./types";
 
 /** Search for release groups (albums/EPs) by text query */
@@ -77,10 +78,10 @@ export async function searchArtistReleaseGroups(
   };
 }
 
-/** Convert a release MBID to its release-group MBID */
+/** Convert a release MBID to its release-group ID and first release date */
 export async function getReleaseGroupIdFromRelease(
   releaseMbid: string
-): Promise<string | null> {
+): Promise<ReleaseGroupInfo | null> {
   const url = `${MB_BASE}/release/${releaseMbid}?inc=release-groups&fmt=json`;
   const response = await rateLimitedMbFetch(url, { headers: MB_HEADERS });
 
@@ -89,5 +90,11 @@ export async function getReleaseGroupIdFromRelease(
   }
 
   const data: MusicBrainzRelease = await response.json();
-  return data["release-group"]?.id || null;
+  const rg = data["release-group"];
+  if (!rg?.id) return null;
+
+  return {
+    id: rg.id,
+    firstReleaseDate: rg["first-release-date"] ?? "",
+  };
 }

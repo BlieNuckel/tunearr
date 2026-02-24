@@ -46,6 +46,7 @@ export type PromotedAlbumResult = {
     artistName: string;
     artistMbid: string;
     coverUrl: string;
+    year: string;
   };
   tag: string;
   inLibrary: boolean;

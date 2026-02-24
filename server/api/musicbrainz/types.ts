@@ -61,5 +61,11 @@ export type MusicBrainzRelease = {
   "release-group": {
     id: string;
     title: string;
+    "first-release-date"?: string;
   };
+};
+
+export type ReleaseGroupInfo = {
+  id: string;
+  firstReleaseDate: string;
 };

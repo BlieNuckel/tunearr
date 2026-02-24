@@ -182,12 +182,17 @@ export default function PromotedAlbum({
                     <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 truncate">
                       {album.name}
                     </h3>
-                    <Link
-                      to={`/search?q=${encodeURIComponent(album.artistName)}&searchType=artist`}
-                      className="text-gray-500 dark:text-gray-400 text-sm truncate block hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
-                    >
-                      {album.artistName}
-                    </Link>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm truncate">
+                      <Link
+                        to={`/search?q=${encodeURIComponent(album.artistName)}&searchType=artist`}
+                        className="hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
+                      >
+                        {album.artistName}
+                      </Link>
+                      {album.year && (
+                        <span className="ml-1.5">· {album.year}</span>
+                      )}
+                    </p>
                     {tag && (
                       <button
                         onClick={() => setIsTraceOpen(true)}

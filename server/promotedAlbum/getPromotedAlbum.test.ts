@@ -65,7 +65,7 @@ beforeEach(() => {
   vi.spyOn(Math, "random").mockReturnValue(0.1);
   mockGetConfigValue.mockReturnValue(defaultPromotedAlbumConfig);
   mockGetReleaseGroupIdFromRelease.mockImplementation((mbid: string) =>
-    Promise.resolve(`rg-${mbid}`)
+    Promise.resolve({ id: `rg-${mbid}`, firstReleaseDate: "1997-06-16" })
   );
 });
 
@@ -117,6 +117,7 @@ describe("getPromotedAlbum", () => {
       coverUrl: expect.stringMatching(
         /^https:\/\/coverartarchive\.org\/release-group\//
       ),
+      year: "1997",
     });
     expect(result!.tag).toBe("alternative");
     expect(result!.inLibrary).toBe(false);

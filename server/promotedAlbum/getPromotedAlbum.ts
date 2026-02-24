@@ -4,6 +4,7 @@ import { getTopAlbumsByTag } from "../api/lastfm/albums";
 import { lidarrGet } from "../api/lidarr/get";
 import type { LidarrAlbum, LidarrArtist } from "../api/lidarr/types";
 import { getReleaseGroupIdFromRelease } from "../api/musicbrainz/releaseGroups";
+import type { ReleaseGroupInfo } from "../api/musicbrainz/types";
 import { getConfigValue } from "../config";
 import type { LibraryPreference } from "../config";
 import type {
@@ -174,16 +175,17 @@ function selectAlbumPreferNew(
     artistName: string;
   }[],
   artistInLibrary: (mbid: string) => boolean,
-  getRgId: (mbid: string) => Promise<string | null>
+  getRgInfo: (mbid: string) => Promise<ReleaseGroupInfo | null>
 ): Promise<{
   album: (typeof shuffled)[0];
   rgMbid: string;
+  year: string;
   reason: TraceSelectionReason;
 } | null> {
   return selectAlbumWithPreference(
     shuffled,
     (a) => !artistInLibrary(a.artistMbid),
-    getRgId,
+    getRgInfo,
     "preferred_non_library",
     "fallback_in_library"
   );
@@ -197,16 +199,17 @@ function selectAlbumPreferLibrary(
     artistName: string;
   }[],
   artistInLibrary: (mbid: string) => boolean,
-  getRgId: (mbid: string) => Promise<string | null>
+  getRgInfo: (mbid: string) => Promise<ReleaseGroupInfo | null>
 ): Promise<{
   album: (typeof shuffled)[0];
   rgMbid: string;
+  year: string;
   reason: TraceSelectionReason;
 } | null> {
   return selectAlbumWithPreference(
     shuffled,
     (a) => artistInLibrary(a.artistMbid),
-    getRgId,
+    getRgInfo,
     "preferred_library",
     "fallback_non_library"
   );
@@ -219,16 +222,22 @@ async function selectAlbumNoPreference(
     name: string;
     artistName: string;
   }[],
-  getRgId: (mbid: string) => Promise<string | null>
+  getRgInfo: (mbid: string) => Promise<ReleaseGroupInfo | null>
 ): Promise<{
   album: (typeof shuffled)[0];
   rgMbid: string;
+  year: string;
   reason: TraceSelectionReason;
 } | null> {
   for (const album of shuffled) {
-    const releaseGroupId = await getRgId(album.mbid);
-    if (releaseGroupId) {
-      return { album, rgMbid: releaseGroupId, reason: "no_preference" };
+    const rgInfo = await getRgInfo(album.mbid);
+    if (rgInfo) {
+      return {
+        album,
+        rgMbid: rgInfo.id,
+        year: rgInfo.firstReleaseDate.slice(0, 4),
+        reason: "no_preference",
+      };
     }
   }
   return null;
@@ -242,25 +251,29 @@ async function selectAlbumWithPreference(
     artistName: string;
   }[],
   isPreferred: (album: (typeof shuffled)[0]) => boolean,
-  getRgId: (mbid: string) => Promise<string | null>,
+  getRgInfo: (mbid: string) => Promise<ReleaseGroupInfo | null>,
   preferredReason: TraceSelectionReason,
   fallbackReason: TraceSelectionReason
 ): Promise<{
   album: (typeof shuffled)[0];
   rgMbid: string;
+  year: string;
   reason: TraceSelectionReason;
 } | null> {
-  let fallback: { album: (typeof shuffled)[0]; rgMbid: string } | undefined;
+  let fallback:
+    | { album: (typeof shuffled)[0]; rgMbid: string; year: string }
+    | undefined;
 
   for (const album of shuffled) {
-    const releaseGroupId = await getRgId(album.mbid);
-    if (!releaseGroupId) continue;
+    const rgInfo = await getRgInfo(album.mbid);
+    if (!rgInfo) continue;
 
+    const year = rgInfo.firstReleaseDate.slice(0, 4);
     if (isPreferred(album)) {
-      return { album, rgMbid: releaseGroupId, reason: preferredReason };
+      return { album, rgMbid: rgInfo.id, year, reason: preferredReason };
     }
     if (!fallback) {
-      fallback = { album, rgMbid: releaseGroupId };
+      fallback = { album, rgMbid: rgInfo.id, year };
     }
   }
 
@@ -276,15 +289,15 @@ function selectAlbum(
   }[],
   artistInLibrary: (mbid: string) => boolean,
   libraryPreference: LibraryPreference,
-  getRgId: (mbid: string) => Promise<string | null>
+  getRgInfo: (mbid: string) => Promise<ReleaseGroupInfo | null>
 ) {
   switch (libraryPreference) {
     case "prefer_new":
-      return selectAlbumPreferNew(shuffled, artistInLibrary, getRgId);
+      return selectAlbumPreferNew(shuffled, artistInLibrary, getRgInfo);
     case "prefer_library":
-      return selectAlbumPreferLibrary(shuffled, artistInLibrary, getRgId);
+      return selectAlbumPreferLibrary(shuffled, artistInLibrary, getRgInfo);
     case "no_preference":
-      return selectAlbumNoPreference(shuffled, getRgId);
+      return selectAlbumNoPreference(shuffled, getRgInfo);
   }
 }
 
@@ -416,6 +429,7 @@ export async function getPromotedAlbum(
       artistName: picked.album.artistName,
       artistMbid: picked.album.artistMbid,
       coverUrl: `https://coverartarchive.org/release-group/${picked.rgMbid}/front-500`,
+      year: picked.year,
     },
     tag: chosenTag.name,
     inLibrary: albumInLibrary(picked.rgMbid),

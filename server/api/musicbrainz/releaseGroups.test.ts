@@ -109,7 +109,28 @@ describe("searchArtistReleaseGroups", () => {
 });
 
 describe("getReleaseGroupIdFromRelease", () => {
-  it("returns release-group ID from release MBID", async () => {
+  it("returns release-group info from release MBID", async () => {
+    mockFetch.mockResolvedValue(
+      okResponse({
+        id: "release-123",
+        title: "OK Computer",
+        "release-group": {
+          id: "rg-456",
+          title: "OK Computer",
+          "first-release-date": "1997-06-16",
+        },
+      })
+    );
+
+    const result = await getReleaseGroupIdFromRelease("release-123");
+    expect(result).toEqual({ id: "rg-456", firstReleaseDate: "1997-06-16" });
+    expect(mockFetch).toHaveBeenCalledWith(
+      "https://musicbrainz.test/ws/2/release/release-123?inc=release-groups&fmt=json",
+      { headers: { "User-Agent": "test" } }
+    );
+  });
+
+  it("returns empty firstReleaseDate when not present", async () => {
     mockFetch.mockResolvedValue(
       okResponse({
         id: "release-123",
@@ -122,11 +143,7 @@ describe("getReleaseGroupIdFromRelease", () => {
     );
 
     const result = await getReleaseGroupIdFromRelease("release-123");
-    expect(result).toBe("rg-456");
-    expect(mockFetch).toHaveBeenCalledWith(
-      "https://musicbrainz.test/ws/2/release/release-123?inc=release-groups&fmt=json",
-      { headers: { "User-Agent": "test" } }
-    );
+    expect(result).toEqual({ id: "rg-456", firstReleaseDate: "" });
   });
 
   it("returns null when release not found", async () => {
