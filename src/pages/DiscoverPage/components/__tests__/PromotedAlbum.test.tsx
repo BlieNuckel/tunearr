@@ -154,7 +154,11 @@ describe("PromotedAlbum", () => {
       album: { ...albumData.album, year: "" },
     };
     renderWithRouter(
-      <PromotedAlbum data={noYearData} loading={false} onRefresh={mockRefresh} />
+      <PromotedAlbum
+        data={noYearData}
+        loading={false}
+        onRefresh={mockRefresh}
+      />
     );
     expect(screen.getByText("Radiohead")).toBeInTheDocument();
     expect(screen.queryByText(/·/)).not.toBeInTheDocument();
