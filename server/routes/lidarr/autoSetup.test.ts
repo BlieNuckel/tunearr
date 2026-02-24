@@ -53,10 +53,24 @@ const sabnzbdSchema = {
     { name: "host", value: "localhost" },
     { name: "port", value: 8080 },
     { name: "apiKey", value: "" },
+    { name: "password", value: "" },
     { name: "urlBase", value: "" },
     { name: "category", value: "" },
   ],
 };
+
+function mockSchemasAndClients(tunearrClientId = 42) {
+  mockLidarrGet.mockImplementation((path: string) => {
+    if (path === "/indexer/schema")
+      return Promise.resolve({ data: [newznabSchema] });
+    if (path === "/downloadclient/schema")
+      return Promise.resolve({ data: [sabnzbdSchema] });
+    if (path === "/downloadclient")
+      return Promise.resolve({
+        data: [{ id: tunearrClientId, name: "Tunearr" }],
+      });
+  });
+}
 
 describe("GET /auto-setup/status", () => {
   it("returns both false when no Tunearr entries exist", async () => {
@@ -143,13 +157,8 @@ describe("POST /auto-setup", () => {
     expect(res.body.error).toBe("host and port are required");
   });
 
-  it("creates both indexer and download client successfully", async () => {
-    mockLidarrGet.mockImplementation((path: string) => {
-      if (path === "/indexer/schema")
-        return Promise.resolve({ data: [newznabSchema] });
-      if (path === "/downloadclient/schema")
-        return Promise.resolve({ data: [sabnzbdSchema] });
-    });
+  it("creates download client first, then looks up its ID for the indexer", async () => {
+    mockSchemasAndClients(42);
     mockLidarrPost.mockResolvedValue({ ok: true, data: {} });
 
     const res = await request(app)
@@ -157,23 +166,8 @@ describe("POST /auto-setup", () => {
       .send({ host: "tunearr", port: 3001 });
 
     expect(res.status).toBe(200);
-    expect(res.body.indexer.success).toBe(true);
     expect(res.body.downloadClient.success).toBe(true);
-
-    expect(mockLidarrPost).toHaveBeenCalledWith(
-      "/indexer",
-      expect.objectContaining({
-        name: "Tunearr",
-        enableRss: true,
-        enableAutomaticSearch: true,
-        enableInteractiveSearch: true,
-        fields: expect.arrayContaining([
-          { name: "baseUrl", value: "http://tunearr:3001/api/torznab" },
-          { name: "apiPath", value: "/api" },
-          { name: "apiKey", value: "" },
-        ]),
-      })
-    );
+    expect(res.body.indexer.success).toBe(true);
 
     expect(mockLidarrPost).toHaveBeenCalledWith(
       "/downloadclient",
@@ -183,8 +177,27 @@ describe("POST /auto-setup", () => {
         fields: expect.arrayContaining([
           { name: "host", value: "tunearr" },
           { name: "port", value: 3001 },
-          { name: "apiKey", value: "" },
+          { name: "apiKey", value: "a" },
+          { name: "password", value: "a" },
           { name: "urlBase", value: "/api/sabnzbd" },
+        ]),
+      })
+    );
+
+    expect(mockLidarrGet).toHaveBeenCalledWith("/downloadclient");
+
+    expect(mockLidarrPost).toHaveBeenCalledWith(
+      "/indexer",
+      expect.objectContaining({
+        name: "Tunearr",
+        enableRss: true,
+        enableAutomaticSearch: true,
+        enableInteractiveSearch: true,
+        downloadClientId: 42,
+        fields: expect.arrayContaining([
+          { name: "baseUrl", value: "http://tunearr:3001/api/torznab" },
+          { name: "apiPath", value: "" },
+          { name: "apiKey", value: "a" },
         ]),
       })
     );
@@ -196,6 +209,8 @@ describe("POST /auto-setup", () => {
         return Promise.resolve({ data: [{ implementation: "Other" }] });
       if (path === "/downloadclient/schema")
         return Promise.resolve({ data: [sabnzbdSchema] });
+      if (path === "/downloadclient")
+        return Promise.resolve({ data: [{ id: 1, name: "Tunearr" }] });
     });
     mockLidarrPost.mockResolvedValue({ ok: true, data: {} });
 
@@ -223,18 +238,14 @@ describe("POST /auto-setup", () => {
       .send({ host: "tunearr", port: 3001 });
 
     expect(res.status).toBe(200);
-    expect(res.body.indexer.success).toBe(true);
     expect(res.body.downloadClient.success).toBe(false);
     expect(res.body.downloadClient.error).toContain("Sabnzbd schema not found");
+    expect(res.body.indexer.success).toBe(false);
+    expect(res.body.indexer.error).toContain("download client must be created first");
   });
 
   it("handles Lidarr POST failure for indexer", async () => {
-    mockLidarrGet.mockImplementation((path: string) => {
-      if (path === "/indexer/schema")
-        return Promise.resolve({ data: [newznabSchema] });
-      if (path === "/downloadclient/schema")
-        return Promise.resolve({ data: [sabnzbdSchema] });
-    });
+    mockSchemasAndClients(5);
     mockLidarrPost.mockImplementation((path: string) => {
       if (path === "/indexer")
         return Promise.resolve({
@@ -255,12 +266,7 @@ describe("POST /auto-setup", () => {
   });
 
   it("handles Lidarr POST failure for download client", async () => {
-    mockLidarrGet.mockImplementation((path: string) => {
-      if (path === "/indexer/schema")
-        return Promise.resolve({ data: [newznabSchema] });
-      if (path === "/downloadclient/schema")
-        return Promise.resolve({ data: [sabnzbdSchema] });
-    });
+    mockSchemasAndClients();
     mockLidarrPost.mockImplementation((path: string) => {
       if (path === "/downloadclient")
         return Promise.resolve({
@@ -275,20 +281,20 @@ describe("POST /auto-setup", () => {
       .send({ host: "tunearr", port: 3001 });
 
     expect(res.status).toBe(200);
-    expect(res.body.indexer.success).toBe(true);
     expect(res.body.downloadClient.success).toBe(false);
     expect(res.body.downloadClient.error).toBe("Client validation failed");
+    expect(res.body.indexer.success).toBe(false);
+    expect(res.body.indexer.error).toContain("download client must be created first");
+    expect(mockLidarrPost).not.toHaveBeenCalledWith(
+      "/indexer",
+      expect.anything()
+    );
   });
 
-  it("each create error is independent", async () => {
-    mockLidarrGet.mockImplementation((path: string) => {
-      if (path === "/indexer/schema")
-        return Promise.resolve({ data: [newznabSchema] });
-      if (path === "/downloadclient/schema")
-        return Promise.resolve({ data: [sabnzbdSchema] });
-    });
+  it("skips indexer when download client throws", async () => {
+    mockSchemasAndClients();
     mockLidarrPost.mockImplementation((path: string) => {
-      if (path === "/indexer")
+      if (path === "/downloadclient")
         return Promise.reject(new Error("Network error"));
       return Promise.resolve({ ok: true, data: {} });
     });
@@ -298,8 +304,9 @@ describe("POST /auto-setup", () => {
       .send({ host: "tunearr", port: 3001 });
 
     expect(res.status).toBe(200);
+    expect(res.body.downloadClient.success).toBe(false);
+    expect(res.body.downloadClient.error).toBe("Network error");
     expect(res.body.indexer.success).toBe(false);
-    expect(res.body.indexer.error).toBe("Network error");
-    expect(res.body.downloadClient.success).toBe(true);
+    expect(res.body.indexer.error).toContain("download client must be created first");
   });
 });

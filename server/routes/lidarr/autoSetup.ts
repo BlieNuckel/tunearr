@@ -23,7 +23,8 @@ function patchField(
 async function createIndexer(
   host: string,
   port: number,
-  schemas: LidarrIndexerResource[]
+  schemas: LidarrIndexerResource[],
+  downloadClientId: number
 ): Promise<SetupResult> {
   const newznab = schemas.find((s) => s.implementation === "Newznab");
   if (!newznab) {
@@ -32,8 +33,8 @@ async function createIndexer(
 
   let fields = newznab.fields;
   fields = patchField(fields, "baseUrl", `http://${host}:${port}/api/torznab`);
-  fields = patchField(fields, "apiPath", "/api");
-  fields = patchField(fields, "apiKey", "");
+  fields = patchField(fields, "apiPath", "");
+  fields = patchField(fields, "apiKey", "a");
 
   const result = await lidarrPost("/indexer", {
     ...newznab,
@@ -41,6 +42,7 @@ async function createIndexer(
     enableRss: true,
     enableAutomaticSearch: true,
     enableInteractiveSearch: true,
+    downloadClientId,
     fields,
   });
 
@@ -63,7 +65,8 @@ async function createDownloadClient(
   let fields = sabnzbd.fields;
   fields = patchField(fields, "host", host);
   fields = patchField(fields, "port", port);
-  fields = patchField(fields, "apiKey", "");
+  fields = patchField(fields, "apiKey", "a");
+  fields = patchField(fields, "password", "a");
   fields = patchField(fields, "urlBase", "/api/sabnzbd");
 
   const result = await lidarrPost("/downloadclient", {
@@ -107,20 +110,48 @@ router.post("/auto-setup", async (req: Request, res: Response) => {
     lidarrGet<LidarrDownloadClientResource[]>("/downloadclient/schema"),
   ]);
 
-  const [indexer, downloadClient] = await Promise.all([
-    createIndexer(host, port, indexerSchemas.data).catch(
-      (e): SetupResult => ({
+  const downloadClient = await createDownloadClient(
+    host,
+    port,
+    downloadClientSchemas.data
+  ).catch(
+    (e): SetupResult => ({
+      success: false,
+      error: e instanceof Error ? e.message : String(e),
+    })
+  );
+
+  let indexer: SetupResult;
+  if (!downloadClient.success) {
+    indexer = {
+      success: false,
+      error: "Skipped: download client must be created first",
+    };
+  } else {
+    const clients = await lidarrGet<LidarrDownloadClientResource[]>(
+      "/downloadclient"
+    );
+    const tunearrClient = clients.data.find((d) => d.name === TUNEARR_NAME);
+
+    if (!tunearrClient) {
+      indexer = {
         success: false,
-        error: e instanceof Error ? e.message : String(e),
-      })
-    ),
-    createDownloadClient(host, port, downloadClientSchemas.data).catch(
-      (e): SetupResult => ({
-        success: false,
-        error: e instanceof Error ? e.message : String(e),
-      })
-    ),
-  ]);
+        error: "Download client was created but could not be found",
+      };
+    } else {
+      indexer = await createIndexer(
+        host,
+        port,
+        indexerSchemas.data,
+        tunearrClient.id
+      ).catch(
+        (e): SetupResult => ({
+          success: false,
+          error: e instanceof Error ? e.message : String(e),
+        })
+      );
+    }
+  }
 
   res.json({ indexer, downloadClient });
 });
