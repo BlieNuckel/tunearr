@@ -119,8 +119,7 @@ describe("GET /auto-setup/status", () => {
         return Promise.resolve({
           data: [{ name: "Tunearr", implementation: "Newznab" }],
         });
-      if (path === "/downloadclient")
-        return Promise.resolve({ data: [] });
+      if (path === "/downloadclient") return Promise.resolve({ data: [] });
     });
 
     const res = await request(app).get("/auto-setup/status");
@@ -142,9 +141,7 @@ describe("GET /auto-setup/status", () => {
 
 describe("POST /auto-setup", () => {
   it("returns 400 when host is missing", async () => {
-    const res = await request(app)
-      .post("/auto-setup")
-      .send({ port: 3001 });
+    const res = await request(app).post("/auto-setup").send({ port: 3001 });
     expect(res.status).toBe(400);
     expect(res.body.error).toBe("host and port are required");
   });
@@ -241,7 +238,9 @@ describe("POST /auto-setup", () => {
     expect(res.body.downloadClient.success).toBe(false);
     expect(res.body.downloadClient.error).toContain("Sabnzbd schema not found");
     expect(res.body.indexer.success).toBe(false);
-    expect(res.body.indexer.error).toContain("download client must be created first");
+    expect(res.body.indexer.error).toContain(
+      "download client must be created first"
+    );
   });
 
   it("handles Lidarr POST failure for indexer", async () => {
@@ -284,7 +283,9 @@ describe("POST /auto-setup", () => {
     expect(res.body.downloadClient.success).toBe(false);
     expect(res.body.downloadClient.error).toBe("Client validation failed");
     expect(res.body.indexer.success).toBe(false);
-    expect(res.body.indexer.error).toContain("download client must be created first");
+    expect(res.body.indexer.error).toContain(
+      "download client must be created first"
+    );
     expect(mockLidarrPost).not.toHaveBeenCalledWith(
       "/indexer",
       expect.anything()
@@ -307,6 +308,8 @@ describe("POST /auto-setup", () => {
     expect(res.body.downloadClient.success).toBe(false);
     expect(res.body.downloadClient.error).toBe("Network error");
     expect(res.body.indexer.success).toBe(false);
-    expect(res.body.indexer.error).toContain("download client must be created first");
+    expect(res.body.indexer.error).toContain(
+      "download client must be created first"
+    );
   });
 });

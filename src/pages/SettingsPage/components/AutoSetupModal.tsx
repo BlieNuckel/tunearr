@@ -60,8 +60,7 @@ export default function AutoSetupModal({
     }
   };
 
-  const fullSuccess =
-    result?.indexer.success && result?.downloadClient.success;
+  const fullSuccess = result?.indexer.success && result?.downloadClient.success;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
@@ -141,7 +140,7 @@ function ResultLine({
       className={`p-2 rounded-lg border-2 border-black ${result.success ? "bg-emerald-100 dark:bg-emerald-900/30" : "bg-rose-100 dark:bg-rose-900/30"}`}
     >
       <span className="font-medium">{label}:</span>{" "}
-      {result.success ? "Created" : result.error ?? "Failed"}
+      {result.success ? "Created" : (result.error ?? "Failed")}
     </div>
   );
 }

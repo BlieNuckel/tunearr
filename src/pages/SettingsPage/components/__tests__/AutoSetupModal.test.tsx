@@ -46,11 +46,7 @@ describe("AutoSetupModal", () => {
     );
 
     render(
-      <AutoSetupModal
-        isOpen={true}
-        onClose={onClose}
-        onSuccess={onSuccess}
-      />
+      <AutoSetupModal isOpen={true} onClose={onClose} onSuccess={onSuccess} />
     );
 
     await userEvent.click(screen.getByRole("button", { name: /set up/i }));
@@ -82,11 +78,7 @@ describe("AutoSetupModal", () => {
     );
 
     render(
-      <AutoSetupModal
-        isOpen={true}
-        onClose={onClose}
-        onSuccess={onSuccess}
-      />
+      <AutoSetupModal isOpen={true} onClose={onClose} onSuccess={onSuccess} />
     );
 
     await userEvent.click(screen.getByRole("button", { name: /set up/i }));
@@ -145,7 +137,9 @@ describe("AutoSetupModal", () => {
 
   it("calls onClose when cancel is clicked", async () => {
     const onClose = vi.fn();
-    render(<AutoSetupModal isOpen={true} onClose={onClose} onSuccess={vi.fn()} />);
+    render(
+      <AutoSetupModal isOpen={true} onClose={onClose} onSuccess={vi.fn()} />
+    );
 
     await userEvent.click(screen.getByRole("button", { name: /cancel/i }));
     expect(onClose).toHaveBeenCalled();

@@ -89,9 +89,7 @@ describe("SlskdSection", () => {
 
   describe("auto-setup button", () => {
     it("is disabled when not connected", () => {
-      render(
-        <SlskdSection {...defaultProps} isConnected={false} />
-      );
+      render(<SlskdSection {...defaultProps} isConnected={false} />);
 
       const button = screen.getByRole("button", {
         name: /set up in lidarr/i,
@@ -116,7 +114,10 @@ describe("SlskdSection", () => {
         <SlskdSection
           {...defaultProps}
           isConnected={true}
-          autoSetupStatus={{ indexerExists: false, downloadClientExists: false }}
+          autoSetupStatus={{
+            indexerExists: false,
+            downloadClientExists: false,
+          }}
         />
       );
 
@@ -162,7 +163,10 @@ describe("SlskdSection", () => {
         <SlskdSection
           {...defaultProps}
           isConnected={true}
-          autoSetupStatus={{ indexerExists: false, downloadClientExists: false }}
+          autoSetupStatus={{
+            indexerExists: false,
+            downloadClientExists: false,
+          }}
           onAutoSetup={onAutoSetup}
         />
       );

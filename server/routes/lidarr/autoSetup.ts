@@ -128,9 +128,8 @@ router.post("/auto-setup", async (req: Request, res: Response) => {
       error: "Skipped: download client must be created first",
     };
   } else {
-    const clients = await lidarrGet<LidarrDownloadClientResource[]>(
-      "/downloadclient"
-    );
+    const clients =
+      await lidarrGet<LidarrDownloadClientResource[]>("/downloadclient");
     const tunearrClient = clients.data.find((d) => d.name === TUNEARR_NAME);
 
     if (!tunearrClient) {
