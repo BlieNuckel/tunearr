@@ -1,11 +1,13 @@
 import { useState, useCallback, useEffect } from "react";
 import { useLidarrContext } from "@/context/useLidarrContext";
 import { useAutoSave } from "@/hooks/useAutoSave";
+import useAutoSetupStatus from "@/hooks/useAutoSetupStatus";
 import LidarrConnectionSection from "./components/LidarrConnectionSection";
 import LidarrOptionsSection from "./components/LidarrOptionsSection";
 import LastfmSection from "./components/LastfmSection";
 import PlexSection from "./components/PlexSection";
 import SlskdSection from "./components/SlskdSection";
+import AutoSetupModal from "./components/AutoSetupModal";
 import ImportSection from "./components/ImportSection";
 import RecommendationsSection from "./components/RecommendationsSection";
 import { DEFAULT_PROMOTED_ALBUM } from "@/context/promotedAlbumDefaults";
@@ -57,6 +59,7 @@ export default function SettingsPage() {
     options,
     settings,
     isLoading,
+    isConnected,
     savePartialSettings,
     testConnection,
     loadLidarrOptionValues,
@@ -65,10 +68,21 @@ export default function SettingsPage() {
   const { fields, saveStatus, saveError, updateField, updateFields } =
     useAutoSave(settings, savePartialSettings);
 
+  const {
+    status: autoSetupStatus,
+    loading: autoSetupLoading,
+    refetch: refetchAutoSetup,
+  } = useAutoSetupStatus();
+
   const [activeTab, setActiveTab] = useState<SettingsTab>("general");
   const [searchQuery, setSearchQuery] = useState("");
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<TestResult | null>(null);
+  const [autoSetupModalOpen, setAutoSetupModalOpen] = useState(false);
+
+  const handleAutoSetupSuccess = useCallback(() => {
+    refetchAutoSetup();
+  }, [refetchAutoSetup]);
 
   const matchingSections = searchQuery ? filterSections(searchQuery) : [];
   const isSearching = searchQuery.length > 0;
@@ -247,6 +261,10 @@ export default function SettingsPage() {
               onUrlChange={(v) => updateField("slskdUrl", v)}
               onApiKeyChange={(v) => updateField("slskdApiKey", v)}
               onDownloadPathChange={(v) => updateField("slskdDownloadPath", v)}
+              isConnected={isConnected}
+              autoSetupStatus={autoSetupStatus}
+              autoSetupLoading={autoSetupLoading}
+              onAutoSetup={() => setAutoSetupModalOpen(true)}
             />
           </div>
         )}
@@ -277,6 +295,12 @@ export default function SettingsPage() {
             : `Connection failed: ${testResult.error}`}
         </div>
       )}
+
+      <AutoSetupModal
+        isOpen={autoSetupModalOpen}
+        onClose={() => setAutoSetupModalOpen(false)}
+        onSuccess={handleAutoSetupSuccess}
+      />
     </div>
   );
 }

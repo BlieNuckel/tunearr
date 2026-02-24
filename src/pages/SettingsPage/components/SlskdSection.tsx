@@ -1,3 +1,8 @@
+type AutoSetupStatus = {
+  indexerExists: boolean;
+  downloadClientExists: boolean;
+} | null;
+
 interface SlskdSectionProps {
   url: string;
   apiKey: string;
@@ -5,6 +10,22 @@ interface SlskdSectionProps {
   onUrlChange: (url: string) => void;
   onApiKeyChange: (apiKey: string) => void;
   onDownloadPathChange: (path: string) => void;
+  isConnected: boolean;
+  autoSetupStatus: AutoSetupStatus;
+  autoSetupLoading: boolean;
+  onAutoSetup: () => void;
+}
+
+function getButtonState(
+  isConnected: boolean,
+  status: AutoSetupStatus,
+  loading: boolean
+) {
+  if (loading) return "loading" as const;
+  if (!isConnected) return "disabled" as const;
+  if (status?.indexerExists && status?.downloadClientExists)
+    return "added" as const;
+  return "ready" as const;
 }
 
 export default function SlskdSection({
@@ -14,7 +35,17 @@ export default function SlskdSection({
   onUrlChange,
   onApiKeyChange,
   onDownloadPathChange,
+  isConnected,
+  autoSetupStatus,
+  autoSetupLoading,
+  onAutoSetup,
 }: SlskdSectionProps) {
+  const buttonState = getButtonState(
+    isConnected,
+    autoSetupStatus,
+    autoSetupLoading
+  );
+
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
@@ -60,6 +91,36 @@ export default function SlskdSection({
           volume mount)
         </p>
       </div>
+      <AutoSetupButton state={buttonState} onClick={onAutoSetup} />
     </div>
+  );
+}
+
+function AutoSetupButton({
+  state,
+  onClick,
+}: {
+  state: "disabled" | "loading" | "added" | "ready";
+  onClick: () => void;
+}) {
+  if (state === "added") {
+    return (
+      <button
+        disabled
+        className="w-full px-4 py-2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 font-bold rounded-lg border-2 border-black shadow-cartoon-sm cursor-default"
+      >
+        ✓ Added to Lidarr
+      </button>
+    );
+  }
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={state === "disabled" || state === "loading"}
+      className="w-full px-4 py-2 bg-amber-400 text-black font-bold rounded-lg border-2 border-black shadow-cartoon-sm hover:bg-amber-300 active:translate-y-0.5 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+    >
+      {state === "loading" ? "Checking…" : "Set Up in Lidarr"}
+    </button>
   );
 }

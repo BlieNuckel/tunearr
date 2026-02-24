@@ -74,6 +74,25 @@ export type LidarrManualImportItem = {
   album: { id: number };
 };
 
+export type LidarrSchemaField = {
+  name: string;
+  value: unknown;
+};
+
+export type LidarrIndexerResource = {
+  id: number;
+  name: string;
+  implementation: string;
+  fields: LidarrSchemaField[];
+};
+
+export type LidarrDownloadClientResource = {
+  id: number;
+  name: string;
+  implementation: string;
+  fields: LidarrSchemaField[];
+};
+
 export type LidarrQualityProfile = {
   id: number;
   name: string;

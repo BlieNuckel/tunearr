@@ -11,6 +11,10 @@ describe("SlskdSection", () => {
     onUrlChange: vi.fn(),
     onApiKeyChange: vi.fn(),
     onDownloadPathChange: vi.fn(),
+    isConnected: false,
+    autoSetupStatus: null,
+    autoSetupLoading: false,
+    onAutoSetup: vi.fn(),
   };
 
   it("renders all three input fields", () => {
@@ -81,5 +85,92 @@ describe("SlskdSection", () => {
     render(<SlskdSection {...defaultProps} />);
 
     expect(screen.getByText(/shared volume mount/i)).toBeInTheDocument();
+  });
+
+  describe("auto-setup button", () => {
+    it("is disabled when not connected", () => {
+      render(
+        <SlskdSection {...defaultProps} isConnected={false} />
+      );
+
+      const button = screen.getByRole("button", {
+        name: /set up in lidarr/i,
+      });
+      expect(button).toBeDisabled();
+    });
+
+    it("shows loading text when checking status", () => {
+      render(
+        <SlskdSection
+          {...defaultProps}
+          isConnected={true}
+          autoSetupLoading={true}
+        />
+      );
+
+      expect(screen.getByText("Checking…")).toBeInTheDocument();
+    });
+
+    it("shows ready state when connected and not already set up", () => {
+      render(
+        <SlskdSection
+          {...defaultProps}
+          isConnected={true}
+          autoSetupStatus={{ indexerExists: false, downloadClientExists: false }}
+        />
+      );
+
+      const button = screen.getByRole("button", {
+        name: /set up in lidarr/i,
+      });
+      expect(button).not.toBeDisabled();
+    });
+
+    it("shows added state when both exist", () => {
+      render(
+        <SlskdSection
+          {...defaultProps}
+          isConnected={true}
+          autoSetupStatus={{ indexerExists: true, downloadClientExists: true }}
+        />
+      );
+
+      const button = screen.getByRole("button", {
+        name: /added to lidarr/i,
+      });
+      expect(button).toBeDisabled();
+    });
+
+    it("shows ready state when only one exists", () => {
+      render(
+        <SlskdSection
+          {...defaultProps}
+          isConnected={true}
+          autoSetupStatus={{ indexerExists: true, downloadClientExists: false }}
+        />
+      );
+
+      const button = screen.getByRole("button", {
+        name: /set up in lidarr/i,
+      });
+      expect(button).not.toBeDisabled();
+    });
+
+    it("calls onAutoSetup when clicked", async () => {
+      const onAutoSetup = vi.fn();
+      render(
+        <SlskdSection
+          {...defaultProps}
+          isConnected={true}
+          autoSetupStatus={{ indexerExists: false, downloadClientExists: false }}
+          onAutoSetup={onAutoSetup}
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole("button", { name: /set up in lidarr/i })
+      );
+      expect(onAutoSetup).toHaveBeenCalled();
+    });
   });
 });
