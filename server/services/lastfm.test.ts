@@ -33,10 +33,17 @@ describe("enrichArtistsWithImages", () => {
 
     const result = await enrichArtistsWithImages(artists);
     expect(result).toEqual([
-      { name: "Radiohead", match: 0.9, imageUrl: "https://deezer.com/radiohead.jpg" },
+      {
+        name: "Radiohead",
+        match: 0.9,
+        imageUrl: "https://deezer.com/radiohead.jpg",
+      },
       { name: "Thom Yorke", match: 0.8, imageUrl: "existing.jpg" },
     ]);
-    expect(mockGetArtistsImages).toHaveBeenCalledWith(["Radiohead", "Thom Yorke"]);
+    expect(mockGetArtistsImages).toHaveBeenCalledWith([
+      "Radiohead",
+      "Thom Yorke",
+    ]);
   });
 
   it("preserves existing imageUrl when no Deezer image found", async () => {
@@ -73,9 +80,13 @@ describe("enrichArtistSectionsWithImages", () => {
     );
 
     const result = await enrichArtistSectionsWithImages(sections);
-    expect(result[0].artists[0].imageUrl).toBe("https://deezer.com/nirvana.jpg");
+    expect(result[0].artists[0].imageUrl).toBe(
+      "https://deezer.com/nirvana.jpg"
+    );
     expect(result[0].artists[1].imageUrl).toBe("");
-    expect(result[1].artists[0].imageUrl).toBe("https://deezer.com/radiohead.jpg");
+    expect(result[1].artists[0].imageUrl).toBe(
+      "https://deezer.com/radiohead.jpg"
+    );
     expect(mockGetArtistsImages).toHaveBeenCalledWith([
       "Nirvana",
       "Pearl Jam",

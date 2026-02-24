@@ -13,7 +13,9 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-function makeRecord(overrides: Partial<LidarrHistoryRecord> = {}): LidarrHistoryRecord {
+function makeRecord(
+  overrides: Partial<LidarrHistoryRecord> = {}
+): LidarrHistoryRecord {
   return {
     id: 1,
     albumId: 100,
@@ -50,14 +52,18 @@ describe("buildIndexerMap", () => {
   });
 
   it("skips records without downloadId", () => {
-    const records = [makeRecord({ downloadId: "", data: { indexer: "Prowlarr" } })];
+    const records = [
+      makeRecord({ downloadId: "", data: { indexer: "Prowlarr" } }),
+    ];
 
     const map = buildIndexerMap(records);
     expect(map.size).toBe(0);
   });
 
   it("skips records without indexer in data", () => {
-    const records = [makeRecord({ downloadId: "dl-1", data: {} as Record<string, string> })];
+    const records = [
+      makeRecord({ downloadId: "dl-1", data: {} as Record<string, string> }),
+    ];
 
     const map = buildIndexerMap(records);
     expect(map.size).toBe(0);

@@ -1,8 +1,5 @@
 import { getDownload, removeDownload } from "../../api/slskd/downloadTracker";
-import {
-  getDownloadTransfers,
-  cancelDownload,
-} from "../../api/slskd/transfer";
+import { getDownloadTransfers, cancelDownload } from "../../api/slskd/transfer";
 import { createLogger } from "../../logger";
 import { findMatchingTransfers } from "./transfers";
 

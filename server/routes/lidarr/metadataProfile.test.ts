@@ -3,8 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const mockGetMetadataProfiles = vi.fn();
 
 vi.mock("../../services/lidarr/profiles", () => ({
-  getMetadataProfiles: (...args: unknown[]) =>
-    mockGetMetadataProfiles(...args),
+  getMetadataProfiles: (...args: unknown[]) => mockGetMetadataProfiles(...args),
 }));
 
 import express from "express";

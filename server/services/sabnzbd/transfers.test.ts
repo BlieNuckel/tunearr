@@ -72,7 +72,11 @@ describe("findMatchingTransfers", () => {
   });
 
   it("returns empty array when no matches", () => {
-    const result = findMatchingTransfers("user1", [{ filename: "no-match" }], []);
+    const result = findMatchingTransfers(
+      "user1",
+      [{ filename: "no-match" }],
+      []
+    );
     expect(result).toHaveLength(0);
   });
 });
@@ -93,17 +97,13 @@ describe("estimateTimeLeft", () => {
   });
 
   it("returns 00:00:00 when no active transfers", () => {
-    const transfers = [
-      makeTransfer({ state: "Completed, Succeeded" }),
-    ];
+    const transfers = [makeTransfer({ state: "Completed, Succeeded" })];
 
     expect(estimateTimeLeft(transfers)).toBe("00:00:00");
   });
 
   it("returns 99:99:99 when speed is zero", () => {
-    const transfers = [
-      makeTransfer({ state: "InProgress", averageSpeed: 0 }),
-    ];
+    const transfers = [makeTransfer({ state: "InProgress", averageSpeed: 0 })];
 
     expect(estimateTimeLeft(transfers)).toBe("99:99:99");
   });

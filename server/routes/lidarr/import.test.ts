@@ -147,7 +147,8 @@ describe("POST /import/upload", () => {
     mockExistsSync.mockReturnValue(true);
     mockScanUploadedFiles.mockResolvedValue({
       ok: false,
-      error: "Lidarr found no importable files. Make sure the import path is accessible to Lidarr.",
+      error:
+        "Lidarr found no importable files. Make sure the import path is accessible to Lidarr.",
       status: 400,
     });
 

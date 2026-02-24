@@ -9,7 +9,7 @@ import {
 
 describe("escapeXml", () => {
   it("escapes all XML special characters", () => {
-    expect(escapeXml('a & b < c > d " e \' f')).toBe(
+    expect(escapeXml("a & b < c > d \" e ' f")).toBe(
       "a &amp; b &lt; c &gt; d &quot; e &apos; f"
     );
   });

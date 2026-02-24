@@ -6,7 +6,11 @@ vi.mock("../../api/lidarr/get.js", () => ({
   lidarrGet: (...args: unknown[]) => mockLidarrGet(...args),
 }));
 
-import { getQualityProfiles, getMetadataProfiles, getRootFolders } from "./profiles";
+import {
+  getQualityProfiles,
+  getMetadataProfiles,
+  getRootFolders,
+} from "./profiles";
 
 beforeEach(() => {
   vi.clearAllMocks();

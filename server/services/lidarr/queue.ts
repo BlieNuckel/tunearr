@@ -1,7 +1,13 @@
 import { lidarrGet } from "../../api/lidarr/get";
-import type { LidarrPaginatedResponse, LidarrQueueItem } from "../../api/lidarr/types";
+import type {
+  LidarrPaginatedResponse,
+  LidarrQueueItem,
+} from "../../api/lidarr/types";
 
-export async function getLidarrQueue(page: string | number, pageSize: string | number) {
+export async function getLidarrQueue(
+  page: string | number,
+  pageSize: string | number
+) {
   const result = await lidarrGet<LidarrPaginatedResponse<LidarrQueueItem>>(
     "/queue",
     {

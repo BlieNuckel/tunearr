@@ -18,9 +18,7 @@ export async function enrichArtistsWithImages<T extends ArtistWithImage>(
 export async function enrichArtistSectionsWithImages<T extends ArtistSection>(
   sections: T[]
 ): Promise<T[]> {
-  const allArtistNames = sections.flatMap((s) =>
-    s.artists.map((a) => a.name)
-  );
+  const allArtistNames = sections.flatMap((s) => s.artists.map((a) => a.name));
   const imageMap = await getArtistsImages(allArtistNames);
 
   return sections.map((section) => ({

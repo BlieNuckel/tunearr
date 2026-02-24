@@ -92,7 +92,9 @@ describe("result cache", () => {
       { guid: "g2", directory: "Music\\Album2" },
     ];
 
-    cacheResultsForDownload(results as Parameters<typeof cacheResultsForDownload>[0]);
+    cacheResultsForDownload(
+      results as Parameters<typeof cacheResultsForDownload>[0]
+    );
 
     expect(getCachedResult("g1")).toEqual(results[0]);
     expect(getCachedResult("g2")).toEqual(results[1]);

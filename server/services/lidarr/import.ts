@@ -3,11 +3,23 @@ import { lidarrPost } from "../../api/lidarr/post";
 import type { LidarrManualImportItem } from "../../api/lidarr/types";
 import { getAlbumByMbid, getOrAddArtist, getOrAddAlbum } from "./helpers";
 
-export const ALLOWED_EXTENSIONS = [".flac", ".mp3", ".ogg", ".wav", ".m4a", ".aac"];
+export const ALLOWED_EXTENSIONS = [
+  ".flac",
+  ".mp3",
+  ".ogg",
+  ".wav",
+  ".m4a",
+  ".aac",
+];
 
 type ScanResult =
   | { ok: false; error: string; status: number }
-  | { ok: true; artistId: number; albumId: number; items: LidarrManualImportItem[] };
+  | {
+      ok: true;
+      artistId: number;
+      albumId: number;
+      items: LidarrManualImportItem[];
+    };
 
 export async function scanUploadedFiles(
   albumMbid: string,
@@ -16,7 +28,11 @@ export async function scanUploadedFiles(
   const lookupAlbum = await getAlbumByMbid(albumMbid);
   const artistMbid = lookupAlbum.artist?.foreignArtistId;
   if (!artistMbid) {
-    return { ok: false, error: "Could not determine artist from album lookup", status: 404 };
+    return {
+      ok: false,
+      error: "Could not determine artist from album lookup",
+      status: 404,
+    };
   }
 
   const artist = await getOrAddArtist(artistMbid);
@@ -32,13 +48,18 @@ export async function scanUploadedFiles(
   );
 
   if (!scanResult.ok) {
-    return { ok: false, error: "Lidarr manual import scan failed", status: 502 };
+    return {
+      ok: false,
+      error: "Lidarr manual import scan failed",
+      status: 502,
+    };
   }
 
   if (!scanResult.data?.length) {
     return {
       ok: false,
-      error: "Lidarr found no importable files. Make sure the import path is accessible to Lidarr.",
+      error:
+        "Lidarr found no importable files. Make sure the import path is accessible to Lidarr.",
       status: 400,
     };
   }

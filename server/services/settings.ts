@@ -23,9 +23,14 @@ export async function testLidarrConnection(
   const url = lidarrUrl.replace(/\/+$/, "");
   const headers = { "X-Api-Key": lidarrApiKey };
 
-  const response = await lidarrFetch(`${url}/api/v1/system/status`, { headers });
+  const response = await lidarrFetch(`${url}/api/v1/system/status`, {
+    headers,
+  });
   if (!response.ok) {
-    return { error: `Lidarr returned ${response.status}`, status: response.status };
+    return {
+      error: `Lidarr returned ${response.status}`,
+      status: response.status,
+    };
   }
   const data = await response.json();
 

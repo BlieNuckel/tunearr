@@ -55,7 +55,9 @@ router.get("/tag/artists", async (req: Request, res: Response) => {
   );
 
   if (result.sections.length > 0) {
-    const enrichedSections = await enrichArtistSectionsWithImages(result.sections);
+    const enrichedSections = await enrichArtistSectionsWithImages(
+      result.sections
+    );
     res.json({ ...result, sections: enrichedSections });
   } else {
     const enrichedArtists = await enrichArtistsWithImages(result.artists);

@@ -93,7 +93,11 @@ describe("GET /tracks/:releaseGroupId", () => {
       {
         position: 1,
         tracks: [
-          { title: "Creep", position: 1, previewUrl: "https://example.com/creep.mp3" },
+          {
+            title: "Creep",
+            position: 1,
+            previewUrl: "https://example.com/creep.mp3",
+          },
           { title: "High and Dry", position: 2 },
         ],
       },
@@ -108,7 +112,10 @@ describe("GET /tracks/:releaseGroupId", () => {
       "https://example.com/creep.mp3"
     );
     expect(res.body.media[0].tracks[1].previewUrl).toBeUndefined();
-    expect(mockEnrichTracksWithPreviews).toHaveBeenCalledWith(media, "Radiohead");
+    expect(mockEnrichTracksWithPreviews).toHaveBeenCalledWith(
+      media,
+      "Radiohead"
+    );
   });
 
   it("skips preview enrichment when artistName is absent", async () => {
