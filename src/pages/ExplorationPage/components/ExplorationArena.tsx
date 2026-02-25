@@ -181,7 +181,7 @@ export default function ExplorationArena({
 
 function ShufflingDeck() {
   return (
-    <div className="flex justify-center py-4">
+    <div className="fixed bottom-18 left-0 right-0 z-40 md:static md:z-auto flex justify-center py-4">
       <div className="relative w-20 sm:w-24 md:w-32 aspect-square">
         {[0, 1, 2].map((i) => (
           <div
