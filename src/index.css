@@ -215,6 +215,138 @@
   );
 }
 
+@keyframes card-scatter {
+  to {
+    opacity: 0;
+    transform: translateY(60px) rotate(var(--scatter-rotate, 15deg));
+  }
+}
+
+.card-scatter {
+  animation: card-scatter 0.3s ease-in forwards;
+}
+
+@keyframes card-collect {
+  50% {
+    transform: scale(0.7) translateY(30vh);
+  }
+  100% {
+    transform: scale(0.4) translateY(50vh);
+    opacity: 0;
+  }
+}
+
+.card-collect {
+  animation: card-collect 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.hand-card {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.4);
+  }
+}
+
+.pulse-dot {
+  animation: pulse-dot 1.5s ease-in-out infinite;
+}
+
+@keyframes deck-cycle {
+  0%,
+  55% {
+    transform: translateY(0) rotate(0deg);
+    z-index: 0;
+  }
+  55.1% {
+    transform: translateY(0) rotate(0deg);
+    z-index: 10;
+  }
+  68% {
+    transform: translateY(-110%) rotate(-6deg);
+    z-index: 10;
+  }
+  75% {
+    transform: translateY(-110%) rotate(-4deg);
+    z-index: 10;
+  }
+  75.1% {
+    transform: translateY(-110%) rotate(-4deg);
+    z-index: 0;
+  }
+  90%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+    z-index: 0;
+  }
+}
+
+.deck-card {
+  animation: deck-cycle 2.1s ease-in-out infinite;
+  animation-delay: calc(var(--deck-index, 0) * 700ms);
+}
+
+@keyframes explore-title-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.7);
+    filter: blur(12px);
+  }
+  70% {
+    opacity: 1;
+    filter: blur(0);
+  }
+  85% {
+    transform: scale(1.03);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes explore-fade-up {
+  0% {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes sparkle-pulse {
+  0%,
+  100% {
+    opacity: 0.7;
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15) rotate(180deg);
+  }
+}
+
+.explore-title-in {
+  animation: explore-title-in 1s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.explore-fade-up {
+  animation: explore-fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.sparkle-pulse {
+  animation: sparkle-pulse 3s ease-in-out infinite;
+}
+
 .flip-card {
   perspective: 800px;
 }

@@ -52,3 +52,9 @@ export type LastfmTagAlbumsResponse = {
     "@attr"?: { page: string; totalPages: string };
   };
 };
+
+export type LastfmAlbumTopTagsResponse = {
+  error?: number;
+  message?: string;
+  toptags?: { tag: LastfmTag[] };
+};

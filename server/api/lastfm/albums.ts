@@ -1,5 +1,8 @@
 import { buildUrl } from "./config";
-import type { LastfmTagAlbumsResponse } from "./types";
+import type {
+  LastfmTagAlbumsResponse,
+  LastfmAlbumTopTagsResponse,
+} from "./types";
 
 export const getTopAlbumsByTag = async (
   tag: string,
@@ -38,3 +41,21 @@ export const getTopAlbumsByTag = async (
     },
   };
 };
+
+export async function getAlbumTopTags(
+  artist: string,
+  album: string
+): Promise<{ name: string; count: number }[]> {
+  const url = buildUrl("album.getTopTags", { artist, album });
+  const response = await fetch(url);
+  const data: LastfmAlbumTopTagsResponse = await response.json();
+
+  if (data.error) {
+    throw new Error(data.message || "Last.fm API error");
+  }
+
+  return (data.toptags?.tag || []).map((t) => ({
+    name: t.name,
+    count: Number(t.count),
+  }));
+}
