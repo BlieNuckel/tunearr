@@ -149,7 +149,6 @@ export default function ExplorationArena({
               >
                 <SuggestionCard
                   releaseGroup={s.releaseGroup}
-                  tags={s.tags}
                   onClick={() => handleFocusCard(i)}
                 />
               </div>

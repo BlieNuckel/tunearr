@@ -323,28 +323,12 @@
   }
 }
 
-@keyframes sparkle-pulse {
-  0%,
-  100% {
-    opacity: 0.7;
-    transform: scale(1) rotate(0deg);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.15) rotate(180deg);
-  }
-}
-
 .explore-title-in {
   animation: explore-title-in 1s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .explore-fade-up {
   animation: explore-fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.sparkle-pulse {
-  animation: sparkle-pulse 3s ease-in-out infinite;
 }
 
 .flip-card {

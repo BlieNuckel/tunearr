@@ -130,7 +130,7 @@ export default function SourceSearch({ onSelect }: SourceSearchProps) {
     >
       <div className="text-center mb-8 md:mb-10">
         <div className="explore-title-in relative inline-block mb-3">
-          <SparkleIcon className="absolute -top-4 -right-5 md:-top-6 md:-right-7 w-7 h-7 md:w-9 md:h-9 text-amber-400 sparkle-pulse" />
+          <SparkleIcon className="absolute -top-4 -right-5 md:-top-6 md:-right-7 w-7 h-7 md:w-9 md:h-9 text-amber-400" />
           <h1 className="text-6xl md:text-8xl font-black bg-gradient-to-r from-pink-500 via-amber-400 to-rose-500 dark:from-pink-400 dark:via-amber-300 dark:to-rose-400 bg-clip-text text-transparent">
             Explore
           </h1>
