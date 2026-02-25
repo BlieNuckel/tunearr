@@ -1,5 +1,6 @@
 import NodeCache from "node-cache";
 import { withCache } from "../../cache";
+import { resilientFetch } from "../resilientFetch";
 import { createLogger } from "../../logger";
 import type { DeezerTrackSearchResponse } from "./types";
 
@@ -22,7 +23,7 @@ const fetchTrackPreview = async (
     });
 
     const url = `${DEEZER_SEARCH_BASE}?${params.toString()}`;
-    const response = await fetch(url);
+    const response = await resilientFetch(url);
 
     if (!response.ok) {
       log.error(

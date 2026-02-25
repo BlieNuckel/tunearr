@@ -1,5 +1,6 @@
 import NodeCache from "node-cache";
 import { withCache } from "../../cache";
+import { resilientFetch } from "../resilientFetch";
 import { createLogger } from "../../logger";
 import type { AppleSearchResponse } from "./types";
 
@@ -25,7 +26,7 @@ const fetchArtistArtwork = async (artistName: string): Promise<string> => {
     });
 
     const url = `${ITUNES_SEARCH_BASE}?${params.toString()}`;
-    const response = await fetch(url);
+    const response = await resilientFetch(url);
 
     if (!response.ok) {
       log.error(
@@ -71,7 +72,7 @@ const fetchAlbumArtwork = async (
     });
 
     const url = `${ITUNES_SEARCH_BASE}?${params.toString()}`;
-    const response = await fetch(url);
+    const response = await resilientFetch(url);
 
     if (!response.ok) {
       log.error(

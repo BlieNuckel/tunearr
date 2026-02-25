@@ -1,3 +1,4 @@
+import { resilientFetch } from "../resilientFetch";
 import { buildUrl } from "./config";
 import type { LastfmTagAlbumsResponse } from "./types";
 
@@ -7,7 +8,7 @@ export const getTopAlbumsByTag = async (
   limit = "50"
 ) => {
   const url = buildUrl("tag.getTopAlbums", { tag, page, limit });
-  const response = await fetch(url);
+  const response = await resilientFetch(url);
   const data: LastfmTagAlbumsResponse = await response.json();
 
   if (data.error) {

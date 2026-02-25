@@ -79,7 +79,7 @@ describe("waitForSearch", () => {
     expect(result).toEqual({ completed: true, fileCount: 20 });
     expect(mockFetch).toHaveBeenCalledWith(
       "http://slskd:5030/api/v0/searches/abc",
-      { headers: CONFIG.headers }
+      expect.objectContaining({ headers: CONFIG.headers })
     );
   });
 
@@ -105,7 +105,7 @@ describe("getSearchResponses", () => {
     expect(result).toEqual(responses);
     expect(mockFetch).toHaveBeenCalledWith(
       "http://slskd:5030/api/v0/searches/abc/responses",
-      { headers: CONFIG.headers }
+      expect.objectContaining({ headers: CONFIG.headers })
     );
   });
 
@@ -124,7 +124,7 @@ describe("deleteSearch", () => {
     await deleteSearch("abc");
     expect(mockFetch).toHaveBeenCalledWith(
       "http://slskd:5030/api/v0/searches/abc",
-      { method: "DELETE", headers: CONFIG.headers }
+      expect.objectContaining({ method: "DELETE", headers: CONFIG.headers })
     );
   });
 });

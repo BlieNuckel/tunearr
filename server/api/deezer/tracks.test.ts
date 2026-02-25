@@ -37,7 +37,8 @@ describe("getTrackPreview", () => {
 
     expect(result).toBe("https://cdns-preview.dzcdn.net/stream/creep.mp3");
     expect(mockFetch).toHaveBeenCalledWith(
-      "https://api.deezer.com/search/track?q=Radiohead+Creep&limit=1"
+      "https://api.deezer.com/search/track?q=Radiohead+Creep&limit=1",
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
     );
   });
 

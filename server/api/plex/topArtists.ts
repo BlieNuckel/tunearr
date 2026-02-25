@@ -1,3 +1,4 @@
+import { resilientFetch } from "../resilientFetch";
 import { getPlexConfig } from "./config";
 import type {
   PlexSectionsResponse,
@@ -10,7 +11,7 @@ const getMusicSectionKey = async (
   baseUrl: string,
   headers: Record<string, string>
 ): Promise<string> => {
-  const res = await fetch(`${baseUrl}/library/sections`, { headers });
+  const res = await resilientFetch(`${baseUrl}/library/sections`, { headers });
   if (!res.ok) throw new Error(`Plex returned ${res.status}`);
 
   const data: PlexSectionsResponse = await res.json();
@@ -26,7 +27,7 @@ export async function getTopArtists(limit: number): Promise<PlexTopArtist[]> {
   const sectionKey = await getMusicSectionKey(baseUrl, headers);
 
   const url = `${baseUrl}/library/sections/${sectionKey}/all?type=8&sort=viewCount:desc&X-Plex-Container-Start=0&X-Plex-Container-Size=${limit}`;
-  const response = await fetch(url, { headers });
+  const response = await resilientFetch(url, { headers });
 
   if (!response.ok) {
     throw new Error(`Plex returned ${response.status}`);

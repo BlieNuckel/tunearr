@@ -1,3 +1,4 @@
+import { resilientFetch } from "../resilientFetch";
 import { MB_BASE, MB_HEADERS, rateLimitedMbFetch } from "./config";
 import type {
   MusicBrainzSearchResponse,
@@ -12,7 +13,7 @@ export async function searchReleaseGroups(
   query: string
 ): Promise<ReleaseGroupSearchResult> {
   const url = `${MB_BASE}/release-group/?query=${encodeURIComponent(query)}&limit=20&fmt=json`;
-  const response = await fetch(url, { headers: MB_HEADERS });
+  const response = await resilientFetch(url, { headers: MB_HEADERS });
 
   if (!response.ok) {
     throw new Error(`MusicBrainz returned ${response.status}`);
@@ -33,7 +34,7 @@ export async function searchArtistReleaseGroups(
   artistName: string
 ): Promise<ReleaseGroupSearchResult> {
   const artistUrl = `${MB_BASE}/artist/?query=${encodeURIComponent(artistName)}&limit=1&fmt=json`;
-  const artistResponse = await fetch(artistUrl, { headers: MB_HEADERS });
+  const artistResponse = await resilientFetch(artistUrl, { headers: MB_HEADERS });
 
   if (!artistResponse.ok) {
     throw new Error(`MusicBrainz returned ${artistResponse.status}`);
@@ -48,7 +49,7 @@ export async function searchArtistReleaseGroups(
 
   const artistId = artistData.artists[0].id;
   const url = `${MB_BASE}/release-group?artist=${artistId}&type=album|ep&limit=50&inc=artist-credits&fmt=json`;
-  const response = await fetch(url, { headers: MB_HEADERS });
+  const response = await resilientFetch(url, { headers: MB_HEADERS });
 
   if (!response.ok) {
     throw new Error(`MusicBrainz returned ${response.status}`);
