@@ -3,7 +3,7 @@ interface TagCloudProps {
 }
 
 export default function TagCloud({ tags }: TagCloudProps) {
-  const sorted = [...tags].sort((a, b) => b.count - a.count).slice(0, 15);
+  const sorted = [...tags].sort((a, b) => b.count - a.count).slice(0, 5);
 
   if (sorted.length === 0) return null;
 

@@ -3,6 +3,7 @@ import type { ReleaseGroup } from "@/types";
 import useSearch from "@/hooks/useSearch";
 import Spinner from "@/components/Spinner";
 import ImageWithShimmer from "@/components/ImageWithShimmer";
+import AlbumCard from "./AlbumCard";
 
 interface SourceSearchProps {
   onSelect: (album: ReleaseGroup) => void;
@@ -37,10 +38,10 @@ function SparkleIcon({ className }: { className?: string }) {
 
 function SearchResultCard({
   rg,
-  onPick,
+  onClick,
 }: {
   rg: ReleaseGroup;
-  onPick: () => void;
+  onClick: () => void;
 }) {
   const [coverError, setCoverError] = useState(false);
   const artistName =
@@ -49,7 +50,18 @@ function SearchResultCard({
   const coverUrl = `https://coverartarchive.org/release-group/${rg.id}/front-500`;
 
   return (
-    <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl border-2 border-black shadow-cartoon-sm overflow-hidden flex items-center gap-3 p-2">
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl border-2 border-black shadow-cartoon-sm overflow-hidden flex items-center gap-3 p-2 cursor-pointer hover:bg-white dark:hover:bg-gray-800 active:shadow-cartoon-pressed active:translate-x-[1px] active:translate-y-[1px] transition-all"
+    >
       <div
         className="w-14 h-14 rounded-lg flex-shrink-0 relative overflow-hidden"
         style={{ backgroundColor: pastelColorFromId(rg.id) }}
@@ -74,25 +86,41 @@ function SearchResultCard({
           <p className="text-xs text-gray-400 dark:text-gray-500">{year}</p>
         )}
       </div>
-      <button
-        onClick={onPick}
-        className="flex-shrink-0 px-3 py-1.5 text-sm font-bold bg-gradient-to-r from-pink-300 to-amber-300 hover:from-pink-200 hover:to-amber-200 text-black border-2 border-black rounded-lg shadow-cartoon-sm active:shadow-cartoon-pressed active:translate-x-[1px] active:translate-y-[1px] transition-all"
-      >
-        Pick
-      </button>
+    </div>
+  );
+}
+
+function TopResultCard({
+  rg,
+  onClick,
+}: {
+  rg: ReleaseGroup;
+  onClick: () => void;
+}) {
+  return (
+    <div className="max-w-48 mx-auto">
+      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 text-center mb-2">
+        Top result
+      </p>
+      <AlbumCard releaseGroup={rg} onClick={onClick} />
     </div>
   );
 }
 
 export default function SourceSearch({ onSelect }: SourceSearchProps) {
   const [query, setQuery] = useState("");
+  const [showMore, setShowMore] = useState(false);
   const { results, loading, error, search } = useSearch();
   const hasSearched = results.length > 0 || loading || error;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setShowMore(false);
     search(query, "album");
   };
+
+  const topResult = results[0];
+  const remainingResults = results.slice(1);
 
   return (
     <div
@@ -140,17 +168,36 @@ export default function SourceSearch({ onSelect }: SourceSearchProps) {
 
       {error && <p className="text-rose-500 text-center mb-4">{error}</p>}
 
-      <div className="max-w-lg mx-auto space-y-2">
-        {results.map((rg, i) => (
-          <div
-            key={rg.id}
-            className="stagger-fade-in"
-            style={{ "--stagger-index": i } as React.CSSProperties}
+      {topResult && (
+        <div className="stagger-fade-in" style={{ "--stagger-index": 0 } as React.CSSProperties}>
+          <TopResultCard rg={topResult} onClick={() => onSelect(topResult)} />
+        </div>
+      )}
+
+      {remainingResults.length > 0 && !showMore && (
+        <div className="text-center mt-4">
+          <button
+            onClick={() => setShowMore(true)}
+            className="text-sm font-medium text-pink-600 dark:text-pink-400 hover:text-pink-800 dark:hover:text-pink-300 transition-colors"
           >
-            <SearchResultCard rg={rg} onPick={() => onSelect(rg)} />
-          </div>
-        ))}
-      </div>
+            More results
+          </button>
+        </div>
+      )}
+
+      {showMore && (
+        <div className="max-w-lg mx-auto space-y-2 mt-4">
+          {remainingResults.map((rg, i) => (
+            <div
+              key={rg.id}
+              className="stagger-fade-in"
+              style={{ "--stagger-index": i } as React.CSSProperties}
+            >
+              <SearchResultCard rg={rg} onClick={() => onSelect(rg)} />
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
