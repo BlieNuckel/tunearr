@@ -3,14 +3,14 @@ import ReleaseGroupCard from "@/components/ReleaseGroupCard";
 
 interface SuggestionOverlayProps {
   releaseGroup: ReleaseGroup;
-  tag?: string;
+  tags?: string[];
   onPick?: () => void;
   onClose: () => void;
 }
 
 export default function SuggestionOverlay({
   releaseGroup,
-  tag,
+  tags,
   onPick,
   onClose,
 }: SuggestionOverlayProps) {
@@ -24,11 +24,16 @@ export default function SuggestionOverlay({
         className="relative z-10 w-full max-w-xs sm:max-w-sm animate-pop"
         onClick={(e) => e.stopPropagation()}
       >
-        {tag && (
-          <div className="text-center mb-2">
-            <span className="inline-block px-2 py-0.5 text-xs font-medium bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300 rounded-full border border-pink-300 dark:border-pink-700">
-              {tag}
-            </span>
+        {tags && tags.length > 0 && (
+          <div className="flex justify-center gap-1 mb-2">
+            {tags.map((tag) => (
+              <span
+                key={tag}
+                className="inline-block px-2 py-0.5 text-xs font-medium bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300 rounded-full border border-pink-300 dark:border-pink-700"
+              >
+                {tag}
+              </span>
+            ))}
           </div>
         )}
         <ReleaseGroupCard releaseGroup={releaseGroup} defaultExpanded />

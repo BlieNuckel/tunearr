@@ -8,7 +8,7 @@ import CardHand from "./CardHand";
 
 type Suggestion = {
   releaseGroup: ReleaseGroup;
-  tag: string;
+  tags: string[];
 };
 
 interface ExplorationArenaProps {
@@ -149,7 +149,7 @@ export default function ExplorationArena({
               >
                 <SuggestionCard
                   releaseGroup={s.releaseGroup}
-                  tag={s.tag}
+                  tags={s.tags}
                   onClick={() => handleFocusCard(i)}
                 />
               </div>
@@ -167,7 +167,7 @@ export default function ExplorationArena({
       {focusedIndex !== null && suggestions[focusedIndex] && (
         <SuggestionOverlay
           releaseGroup={suggestions[focusedIndex].releaseGroup}
-          tag={suggestions[focusedIndex].tag}
+          tags={suggestions[focusedIndex].tags}
           onPick={() => handlePick(focusedIndex)}
           onClose={() => setFocusedIndex(null)}
         />

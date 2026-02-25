@@ -10,12 +10,12 @@ type TagWeight = {
 
 type ExplorationSuggestion = {
   releaseGroup: ReleaseGroup;
-  tag: string;
+  tags: string[];
 };
 
 export type CollectedAlbum = {
   releaseGroup: ReleaseGroup;
-  tag?: string;
+  tags?: string[];
 };
 
 type SuggestionsResponse = {
@@ -112,7 +112,7 @@ export default function useExploration() {
 
       const newCollected = [
         ...collectedAlbums,
-        { releaseGroup: suggestion.releaseGroup, tag: suggestion.tag },
+        { releaseGroup: suggestion.releaseGroup, tags: suggestion.tags },
       ];
       setCollectedAlbums(newCollected);
 

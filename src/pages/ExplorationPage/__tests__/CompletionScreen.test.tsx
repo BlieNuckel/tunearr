@@ -17,7 +17,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function makeAlbum(id: string, title: string, tag?: string): CollectedAlbum {
+function makeAlbum(id: string, title: string, tags?: string[]): CollectedAlbum {
   return {
     releaseGroup: {
       id,
@@ -29,14 +29,14 @@ function makeAlbum(id: string, title: string, tag?: string): CollectedAlbum {
         { name: "Artist", artist: { id: "art-1", name: "Artist" } },
       ],
     },
-    tag,
+    tags,
   };
 }
 
 const albums = [
   makeAlbum("1", "Source Album"),
-  makeAlbum("2", "Pick 1", "rock"),
-  makeAlbum("3", "Pick 2", "indie"),
+  makeAlbum("2", "Pick 1", ["rock"]),
+  makeAlbum("3", "Pick 2", ["indie", "alternative"]),
 ];
 
 function renderCompletion(onReset = vi.fn()) {
@@ -68,6 +68,7 @@ describe("CompletionScreen", () => {
     renderCompletion();
     expect(screen.getByText("rock")).toBeInTheDocument();
     expect(screen.getByText("indie")).toBeInTheDocument();
+    expect(screen.getByText("alternative")).toBeInTheDocument();
   });
 
   it("calls onReset when Start Over is clicked", () => {

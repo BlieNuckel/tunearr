@@ -20,18 +20,31 @@ const releaseGroup: ReleaseGroup = {
 };
 
 describe("SuggestionOverlay", () => {
-  it("renders tag chip and ReleaseGroupCard", () => {
+  it("renders tag chips and ReleaseGroupCard", () => {
     render(
       <SuggestionOverlay
         releaseGroup={releaseGroup}
-        tag="rock"
+        tags={["rock", "indie"]}
         onPick={vi.fn()}
         onClose={vi.fn()}
       />
     );
     expect(screen.getByText("rock")).toBeInTheDocument();
+    expect(screen.getByText("indie")).toBeInTheDocument();
     expect(screen.getByTestId("release-group-card")).toBeInTheDocument();
     expect(screen.getByText("Test Album")).toBeInTheDocument();
+  });
+
+  it("renders single tag chip", () => {
+    render(
+      <SuggestionOverlay
+        releaseGroup={releaseGroup}
+        tags={["rock"]}
+        onPick={vi.fn()}
+        onClose={vi.fn()}
+      />
+    );
+    expect(screen.getByText("rock")).toBeInTheDocument();
   });
 
   it("calls onPick when Pick this button clicked", () => {
@@ -39,7 +52,7 @@ describe("SuggestionOverlay", () => {
     render(
       <SuggestionOverlay
         releaseGroup={releaseGroup}
-        tag="rock"
+        tags={["rock"]}
         onPick={onPick}
         onClose={vi.fn()}
       />
@@ -53,7 +66,7 @@ describe("SuggestionOverlay", () => {
     render(
       <SuggestionOverlay
         releaseGroup={releaseGroup}
-        tag="rock"
+        tags={["rock"]}
         onPick={vi.fn()}
         onClose={onClose}
       />
@@ -67,7 +80,7 @@ describe("SuggestionOverlay", () => {
     const { container } = render(
       <SuggestionOverlay
         releaseGroup={releaseGroup}
-        tag="rock"
+        tags={["rock"]}
         onPick={vi.fn()}
         onClose={onClose}
       />
@@ -81,7 +94,7 @@ describe("SuggestionOverlay", () => {
     render(
       <SuggestionOverlay
         releaseGroup={releaseGroup}
-        tag="rock"
+        tags={["rock"]}
         onPick={vi.fn()}
         onClose={onClose}
       />

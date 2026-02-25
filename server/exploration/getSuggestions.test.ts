@@ -69,7 +69,8 @@ describe("getSuggestions", () => {
       id: "rg-1",
       title: expect.any(String),
     });
-    expect(result.suggestions[0].tag).toBeTruthy();
+    expect(result.suggestions[0].tags).toEqual(expect.any(Array));
+    expect(result.suggestions[0].tags.length).toBeGreaterThan(0);
     expect(result.newTags.length).toBeGreaterThan(0);
   });
 
@@ -218,6 +219,35 @@ describe("getSuggestions", () => {
     expect(result.suggestions).toEqual([]);
   });
 
+  it("filters out year and decade tags from tag selection", async () => {
+    mockGetAlbumTopTags.mockResolvedValue([
+      { name: "2022", count: 100 },
+      { name: "80s", count: 90 },
+      { name: "2010s", count: 80 },
+      { name: "rock", count: 50 },
+    ]);
+
+    mockGetTopAlbumsByTag.mockResolvedValue({
+      albums: [album("Album Y", "mbid-y", "Other")],
+      pagination: { page: 1, totalPages: 1 },
+    });
+
+    mockGetReleaseGroupIdFromRelease.mockResolvedValue({
+      id: "rg-6",
+      firstReleaseDate: "2022-01-01",
+    });
+
+    await getSuggestions("Artist", "Album", [], []);
+
+    const tagCallArgs = mockGetTopAlbumsByTag.mock.calls.map(
+      (c: unknown[]) => (c[0] as string).toLowerCase()
+    );
+    expect(tagCallArgs).not.toContain("2022");
+    expect(tagCallArgs).not.toContain("80s");
+    expect(tagCallArgs).not.toContain("2010s");
+    expect(tagCallArgs).toContain("rock");
+  });
+
   it("excludes albums in excludeMbids", async () => {
     mockGetAlbumTopTags.mockResolvedValue([
       { name: "rock", count: 80 },
@@ -283,6 +313,88 @@ describe("getSuggestions", () => {
         name: "Test Artist",
         artist: { id: "Test Artist-mbid", name: "Test Artist" },
       });
+    }
+  });
+
+  it("prioritizes albums appearing in multiple tag queries", async () => {
+    mockGetAlbumTopTags.mockResolvedValue([
+      { name: "rock", count: 80 },
+      { name: "indie", count: 60 },
+      { name: "alternative", count: 40 },
+      { name: "grunge", count: 30 },
+      { name: "90s rock", count: 20 },
+    ]);
+
+    const multiTagAlbum = album("Multi Tag Album", "mbid-multi", "Artist A");
+    const singleTagAlbum = album("Single Tag Album", "mbid-single", "Artist B");
+
+    mockGetTopAlbumsByTag.mockImplementation((tag: string) => {
+      if (tag === "rock" || tag === "indie" || tag === "alternative") {
+        return Promise.resolve({
+          albums: [multiTagAlbum],
+          pagination: { page: 1, totalPages: 1 },
+        });
+      }
+      return Promise.resolve({
+        albums: [singleTagAlbum],
+        pagination: { page: 1, totalPages: 1 },
+      });
+    });
+
+    mockGetReleaseGroupIdFromRelease.mockImplementation((mbid: string) => {
+      if (mbid === "mbid-multi") {
+        return Promise.resolve({ id: "rg-multi", firstReleaseDate: "2020" });
+      }
+      return Promise.resolve({ id: "rg-single", firstReleaseDate: "2021" });
+    });
+
+    const result = await getSuggestions("Source", "Album", [], []);
+
+    expect(result.suggestions.length).toBeGreaterThanOrEqual(2);
+    expect(result.suggestions[0].releaseGroup.id).toBe("rg-multi");
+    expect(result.suggestions[0].tags.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("falls back to single-tag matches when no multi-tag overlap exists", async () => {
+    mockGetAlbumTopTags.mockResolvedValue([
+      { name: "rock", count: 80 },
+      { name: "jazz", count: 60 },
+      { name: "classical", count: 40 },
+    ]);
+
+    mockGetTopAlbumsByTag.mockImplementation((tag: string) => {
+      if (tag === "rock") {
+        return Promise.resolve({
+          albums: [album("Rock Album", "mbid-rock", "Artist A")],
+          pagination: { page: 1, totalPages: 1 },
+        });
+      }
+      if (tag === "jazz") {
+        return Promise.resolve({
+          albums: [album("Jazz Album", "mbid-jazz", "Artist B")],
+          pagination: { page: 1, totalPages: 1 },
+        });
+      }
+      return Promise.resolve({
+        albums: [album("Classical Album", "mbid-classical", "Artist C")],
+        pagination: { page: 1, totalPages: 1 },
+      });
+    });
+
+    mockGetReleaseGroupIdFromRelease.mockImplementation((mbid: string) => {
+      const map: Record<string, { id: string; firstReleaseDate: string }> = {
+        "mbid-rock": { id: "rg-rock", firstReleaseDate: "2020" },
+        "mbid-jazz": { id: "rg-jazz", firstReleaseDate: "2021" },
+        "mbid-classical": { id: "rg-classical", firstReleaseDate: "2022" },
+      };
+      return Promise.resolve(map[mbid] ?? null);
+    });
+
+    const result = await getSuggestions("Source", "Album", [], []);
+
+    expect(result.suggestions.length).toBeGreaterThanOrEqual(1);
+    for (const suggestion of result.suggestions) {
+      expect(suggestion.tags.length).toBe(1);
     }
   });
 });

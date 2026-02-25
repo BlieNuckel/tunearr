@@ -47,7 +47,7 @@ describe("useExploration", () => {
     const source = makeReleaseGroup("src-1", "Source Album");
 
     mockSuggestionsResponse(
-      [{ releaseGroup: makeReleaseGroup("sug-1", "Suggestion"), tag: "rock" }],
+      [{ releaseGroup: makeReleaseGroup("sug-1", "Suggestion"), tags: ["rock"] }],
       [{ name: "rock", count: 80 }]
     );
 
@@ -65,7 +65,7 @@ describe("useExploration", () => {
     const suggestion1 = makeReleaseGroup("sug-1", "Suggestion 1");
 
     mockSuggestionsResponse(
-      [{ releaseGroup: suggestion1, tag: "rock" }],
+      [{ releaseGroup: suggestion1, tags: ["rock"] }],
       [{ name: "rock", count: 80 }]
     );
 
@@ -73,7 +73,7 @@ describe("useExploration", () => {
     await act(() => result.current.startExploration(source));
 
     mockSuggestionsResponse(
-      [{ releaseGroup: makeReleaseGroup("sug-2", "Suggestion 2"), tag: "indie" }],
+      [{ releaseGroup: makeReleaseGroup("sug-2", "Suggestion 2"), tags: ["indie"] }],
       [{ name: "rock", count: 80 }, { name: "indie", count: 60 }]
     );
 
@@ -82,14 +82,14 @@ describe("useExploration", () => {
     expect(result.current.round).toBe(2);
     expect(result.current.collectedAlbums).toHaveLength(2);
     expect(result.current.collectedAlbums[1].releaseGroup.id).toBe("sug-1");
-    expect(result.current.collectedAlbums[1].tag).toBe("rock");
+    expect(result.current.collectedAlbums[1].tags).toEqual(["rock"]);
   });
 
   it("transitions to complete phase after 5 rounds", async () => {
     const { result } = renderHook(() => useExploration());
 
     mockSuggestionsResponse(
-      [{ releaseGroup: makeReleaseGroup("s1", "S1"), tag: "rock" }],
+      [{ releaseGroup: makeReleaseGroup("s1", "S1"), tags: ["rock"] }],
       [{ name: "rock", count: 80 }]
     );
     await act(() =>
@@ -98,7 +98,7 @@ describe("useExploration", () => {
 
     for (let i = 1; i < 5; i++) {
       mockSuggestionsResponse(
-        [{ releaseGroup: makeReleaseGroup(`s${i + 1}`, `S${i + 1}`), tag: "rock" }],
+        [{ releaseGroup: makeReleaseGroup(`s${i + 1}`, `S${i + 1}`), tags: ["rock"] }],
         [{ name: "rock", count: 80 }]
       );
       await act(() => result.current.selectSuggestion(0));
@@ -112,7 +112,7 @@ describe("useExploration", () => {
   it("resets all state", async () => {
     const source = makeReleaseGroup("src-1", "Source");
     mockSuggestionsResponse(
-      [{ releaseGroup: makeReleaseGroup("sug-1", "Suggestion"), tag: "rock" }],
+      [{ releaseGroup: makeReleaseGroup("sug-1", "Suggestion"), tags: ["rock"] }],
       [{ name: "rock", count: 80 }]
     );
 

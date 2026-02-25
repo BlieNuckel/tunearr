@@ -17,6 +17,11 @@ type LastfmAlbumCandidate = {
   artistMbid: string;
 };
 
+type ScoredCandidate = {
+  candidate: LastfmAlbumCandidate;
+  tags: string[];
+};
+
 async function fetchAlbumTags(
   artistName: string,
   albumName: string
@@ -73,11 +78,17 @@ function mergeTags(
   return Array.from(map.values());
 }
 
-function filterGenericTags(
+const YEAR_TAG_PATTERN = /^\d{4}$|^\d{2,4}s$/;
+
+function filterNonGenreTags(
   tags: TagWeight[],
   genericTags: Set<string>
 ): TagWeight[] {
-  return tags.filter((t) => !genericTags.has(t.name.toLowerCase()));
+  return tags.filter(
+    (t) =>
+      !genericTags.has(t.name.toLowerCase()) &&
+      !YEAR_TAG_PATTERN.test(t.name.trim())
+  );
 }
 
 async function fetchCandidatesForTag(
@@ -122,6 +133,47 @@ async function resolveCandidateToReleaseGroup(
   };
 }
 
+function scoreCandidatesByTagOverlap(
+  candidateResults: { tag: string; candidates: LastfmAlbumCandidate[] }[],
+  excludeSet: Set<string>,
+  sourceArtistName: string
+): ScoredCandidate[] {
+  const candidateMap = new Map<string, ScoredCandidate>();
+
+  for (const { tag, candidates } of candidateResults) {
+    const valid = filterCandidates(candidates, excludeSet, sourceArtistName);
+    for (const candidate of valid) {
+      const existing = candidateMap.get(candidate.mbid);
+      if (existing) {
+        if (!existing.tags.includes(tag)) {
+          existing.tags.push(tag);
+        }
+      } else {
+        candidateMap.set(candidate.mbid, { candidate, tags: [tag] });
+      }
+    }
+  }
+
+  const scored = Array.from(candidateMap.values());
+  scored.sort((a, b) => b.tags.length - a.tags.length);
+
+  const grouped = new Map<number, ScoredCandidate[]>();
+  for (const entry of scored) {
+    const count = entry.tags.length;
+    const group = grouped.get(count) ?? [];
+    group.push(entry);
+    grouped.set(count, group);
+  }
+
+  const result: ScoredCandidate[] = [];
+  const tiers = Array.from(grouped.keys()).sort((a, b) => b - a);
+  for (const tier of tiers) {
+    result.push(...shuffle(grouped.get(tier)!));
+  }
+
+  return result;
+}
+
 export async function getSuggestions(
   artistName: string,
   albumName: string,
@@ -133,7 +185,7 @@ export async function getSuggestions(
 
   const config = getConfigValue("promotedAlbum");
   const genericTags = new Set(config.genericTags.map((t) => t.toLowerCase()));
-  const filtered = filterGenericTags(allTags, genericTags);
+  const filtered = filterNonGenreTags(allTags, genericTags);
 
   if (filtered.length === 0) {
     return { suggestions: [], newTags: allTags };
@@ -142,12 +194,10 @@ export async function getSuggestions(
   const pickedTags = weightedRandomPick(
     filtered,
     (t) => t.count,
-    Math.min(3, filtered.length)
+    Math.min(5, filtered.length)
   );
 
   const excludeSet = new Set(excludeMbids);
-  const tagCandidatePairs: { tag: string; candidate: LastfmAlbumCandidate }[] =
-    [];
 
   const candidateResults = await Promise.all(
     pickedTags.map(async (tag) => {
@@ -160,19 +210,16 @@ export async function getSuggestions(
     })
   );
 
-  for (const { tag, candidates } of candidateResults) {
-    const valid = filterCandidates(candidates, excludeSet, artistName);
-    for (const candidate of valid) {
-      tagCandidatePairs.push({ tag, candidate });
-    }
-  }
-
-  const shuffled = shuffle(tagCandidatePairs);
+  const ranked = scoreCandidatesByTagOverlap(
+    candidateResults,
+    excludeSet,
+    artistName
+  );
 
   const suggestions: ExplorationSuggestion[] = [];
   const usedRgIds = new Set<string>();
 
-  for (const { tag, candidate } of shuffled) {
+  for (const { candidate, tags } of ranked) {
     if (suggestions.length >= 3) break;
 
     if (excludeSet.has(candidate.mbid)) continue;
@@ -185,7 +232,7 @@ export async function getSuggestions(
 
       usedRgIds.add(releaseGroup.id);
       excludeSet.add(releaseGroup.id);
-      suggestions.push({ releaseGroup, tag });
+      suggestions.push({ releaseGroup, tags });
     } catch {
       continue;
     }

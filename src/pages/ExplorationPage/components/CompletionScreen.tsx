@@ -63,11 +63,16 @@ export default function CompletionScreen({
             <div className="absolute -top-2 -left-2 w-6 h-6 bg-amber-400 text-black text-xs font-bold rounded-full flex items-center justify-center border-2 border-black z-10 shadow-cartoon-sm">
               {i + 1}
             </div>
-            {album.tag && (
-              <div className="absolute -top-2 right-0 z-10">
-                <span className="text-[10px] font-medium bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300 px-1.5 py-0.5 rounded-full border border-pink-300 dark:border-pink-700">
-                  {album.tag}
-                </span>
+            {album.tags && album.tags.length > 0 && (
+              <div className="absolute -top-2 right-0 z-10 flex gap-0.5">
+                {album.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="text-[10px] font-medium bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300 px-1.5 py-0.5 rounded-full border border-pink-300 dark:border-pink-700"
+                  >
+                    {tag}
+                  </span>
+                ))}
               </div>
             )}
             <AlbumCard
@@ -105,7 +110,7 @@ export default function CompletionScreen({
       {focusedIndex !== null && collectedAlbums[focusedIndex] && (
         <SuggestionOverlay
           releaseGroup={collectedAlbums[focusedIndex].releaseGroup}
-          tag={collectedAlbums[focusedIndex].tag}
+          tags={collectedAlbums[focusedIndex].tags}
           onClose={() => setFocusedIndex(null)}
         />
       )}

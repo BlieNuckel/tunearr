@@ -18,18 +18,26 @@ const releaseGroup: ReleaseGroup = {
 };
 
 describe("SuggestionCard", () => {
-  it("renders tag chip, title, and artist", () => {
+  it("renders tag chips, title, and artist", () => {
     render(
-      <SuggestionCard releaseGroup={releaseGroup} tag="rock" onClick={vi.fn()} />
+      <SuggestionCard releaseGroup={releaseGroup} tags={["rock", "indie"]} onClick={vi.fn()} />
     );
     expect(screen.getByText("rock")).toBeInTheDocument();
+    expect(screen.getByText("indie")).toBeInTheDocument();
     expect(screen.getByText("Test Album")).toBeInTheDocument();
     expect(screen.getByText("Test Artist")).toBeInTheDocument();
   });
 
+  it("renders single tag chip", () => {
+    render(
+      <SuggestionCard releaseGroup={releaseGroup} tags={["rock"]} onClick={vi.fn()} />
+    );
+    expect(screen.getByText("rock")).toBeInTheDocument();
+  });
+
   it("renders cover image", () => {
     render(
-      <SuggestionCard releaseGroup={releaseGroup} tag="rock" onClick={vi.fn()} />
+      <SuggestionCard releaseGroup={releaseGroup} tags={["rock"]} onClick={vi.fn()} />
     );
     expect(screen.getByRole("img")).toHaveAttribute("alt", "Test Album cover");
   });
@@ -37,7 +45,7 @@ describe("SuggestionCard", () => {
   it("calls onClick when clicked", () => {
     const onClick = vi.fn();
     render(
-      <SuggestionCard releaseGroup={releaseGroup} tag="rock" onClick={onClick} />
+      <SuggestionCard releaseGroup={releaseGroup} tags={["rock"]} onClick={onClick} />
     );
     fireEvent.click(screen.getByText("Test Album"));
     expect(onClick).toHaveBeenCalledOnce();

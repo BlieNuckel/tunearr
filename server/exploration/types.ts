@@ -7,7 +7,7 @@ export type TagWeight = {
 
 export type ExplorationSuggestion = {
   releaseGroup: MusicBrainzReleaseGroup;
-  tag: string;
+  tags: string[];
 };
 
 export type SuggestionsRequest = {
