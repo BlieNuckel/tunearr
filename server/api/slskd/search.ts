@@ -1,5 +1,6 @@
 import type { SlskdSearchState, SlskdSearchResponse } from "./types";
 import { getSlskdConfig } from "./config";
+import { resilientFetch } from "../resilientFetch";
 import { AsyncLock } from "../asyncLock";
 import { createLogger } from "../../logger";
 
@@ -17,7 +18,7 @@ export function startSearch(searchText: string): Promise<SlskdSearchState> {
     log.info(
       `POST ${baseUrl}/api/v0/searches (id=${id}, query="${searchText}")`
     );
-    const response = await fetch(`${baseUrl}/api/v0/searches`, {
+    const response = await resilientFetch(`${baseUrl}/api/v0/searches`, {
       method: "POST",
       headers,
       body: JSON.stringify({ id, searchText }),
@@ -43,7 +44,7 @@ export async function waitForSearch(searchId: string): Promise<WaitResult> {
   const deadline = Date.now() + MAX_POLL_DURATION_MS;
 
   while (Date.now() < deadline) {
-    const response = await fetch(`${baseUrl}/api/v0/searches/${searchId}`, {
+    const response = await resilientFetch(`${baseUrl}/api/v0/searches/${searchId}`, {
       headers,
     });
 
@@ -97,7 +98,7 @@ export async function getSearchResponses(
 export async function deleteSearch(searchId: string): Promise<void> {
   const { baseUrl, headers } = getSlskdConfig();
 
-  await fetch(`${baseUrl}/api/v0/searches/${searchId}`, {
+  await resilientFetch(`${baseUrl}/api/v0/searches/${searchId}`, {
     method: "DELETE",
     headers,
   });

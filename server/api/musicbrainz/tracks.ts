@@ -1,3 +1,4 @@
+import { resilientFetch } from "../resilientFetch";
 import { MB_BASE, MB_HEADERS } from "./config";
 import type { MusicBrainzReleasesResponse, TrackMedia } from "./types";
 
@@ -6,7 +7,7 @@ export async function getReleaseTracks(
   releaseGroupId: string
 ): Promise<TrackMedia[]> {
   const url = `${MB_BASE}/release?release-group=${releaseGroupId}&inc=recordings+media&limit=1&fmt=json`;
-  const response = await fetch(url, { headers: MB_HEADERS });
+  const response = await resilientFetch(url, { headers: MB_HEADERS });
 
   if (!response.ok) {
     throw new Error(`MusicBrainz returned ${response.status}`);

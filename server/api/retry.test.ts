@@ -123,4 +123,59 @@ describe("withRetry", () => {
     await expect(withRetry(fn, { retries: 0 })).rejects.toThrow("fail");
     expect(fn).toHaveBeenCalledTimes(1);
   });
+
+  it("retries on ECONNRESET errors", async () => {
+    const error = Object.assign(new Error("connection reset"), {
+      code: "ECONNRESET",
+    });
+    const fn = vi.fn().mockRejectedValueOnce(error).mockResolvedValue("ok");
+
+    const promise = withRetry(fn, { baseDelayMs: 100 });
+    await vi.advanceTimersByTimeAsync(100);
+    const result = await promise;
+
+    expect(result).toBe("ok");
+    expect(fn).toHaveBeenCalledTimes(2);
+  });
+
+  it("retries on ECONNREFUSED errors", async () => {
+    const error = Object.assign(new Error("connection refused"), {
+      code: "ECONNREFUSED",
+    });
+    const fn = vi.fn().mockRejectedValueOnce(error).mockResolvedValue("ok");
+
+    const promise = withRetry(fn, { baseDelayMs: 100 });
+    await vi.advanceTimersByTimeAsync(100);
+    const result = await promise;
+
+    expect(result).toBe("ok");
+    expect(fn).toHaveBeenCalledTimes(2);
+  });
+
+  it("retries on ETIMEDOUT errors", async () => {
+    const error = Object.assign(new Error("timed out"), {
+      code: "ETIMEDOUT",
+    });
+    const fn = vi.fn().mockRejectedValueOnce(error).mockResolvedValue("ok");
+
+    const promise = withRetry(fn, { baseDelayMs: 100 });
+    await vi.advanceTimersByTimeAsync(100);
+    const result = await promise;
+
+    expect(result).toBe("ok");
+    expect(fn).toHaveBeenCalledTimes(2);
+  });
+
+  it("retries when error code is on the cause", async () => {
+    const cause = Object.assign(new Error("reset"), { code: "ECONNRESET" });
+    const error = Object.assign(new Error("fetch failed"), { cause });
+    const fn = vi.fn().mockRejectedValueOnce(error).mockResolvedValue("ok");
+
+    const promise = withRetry(fn, { baseDelayMs: 100 });
+    await vi.advanceTimersByTimeAsync(100);
+    const result = await promise;
+
+    expect(result).toBe("ok");
+    expect(fn).toHaveBeenCalledTimes(2);
+  });
 });

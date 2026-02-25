@@ -6,8 +6,33 @@ export interface RetryOptions {
 
 const RETRYABLE_STATUS_CODES = new Set([429, 500, 502, 503, 504]);
 
+const RETRYABLE_NETWORK_CODES = new Set([
+  "ECONNRESET",
+  "ECONNREFUSED",
+  "ETIMEDOUT",
+  "ENOTFOUND",
+  "UND_ERR_SOCKET",
+]);
+
+function hasRetryableCode(error: unknown): boolean {
+  const code = (error as NodeJS.ErrnoException)?.code;
+  if (typeof code === "string" && RETRYABLE_NETWORK_CODES.has(code))
+    return true;
+
+  const cause = (error as { cause?: unknown })?.cause;
+  if (cause && typeof cause === "object") {
+    const causeCode = (cause as NodeJS.ErrnoException).code;
+    if (typeof causeCode === "string" && RETRYABLE_NETWORK_CODES.has(causeCode))
+      return true;
+  }
+
+  return false;
+}
+
 function isRetryableError(error: unknown): boolean {
   if (error instanceof TypeError) return true;
+
+  if (hasRetryableCode(error)) return true;
 
   if (
     error &&
