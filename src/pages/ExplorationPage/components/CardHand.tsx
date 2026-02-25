@@ -82,11 +82,12 @@ export default function CardHand({ albums }: CardHandProps) {
     >
       <div className="relative h-9 [clip-path:inset(-999px_-999px_0_-999px)] md:h-auto md:[clip-path:none]">
         <div className="absolute inset-0 bg-white dark:bg-gray-800 border-3 border-black rounded-full md:hidden" />
-        <div className="absolute -bottom-1 left-0 right-0 flex justify-center items-end z-20 md:relative md:bottom-auto md:py-8">
+        <div className="absolute -bottom-1 left-0 right-0 flex justify-center items-end z-10 md:relative md:bottom-auto md:py-8">
           <div className="flex items-end" style={{ gap: "-8px" }}>
             {cards}
           </div>
         </div>
+        <div className="absolute inset-0 border-3 border-black rounded-full pointer-events-none z-20 [clip-path:inset(50%_0_0_0)] md:hidden" />
       </div>
     </div>
   );
