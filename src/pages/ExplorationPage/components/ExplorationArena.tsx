@@ -64,18 +64,28 @@ export default function ExplorationArena({
   const [animatingIndex, setAnimatingIndex] = useState<number | null>(null);
   const [dealt, setDealt] = useState(false);
   const isAnimating = useRef(false);
-  const suggestionsKey = useRef("");
+  const [prevKey, setPrevKey] = useState("");
+
+  const key = suggestions.map((s) => s.releaseGroup.id).join(",");
+  if (key && key !== prevKey) {
+    setPrevKey(key);
+    setDealt(false);
+  }
 
   useEffect(() => {
-    const key = suggestions.map((s) => s.releaseGroup.id).join(",");
-    if (key && key !== suggestionsKey.current) {
-      suggestionsKey.current = key;
-      setDealt(false);
+    if (!key) return;
+    let cancelled = false;
+    requestAnimationFrame(() => {
+      if (cancelled) return;
       requestAnimationFrame(() => {
-        requestAnimationFrame(() => setDealt(true));
+        if (cancelled) return;
+        setDealt(true);
       });
-    }
-  }, [suggestions]);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [key]);
 
   const sourceAlbum = collectedAlbums[collectedAlbums.length - 1];
   const sourceArtist =
