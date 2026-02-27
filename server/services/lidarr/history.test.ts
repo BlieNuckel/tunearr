@@ -19,6 +19,7 @@ function makeRecord(
   return {
     id: 1,
     albumId: 100,
+    eventType: 1,
     date: "2025-01-01",
     downloadId: "dl-abc",
     data: {} as Record<string, string>,

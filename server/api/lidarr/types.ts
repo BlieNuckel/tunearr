@@ -53,6 +53,7 @@ export type LidarrWantedRecord = {
 export type LidarrHistoryRecord = {
   id: number;
   albumId: number;
+  eventType: number;
   date: string;
   downloadId: string;
   data: Record<string, string>;
