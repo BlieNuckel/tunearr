@@ -105,21 +105,44 @@ describe("groupSearchResults", () => {
 
     const results = groupSearchResults([response]);
     expect(results[0].category).toBe(3040);
+    expect(results[0].formatTag).toBe("FLAC");
   });
 
   it("categorizes other lossless formats as 3040", () => {
     const response = makeResponse("user1", [
       makeFile("D:\\Audio\\Album\\01.ape"),
-      makeFile("D:\\Audio\\Album\\02.wv"),
-      makeFile("D:\\Audio\\Album\\03.wav"),
-      makeFile("D:\\Audio\\Album\\04.aiff"),
+      makeFile("D:\\Audio\\Album\\02.ape"),
+      makeFile("D:\\Audio\\Album\\03.ape"),
     ]);
 
     const results = groupSearchResults([response]);
     expect(results[0].category).toBe(3040);
+    expect(results[0].formatTag).toBe("APE");
+  });
+
+  it("tags FLAC 24bit when bitDepth >= 24", () => {
+    const response = makeResponse("user1", [
+      makeFile("C:\\Music\\Album\\01.flac", { bitDepth: 24 }),
+      makeFile("C:\\Music\\Album\\02.flac", { bitDepth: 24 }),
+    ]);
+
+    const results = groupSearchResults([response]);
+    expect(results[0].category).toBe(3040);
+    expect(results[0].formatTag).toBe("FLAC 24bit");
   });
 
   it("categorizes all-MP3 directories as 3010", () => {
+    const response = makeResponse("user1", [
+      makeFile("C:\\Music\\Album\\01.mp3", { bitRate: 320 }),
+      makeFile("C:\\Music\\Album\\02.mp3", { bitRate: 320 }),
+    ]);
+
+    const results = groupSearchResults([response]);
+    expect(results[0].category).toBe(3010);
+    expect(results[0].formatTag).toBe("MP3-320");
+  });
+
+  it("formats MP3 without bitrate as plain MP3", () => {
     const response = makeResponse("user1", [
       makeFile("C:\\Music\\Album\\01.mp3"),
       makeFile("C:\\Music\\Album\\02.mp3"),
@@ -127,6 +150,7 @@ describe("groupSearchResults", () => {
 
     const results = groupSearchResults([response]);
     expect(results[0].category).toBe(3010);
+    expect(results[0].formatTag).toBe("MP3");
   });
 
   it("categorizes mixed audio directories as 3000", () => {
@@ -139,14 +163,15 @@ describe("groupSearchResults", () => {
     expect(results[0].category).toBe(3000);
   });
 
-  it("categorizes non-lossless non-MP3 audio as 3000", () => {
+  it("categorizes non-lossless non-MP3 audio as 3000 with format tag", () => {
     const response = makeResponse("user1", [
       makeFile("C:\\Music\\Album\\01.ogg"),
-      makeFile("C:\\Music\\Album\\02.opus"),
+      makeFile("C:\\Music\\Album\\02.ogg"),
     ]);
 
     const results = groupSearchResults([response]);
     expect(results[0].category).toBe(3000);
+    expect(results[0].formatTag).toBe("OGG");
   });
 
   it("sorts results with free upload slots first", () => {

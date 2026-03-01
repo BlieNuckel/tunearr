@@ -42,6 +42,24 @@ const CATEGORY_LOSSLESS = 3040;
 const CATEGORY_MP3 = 3010;
 const CATEGORY_OTHER_AUDIO = 3000;
 
+const LOSSLESS_FORMAT_NAMES: Record<string, string> = {
+  ".flac": "FLAC",
+  ".wav": "WAV",
+  ".ape": "APE",
+  ".wv": "WavPack",
+  ".alac": "ALAC",
+  ".aiff": "AIFF",
+  ".aif": "AIFF",
+};
+
+const OTHER_FORMAT_NAMES: Record<string, string> = {
+  ".ogg": "OGG",
+  ".opus": "Opus",
+  ".m4a": "AAC",
+  ".aac": "AAC",
+  ".wma": "WMA",
+};
+
 export function groupSearchResults(
   responses: SlskdSearchResponse[]
 ): GroupedSearchResult[] {
@@ -82,6 +100,7 @@ function buildDirectoryGroups(
 function toGroupedResult(group: DirectoryGroup): GroupedSearchResult {
   const totalSize = group.files.reduce((sum, f) => sum + f.size, 0);
   const avgBitRate = computeAverageBitRate(group.files);
+  const category = categorizeFiles(group.files);
 
   return {
     guid: generateGuid(group.username, group.directory),
@@ -92,7 +111,8 @@ function toGroupedResult(group: DirectoryGroup): GroupedSearchResult {
     hasFreeUploadSlot: group.hasFreeUploadSlot,
     uploadSpeed: group.uploadSpeed,
     bitRate: avgBitRate,
-    category: categorizeFiles(group.files),
+    category,
+    formatTag: buildFormatTag(group.files, category, avgBitRate),
   };
 }
 
@@ -138,6 +158,43 @@ function categorizeFiles(files: SlskdFile[]): number {
   if (allMp3) return CATEGORY_MP3;
 
   return CATEGORY_OTHER_AUDIO;
+}
+
+function getDominantExtension(files: SlskdFile[]): string {
+  const counts = new Map<string, number>();
+  for (const f of files) {
+    const ext = f.filename.slice(f.filename.lastIndexOf(".")).toLowerCase();
+    counts.set(ext, (counts.get(ext) ?? 0) + 1);
+  }
+  let best = "";
+  let bestCount = 0;
+  for (const [ext, count] of counts) {
+    if (count > bestCount) {
+      best = ext;
+      bestCount = count;
+    }
+  }
+  return best;
+}
+
+function buildFormatTag(
+  files: SlskdFile[],
+  category: number,
+  bitRate: number
+): string {
+  if (category === CATEGORY_MP3) {
+    return bitRate > 0 ? `MP3-${bitRate}` : "MP3";
+  }
+
+  const ext = getDominantExtension(files);
+
+  if (category === CATEGORY_LOSSLESS) {
+    const format = LOSSLESS_FORMAT_NAMES[ext] ?? "FLAC";
+    const has24bit = files.some((f) => f.bitDepth != null && f.bitDepth >= 24);
+    return has24bit ? `${format} 24bit` : format;
+  }
+
+  return OTHER_FORMAT_NAMES[ext] ?? "";
 }
 
 function generateGuid(username: string, directory: string): string {

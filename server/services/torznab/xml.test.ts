@@ -53,6 +53,7 @@ describe("buildResultsXml", () => {
         uploadSpeed: 1000,
         bitRate: 320,
         category: 3040,
+        formatTag: "FLAC",
       },
     ];
 
@@ -61,7 +62,7 @@ describe("buildResultsXml", () => {
     expect(xml).toContain("<rss");
     expect(xml).toContain('offset="0" total="1"');
     expect(xml).toContain("<item>");
-    expect(xml).toContain("Radiohead - OK Computer");
+    expect(xml).toContain("Radiohead - OK Computer [FLAC]");
     expect(xml).toContain('value="3040"');
     expect(xml).toContain("http://localhost:3001/api/torznab/download/abc123");
   });
@@ -78,6 +79,7 @@ describe("buildResultsXml", () => {
         uploadSpeed: 100,
         bitRate: 0,
         category: 3040,
+        formatTag: "FLAC",
       },
     ];
 
