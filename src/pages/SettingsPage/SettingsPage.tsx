@@ -10,6 +10,7 @@ import SlskdSection from "./components/SlskdSection";
 import AutoSetupModal from "./components/AutoSetupModal";
 import ImportSection from "./components/ImportSection";
 import RecommendationsSection from "./components/RecommendationsSection";
+import LogsSection from "./components/LogsSection";
 import { DEFAULT_PROMOTED_ALBUM } from "@/context/promotedAlbumDefaults";
 import AccountSection from "./components/AccountSection";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -34,6 +35,7 @@ const TAB_LABELS: Record<SettingsTab, string> = {
   general: "General",
   integrations: "Integrations",
   recommendations: "Recommendations",
+  logs: "Logs",
 };
 
 function SectionBadge({ section }: { section: SettingsSection }) {
@@ -287,6 +289,13 @@ export default function SettingsPage() {
                 updateField("promotedAlbum", updated)
               }
             />
+          </div>
+        )}
+
+        {visible("logs") && (
+          <div>
+            {isSearching && <SectionBadge section="logs" />}
+            <LogsSection />
           </div>
         )}
       </div>

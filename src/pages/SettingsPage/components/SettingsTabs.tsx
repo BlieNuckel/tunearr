@@ -1,4 +1,8 @@
-export type SettingsTab = "general" | "integrations" | "recommendations";
+export type SettingsTab =
+  | "general"
+  | "integrations"
+  | "recommendations"
+  | "logs";
 
 interface SettingsTabsProps {
   activeTab: SettingsTab;
@@ -9,6 +13,7 @@ const TABS: { id: SettingsTab; label: string }[] = [
   { id: "general", label: "General" },
   { id: "integrations", label: "Integrations" },
   { id: "recommendations", label: "Recommendations" },
+  { id: "logs", label: "Logs" },
 ];
 
 export default function SettingsTabs({

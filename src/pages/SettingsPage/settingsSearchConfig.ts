@@ -9,7 +9,8 @@ export type SettingsSection =
   | "lastfm"
   | "plex"
   | "slskd"
-  | "recommendations";
+  | "recommendations"
+  | "logs";
 
 type SectionMeta = {
   label: string;
@@ -81,6 +82,11 @@ export const SECTION_META: Record<SettingsSection, SectionMeta> = {
       "preference",
       "generic",
     ],
+  },
+  logs: {
+    label: "Logs",
+    tab: "logs",
+    keywords: ["logs", "log", "debug", "error", "history", "system"],
   },
 };
 

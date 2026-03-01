@@ -20,6 +20,11 @@ vi.mock("@/utils/plexOAuth", () => ({
   getClientId: () => "test-client-id",
 }));
 
+const mockUseLogs = vi.fn();
+vi.mock("@/hooks/useLogs", () => ({
+  default: (params: unknown) => mockUseLogs(params),
+}));
+
 import SettingsPage from "../SettingsPage";
 import {
   LidarrContext,
@@ -97,6 +102,12 @@ beforeEach(() => {
   mockFetch.mockResolvedValue({ ok: false });
   mockUsePlexLogin.mockReturnValue({ loading: false, login: mockLogin });
   mockSavePartialSettings.mockResolvedValue(undefined);
+  mockUseLogs.mockReturnValue({
+    data: { logs: [], page: 1, pageSize: 25, totalCount: 0, totalPages: 0 },
+    loading: false,
+    error: null,
+    refetch: vi.fn(),
+  });
 });
 
 describe("SettingsPage", () => {
@@ -134,6 +145,14 @@ describe("SettingsPage", () => {
     expect(screen.getByText("Lidarr Connection")).toBeInTheDocument();
     expect(screen.getByText("Last.fm")).toBeInTheDocument();
     expect(screen.getByText("Plex")).toBeInTheDocument();
+    expect(screen.queryByText("Theme")).not.toBeInTheDocument();
+  });
+
+  it("shows Logs section when Logs tab clicked", () => {
+    renderSettingsPage();
+    fireEvent.click(screen.getByText("Logs"));
+
+    expect(screen.getByText("System Logs")).toBeInTheDocument();
     expect(screen.queryByText("Theme")).not.toBeInTheDocument();
   });
 

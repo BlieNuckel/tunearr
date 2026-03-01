@@ -1,84 +1,148 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
+// Create mock logger functions that will be available after import
+let mockDebug: ReturnType<typeof vi.fn>;
+let mockInfo: ReturnType<typeof vi.fn>;
+let mockWarn: ReturnType<typeof vi.fn>;
+let mockError: ReturnType<typeof vi.fn>;
+
+// Mock winston
+vi.mock("winston", () => ({
+  default: {
+    createLogger: vi.fn(() => ({
+      debug: (...args: unknown[]) => (mockDebug || vi.fn())(...args),
+      info: (...args: unknown[]) => (mockInfo || vi.fn())(...args),
+      warn: (...args: unknown[]) => (mockWarn || vi.fn())(...args),
+      error: (...args: unknown[]) => (mockError || vi.fn())(...args),
+    })),
+    format: {
+      combine: vi.fn(),
+      timestamp: vi.fn(),
+      printf: vi.fn(),
+      json: vi.fn(),
+    },
+    transports: {
+      Console: vi.fn(),
+    },
+  },
+  format: {
+    combine: vi.fn(),
+    timestamp: vi.fn(),
+    printf: vi.fn(),
+    json: vi.fn(),
+  },
+  transports: {
+    Console: vi.fn(),
+  },
+}));
+
 import { createLogger } from "./logger";
+
+// Mock winston-daily-rotate-file
+vi.mock("winston-daily-rotate-file", () => ({
+  default: vi.fn(function () {
+    return {
+      on: vi.fn(),
+    };
+  }),
+}));
+
+// Mock fs
+vi.mock("fs", () => ({
+  default: {
+    existsSync: vi.fn(() => true),
+    mkdirSync: vi.fn(),
+  },
+}));
 
 describe("createLogger", () => {
   beforeEach(() => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-01-15T12:30:00.000Z"));
-    vi.spyOn(console, "log").mockImplementation(() => {});
-    vi.spyOn(console, "warn").mockImplementation(() => {});
-    vi.spyOn(console, "error").mockImplementation(() => {});
+    mockDebug = vi.fn();
+    mockInfo = vi.fn();
+    mockWarn = vi.fn();
+    mockError = vi.fn();
+    vi.clearAllMocks();
   });
 
-  afterEach(() => {
-    vi.useRealTimers();
-    vi.restoreAllMocks();
-  });
-
-  it("formats info messages with timestamp, level, and label", () => {
+  it("creates a logger with correct label for info", () => {
     const logger = createLogger("TestLabel");
     logger.info("something happened");
 
-    expect(console.log).toHaveBeenCalledWith(
-      "2026-01-15T12:30:00.000Z [INFO] [TestLabel] something happened"
-    );
+    expect(mockInfo).toHaveBeenCalledWith({
+      label: "TestLabel",
+      message: "something happened",
+    });
   });
 
-  it("formats warn messages", () => {
+  it("creates a logger with correct label for warn", () => {
     const logger = createLogger("MyService");
     logger.warn("watch out");
 
-    expect(console.warn).toHaveBeenCalledWith(
-      "2026-01-15T12:30:00.000Z [WARN] [MyService] watch out"
-    );
+    expect(mockWarn).toHaveBeenCalledWith({
+      label: "MyService",
+      message: "watch out",
+    });
   });
 
-  it("formats error messages", () => {
+  it("creates a logger with correct label for error", () => {
     const logger = createLogger("API");
     logger.error("request failed");
 
-    expect(console.error).toHaveBeenCalledWith(
-      "2026-01-15T12:30:00.000Z [ERROR] [API] request failed"
-    );
+    expect(mockError).toHaveBeenCalledWith({
+      label: "API",
+      message: "request failed",
+    });
   });
 
-  it("suppresses debug messages by default", () => {
+  it("handles debug messages", () => {
     const logger = createLogger("Debug");
-    logger.debug("this should not appear");
+    logger.debug("this is a debug message");
 
-    expect(console.log).not.toHaveBeenCalled();
-    expect(console.warn).not.toHaveBeenCalled();
-    expect(console.error).not.toHaveBeenCalled();
+    expect(mockDebug).toHaveBeenCalledWith({
+      label: "Debug",
+      message: "this is a debug message",
+    });
   });
 
-  it("serializes data argument as JSON on a new line", () => {
+  it("passes data argument when provided", () => {
     const logger = createLogger("Import");
     const data = { path: "/music/track.flac", tracks: 3 };
     logger.info("scan result", data);
 
-    expect(console.log).toHaveBeenCalledWith(
-      "2026-01-15T12:30:00.000Z [INFO] [Import] scan result",
-      '\n{\n  "path": "/music/track.flac",\n  "tracks": 3\n}'
-    );
+    expect(mockInfo).toHaveBeenCalledWith({
+      label: "Import",
+      message: "scan result",
+      data,
+    });
   });
 
-  it("serializes data for error level", () => {
+  it("passes data for error level", () => {
     const logger = createLogger("API");
     logger.error("failed", { status: 500 });
 
-    expect(console.error).toHaveBeenCalledWith(
-      "2026-01-15T12:30:00.000Z [ERROR] [API] failed",
-      '\n{\n  "status": 500\n}'
-    );
+    expect(mockError).toHaveBeenCalledWith({
+      label: "API",
+      message: "failed",
+      data: { status: 500 },
+    });
   });
 
   it("does not pass data argument when undefined", () => {
     const logger = createLogger("Test");
     logger.info("no data");
 
-    expect(console.log).toHaveBeenCalledTimes(1);
-    expect(console.log).toHaveBeenCalledWith(
-      "2026-01-15T12:30:00.000Z [INFO] [Test] no data"
-    );
+    expect(mockInfo).toHaveBeenCalledWith({
+      label: "Test",
+      message: "no data",
+    });
+  });
+
+  it("maintains backward compatible interface", () => {
+    const logger = createLogger("Test");
+
+    expect(typeof logger.debug).toBe("function");
+    expect(typeof logger.info).toBe("function");
+    expect(typeof logger.warn).toBe("function");
+    expect(typeof logger.error).toBe("function");
   });
 });

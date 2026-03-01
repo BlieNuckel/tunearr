@@ -7,10 +7,12 @@ let tmpDir: string;
 let originalEnv: string | undefined;
 
 beforeEach(() => {
-  vi.resetModules();
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "config-test-"));
+  // Create logs directory for winston logger before resetModules
+  fs.mkdirSync(path.join(tmpDir, "logs"), { recursive: true });
   originalEnv = process.env.APP_CONFIG_DIR;
   process.env.APP_CONFIG_DIR = tmpDir;
+  vi.resetModules();
 });
 
 afterEach(() => {

@@ -1,4 +1,11 @@
-type LogLevel = "debug" | "info" | "warn" | "error";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import winston from "winston";
+import DailyRotateFile from "winston-daily-rotate-file";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 interface Logger {
   debug(message: string, data?: unknown): void;
@@ -7,60 +14,124 @@ interface Logger {
   error(message: string, data?: unknown): void;
 }
 
-const LEVEL_LABELS: Record<LogLevel, string> = {
-  debug: "DEBUG",
-  info: "INFO",
-  warn: "WARN",
-  error: "ERROR",
-};
+const LOG_DIR =
+  process.env.APP_CONFIG_DIR || path.join(__dirname, "..", "config");
+const LOGS_PATH = path.join(LOG_DIR, "logs");
 
-function formatData(data: unknown): string {
-  if (data instanceof Error) {
-    return data.stack || `${data.name}: ${data.message}`;
-  }
-  return JSON.stringify(data, null, 2);
+// Ensure logs directory exists
+if (!fs.existsSync(LOGS_PATH)) {
+  fs.mkdirSync(LOGS_PATH, { recursive: true });
 }
 
-function formatMessage(
-  level: LogLevel,
-  label: string,
-  message: string
-): string {
-  const timestamp = new Date().toISOString();
-  return `${timestamp} [${LEVEL_LABELS[level]}] [${label}] ${message}`;
+const isDevelopment = process.env.NODE_ENV !== "production";
+
+// Text format for human-readable logs
+const textFormat = winston.format.combine(
+  winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
+  winston.format.printf((info) => {
+    const { timestamp, level, label, message, data } = info;
+    const levelLabel = level.toUpperCase();
+    const baseMessage = `${timestamp} [${levelLabel}] [${label}] ${message}`;
+    if (data !== undefined) {
+      const dataStr =
+        data instanceof Error
+          ? data.stack || `${data.name}: ${data.message}`
+          : JSON.stringify(data, null, 2);
+      return `${baseMessage}\n${dataStr}`;
+    }
+    return baseMessage;
+  })
+);
+
+// JSON format for machine-readable logs (UI)
+const jsonFormat = winston.format.combine(
+  winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
+  winston.format.json()
+);
+
+// Text logs transport
+const textTransport = new DailyRotateFile({
+  filename: path.join(LOGS_PATH, "tunearr-%DATE%.log"),
+  datePattern: "YYYY-MM-DD",
+  maxSize: "20m",
+  maxFiles: "7d",
+  format: textFormat,
+  createSymlink: true,
+  symlinkName: "tunearr.log",
+  handleExceptions: false,
+  handleRejections: false,
+});
+
+// Suppress errors from file transport (e.g., during tests)
+textTransport.on("error", () => {
+  // Silently ignore transport errors
+});
+
+// JSON logs transport
+const jsonTransport = new DailyRotateFile({
+  filename: path.join(LOGS_PATH, "tunearr-%DATE%.json"),
+  datePattern: "YYYY-MM-DD",
+  maxSize: "20m",
+  maxFiles: "7d",
+  format: jsonFormat,
+  createSymlink: true,
+  symlinkName: "tunearr.json",
+  handleExceptions: false,
+  handleRejections: false,
+});
+
+// Suppress errors from file transport (e.g., during tests)
+jsonTransport.on("error", () => {
+  // Silently ignore transport errors
+});
+
+// Console transport (development only)
+const consoleTransport = new winston.transports.Console({
+  format: textFormat,
+});
+
+const transports: winston.transport[] = [textTransport, jsonTransport];
+if (isDevelopment) {
+  transports.push(consoleTransport);
 }
+
+const winstonLogger = winston.createLogger({
+  level: "info", // Default to info (no debug by default)
+  transports,
+});
 
 export function createLogger(label: string): Logger {
   return {
-    debug(_message: string, _data?: unknown) {
-      // no-op by default
+    debug(message: string, data?: unknown) {
+      winstonLogger.debug({
+        label,
+        message,
+        ...(data !== undefined && { data }),
+      });
     },
 
     info(message: string, data?: unknown) {
-      const line = formatMessage("info", label, message);
-      if (data !== undefined) {
-        console.log(line, "\n" + formatData(data));
-      } else {
-        console.log(line);
-      }
+      winstonLogger.info({
+        label,
+        message,
+        ...(data !== undefined && { data }),
+      });
     },
 
     warn(message: string, data?: unknown) {
-      const line = formatMessage("warn", label, message);
-      if (data !== undefined) {
-        console.warn(line, "\n" + formatData(data));
-      } else {
-        console.warn(line);
-      }
+      winstonLogger.warn({
+        label,
+        message,
+        ...(data !== undefined && { data }),
+      });
     },
 
     error(message: string, data?: unknown) {
-      const line = formatMessage("error", label, message);
-      if (data !== undefined) {
-        console.error(line, "\n" + formatData(data));
-      } else {
-        console.error(line);
-      }
+      winstonLogger.error({
+        label,
+        message,
+        ...(data !== undefined && { data }),
+      });
     },
   };
 }

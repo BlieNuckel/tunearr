@@ -1,11 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+// Create mock factory functions that will be called during module initialization
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let mockExistsSync: any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let mockMkdirSync: any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let mockRmSync: any;
+
 const mockGetConfigValue = vi.fn();
 const mockScanUploadedFiles = vi.fn();
 const mockConfirmImport = vi.fn();
-const mockExistsSync = vi.fn();
-const mockMkdirSync = vi.fn();
-const mockRmSync = vi.fn();
 
 vi.mock("../../config", () => ({
   getConfigValue: (...args: unknown[]) => mockGetConfigValue(...args),
@@ -25,13 +30,13 @@ vi.mock("../../services/lidarr/helpers", () => ({
 
 vi.mock("fs", () => ({
   default: {
-    existsSync: (p: string) => mockExistsSync(p),
-    mkdirSync: (...args: unknown[]) => mockMkdirSync(...args),
-    rmSync: (...args: unknown[]) => mockRmSync(...args),
+    existsSync: (p: string) => (mockExistsSync || vi.fn(() => true))(p),
+    mkdirSync: (...args: unknown[]) => (mockMkdirSync || vi.fn())(...args),
+    rmSync: (...args: unknown[]) => (mockRmSync || vi.fn())(...args),
   },
-  existsSync: (p: string) => mockExistsSync(p),
-  mkdirSync: (...args: unknown[]) => mockMkdirSync(...args),
-  rmSync: (...args: unknown[]) => mockRmSync(...args),
+  existsSync: (p: string) => (mockExistsSync || vi.fn(() => true))(p),
+  mkdirSync: (...args: unknown[]) => (mockMkdirSync || vi.fn())(...args),
+  rmSync: (...args: unknown[]) => (mockRmSync || vi.fn())(...args),
 }));
 
 vi.mock("crypto", () => ({
@@ -80,6 +85,9 @@ app.use(
 );
 
 beforeEach(() => {
+  mockExistsSync = vi.fn(() => true);
+  mockMkdirSync = vi.fn();
+  mockRmSync = vi.fn();
   vi.clearAllMocks();
 });
 
