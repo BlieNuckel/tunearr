@@ -48,58 +48,76 @@ export default function LogsTable({ logs }: LogsTableProps) {
 
   return (
     <>
-      <div className="space-y-2">
-        {logs.map((log, index) => (
-          <div
-            key={`${log.timestamp}-${index}`}
-            className={`stagger-fade-in bg-white dark:bg-gray-800 rounded-xl px-4 py-3 border-2 border-black shadow-cartoon-sm transition-all ${
-              log.data
-                ? "cursor-pointer hover:-translate-y-0.5 hover:shadow-cartoon-md"
-                : ""
-            }`}
-            style={{ "--stagger-index": index } as React.CSSProperties}
-            onClick={() => log.data && setSelectedLog(log)}
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
+      <div className="overflow-x-auto border-2 border-black rounded-xl shadow-cartoon-md">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-100 dark:bg-gray-800 border-b-2 border-black">
+            <tr>
+              <th className="px-4 py-3 text-left text-xs font-bold uppercase text-gray-700 dark:text-gray-300">
+                Level
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-bold uppercase text-gray-700 dark:text-gray-300">
+                Timestamp
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-bold uppercase text-gray-700 dark:text-gray-300">
+                Label
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-bold uppercase text-gray-700 dark:text-gray-300">
+                Message
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-bold uppercase text-gray-700 dark:text-gray-300">
+                Data
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white dark:bg-gray-900">
+            {logs.map((log, index) => (
+              <tr
+                key={`${log.timestamp}-${index}`}
+                className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              >
+                <td className="px-4 py-3">
                   <span
                     className={`${LEVEL_COLORS[log.level]} text-white text-xs font-bold px-2 py-0.5 rounded border border-black`}
                   >
                     {LEVEL_LABELS[log.level]}
                   </span>
-                  <span className="text-gray-500 dark:text-gray-400 text-xs font-mono">
-                    [{log.label}]
-                  </span>
-                  <span className="text-gray-400 dark:text-gray-500 text-xs">
-                    {formatTimestamp(log.timestamp)}
-                  </span>
-                </div>
-                <p className="text-gray-900 dark:text-gray-100 text-sm break-words">
+                </td>
+                <td className="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs font-mono whitespace-nowrap">
+                  {formatTimestamp(log.timestamp)}
+                </td>
+                <td className="px-4 py-3 text-gray-600 dark:text-gray-300 text-xs font-mono">
+                  {log.label}
+                </td>
+                <td className="px-4 py-3 text-gray-900 dark:text-gray-100">
                   {log.message}
-                </p>
-              </div>
-              {log.data !== undefined && (
-                <span className="text-gray-400 dark:text-gray-500 text-xs shrink-0">
-                  {/* Info icon */}
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                </span>
-              )}
-            </div>
-          </div>
-        ))}
+                </td>
+                <td className="px-4 py-3 text-center">
+                  {log.data !== undefined && (
+                    <button
+                      onClick={() => setSelectedLog(log)}
+                      className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+                      aria-label="View log data"
+                    >
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       <Modal
