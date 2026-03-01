@@ -1,4 +1,4 @@
-import { useState, FormEvent } from "react";
+import { useState } from "react";
 import useLogs from "@/hooks/useLogs";
 import LogsTable from "./LogsTable";
 import Pagination from "@/components/Pagination";
@@ -31,7 +31,7 @@ export default function LogsSection() {
     setPage(1);
   };
 
-  const handleSearchSubmit = (e: FormEvent) => {
+  const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setSearch(searchInput.trim());
     setPage(1);

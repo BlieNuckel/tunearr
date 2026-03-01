@@ -103,7 +103,7 @@ router.get("/", (req: Request, res: Response) => {
     };
 
     res.json(response);
-  } catch (error) {
+  } catch {
     res.status(500).json({ error: "Failed to read logs" });
   }
 });

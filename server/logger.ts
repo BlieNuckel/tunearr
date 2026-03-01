@@ -14,16 +14,17 @@ interface Logger {
   error(message: string, data?: unknown): void;
 }
 
+const isTest = process.env.NODE_ENV === "test" || process.env.VITEST;
+const isDevelopment = process.env.NODE_ENV !== "production";
+
 const LOG_DIR =
   process.env.APP_CONFIG_DIR || path.join(__dirname, "..", "config");
 const LOGS_PATH = path.join(LOG_DIR, "logs");
 
-// Ensure logs directory exists
-if (!fs.existsSync(LOGS_PATH)) {
+// Ensure logs directory exists (skip in test environment)
+if (!isTest && !fs.existsSync(LOGS_PATH)) {
   fs.mkdirSync(LOGS_PATH, { recursive: true });
 }
-
-const isDevelopment = process.env.NODE_ENV !== "production";
 
 // Text format for human-readable logs
 const textFormat = winston.format.combine(
@@ -49,49 +50,54 @@ const jsonFormat = winston.format.combine(
   winston.format.json()
 );
 
-// Text logs transport
-const textTransport = new DailyRotateFile({
-  filename: path.join(LOGS_PATH, "tunearr-%DATE%.log"),
-  datePattern: "YYYY-MM-DD",
-  maxSize: "20m",
-  maxFiles: "7d",
-  format: textFormat,
-  createSymlink: true,
-  symlinkName: "tunearr.log",
-  handleExceptions: false,
-  handleRejections: false,
-});
+// Configure transports based on environment
+const transports: winston.transport[] = [];
 
-// Suppress errors from file transport (e.g., during tests)
-textTransport.on("error", () => {
-  // Silently ignore transport errors
-});
+if (!isTest) {
+  // Text logs transport
+  const textTransport = new DailyRotateFile({
+    filename: path.join(LOGS_PATH, "tunearr-%DATE%.log"),
+    datePattern: "YYYY-MM-DD",
+    maxSize: "20m",
+    maxFiles: "7d",
+    format: textFormat,
+    createSymlink: true,
+    symlinkName: "tunearr.log",
+    handleExceptions: false,
+    handleRejections: false,
+  });
 
-// JSON logs transport
-const jsonTransport = new DailyRotateFile({
-  filename: path.join(LOGS_PATH, "tunearr-%DATE%.json"),
-  datePattern: "YYYY-MM-DD",
-  maxSize: "20m",
-  maxFiles: "7d",
-  format: jsonFormat,
-  createSymlink: true,
-  symlinkName: "tunearr.json",
-  handleExceptions: false,
-  handleRejections: false,
-});
+  // Suppress errors from file transport
+  textTransport.on("error", () => {
+    // Silently ignore transport errors
+  });
 
-// Suppress errors from file transport (e.g., during tests)
-jsonTransport.on("error", () => {
-  // Silently ignore transport errors
-});
+  // JSON logs transport
+  const jsonTransport = new DailyRotateFile({
+    filename: path.join(LOGS_PATH, "tunearr-%DATE%.json"),
+    datePattern: "YYYY-MM-DD",
+    maxSize: "20m",
+    maxFiles: "7d",
+    format: jsonFormat,
+    createSymlink: true,
+    symlinkName: "tunearr.json",
+    handleExceptions: false,
+    handleRejections: false,
+  });
+
+  // Suppress errors from file transport
+  jsonTransport.on("error", () => {
+    // Silently ignore transport errors
+  });
+
+  transports.push(textTransport, jsonTransport);
+}
 
 // Console transport (development only)
-const consoleTransport = new winston.transports.Console({
-  format: textFormat,
-});
-
-const transports: winston.transport[] = [textTransport, jsonTransport];
-if (isDevelopment) {
+if (isDevelopment && !isTest) {
+  const consoleTransport = new winston.transports.Console({
+    format: textFormat,
+  });
   transports.push(consoleTransport);
 }
 
