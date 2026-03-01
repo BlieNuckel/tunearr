@@ -1,5 +1,4 @@
 import { renderHook, act } from "@testing-library/react";
-import useAudioPreview from "../useAudioPreview";
 
 const mockPlay = vi.fn().mockResolvedValue(undefined);
 const mockPause = vi.fn();
@@ -37,10 +36,17 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.resetModules();
 });
 
+async function loadHook() {
+  const mod = await import("../useAudioPreview");
+  return mod.default;
+}
+
 describe("useAudioPreview", () => {
-  it("plays a track when toggle is called", () => {
+  it("plays a track when toggle is called", async () => {
+    const useAudioPreview = await loadHook();
     const { result } = renderHook(() => useAudioPreview());
 
     act(() => result.current.toggle("https://example.com/preview.mp3"));
@@ -52,7 +58,8 @@ describe("useAudioPreview", () => {
     ).toBe(true);
   });
 
-  it("pauses when toggling the same track that is playing", () => {
+  it("pauses when toggling the same track that is playing", async () => {
+    const useAudioPreview = await loadHook();
     const { result } = renderHook(() => useAudioPreview());
 
     act(() => result.current.toggle("https://example.com/preview.mp3"));
@@ -66,7 +73,8 @@ describe("useAudioPreview", () => {
     ).toBe(false);
   });
 
-  it("switches to a different track", () => {
+  it("switches to a different track", async () => {
+    const useAudioPreview = await loadHook();
     const { result } = renderHook(() => useAudioPreview());
 
     act(() => result.current.toggle("https://example.com/track1.mp3"));
@@ -84,7 +92,8 @@ describe("useAudioPreview", () => {
     ).toBe(false);
   });
 
-  it("stops playback", () => {
+  it("stops playback", async () => {
+    const useAudioPreview = await loadHook();
     const { result } = renderHook(() => useAudioPreview());
 
     act(() => result.current.toggle("https://example.com/preview.mp3"));
@@ -98,7 +107,8 @@ describe("useAudioPreview", () => {
     ).toBe(false);
   });
 
-  it("resets state when track ends", () => {
+  it("resets state when track ends", async () => {
+    const useAudioPreview = await loadHook();
     const { result } = renderHook(() => useAudioPreview());
 
     act(() => result.current.toggle("https://example.com/preview.mp3"));
@@ -113,16 +123,68 @@ describe("useAudioPreview", () => {
     ).toBe(false);
   });
 
-  it("cleans up audio element on unmount", () => {
-    const { unmount } = renderHook(() => useAudioPreview());
+  it("cleans up audio on unmount when owning playback", async () => {
+    const useAudioPreview = await loadHook();
+    const { result, unmount } = renderHook(() => useAudioPreview());
+
+    act(() => result.current.toggle("https://example.com/preview.mp3"));
+    mockPlay.mockClear();
+    mockPause.mockClear();
 
     unmount();
 
-    expect(mockAudioInstance.removeEventListener).toHaveBeenCalledWith(
-      "ended",
-      expect.any(Function)
-    );
     expect(mockPause).toHaveBeenCalled();
     expect(mockAudioInstance.src).toBe("");
+  });
+
+  it("only one track plays across multiple hook instances", async () => {
+    const useAudioPreview = await loadHook();
+    const hookA = renderHook(() => useAudioPreview());
+    const hookB = renderHook(() => useAudioPreview());
+
+    act(() => hookA.result.current.toggle("https://example.com/track1.mp3"));
+    mockAudioInstance.paused = false;
+
+    act(() => hookB.result.current.toggle("https://example.com/track2.mp3"));
+
+    expect(mockAudioInstance.src).toBe("https://example.com/track2.mp3");
+    expect(
+      hookA.result.current.isTrackPlaying("https://example.com/track1.mp3")
+    ).toBe(false);
+    expect(
+      hookB.result.current.isTrackPlaying("https://example.com/track2.mp3")
+    ).toBe(true);
+  });
+
+  it("stop is a no-op when another instance owns playback", async () => {
+    const useAudioPreview = await loadHook();
+    const hookA = renderHook(() => useAudioPreview());
+    const hookB = renderHook(() => useAudioPreview());
+
+    act(() => hookA.result.current.toggle("https://example.com/track1.mp3"));
+    mockAudioInstance.paused = false;
+
+    act(() => hookB.result.current.stop());
+
+    expect(
+      hookA.result.current.isTrackPlaying("https://example.com/track1.mp3")
+    ).toBe(true);
+    expect(mockAudioInstance.src).toBe("https://example.com/track1.mp3");
+  });
+
+  it("does not stop audio on unmount when another instance owns playback", async () => {
+    const useAudioPreview = await loadHook();
+    const hookA = renderHook(() => useAudioPreview());
+    const hookB = renderHook(() => useAudioPreview());
+
+    act(() => hookA.result.current.toggle("https://example.com/track1.mp3"));
+    mockPause.mockClear();
+
+    hookB.unmount();
+
+    expect(mockPause).not.toHaveBeenCalled();
+    expect(
+      hookA.result.current.isTrackPlaying("https://example.com/track1.mp3")
+    ).toBe(true);
   });
 });

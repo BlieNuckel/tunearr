@@ -10,6 +10,7 @@ import promotedAlbumRoutes from "./routes/promotedAlbum";
 import sabnzbdRoutes from "./routes/sabnzbd";
 import settingsRoutes from "./routes/settings";
 import torznabRoutes from "./routes/torznab";
+import explorationRoutes from "./routes/exploration";
 import { errorHandler } from "./middleware/errorHandler";
 
 const log = createLogger("Server");
@@ -30,6 +31,7 @@ app.use("/api/plex", plexRoutes);
 app.use("/api/promoted-album", promotedAlbumRoutes);
 app.use("/api/torznab", torznabRoutes);
 app.use("/api/sabnzbd", sabnzbdRoutes);
+app.use("/api/exploration", explorationRoutes);
 
 if (process.env.NODE_ENV === "production") {
   app.use(express.static(path.join(__dirname, "..", "build")));

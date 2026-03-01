@@ -31,6 +31,10 @@ vi.mock("../components/PromotedAlbum", () => ({
   ),
 }));
 
+vi.mock("../components/ExplorationBanner", () => ({
+  default: () => <div data-testid="exploration-banner">Explore</div>,
+}));
+
 vi.mock("@/hooks/useDiscover", () => ({
   default: () => ({
     libraryArtists: [{ id: 1, name: "Radiohead", foreignArtistId: "a1" }],
