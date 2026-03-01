@@ -124,7 +124,9 @@ describe("WantedList", () => {
       />
     );
 
-    expect(screen.getByText("Never grabbed — try manual searching")).toBeInTheDocument();
+    expect(
+      screen.getByText("Never grabbed — try manual searching")
+    ).toBeInTheDocument();
   });
 
   it("shows 'Grabbed' with date for eventType 1", () => {

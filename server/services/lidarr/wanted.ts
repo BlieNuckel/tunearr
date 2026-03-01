@@ -62,9 +62,7 @@ export async function getWantedMissing(
     includeAlbum: true,
   }).catch(() => null);
 
-  const lastEventMap = buildLastEventMap(
-    historyResult?.data?.records ?? []
-  );
+  const lastEventMap = buildLastEventMap(historyResult?.data?.records ?? []);
   const enrichedRecords = enrichWantedRecords(
     wantedResult.data.records,
     lastEventMap
