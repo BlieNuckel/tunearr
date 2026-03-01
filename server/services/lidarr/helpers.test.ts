@@ -4,6 +4,7 @@ import {
   getOrAddAlbum,
   getAlbumByMbid,
   removeAlbum,
+  waitForArtistRefresh,
 } from "./helpers";
 import type { LidarrArtist, LidarrAlbum } from "../../api/lidarr/types";
 
@@ -102,11 +103,8 @@ describe("getOrAddArtist", () => {
   it("adds artist when not found in library", async () => {
     mockLidarrGet
       .mockResolvedValueOnce({ status: 200, data: [], ok: true })
-      .mockResolvedValueOnce({
-        status: 200,
-        data: [mockArtist],
-        ok: true,
-      });
+      .mockResolvedValueOnce({ status: 200, data: [mockArtist], ok: true })
+      .mockResolvedValueOnce({ status: 200, data: [], ok: true });
 
     mockLidarrPost.mockResolvedValue({
       status: 201,
@@ -118,8 +116,12 @@ describe("getOrAddArtist", () => {
     expect(result).toEqual(mockArtist);
     expect(mockLidarrPost).toHaveBeenCalledWith(
       "/artist",
-      expect.objectContaining({ monitored: true })
+      expect.objectContaining({
+        monitored: true,
+        addOptions: { monitor: "existing", monitored: true },
+      })
     );
+    expect(mockLidarrGet).toHaveBeenCalledWith("/command");
   });
 
   it("throws when artist lookup fails", async () => {
@@ -130,6 +132,90 @@ describe("getOrAddArtist", () => {
     await expect(getOrAddArtist("unknown")).rejects.toThrow(
       "Artist not found in Lidarr lookup"
     );
+  });
+});
+
+describe("waitForArtistRefresh", () => {
+  it("completes immediately when no running commands", async () => {
+    mockLidarrGet.mockResolvedValueOnce({ status: 200, data: [], ok: true });
+
+    await waitForArtistRefresh();
+    expect(mockLidarrGet).toHaveBeenCalledWith("/command");
+    expect(mockLidarrGet).toHaveBeenCalledTimes(1);
+  });
+
+  it("waits then completes when command finishes", async () => {
+    const runningCommand = {
+      id: 1,
+      name: "RefreshArtist",
+      status: "started",
+    };
+
+    mockLidarrGet
+      .mockResolvedValueOnce({
+        status: 200,
+        data: [runningCommand],
+        ok: true,
+      })
+      .mockResolvedValueOnce({ status: 200, data: [], ok: true });
+
+    await waitForArtistRefresh();
+    expect(mockLidarrGet).toHaveBeenCalledTimes(2);
+  });
+
+  it("times out gracefully without throwing", async () => {
+    vi.useFakeTimers();
+
+    const runningCommand = {
+      id: 1,
+      name: "RefreshArtist",
+      status: "started",
+    };
+
+    mockLidarrGet.mockResolvedValue({
+      status: 200,
+      data: [runningCommand],
+      ok: true,
+    });
+
+    const promise = waitForArtistRefresh();
+    // Advance past the 30s deadline
+    for (let i = 0; i < 35; i++) {
+      await vi.advanceTimersByTimeAsync(1000);
+    }
+    await promise;
+
+    vi.useRealTimers();
+  });
+
+  it("ignores non-RefreshArtist commands", async () => {
+    const otherCommand = { id: 1, name: "RescanFolders", status: "started" };
+
+    mockLidarrGet.mockResolvedValueOnce({
+      status: 200,
+      data: [otherCommand],
+      ok: true,
+    });
+
+    await waitForArtistRefresh();
+    expect(mockLidarrGet).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores completed RefreshArtist commands", async () => {
+    const completedCommand = {
+      id: 1,
+      name: "RefreshArtist",
+      status: "completed",
+    };
+
+    mockLidarrGet.mockResolvedValueOnce({
+      status: 200,
+      data: [completedCommand],
+      ok: true,
+    });
+
+    await waitForArtistRefresh();
+    expect(mockLidarrGet).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -257,12 +343,14 @@ describe("getOrAddArtist concurrency", () => {
     mockLidarrGet.mockImplementation(async (path: string) => {
       if (path === "/artist") {
         callCount++;
-        // First GET returns empty (not found), second GET returns the artist (added by first call)
         if (callCount === 1) {
           await new Promise((r) => setTimeout(r, 20));
           return { status: 200, data: [], ok: true };
         }
         return { status: 200, data: [mockArtist], ok: true };
+      }
+      if (path === "/command") {
+        return { status: 200, data: [], ok: true };
       }
       // lookup
       return { status: 200, data: [mockArtist], ok: true };

@@ -5,11 +5,42 @@ import { lidarrPut } from "../../api/lidarr/put";
 import {
   type LidarrAlbum,
   type LidarrArtist,
+  type LidarrCommand,
   extractLidarrError,
 } from "../../api/lidarr/types";
 import { AsyncLock } from "../../api/asyncLock";
+import { createLogger } from "../../logger";
 
+const log = createLogger("lidarr-helpers");
 const upsertLock = new AsyncLock();
+
+const REFRESH_POLL_INTERVAL_MS = 1000;
+const REFRESH_MAX_WAIT_MS = 30000;
+
+export async function waitForArtistRefresh(): Promise<void> {
+  const deadline = Date.now() + REFRESH_MAX_WAIT_MS;
+
+  while (Date.now() < deadline) {
+    const result = await lidarrGet<LidarrCommand[]>("/command");
+    const running = result.data.filter(
+      (cmd) =>
+        cmd.name === "RefreshArtist" &&
+        (cmd.status === "queued" || cmd.status === "started")
+    );
+
+    if (running.length === 0) {
+      log.info("Artist refresh completed");
+      return;
+    }
+
+    log.info(`Waiting for ${running.length} RefreshArtist command(s)...`);
+    await new Promise((resolve) => setTimeout(resolve, REFRESH_POLL_INTERVAL_MS));
+  }
+
+  log.warn(
+    `Artist refresh did not complete within ${REFRESH_MAX_WAIT_MS}ms, continuing`
+  );
+}
 
 export const getAlbumByMbid = async (albumMbid: string) => {
   const result = await lidarrGet<LidarrAlbum[]>("/album/lookup", {
@@ -84,6 +115,8 @@ const addArtistToLidarr = async (artistMbid: string) => {
       `Failed to add artist: ${extractLidarrError(addArtistResult.data)}`
     );
   }
+
+  await waitForArtistRefresh();
 
   return addArtistResult.data;
 };

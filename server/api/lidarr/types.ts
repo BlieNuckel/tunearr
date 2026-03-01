@@ -109,6 +109,12 @@ export type LidarrRootFolder = {
   path: string;
 };
 
+export type LidarrCommand = {
+  id: number;
+  name: string;
+  status: string;
+};
+
 /** Extracts a human-readable error message from Lidarr's error responses (array or object format) */
 export function extractLidarrError(data: unknown): string {
   if (Array.isArray(data) && data.length > 0) {
