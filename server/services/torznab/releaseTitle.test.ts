@@ -39,9 +39,9 @@ describe("buildReleaseTitle", () => {
   });
 
   it("appends format tag to dash-separated titles", () => {
-    expect(
-      buildReleaseTitle("Music\\Radiohead - OK Computer", "MP3-320")
-    ).toBe("Radiohead - OK Computer [MP3-320]");
+    expect(buildReleaseTitle("Music\\Radiohead - OK Computer", "MP3-320")).toBe(
+      "Radiohead - OK Computer [MP3-320]"
+    );
   });
 
   it("appends format tag to generic parent fallback", () => {

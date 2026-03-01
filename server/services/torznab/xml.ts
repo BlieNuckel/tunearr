@@ -47,7 +47,9 @@ export function buildTestResultXml(): string {
 }
 
 function buildItemXml(result: GroupedSearchResult, baseUrl: string): string {
-  const title = escapeXml(buildReleaseTitle(result.directory, result.formatTag));
+  const title = escapeXml(
+    buildReleaseTitle(result.directory, result.formatTag)
+  );
   const downloadUrl = `${baseUrl}/api/torznab/download/${result.guid}`;
 
   return [
