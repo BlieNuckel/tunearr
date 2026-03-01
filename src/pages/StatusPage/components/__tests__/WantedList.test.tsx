@@ -29,6 +29,7 @@ const makeItem = (overrides: Partial<WantedItem> = {}): WantedItem => ({
   title: "Kid A",
   foreignAlbumId: "mbid-123",
   artist: { artistName: "Radiohead" },
+  lastEvent: null,
   ...overrides,
 });
 
@@ -112,5 +113,81 @@ describe("WantedList", () => {
 
     fireEvent.click(screen.getByText("Close"));
     expect(screen.queryByTestId("purchase-modal")).not.toBeInTheDocument();
+  });
+
+  it("shows 'Never grabbed — try manual searching' when lastEvent is null", () => {
+    render(
+      <WantedList
+        items={[makeItem({ lastEvent: null })]}
+        onSearch={vi.fn()}
+        onRemove={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText("Never grabbed — try manual searching")).toBeInTheDocument();
+  });
+
+  it("shows 'Grabbed' with date for eventType 1", () => {
+    const date = "2025-06-15T12:00:00Z";
+    const expectedDate = new Date(date).toLocaleDateString();
+
+    render(
+      <WantedList
+        items={[makeItem({ lastEvent: { eventType: 1, date } })]}
+        onSearch={vi.fn()}
+        onRemove={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText(`Grabbed ${expectedDate}`)).toBeInTheDocument();
+  });
+
+  it("shows 'Download failed' with date for eventType 4", () => {
+    const date = "2025-06-15T12:00:00Z";
+    const expectedDate = new Date(date).toLocaleDateString();
+
+    render(
+      <WantedList
+        items={[makeItem({ lastEvent: { eventType: 4, date } })]}
+        onSearch={vi.fn()}
+        onRemove={vi.fn()}
+      />
+    );
+
+    expect(
+      screen.getByText(`Download failed ${expectedDate}`)
+    ).toBeInTheDocument();
+  });
+
+  it("shows 'Import incomplete' with date for eventType 7", () => {
+    const date = "2025-06-15T12:00:00Z";
+    const expectedDate = new Date(date).toLocaleDateString();
+
+    render(
+      <WantedList
+        items={[makeItem({ lastEvent: { eventType: 7, date } })]}
+        onSearch={vi.fn()}
+        onRemove={vi.fn()}
+      />
+    );
+
+    expect(
+      screen.getByText(`Import incomplete ${expectedDate}`)
+    ).toBeInTheDocument();
+  });
+
+  it("shows generic 'Event' label for unknown eventType", () => {
+    const date = "2025-06-15T12:00:00Z";
+    const expectedDate = new Date(date).toLocaleDateString();
+
+    render(
+      <WantedList
+        items={[makeItem({ lastEvent: { eventType: 99, date } })]}
+        onSearch={vi.fn()}
+        onRemove={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText(`Event ${expectedDate}`)).toBeInTheDocument();
   });
 });

@@ -108,6 +108,7 @@ describe("StatusPage", () => {
           title: "In Rainbows",
           foreignAlbumId: "f1",
           artist: { artistName: "Radiohead" },
+          lastEvent: null,
         },
       ],
     });
@@ -125,6 +126,7 @@ describe("StatusPage", () => {
       title: "In Rainbows",
       foreignAlbumId: "mbid-f1",
       artist: { artistName: "Radiohead" },
+      lastEvent: null,
     };
 
     mockAllEndpoints({ wanted: [wantedItem] });
@@ -179,6 +181,7 @@ describe("StatusPage", () => {
       title: "In Rainbows",
       foreignAlbumId: "mbid-f1",
       artist: { artistName: "Radiohead" },
+      lastEvent: null,
     };
 
     vi.mocked(fetch).mockImplementation((input) => {
