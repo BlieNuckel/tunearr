@@ -13,7 +13,6 @@ const IMMEDIATE_FIELDS: Set<keyof LidarrSettings> = new Set([
   "lidarrQualityProfileId",
   "lidarrRootFolderPath",
   "lidarrMetadataProfileId",
-  "theme",
   "promotedAlbum",
 ]);
 

@@ -11,6 +11,7 @@ import AutoSetupModal from "./components/AutoSetupModal";
 import ImportSection from "./components/ImportSection";
 import RecommendationsSection from "./components/RecommendationsSection";
 import { DEFAULT_PROMOTED_ALBUM } from "@/context/promotedAlbumDefaults";
+import AccountSection from "./components/AccountSection";
 import ThemeToggle from "@/components/ThemeToggle";
 import Skeleton from "@/components/Skeleton";
 import SettingsTabs from "./components/SettingsTabs";
@@ -171,6 +172,13 @@ export default function SettingsPage() {
       )}
 
       <div className="space-y-6">
+        {visible("account") && (
+          <div>
+            {isSearching && <SectionBadge section="account" />}
+            <AccountSection />
+          </div>
+        )}
+
         {visible("theme") && (
           <div>
             {isSearching && <SectionBadge section="theme" />}
@@ -242,6 +250,7 @@ export default function SettingsPage() {
           <div>
             {isSearching && <SectionBadge section="plex" />}
             <PlexSection
+              url={fields.plexUrl}
               token={fields.plexToken}
               onUrlChange={(v) => updateField("plexUrl", v)}
               onTokenChange={(v) => updateField("plexToken", v)}

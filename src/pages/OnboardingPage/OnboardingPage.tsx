@@ -1,6 +1,5 @@
 import { Navigate } from "react-router-dom";
 import { useLidarrContext } from "@/context/useLidarrContext";
-import { useTheme } from "@/context/useTheme";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import WizardShell from "./components/WizardShell";
 import WelcomeStep from "./steps/WelcomeStep";
@@ -13,11 +12,9 @@ import CompleteStep from "./steps/CompleteStep";
 
 export default function OnboardingPage() {
   const { settings, isLoading } = useLidarrContext();
-  const { isLoading: themeLoading } = useTheme();
   const wizard = useOnboarding();
 
-  if (isLoading || themeLoading) return null;
-  if (settings.lidarrUrl) return <Navigate to="/" replace />;
+  if (!isLoading && settings.lidarrUrl) return <Navigate to="/" replace />;
 
   const showNav =
     wizard.currentStep !== "welcome" && wizard.currentStep !== "complete";
@@ -83,6 +80,7 @@ export default function OnboardingPage() {
       )}
       {wizard.currentStep === "plex" && (
         <PlexStep
+          url={wizard.fields.plexUrl}
           token={wizard.fields.plexToken}
           onUrlChange={(v) => wizard.updateField("plexUrl", v)}
           onTokenChange={(v) => wizard.updateField("plexToken", v)}

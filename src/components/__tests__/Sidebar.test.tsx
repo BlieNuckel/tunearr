@@ -1,12 +1,24 @@
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { AuthContext, type AuthContextValue } from "@/context/authContextDef";
 import Sidebar from "../Sidebar";
+
+const mockAuthValue: AuthContextValue = {
+  status: "authenticated",
+  user: { id: 1, username: "testadmin", role: "admin", theme: "system" },
+  login: vi.fn(),
+  logout: vi.fn(),
+  setup: vi.fn(),
+  updatePreferences: vi.fn(),
+};
 
 const renderSidebar = (path = "/") => {
   return render(
-    <MemoryRouter initialEntries={[path]}>
-      <Sidebar />
-    </MemoryRouter>
+    <AuthContext.Provider value={mockAuthValue}>
+      <MemoryRouter initialEntries={[path]}>
+        <Sidebar />
+      </MemoryRouter>
+    </AuthContext.Provider>
   );
 };
 
@@ -14,16 +26,33 @@ describe("Sidebar", () => {
   it("renders the logo and app name in both mobile header and desktop sidebar", () => {
     renderSidebar();
     const tunearrLinks = screen.getAllByText("Tunearr");
-    expect(tunearrLinks).toHaveLength(2); // One in mobile header, one in desktop sidebar
+    expect(tunearrLinks).toHaveLength(2);
   });
 
-  it("renders all navigation links for both mobile and desktop", () => {
+  it("renders shared navigation links for both mobile and desktop", () => {
     renderSidebar();
-    // Each link appears twice: once in desktop sidebar, once in mobile bottom nav
     expect(screen.getAllByRole("link", { name: /Discover/ })).toHaveLength(2);
     expect(screen.getAllByRole("link", { name: /Search/ })).toHaveLength(2);
     expect(screen.getAllByRole("link", { name: /Status/ })).toHaveLength(2);
-    expect(screen.getAllByRole("link", { name: /Settings/ })).toHaveLength(2);
+  });
+
+  it("shows username in desktop sidebar account link", () => {
+    renderSidebar();
+    expect(screen.getByText("testadmin")).toBeInTheDocument();
+  });
+
+  it("shows Account label in mobile nav", () => {
+    renderSidebar();
+    expect(screen.getByText("Account")).toBeInTheDocument();
+  });
+
+  it("renders account link to settings in both mobile and desktop", () => {
+    renderSidebar();
+    const accountLinks = screen.getAllByRole("link", { name: /testadmin|Account/ });
+    expect(accountLinks).toHaveLength(2);
+    accountLinks.forEach((link) => {
+      expect(link).toHaveAttribute("href", "/settings");
+    });
   });
 
   it("highlights Discover link on home page in both mobile and desktop", () => {
@@ -50,12 +79,12 @@ describe("Sidebar", () => {
     expect(statusLinks[1]).toHaveClass("text-black");
   });
 
-  it("highlights Settings link on settings page", () => {
+  it("highlights account link on settings page", () => {
     renderSidebar("/settings");
-    const settingsLinks = screen.getAllByRole("link", { name: /Settings/ });
-    expect(settingsLinks).toHaveLength(2);
-    expect(settingsLinks[0]).toHaveClass("bg-amber-300");
-    expect(settingsLinks[1]).toHaveClass("text-black");
+    const desktopAccountLink = screen.getByRole("link", { name: /testadmin/ });
+    expect(desktopAccountLink).toHaveClass("bg-amber-300");
+    const mobileAccountLink = screen.getByRole("link", { name: /Account/ });
+    expect(mobileAccountLink).toHaveClass("text-black");
   });
 
   it("applies hover styles to non-active links", () => {

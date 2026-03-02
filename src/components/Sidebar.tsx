@@ -4,18 +4,25 @@ import {
   DiscoverIcon,
   SearchIcon,
   SparklesIcon,
-  SettingsIcon,
+  UserCircleIcon,
 } from "@/components/icons";
+import { useAuth } from "@/context/useAuth";
 
-const links: Array<{
+type NavItem = {
   to: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
-}> = [
+};
+
+const links: NavItem[] = [
   { to: "/", label: "Discover", icon: DiscoverIcon },
   { to: "/search", label: "Search", icon: SearchIcon },
   { to: "/status", label: "Status", icon: SparklesIcon },
-  { to: "/settings", label: "Settings", icon: SettingsIcon },
+];
+
+const mobileLinks: NavItem[] = [
+  ...links,
+  { to: "/settings", label: "Account", icon: UserCircleIcon },
 ];
 
 function MobileNav() {
@@ -28,7 +35,7 @@ function MobileNav() {
     left: 0,
     width: 0,
   });
-  const activeIndex = links.findIndex((link) =>
+  const activeIndex = mobileLinks.findIndex((link) =>
     link.to === "/" ? pathname === "/" : pathname.startsWith(link.to)
   );
 
@@ -69,7 +76,7 @@ function MobileNav() {
               style={{ left: pillStyle.left, width: pillStyle.width }}
             />
           )}
-          {links.map((link, i) => (
+          {mobileLinks.map((link, i) => (
             <li
               key={link.to}
               ref={(el) => {
@@ -100,6 +107,8 @@ function MobileNav() {
 }
 
 export default function Sidebar() {
+  const { user } = useAuth();
+
   return (
     <>
       {/* Mobile Header, shown only on mobile */}
@@ -221,6 +230,22 @@ export default function Sidebar() {
             ))}
           </ul>
         </nav>
+
+        <div className="border-t-4 border-black p-4">
+          <NavLink
+            to="/settings"
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-4 py-3 rounded-lg text-base font-bold transition-all border-2 ${
+                isActive
+                  ? "bg-amber-300 text-black border-black shadow-cartoon-sm dark:text-black"
+                  : "text-gray-700 dark:text-gray-300 border-transparent hover:bg-amber-50 dark:hover:bg-gray-700 hover:border-black hover:text-gray-900 dark:hover:text-gray-100"
+              }`
+            }
+          >
+            <UserCircleIcon className="w-5 h-5" />
+            <span>{user?.username}</span>
+          </NavLink>
+        </div>
       </aside>
 
       {/* Mobile Bottom Navigation, shown only on mobile */}

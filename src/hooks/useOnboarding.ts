@@ -137,7 +137,6 @@ export function useOnboarding() {
         slskdUrl: "",
         slskdApiKey: "",
         slskdDownloadPath: "",
-        theme: "system",
       });
 
       setTestResult(result);
@@ -178,7 +177,6 @@ export function useOnboarding() {
         slskdUrl: "",
         slskdApiKey: "",
         slskdDownloadPath: "",
-        theme: "system",
       });
       navigate("/");
     } catch (err) {

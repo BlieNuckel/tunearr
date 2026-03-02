@@ -1,0 +1,136 @@
+import { useState, useEffect, useCallback } from "react";
+import type { ReactNode } from "react";
+import {
+  AuthContext,
+  type AuthUser,
+  type AuthStatus,
+  type AuthContextValue,
+} from "./authContextDef";
+
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+async function fetchSetupStatus(): Promise<boolean> {
+  const res = await fetch("/api/auth/setup-status");
+  if (!res.ok) return false;
+  const data = await res.json();
+  return data.needsSetup;
+}
+
+async function fetchCurrentUser(): Promise<AuthUser | null> {
+  const res = await fetch("/api/auth/me");
+  if (!res.ok) return null;
+  const data = await res.json();
+  return data.user;
+}
+
+async function postLogin(
+  username: string,
+  password: string
+): Promise<AuthUser> {
+  const res = await fetch("/api/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Login failed");
+  return data.user;
+}
+
+async function postSetup(
+  username: string,
+  password: string
+): Promise<AuthUser> {
+  const res = await fetch("/api/auth/setup", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Setup failed");
+  return data.user;
+}
+
+async function postLogout(): Promise<void> {
+  await fetch("/api/auth/logout", { method: "POST" });
+}
+
+async function patchPreferences(
+  prefs: Record<string, unknown>
+): Promise<void> {
+  const res = await fetch("/api/auth/preferences", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(prefs),
+  });
+  if (!res.ok) {
+    const data = await res.json();
+    throw new Error(data.error || "Failed to update preferences");
+  }
+}
+
+export function AuthProvider({ children }: AuthProviderProps) {
+  const [status, setStatus] = useState<AuthStatus>("loading");
+  const [user, setUser] = useState<AuthUser | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const setupNeeded = await fetchSetupStatus();
+        if (setupNeeded) {
+          setStatus("needs-setup");
+          return;
+        }
+
+        const currentUser = await fetchCurrentUser();
+        if (currentUser) {
+          setUser(currentUser);
+          setStatus("authenticated");
+        } else {
+          setStatus("unauthenticated");
+        }
+      } catch {
+        setStatus("unauthenticated");
+      }
+    })();
+  }, []);
+
+  const login = useCallback(async (username: string, password: string) => {
+    const loggedInUser = await postLogin(username, password);
+    setUser(loggedInUser);
+    setStatus("authenticated");
+  }, []);
+
+  const logout = useCallback(async () => {
+    await postLogout();
+    setUser(null);
+    setStatus("unauthenticated");
+  }, []);
+
+  const setup = useCallback(async (username: string, password: string) => {
+    const newUser = await postSetup(username, password);
+    setUser(newUser);
+    setStatus("authenticated");
+  }, []);
+
+  const updatePreferences = useCallback(
+    async (prefs: { theme?: AuthUser["theme"] }) => {
+      await patchPreferences(prefs);
+      setUser((prev) => (prev ? { ...prev, ...prefs } : prev));
+    },
+    []
+  );
+
+  const value: AuthContextValue = {
+    status,
+    user,
+    login,
+    logout,
+    setup,
+    updatePreferences,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}

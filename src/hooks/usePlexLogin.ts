@@ -12,6 +12,10 @@ export type PlexAccount = {
   thumb: string;
 };
 
+export function pickBestServer(servers: PlexServer[]): PlexServer | undefined {
+  return servers.find((s) => !s.local) ?? servers[0];
+}
+
 interface UsePlexLoginOptions {
   onToken: (token: string) => void;
   onServers?: (servers: PlexServer[]) => void;
@@ -65,7 +69,7 @@ export default function usePlexLogin({
         const servers = data.servers ?? [];
         onServers?.(servers);
         if (servers.length > 0) {
-          serverUrl = servers[0].uri;
+          serverUrl = pickBestServer(servers)?.uri ?? "";
         }
       }
 

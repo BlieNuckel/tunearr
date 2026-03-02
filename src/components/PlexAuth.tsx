@@ -1,10 +1,15 @@
 import { useState, useEffect, useCallback } from "react";
 import Spinner from "./Spinner";
-import usePlexLogin, { fetchAccount } from "@/hooks/usePlexLogin";
+import usePlexLogin, {
+  fetchAccount,
+  pickBestServer,
+} from "@/hooks/usePlexLogin";
 import type { PlexAccount, PlexServer } from "@/hooks/usePlexLogin";
+import { getClientId } from "@/utils/plexOAuth";
 
 interface PlexAuthProps {
   token: string;
+  serverUrl?: string;
   onToken: (token: string) => void;
   onServerUrl: (url: string) => void;
   onSignOut?: () => void;
@@ -48,6 +53,44 @@ function SignedInCard({
   );
 }
 
+function formatServerOption(server: PlexServer): string {
+  try {
+    const { host } = new URL(server.uri);
+    return `${server.name} — ${host}${server.local ? " (local)" : ""}`;
+  } catch {
+    return server.uri;
+  }
+}
+
+function ServerPicker({
+  servers,
+  selectedUrl,
+  onChange,
+}: {
+  servers: PlexServer[];
+  selectedUrl: string;
+  onChange: (url: string) => void;
+}) {
+  return (
+    <div className="space-y-1">
+      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+        Server connection
+      </label>
+      <select
+        value={selectedUrl}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full px-3 py-2 bg-white dark:bg-gray-800 border-2 border-black rounded-lg text-sm text-gray-900 dark:text-gray-100 shadow-cartoon-sm"
+      >
+        {servers.map((s) => (
+          <option key={s.uri} value={s.uri}>
+            {formatServerOption(s)}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 type AccountFetch =
   | { status: "idle" }
   | { status: "fetching"; forToken: string }
@@ -55,6 +98,7 @@ type AccountFetch =
 
 export default function PlexAuth({
   token,
+  serverUrl = "",
   onToken,
   onServerUrl,
   onSignOut: onSignOutProp,
@@ -63,7 +107,9 @@ export default function PlexAuth({
   const [fetchState, setFetchState] = useState<AccountFetch>({
     status: "idle",
   });
-  const [serverName, setServerName] = useState("");
+  const [servers, setServers] = useState<PlexServer[]>([]);
+  const serverName =
+    servers.find((s) => s.uri === serverUrl)?.name ?? "";
 
   const handleAccount = useCallback(
     (acct: PlexAccount) => {
@@ -74,10 +120,11 @@ export default function PlexAuth({
 
   const { loading, login } = usePlexLogin({
     onToken,
-    onServers: (servers: PlexServer[]) => {
-      if (servers.length > 0) {
-        onServerUrl(servers[0].uri);
-        setServerName(servers[0].name);
+    onServers: (fetched: PlexServer[]) => {
+      setServers(fetched);
+      const best = pickBestServer(fetched);
+      if (best) {
+        onServerUrl(best.uri);
       }
     },
     onAccount: handleAccount,
@@ -108,9 +155,31 @@ export default function PlexAuth({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
+  useEffect(() => {
+    if (!token) {
+      setServers([]);
+      return;
+    }
+
+    let cancelled = false;
+    const clientId = getClientId();
+    fetch(
+      `/api/plex/servers?token=${encodeURIComponent(token)}&clientId=${encodeURIComponent(clientId)}`
+    )
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled || !data) return;
+        setServers((prev) => (prev.length > 0 ? prev : data.servers ?? []));
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
+
   const handleSignOut = () => {
     setFetchState({ status: "idle" });
-    setServerName("");
+    setServers([]);
     if (onSignOutProp) {
       onSignOutProp();
     } else {
@@ -139,11 +208,20 @@ export default function PlexAuth({
 
   if (account) {
     return (
-      <SignedInCard
-        account={account}
-        serverName={serverName}
-        onSignOut={handleSignOut}
-      />
+      <div className="space-y-3">
+        <SignedInCard
+          account={account}
+          serverName={serverName}
+          onSignOut={handleSignOut}
+        />
+        {servers.length > 1 && (
+          <ServerPicker
+            servers={servers}
+            selectedUrl={serverUrl}
+            onChange={onServerUrl}
+          />
+        )}
+      </div>
     );
   }
 

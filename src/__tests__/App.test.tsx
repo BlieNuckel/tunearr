@@ -6,6 +6,7 @@ import {
   type LidarrContextValue,
 } from "@/context/lidarrContextDef";
 import { ThemeContext } from "@/context/themeContextDef";
+import { AuthContext, type AuthContextValue } from "@/context/authContextDef";
 
 const connectedContext: LidarrContextValue = {
   options: { qualityProfiles: [], metadataProfiles: [], rootFolderPaths: [] },
@@ -22,7 +23,6 @@ const connectedContext: LidarrContextValue = {
     slskdUrl: "",
     slskdApiKey: "",
     slskdDownloadPath: "",
-    theme: "system",
   },
   isConnected: true,
   isLoading: false,
@@ -47,9 +47,17 @@ const unconfiguredContext: LidarrContextValue = {
     slskdUrl: "",
     slskdApiKey: "",
     slskdDownloadPath: "",
-    theme: "system",
   },
   isConnected: false,
+};
+
+const authenticatedAuth: AuthContextValue = {
+  status: "authenticated",
+  user: { id: 1, username: "admin", role: "admin", theme: "system" },
+  login: vi.fn(),
+  logout: vi.fn(),
+  setup: vi.fn(),
+  updatePreferences: vi.fn(),
 };
 
 vi.stubGlobal(
@@ -59,20 +67,22 @@ vi.stubGlobal(
 
 function renderApp(path: string, context = connectedContext) {
   return render(
-    <LidarrContext.Provider value={context}>
-      <ThemeContext.Provider
-        value={{
-          theme: "system",
-          actualTheme: "light",
-          setTheme: vi.fn(),
-          isLoading: false,
-        }}
-      >
-        <MemoryRouter initialEntries={[path]}>
-          <App />
-        </MemoryRouter>
-      </ThemeContext.Provider>
-    </LidarrContext.Provider>
+    <AuthContext.Provider value={authenticatedAuth}>
+      <LidarrContext.Provider value={context}>
+        <ThemeContext.Provider
+          value={{
+            theme: "system",
+            actualTheme: "light",
+            setTheme: vi.fn(),
+            isLoading: false,
+          }}
+        >
+          <MemoryRouter initialEntries={[path]}>
+            <App />
+          </MemoryRouter>
+        </ThemeContext.Provider>
+      </LidarrContext.Provider>
+    </AuthContext.Provider>
   );
 }
 
