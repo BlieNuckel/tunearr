@@ -68,6 +68,7 @@ export type GroupedSearchResult = {
   uploadSpeed: number;
   bitRate: number;
   category: number;
+  formatTag: string;
 };
 
 // --- NZB metadata (encoded into NZB XML for transport) ---

@@ -43,13 +43,13 @@ describe("getPlexServers", () => {
 
     expect(mockFetch).toHaveBeenCalledWith(
       "https://plex.tv/api/v2/resources?includeHttps=1",
-      {
+      expect.objectContaining({
         headers: {
           Accept: "application/json",
           "X-Plex-Token": "test-token",
           "X-Plex-Client-Identifier": "client-123",
         },
-      }
+      })
     );
   });
 

@@ -1,3 +1,5 @@
+import { resilientFetch } from "../resilientFetch";
+
 export type PlexAccount = {
   username: string;
   thumb: string;
@@ -7,7 +9,7 @@ export async function getPlexAccount(
   token: string,
   clientId: string
 ): Promise<PlexAccount> {
-  const res = await fetch("https://plex.tv/users/account.json", {
+  const res = await resilientFetch("https://plex.tv/users/account.json", {
     headers: {
       Accept: "application/json",
       "X-Plex-Token": token,

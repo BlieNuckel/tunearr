@@ -1,3 +1,4 @@
+import { resilientFetch } from "../resilientFetch";
 import { buildUrl } from "./config";
 import type {
   LastfmSimilarResponse,
@@ -7,7 +8,7 @@ import type {
 
 export const getSimilarArtists = async (artist: string) => {
   const url = buildUrl("artist.getSimilar", { artist, limit: "30" });
-  const response = await fetch(url);
+  const response = await resilientFetch(url);
   const data: LastfmSimilarResponse = await response.json();
 
   if (data.error) {
@@ -30,7 +31,7 @@ export const getSimilarArtists = async (artist: string) => {
 
 export const getArtistTopTags = async (artist: string) => {
   const url = buildUrl("artist.getTopTags", { artist });
-  const response = await fetch(url);
+  const response = await resilientFetch(url);
   const data: LastfmTopTagsResponse = await response.json();
 
   if (data.error) {
@@ -45,7 +46,7 @@ export const getArtistTopTags = async (artist: string) => {
 
 const fetchSingleTagArtists = async (tag: string, page = "1", limit = "30") => {
   const url = buildUrl("tag.getTopArtists", { tag, limit, page });
-  const response = await fetch(url);
+  const response = await resilientFetch(url);
   const data: LastfmTagArtistsResponse = await response.json();
 
   if (data.error) {

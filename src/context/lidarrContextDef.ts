@@ -29,7 +29,6 @@ export interface LidarrSettings {
   slskdUrl: string;
   slskdApiKey: string;
   slskdDownloadPath: string;
-  theme: "light" | "dark" | "system";
   promotedAlbum?: PromotedAlbumSettings;
 }
 

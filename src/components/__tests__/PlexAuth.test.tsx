@@ -1,18 +1,38 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  act,
+} from "@testing-library/react";
 
 const mockUsePlexLogin = vi.fn();
 const mockFetchAccount = vi.fn();
+const mockPickBestServer = vi.fn();
 vi.mock("@/hooks/usePlexLogin", () => ({
   default: (opts: unknown) => mockUsePlexLogin(opts),
   fetchAccount: (...args: unknown[]) => mockFetchAccount(...args),
+  pickBestServer: (...args: unknown[]) => mockPickBestServer(...args),
 }));
+
+vi.mock("@/utils/plexOAuth", () => ({
+  getClientId: () => "test-client-id",
+}));
+
+const mockFetch = vi.fn();
+vi.stubGlobal("fetch", mockFetch);
 
 import PlexAuth from "../PlexAuth";
 
 beforeEach(() => {
   vi.clearAllMocks();
   mockFetchAccount.mockResolvedValue(null);
+  mockFetch.mockResolvedValue({ ok: false });
+  mockPickBestServer.mockImplementation(
+    (servers: { local: boolean }[]) =>
+      servers.find((s) => !s.local) ?? servers[0]
+  );
 });
 
 describe("PlexAuth", () => {
@@ -105,15 +125,38 @@ describe("PlexAuth", () => {
     expect(onServerUrl).toHaveBeenCalledWith("");
   });
 
-  it("passes onServers callback that sets server URL", () => {
+  it("passes onServers callback that picks best (non-local) server URL", () => {
     mockUsePlexLogin.mockReturnValue({ loading: false, login: vi.fn() });
     const onServerUrl = vi.fn();
     render(<PlexAuth {...defaultProps} onServerUrl={onServerUrl} />);
 
     const hookOpts = mockUsePlexLogin.mock.calls[0][0];
-    hookOpts.onServers([
-      { name: "My Server", uri: "http://plex:32400", local: true },
-    ]);
+    act(() => {
+      hookOpts.onServers([
+        { name: "My Server", uri: "http://172.23.0.1:32400", local: true },
+        {
+          name: "My Server",
+          uri: "https://remote.example.com:32400",
+          local: false,
+        },
+      ]);
+    });
+    expect(onServerUrl).toHaveBeenCalledWith(
+      "https://remote.example.com:32400"
+    );
+  });
+
+  it("falls back to first server when all are local", () => {
+    mockUsePlexLogin.mockReturnValue({ loading: false, login: vi.fn() });
+    const onServerUrl = vi.fn();
+    render(<PlexAuth {...defaultProps} onServerUrl={onServerUrl} />);
+
+    const hookOpts = mockUsePlexLogin.mock.calls[0][0];
+    act(() => {
+      hookOpts.onServers([
+        { name: "My Server", uri: "http://plex:32400", local: true },
+      ]);
+    });
     expect(onServerUrl).toHaveBeenCalledWith("http://plex:32400");
   });
 
@@ -124,16 +167,24 @@ describe("PlexAuth", () => {
       thumb: "https://plex.tv/thumb.jpg",
     });
 
-    render(<PlexAuth {...defaultProps} token="my-token" />);
+    render(
+      <PlexAuth
+        {...defaultProps}
+        token="my-token"
+        serverUrl="http://plex:32400"
+      />
+    );
 
     await waitFor(() => {
       expect(screen.getByText("testuser")).toBeInTheDocument();
     });
 
     const hookOpts = mockUsePlexLogin.mock.calls[0][0];
-    hookOpts.onServers([
-      { name: "My Server", uri: "http://plex:32400", local: true },
-    ]);
+    act(() => {
+      hookOpts.onServers([
+        { name: "My Server", uri: "http://plex:32400", local: true },
+      ]);
+    });
     hookOpts.onAccount({
       username: "testuser",
       thumb: "https://plex.tv/thumb.jpg",
@@ -168,6 +219,107 @@ describe("PlexAuth", () => {
     expect(onSignOut).toHaveBeenCalledTimes(1);
     expect(onToken).not.toHaveBeenCalled();
     expect(onServerUrl).not.toHaveBeenCalled();
+  });
+
+  it("shows server picker when signed in with multiple connections", async () => {
+    mockUsePlexLogin.mockReturnValue({ loading: false, login: vi.fn() });
+    mockFetchAccount.mockResolvedValue({
+      username: "testuser",
+      thumb: "https://plex.tv/thumb.jpg",
+    });
+
+    render(
+      <PlexAuth
+        {...defaultProps}
+        token="my-token"
+        serverUrl="http://172.23.0.1:32400"
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("testuser")).toBeInTheDocument();
+    });
+
+    const hookOpts = mockUsePlexLogin.mock.calls[0][0];
+    act(() => {
+      hookOpts.onServers([
+        { name: "MyPlex", uri: "http://172.23.0.1:32400", local: true },
+        {
+          name: "MyPlex",
+          uri: "https://remote.example.com:32400",
+          local: false,
+        },
+      ]);
+    });
+
+    expect(screen.getByText("Server connection")).toBeInTheDocument();
+    expect(screen.getByRole("combobox")).toBeInTheDocument();
+  });
+
+  it("does not show server picker with single connection", async () => {
+    mockUsePlexLogin.mockReturnValue({ loading: false, login: vi.fn() });
+    mockFetchAccount.mockResolvedValue({
+      username: "testuser",
+      thumb: "https://plex.tv/thumb.jpg",
+    });
+
+    render(<PlexAuth {...defaultProps} token="my-token" />);
+
+    await waitFor(() => {
+      expect(screen.getByText("testuser")).toBeInTheDocument();
+    });
+
+    const hookOpts = mockUsePlexLogin.mock.calls[0][0];
+    act(() => {
+      hookOpts.onServers([
+        { name: "MyPlex", uri: "http://plex:32400", local: true },
+      ]);
+    });
+
+    expect(screen.queryByText("Server connection")).not.toBeInTheDocument();
+  });
+
+  it("calls onServerUrl when user selects a different server", async () => {
+    const onServerUrl = vi.fn();
+    mockUsePlexLogin.mockReturnValue({ loading: false, login: vi.fn() });
+    mockFetchAccount.mockResolvedValue({
+      username: "testuser",
+      thumb: "https://plex.tv/thumb.jpg",
+    });
+
+    render(
+      <PlexAuth
+        {...defaultProps}
+        token="my-token"
+        serverUrl="http://172.23.0.1:32400"
+        onServerUrl={onServerUrl}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("testuser")).toBeInTheDocument();
+    });
+
+    const hookOpts = mockUsePlexLogin.mock.calls[0][0];
+    act(() => {
+      hookOpts.onServers([
+        { name: "MyPlex", uri: "http://172.23.0.1:32400", local: true },
+        {
+          name: "MyPlex",
+          uri: "https://remote.example.com:32400",
+          local: false,
+        },
+      ]);
+    });
+
+    onServerUrl.mockClear();
+    fireEvent.change(screen.getByRole("combobox"), {
+      target: { value: "https://remote.example.com:32400" },
+    });
+
+    expect(onServerUrl).toHaveBeenCalledWith(
+      "https://remote.example.com:32400"
+    );
   });
 
   it("passes onLoginComplete to usePlexLogin hook", () => {

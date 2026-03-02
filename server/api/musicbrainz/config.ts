@@ -1,3 +1,5 @@
+import { resilientFetch } from "../resilientFetch";
+
 export const MB_BASE = "https://musicbrainz.org/ws/2";
 
 export const MB_HEADERS = {
@@ -22,5 +24,5 @@ export async function rateLimitedMbFetch(
   }
 
   lastMbRequestTime = Date.now();
-  return fetch(url, options);
+  return resilientFetch(url, options);
 }

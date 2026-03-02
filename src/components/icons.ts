@@ -13,4 +13,6 @@ export {
   EyeSlashIcon,
   PlayIcon,
   PauseIcon,
+  UserCircleIcon,
+  ArrowRightStartOnRectangleIcon as LogoutIcon,
 } from "@heroicons/react/20/solid";

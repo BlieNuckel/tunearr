@@ -1,5 +1,6 @@
 import type { SlskdTransferGroup } from "./types";
 import { getSlskdConfig } from "./config";
+import { resilientFetch } from "../resilientFetch";
 
 export async function enqueueDownload(
   username: string,
@@ -7,7 +8,7 @@ export async function enqueueDownload(
 ): Promise<void> {
   const { baseUrl, headers } = getSlskdConfig();
 
-  const response = await fetch(
+  const response = await resilientFetch(
     `${baseUrl}/api/v0/transfers/downloads/${encodeURIComponent(username)}`,
     {
       method: "POST",
@@ -26,9 +27,12 @@ export async function enqueueDownload(
 export async function getDownloadTransfers(): Promise<SlskdTransferGroup[]> {
   const { baseUrl, headers } = getSlskdConfig();
 
-  const response = await fetch(`${baseUrl}/api/v0/transfers/downloads`, {
-    headers,
-  });
+  const response = await resilientFetch(
+    `${baseUrl}/api/v0/transfers/downloads`,
+    {
+      headers,
+    }
+  );
 
   if (!response.ok) {
     throw new Error(`slskd get transfers failed: ${response.status}`);
@@ -43,7 +47,7 @@ export async function cancelDownload(
 ): Promise<void> {
   const { baseUrl, headers } = getSlskdConfig();
 
-  const response = await fetch(
+  const response = await resilientFetch(
     `${baseUrl}/api/v0/transfers/downloads/${encodeURIComponent(username)}/${encodeURIComponent(id)}`,
     { method: "DELETE", headers }
   );

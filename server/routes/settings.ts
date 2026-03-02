@@ -4,8 +4,12 @@ import fs from "fs";
 import { getConfig, setConfig } from "../config";
 import { clearPromotedAlbumCache } from "../promotedAlbum/getPromotedAlbum";
 import { testLidarrConnection } from "../services/settings";
+import { requireAuth } from "../middleware/requireAuth";
+import { requireAdmin } from "../middleware/requireAdmin";
 
 const router = express.Router();
+
+router.use(requireAuth, requireAdmin);
 
 router.get("/", (_req: Request, res: Response) => {
   const fullConfig = getConfig();

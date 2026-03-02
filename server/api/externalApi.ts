@@ -1,5 +1,6 @@
 import NodeCache from "node-cache";
-import { withRetry, type RetryOptions } from "./retry";
+import type { RetryOptions } from "./retry";
+import { resilientFetch } from "./resilientFetch";
 
 const DEFAULT_TTL = 300;
 
@@ -47,14 +48,8 @@ export function createExternalApi(options: ExternalApiOptions): ExternalApi {
   const cache = new NodeCache({
     stdTTL: options.cacheTtlSeconds ?? DEFAULT_TTL,
   });
-  const fetchFn = options.fetchFn ?? fetch;
   const timeoutMs = options.timeoutMs ?? 10000;
-  const retryOptions: RetryOptions | undefined =
-    options.retry === true
-      ? {}
-      : options.retry === false || options.retry === undefined
-        ? undefined
-        : options.retry;
+  const retryOpt = options.retry ?? false;
   let lastRequestTime = 0;
 
   const inFlight = new Map<string, Promise<unknown>>();
@@ -105,17 +100,12 @@ export function createExternalApi(options: ExternalApiOptions): ExternalApi {
     lastRequestTime = Date.now();
   }
 
-  async function fetchWithTimeout(
-    url: string,
-    init: RequestInit
-  ): Promise<Response> {
-    const signal = AbortSignal.timeout(timeoutMs);
-    return fetchFn(url, { ...init, signal });
-  }
-
-  function wrapWithRetry<T>(fn: () => Promise<T>): Promise<T> {
-    if (!retryOptions) return fn();
-    return withRetry(fn, retryOptions);
+  function doFetch(url: string, init: RequestInit): Promise<Response> {
+    return resilientFetch(url, init, {
+      timeoutMs,
+      retry: retryOpt,
+      fetchFn: options.fetchFn,
+    });
   }
 
   async function get<T>(
@@ -133,10 +123,10 @@ export function createExternalApi(options: ExternalApiOptions): ExternalApi {
     const existing = inFlight.get(cacheKey);
     if (existing) return existing as Promise<T>;
 
-    const promise = wrapWithRetry(async () => {
+    const promise = (async () => {
       await applyRateLimit();
       const url = buildUrl(endpoint, config?.params);
-      const response = await fetchWithTimeout(url, {
+      const response = await doFetch(url, {
         headers: buildHeaders(config?.headers),
       });
       const data: T = await response.json();
@@ -146,7 +136,7 @@ export function createExternalApi(options: ExternalApiOptions): ExternalApi {
       }
 
       return data;
-    });
+    })();
 
     inFlight.set(cacheKey, promise);
     try {
@@ -169,10 +159,10 @@ export function createExternalApi(options: ExternalApiOptions): ExternalApi {
     const cached = cache.get<T>(cacheKey);
     if (cached !== undefined) return cached;
 
-    return wrapWithRetry(async () => {
+    return (async () => {
       await applyRateLimit();
       const url = buildUrl(endpoint, config?.params);
-      const response = await fetchWithTimeout(url, {
+      const response = await doFetch(url, {
         method: "POST",
         headers: buildHeaders(config?.headers),
         body: JSON.stringify(data),
@@ -184,7 +174,7 @@ export function createExternalApi(options: ExternalApiOptions): ExternalApi {
       }
 
       return result;
-    });
+    })();
   }
 
   async function getRolling<T>(
@@ -205,7 +195,7 @@ export function createExternalApi(options: ExternalApiOptions): ExternalApi {
       if (keyTtl - effectiveTtl * 1000 < Date.now() - DEFAULT_ROLLING_BUFFER) {
         applyRateLimit().then(() => {
           const url = buildUrl(endpoint, config?.params);
-          fetchWithTimeout(url, { headers: buildHeaders(config?.headers) })
+          doFetch(url, { headers: buildHeaders(config?.headers) })
             .then((response) => response.json())
             .then((data: T) => {
               cache.set(cacheKey, data, effectiveTtl);
@@ -221,10 +211,10 @@ export function createExternalApi(options: ExternalApiOptions): ExternalApi {
     const existing = inFlight.get(cacheKey);
     if (existing) return existing as Promise<T>;
 
-    const promise = wrapWithRetry(async () => {
+    const promise = (async () => {
       await applyRateLimit();
       const url = buildUrl(endpoint, config?.params);
-      const response = await fetchWithTimeout(url, {
+      const response = await doFetch(url, {
         headers: buildHeaders(config?.headers),
       });
       const data: T = await response.json();
@@ -234,7 +224,7 @@ export function createExternalApi(options: ExternalApiOptions): ExternalApi {
       }
 
       return data;
-    });
+    })();
 
     inFlight.set(cacheKey, promise);
     try {

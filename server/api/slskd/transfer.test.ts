@@ -64,7 +64,7 @@ describe("getDownloadTransfers", () => {
     expect(result).toEqual(groups);
     expect(mockFetch).toHaveBeenCalledWith(
       "http://slskd:5030/api/v0/transfers/downloads",
-      { headers: CONFIG.headers }
+      expect.objectContaining({ headers: CONFIG.headers })
     );
   });
 
@@ -84,7 +84,7 @@ describe("cancelDownload", () => {
 
     expect(mockFetch).toHaveBeenCalledWith(
       "http://slskd:5030/api/v0/transfers/downloads/testuser/transfer-123",
-      { method: "DELETE", headers: CONFIG.headers }
+      expect.objectContaining({ method: "DELETE", headers: CONFIG.headers })
     );
   });
 

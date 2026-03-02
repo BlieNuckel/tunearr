@@ -12,6 +12,12 @@ const mockUsePlexLogin = vi.fn();
 vi.mock("@/hooks/usePlexLogin", () => ({
   default: (opts: unknown) => mockUsePlexLogin(opts),
   fetchAccount: (...args: unknown[]) => mockFetchAccount(...args),
+  pickBestServer: (servers: { local: boolean }[]) =>
+    servers.find((s) => !s.local) ?? servers[0],
+}));
+
+vi.mock("@/utils/plexOAuth", () => ({
+  getClientId: () => "test-client-id",
 }));
 
 import SettingsPage from "../SettingsPage";
@@ -20,11 +26,22 @@ import {
   type LidarrContextValue,
 } from "@/context/lidarrContextDef";
 import { ThemeContext } from "@/context/themeContextDef";
+import { AuthContext, type AuthContextValue } from "@/context/authContextDef";
 
 const mockSaveSettings = vi.fn();
 const mockSavePartialSettings = vi.fn();
 const mockTestConnection = vi.fn();
 const mockLoadOptions = vi.fn();
+const mockLogout = vi.fn();
+
+const mockAuthValue: AuthContextValue = {
+  status: "authenticated",
+  user: { id: 1, username: "testadmin", role: "admin", theme: "system" },
+  login: vi.fn(),
+  logout: mockLogout,
+  setup: vi.fn(),
+  updatePreferences: vi.fn(),
+};
 
 function renderSettingsPage(overrides: Partial<LidarrContextValue> = {}) {
   const defaultContext: LidarrContextValue = {
@@ -42,7 +59,6 @@ function renderSettingsPage(overrides: Partial<LidarrContextValue> = {}) {
       slskdUrl: "",
       slskdApiKey: "",
       slskdDownloadPath: "",
-      theme: "system",
     },
     isConnected: true,
     isLoading: false,
@@ -54,25 +70,31 @@ function renderSettingsPage(overrides: Partial<LidarrContextValue> = {}) {
   };
 
   return render(
-    <LidarrContext.Provider value={defaultContext}>
-      <ThemeContext.Provider
-        value={{
-          theme: "system",
-          actualTheme: "light",
-          setTheme: vi.fn(),
-          isLoading: false,
-        }}
-      >
-        <SettingsPage />
-      </ThemeContext.Provider>
-    </LidarrContext.Provider>
+    <AuthContext.Provider value={mockAuthValue}>
+      <LidarrContext.Provider value={defaultContext}>
+        <ThemeContext.Provider
+          value={{
+            theme: "system",
+            actualTheme: "light",
+            setTheme: vi.fn(),
+            isLoading: false,
+          }}
+        >
+          <SettingsPage />
+        </ThemeContext.Provider>
+      </LidarrContext.Provider>
+    </AuthContext.Provider>
   );
 }
+
+const mockFetch = vi.fn();
+vi.stubGlobal("fetch", mockFetch);
 
 beforeEach(() => {
   vi.clearAllMocks();
   mockLoadOptions.mockResolvedValue(undefined);
   mockFetchAccount.mockResolvedValue(null);
+  mockFetch.mockResolvedValue({ ok: false });
   mockUsePlexLogin.mockReturnValue({ loading: false, login: mockLogin });
   mockSavePartialSettings.mockResolvedValue(undefined);
 });
@@ -90,11 +112,19 @@ describe("SettingsPage", () => {
     expect(screen.getByText("Settings")).toBeInTheDocument();
   });
 
-  it("renders General tab by default with Theme and Import", () => {
+  it("renders General tab by default with Account, Theme and Import", () => {
     renderSettingsPage();
+    expect(screen.getByText("Account")).toBeInTheDocument();
     expect(screen.getByText("Theme")).toBeInTheDocument();
     expect(screen.getByText("Manual Import")).toBeInTheDocument();
     expect(screen.queryByText("Lidarr Connection")).not.toBeInTheDocument();
+  });
+
+  it("shows Account section with username and Sign Out button", () => {
+    renderSettingsPage();
+    expect(screen.getByText("testadmin")).toBeInTheDocument();
+    expect(screen.getByText("admin")).toBeInTheDocument();
+    expect(screen.getByText("Sign Out")).toBeInTheDocument();
   });
 
   it("shows Integrations sections when Integrations tab clicked", () => {

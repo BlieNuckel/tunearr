@@ -30,13 +30,13 @@ describe("getPlexAccount", () => {
 
     expect(mockFetch).toHaveBeenCalledWith(
       "https://plex.tv/users/account.json",
-      {
+      expect.objectContaining({
         headers: {
           Accept: "application/json",
           "X-Plex-Token": "test-token",
           "X-Plex-Client-Identifier": "client-123",
         },
-      }
+      })
     );
   });
 

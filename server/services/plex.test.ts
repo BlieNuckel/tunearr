@@ -37,7 +37,9 @@ describe("fetchPlexThumbnail", () => {
     }
     expect(mockFetch).toHaveBeenCalledWith(
       "http://plex:32400/library/metadata/123/thumb",
-      { headers: { "X-Plex-Token": "token123" } }
+      expect.objectContaining({
+        headers: { "X-Plex-Token": "token123" },
+      })
     );
   });
 

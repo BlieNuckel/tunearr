@@ -53,6 +53,7 @@ export type LidarrWantedRecord = {
 export type LidarrHistoryRecord = {
   id: number;
   albumId: number;
+  eventType: number;
   date: string;
   downloadId: string;
   data: Record<string, string>;
@@ -106,6 +107,12 @@ export type LidarrMetadataProfile = {
 export type LidarrRootFolder = {
   id: number;
   path: string;
+};
+
+export type LidarrCommand = {
+  id: number;
+  name: string;
+  status: string;
 };
 
 /** Extracts a human-readable error message from Lidarr's error responses (array or object format) */

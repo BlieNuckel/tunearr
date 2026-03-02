@@ -37,11 +37,17 @@ export interface QueueItem {
   quality: { quality: { name: string } };
 }
 
+export interface WantedItemEvent {
+  eventType: number;
+  date: string;
+}
+
 export interface WantedItem {
   id: number;
   title: string;
   foreignAlbumId: string;
   artist: { artistName: string };
+  lastEvent: WantedItemEvent | null;
 }
 
 export interface RecentImport {

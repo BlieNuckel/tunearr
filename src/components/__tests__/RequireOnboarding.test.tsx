@@ -25,7 +25,6 @@ function renderWithContext(
       slskdUrl: "",
       slskdApiKey: "",
       slskdDownloadPath: "",
-      theme: "system",
     },
     isConnected: false,
     isLoading: false,
@@ -77,7 +76,6 @@ describe("RequireOnboarding", () => {
         slskdUrl: "",
         slskdApiKey: "",
         slskdDownloadPath: "",
-        theme: "system",
       },
     });
     expect(screen.getByText("Main App")).toBeInTheDocument();

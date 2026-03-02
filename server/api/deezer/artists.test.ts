@@ -39,7 +39,8 @@ describe("getArtistImage", () => {
       "https://e-cdns-images.dzcdn.net/images/artist/9508a2/1000x1000-000000-80-0-0.jpg"
     );
     expect(mockFetch).toHaveBeenCalledWith(
-      "https://api.deezer.com/search/artist?q=Radiohead&limit=1"
+      "https://api.deezer.com/search/artist?q=Radiohead&limit=1",
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
     );
   });
 

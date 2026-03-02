@@ -3,11 +3,18 @@ import { render, screen } from "@testing-library/react";
 vi.mock("@/hooks/usePlexLogin", () => ({
   default: () => ({ loading: false, login: vi.fn() }),
   fetchAccount: () => Promise.resolve(null),
+  pickBestServer: (servers: { local: boolean }[]) =>
+    servers.find((s) => !s.local) ?? servers[0],
+}));
+
+vi.mock("@/utils/plexOAuth", () => ({
+  getClientId: () => "test-client-id",
 }));
 
 import PlexStep from "../PlexStep";
 
 const defaultProps = {
+  url: "",
   token: "",
   onUrlChange: vi.fn(),
   onTokenChange: vi.fn(),

@@ -10,7 +10,7 @@ vi.mock("@/utils/plexOAuth", () => ({
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
 
-import usePlexLogin, { fetchAccount } from "../usePlexLogin";
+import usePlexLogin, { fetchAccount, pickBestServer } from "../usePlexLogin";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -210,6 +210,63 @@ describe("usePlexLogin", () => {
     });
 
     expect(onLoginComplete).toHaveBeenCalledWith("my-token", "");
+  });
+
+  it("prefers non-local server for onLoginComplete", async () => {
+    const onToken = vi.fn();
+    const onLoginComplete = vi.fn();
+    mockLogin.mockResolvedValue("my-token");
+    mockFetchResponses(
+      {
+        ok: true,
+        data: {
+          servers: [
+            { name: "My Server", uri: "http://172.23.0.1:32400", local: true },
+            {
+              name: "My Server",
+              uri: "https://remote.example.com:32400",
+              local: false,
+            },
+          ],
+        },
+      },
+      { ok: true, data: { username: "test", thumb: "url" } }
+    );
+
+    const { result } = renderHook(() =>
+      usePlexLogin({ onToken, onLoginComplete })
+    );
+
+    await act(async () => {
+      result.current.login();
+    });
+
+    expect(onLoginComplete).toHaveBeenCalledWith(
+      "my-token",
+      "https://remote.example.com:32400"
+    );
+  });
+});
+
+describe("pickBestServer", () => {
+  it("prefers non-local server", () => {
+    const servers = [
+      { name: "S", uri: "http://172.23.0.1:32400", local: true },
+      { name: "S", uri: "https://remote.example.com:32400", local: false },
+    ];
+    expect(pickBestServer(servers)).toEqual(servers[1]);
+  });
+
+  it("falls back to first server when all are local", () => {
+    const servers = [
+      { name: "S", uri: "http://172.23.0.1:32400", local: true },
+      { name: "S", uri: "http://192.168.1.100:32400", local: true },
+    ];
+    expect(pickBestServer(servers)).toEqual(servers[0]);
+  });
+
+  it("returns undefined for empty array", () => {
+    expect(pickBestServer([])).toBeUndefined();
   });
 });
 

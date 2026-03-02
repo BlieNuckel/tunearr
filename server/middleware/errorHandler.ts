@@ -1,4 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
+import { createLogger } from "../logger";
+
+const log = createLogger("ErrorHandler");
 
 /** Generic error handler — must be registered after all routes */
 export function errorHandler(
@@ -23,5 +26,8 @@ export function errorHandler(
         : typeof (err as { message?: unknown })?.message === "string"
           ? (err as { message: string }).message
           : "Unknown error";
+
+  log.error(`${status} ${message}`, err);
+
   res.status(status).json({ error: message });
 }

@@ -1,3 +1,4 @@
+import { resilientFetch } from "../api/resilientFetch";
 import { getPlexConfig } from "../api/plex/config";
 
 type PlexThumbnailResult =
@@ -8,7 +9,7 @@ export async function fetchPlexThumbnail(
   path: string
 ): Promise<PlexThumbnailResult> {
   const { baseUrl, headers } = getPlexConfig();
-  const upstream = await fetch(`${baseUrl}${path}`, { headers });
+  const upstream = await resilientFetch(`${baseUrl}${path}`, { headers });
 
   if (!upstream.ok) {
     return { ok: false, status: upstream.status };

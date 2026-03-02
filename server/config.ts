@@ -37,7 +37,6 @@ export type IConfig = {
   slskdUrl: string;
   slskdApiKey: string;
   slskdDownloadPath: string;
-  theme: "light" | "dark" | "system";
   promotedAlbum: PromotedAlbumConfig;
 };
 
@@ -83,7 +82,6 @@ const DEFAULT_CONFIG: IConfig = {
   slskdUrl: "",
   slskdApiKey: "",
   slskdDownloadPath: "",
-  theme: "system",
   promotedAlbum: DEFAULT_PROMOTED_ALBUM,
 };
 
@@ -200,9 +198,6 @@ export const setConfig = (newConfig: Partial<IConfigInput>) => {
   }
   if (typeof mergedConfig.slskdDownloadPath !== "string") {
     throw new Error("slskdDownloadPath must be a string");
-  }
-  if (!["light", "dark", "system"].includes(mergedConfig.theme)) {
-    throw new Error("theme must be 'light', 'dark', or 'system'");
   }
 
   if (newConfig.promotedAlbum !== undefined) {

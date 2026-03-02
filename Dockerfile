@@ -1,5 +1,6 @@
 FROM node:22-alpine AS build
 
+RUN apk add --no-cache build-base python3
 RUN corepack enable pnpm
 
 WORKDIR /app

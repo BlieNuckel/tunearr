@@ -26,6 +26,37 @@ vi.mock("../services/settings", () => ({
     mockTestLidarrConnection(...args),
 }));
 
+vi.mock("../middleware/requireAuth", () => ({
+  requireAuth: (
+    req: {
+      user: {
+        id: number;
+        username: string;
+        role: string;
+        enabled: boolean;
+        theme: string;
+      };
+    },
+    _res: unknown,
+    next: () => void
+  ) => {
+    req.user = {
+      id: 1,
+      username: "admin",
+      role: "admin",
+      enabled: true,
+      theme: "system",
+    };
+    next();
+  },
+}));
+
+vi.mock("../middleware/requireAdmin", () => ({
+  requireAdmin: (_req: unknown, _res: unknown, next: () => void) => {
+    next();
+  },
+}));
+
 import express from "express";
 import request from "supertest";
 import settingsRouter from "./settings";

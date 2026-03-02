@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import type { ReactNode } from "react";
 import {
   ThemeContext,
@@ -6,6 +6,7 @@ import {
   type ActualTheme,
   type ThemeContextValue,
 } from "./themeContextDef";
+import { useAuth } from "./useAuth";
 
 const getSystemTheme = (): ActualTheme => {
   if (
@@ -24,36 +25,20 @@ const resolveTheme = (theme: Theme): ActualTheme => {
   return theme;
 };
 
-async function loadTheme(
-  setThemeState: (t: Theme) => void,
-  setActualTheme: (t: ActualTheme) => void,
-  setIsLoading: (v: boolean) => void
-) {
-  try {
-    const response = await fetch("/api/settings");
-    if (response.ok) {
-      const settings = await response.json();
-      const loadedTheme = settings.theme || "system";
-      setThemeState(loadedTheme);
-      setActualTheme(resolveTheme(loadedTheme));
-    }
-  } catch (error) {
-    console.error("Failed to load theme from backend:", error);
-  } finally {
-    setIsLoading(false);
-  }
-}
-
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
-  const [theme, setThemeState] = useState<Theme>("system");
+  const { user, status, updatePreferences } = useAuth();
+
+  const userTheme: Theme = user?.theme ?? "system";
+
+  const [theme, setThemeState] = useState<Theme>(userTheme);
   const [actualTheme, setActualTheme] = useState<ActualTheme>(() =>
-    resolveTheme("system")
+    resolveTheme(userTheme)
   );
-  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    loadTheme(setThemeState, setActualTheme, setIsLoading);
-  }, []);
+    setThemeState(userTheme);
+    setActualTheme(resolveTheme(userTheme));
+  }, [userTheme]);
 
   useEffect(() => {
     if (theme !== "system") {
@@ -74,30 +59,27 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     document.documentElement.classList.toggle("dark", actualTheme === "dark");
   }, [actualTheme]);
 
-  const setTheme = async (newTheme: Theme) => {
-    try {
-      const response = await fetch("/api/settings", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ theme: newTheme }),
-      });
+  const setTheme = useCallback(
+    async (newTheme: Theme) => {
+      setThemeState(newTheme);
+      setActualTheme(resolveTheme(newTheme));
 
-      if (response.ok) {
-        setThemeState(newTheme);
-        setActualTheme(resolveTheme(newTheme));
-      } else {
-        console.error("Failed to save theme to backend");
+      if (status === "authenticated") {
+        try {
+          await updatePreferences({ theme: newTheme });
+        } catch (error) {
+          console.error("Failed to save theme:", error);
+        }
       }
-    } catch (error) {
-      console.error("Failed to save theme:", error);
-    }
-  };
+    },
+    [status, updatePreferences]
+  );
 
   const value: ThemeContextValue = {
     theme,
     actualTheme,
     setTheme,
-    isLoading,
+    isLoading: false,
   };
 
   return (

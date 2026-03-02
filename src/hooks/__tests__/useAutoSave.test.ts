@@ -15,7 +15,6 @@ const defaultSettings: LidarrSettings = {
   slskdUrl: "",
   slskdApiKey: "",
   slskdDownloadPath: "",
-  theme: "system",
 };
 
 beforeEach(() => {
@@ -72,17 +71,6 @@ describe("useAutoSave", () => {
     });
 
     expect(save).toHaveBeenCalledWith({ lidarrQualityProfileId: 3 });
-  });
-
-  it("saves theme changes immediately", async () => {
-    const save = vi.fn().mockResolvedValue(undefined);
-    const { result } = renderHook(() => useAutoSave(defaultSettings, save));
-
-    await act(async () => {
-      result.current.updateField("theme", "dark");
-    });
-
-    expect(save).toHaveBeenCalledWith({ theme: "dark" });
   });
 
   it("resets debounce when same field updated rapidly", async () => {

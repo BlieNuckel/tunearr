@@ -6,6 +6,7 @@ import {
   type LidarrContextValue,
 } from "./lidarrContextDef";
 import { DEFAULT_PROMOTED_ALBUM } from "./promotedAlbumDefaults";
+import { useAuth } from "./useAuth";
 
 interface LidarrContextProviderProps {
   children: ReactNode;
@@ -13,9 +14,9 @@ interface LidarrContextProviderProps {
 
 async function loadSettings(
   setSettings: (s: LidarrSettings) => void,
-  setIsConnected: (v: boolean) => void,
   setIsLoading: (v: boolean) => void
 ) {
+  setIsLoading(true);
   try {
     const res = await fetch("/api/settings");
     if (res.ok) {
@@ -33,25 +34,11 @@ async function loadSettings(
         slskdUrl: data.slskdUrl || "",
         slskdApiKey: data.slskdApiKey || "",
         slskdDownloadPath: data.slskdDownloadPath || "",
-        theme: data.theme || "system",
         promotedAlbum: {
           ...DEFAULT_PROMOTED_ALBUM,
           ...(data.promotedAlbum ?? {}),
         },
       });
-
-      if (data.lidarrUrl && data.lidarrApiKey) {
-        const testRes = await fetch("/api/settings/test", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            lidarrUrl: data.lidarrUrl,
-            lidarrApiKey: data.lidarrApiKey,
-          }),
-        });
-        const testData = await testRes.json();
-        setIsConnected(testRes.ok && testData.success);
-      }
     }
   } catch (error) {
     console.error("Failed to load settings:", error);
@@ -94,6 +81,8 @@ async function loadLidarrOptionValues(
 export const LidarrContextProvider = ({
   children,
 }: LidarrContextProviderProps) => {
+  const { status } = useAuth();
+
   const [settings, setSettings] = useState<LidarrSettings>({
     lidarrUrl: "",
     lidarrApiKey: "",
@@ -107,7 +96,6 @@ export const LidarrContextProvider = ({
     slskdUrl: "",
     slskdApiKey: "",
     slskdDownloadPath: "",
-    theme: "system",
     promotedAlbum: DEFAULT_PROMOTED_ALBUM,
   });
   const [options, setOptions] = useState<LidarrOptions>({
@@ -119,8 +107,11 @@ export const LidarrContextProvider = ({
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    loadSettings(setSettings, setIsConnected, setIsLoading);
-  }, []);
+    if (status !== "authenticated") {
+      return;
+    }
+    loadSettings(setSettings, setIsLoading);
+  }, [status]);
 
   const savePartialSettings = async (partial: Partial<LidarrSettings>) => {
     const res = await fetch("/api/settings", {
@@ -179,7 +170,7 @@ export const LidarrContextProvider = ({
     options,
     settings,
     isConnected,
-    isLoading,
+    isLoading: status === "authenticated" && isLoading,
     saveSettings,
     savePartialSettings,
     testConnection,

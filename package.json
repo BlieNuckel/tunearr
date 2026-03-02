@@ -10,6 +10,7 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
+    "better-sqlite3": "^12.6.2",
     "concurrently": "^9.2.1",
     "express": "^5.2.1",
     "multer": "^2.0.2",
@@ -39,6 +40,7 @@
   "devDependencies": {
     "@eslint/js": "^9.39.2",
     "@tailwindcss/postcss": "^4.2.0",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/express": "^5.0.6",
     "@types/jest": "^30.0.0",
     "@types/multer": "^2.0.0",
@@ -65,5 +67,10 @@
   "engines": {
     "node": "^22.13.0",
     "pnpm": "^10.0.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "better-sqlite3"
+    ]
   }
 }

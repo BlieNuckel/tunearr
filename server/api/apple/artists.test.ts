@@ -48,7 +48,8 @@ describe("getArtistArtwork", () => {
       "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/75/9c/ff/759cff39-7fe4-a20a-3e63-d6a95db02b8c/cover.jpg/600x600bb.jpg"
     );
     expect(mockFetch).toHaveBeenCalledWith(
-      "https://itunes.apple.com/search?term=Radiohead&entity=album&limit=1"
+      "https://itunes.apple.com/search?term=Radiohead&entity=album&limit=1",
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
     );
   });
 
@@ -183,7 +184,8 @@ describe("getAlbumArtwork", () => {
 
     expect(result).toBe("https://example.com/okcomputer/600x600bb.jpg");
     expect(mockFetch).toHaveBeenCalledWith(
-      "https://itunes.apple.com/search?term=Radiohead+OK+Computer&entity=album&limit=1"
+      "https://itunes.apple.com/search?term=Radiohead+OK+Computer&entity=album&limit=1",
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
     );
   });
 

@@ -1,6 +1,7 @@
 import type { SettingsTab } from "./components/SettingsTabs";
 
 export type SettingsSection =
+  | "account"
   | "theme"
   | "import"
   | "lidarrConnection"
@@ -17,6 +18,11 @@ type SectionMeta = {
 };
 
 export const SECTION_META: Record<SettingsSection, SectionMeta> = {
+  account: {
+    label: "Account",
+    tab: "general",
+    keywords: ["account", "user", "logout", "sign out", "username", "role"],
+  },
   theme: {
     label: "Theme",
     tab: "general",
