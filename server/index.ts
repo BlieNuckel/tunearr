@@ -1,6 +1,7 @@
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
+import { initializeDatabase } from "./db/index";
 import { createLogger } from "./logger";
 import lastfmRoutes from "./routes/lastfm";
 import lidarrRoutes from "./routes/lidarr";
@@ -39,6 +40,8 @@ if (process.env.NODE_ENV === "production") {
 }
 
 app.use(errorHandler);
+
+initializeDatabase();
 
 app.listen(PORT, () => {
   log.info(`Listening on port ${PORT}`);
