@@ -7,6 +7,7 @@ import LibraryPicker from "./components/LibraryPicker";
 import ArtistSearchForm from "./components/ArtistSearchForm";
 import TagList from "./components/TagList";
 import ArtistResultsList from "./components/ArtistResultsList";
+import ExplorationBanner from "./components/ExplorationBanner";
 import Skeleton from "@/components/Skeleton";
 
 export default function DiscoverPage() {
@@ -100,6 +101,8 @@ export default function DiscoverPage() {
           onRefresh={refreshPromotedAlbum}
         />
       )}
+
+      <ExplorationBanner />
 
       {!plexLoading && (
         <PlexTopArtists
