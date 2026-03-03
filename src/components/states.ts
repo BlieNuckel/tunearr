@@ -24,6 +24,11 @@ const states = {
     className:
       "bg-rose-400 text-white dark:text-white border-2 border-black shadow-cartoon-sm",
   },
+  no_permission: {
+    label: "Admin Only",
+    className:
+      "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border-2 border-black shadow-cartoon-sm cursor-not-allowed",
+  },
 };
 
 export { states };

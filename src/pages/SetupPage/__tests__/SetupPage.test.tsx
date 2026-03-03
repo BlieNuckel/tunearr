@@ -8,6 +8,8 @@ function renderWithAuth(overrides: Partial<AuthContextValue> = {}) {
     status: "needs-setup",
     user: null,
     login: vi.fn(),
+    plexLogin: vi.fn(),
+    plexSetup: vi.fn(),
     logout: vi.fn(),
     setup: vi.fn(),
     updatePreferences: vi.fn(),
@@ -25,7 +27,7 @@ function renderWithAuth(overrides: Partial<AuthContextValue> = {}) {
 }
 
 describe("SetupPage", () => {
-  it("renders the setup form", () => {
+  it("renders the setup form and Plex button", () => {
     renderWithAuth();
     expect(
       screen.getByRole("heading", { name: "Create Admin Account" })
@@ -35,6 +37,9 @@ describe("SetupPage", () => {
     expect(screen.getByLabelText("Confirm Password")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Create Account" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Set up with Plex" })
     ).toBeInTheDocument();
   });
 
@@ -106,5 +111,72 @@ describe("SetupPage", () => {
     await waitFor(() => {
       expect(screen.getByText("Server error")).toBeInTheDocument();
     });
+  });
+
+  it("calls plexSetup when Plex button clicked", async () => {
+    const user = userEvent.setup();
+    const mockPlexSetup = vi.fn().mockResolvedValue(undefined);
+    renderWithAuth({ plexSetup: mockPlexSetup });
+
+    await user.click(
+      screen.getByRole("button", { name: "Set up with Plex" })
+    );
+
+    await waitFor(() => {
+      expect(mockPlexSetup).toHaveBeenCalled();
+    });
+  });
+
+  it("shows Plex loading state", async () => {
+    const user = userEvent.setup();
+    const mockPlexSetup = vi
+      .fn()
+      .mockReturnValue(new Promise<void>(() => {}));
+    renderWithAuth({ plexSetup: mockPlexSetup });
+
+    await user.click(
+      screen.getByRole("button", { name: "Set up with Plex" })
+    );
+
+    expect(
+      screen.getByText("Setting up with Plex...")
+    ).toBeInTheDocument();
+  });
+
+  it("shows error from Plex setup failure", async () => {
+    const user = userEvent.setup();
+    const mockPlexSetup = vi
+      .fn()
+      .mockRejectedValue(new Error("Plex sign-in was cancelled"));
+    renderWithAuth({ plexSetup: mockPlexSetup });
+
+    await user.click(
+      screen.getByRole("button", { name: "Set up with Plex" })
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Plex sign-in was cancelled")
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("disables both buttons while Plex setup is in progress", async () => {
+    const user = userEvent.setup();
+    const mockPlexSetup = vi
+      .fn()
+      .mockReturnValue(new Promise<void>(() => {}));
+    renderWithAuth({ plexSetup: mockPlexSetup });
+
+    await user.click(
+      screen.getByRole("button", { name: "Set up with Plex" })
+    );
+
+    expect(
+      screen.getByRole("button", { name: "Create Account" })
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Setting up with Plex..." })
+    ).toBeDisabled();
   });
 });

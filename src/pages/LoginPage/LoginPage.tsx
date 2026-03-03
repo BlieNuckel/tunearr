@@ -3,11 +3,12 @@ import type { FormEvent } from "react";
 import { useAuth } from "@/context/useAuth";
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { login, plexLogin } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loggingIn, setLoggingIn] = useState(false);
+  const [plexLoggingIn, setPlexLoggingIn] = useState(false);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -27,6 +28,20 @@ export default function LoginPage() {
       setLoggingIn(false);
     }
   };
+
+  const handlePlexLogin = async () => {
+    setError("");
+    setPlexLoggingIn(true);
+    try {
+      await plexLogin();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Plex login failed");
+    } finally {
+      setPlexLoggingIn(false);
+    }
+  };
+
+  const anyLoading = loggingIn || plexLoggingIn;
 
   return (
     <div className="min-h-screen bg-amber-50 dark:bg-gray-900 flex items-center justify-center p-4">
@@ -80,12 +95,32 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={loggingIn}
+              disabled={anyLoading}
               className="w-full px-4 py-2 bg-amber-300 hover:bg-amber-200 disabled:opacity-50 text-black font-bold rounded-lg text-sm border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all"
             >
               {loggingIn ? "Signing in..." : "Sign In"}
             </button>
           </form>
+
+          <div className="relative my-5">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300 dark:border-gray-600" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+                or
+              </span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handlePlexLogin}
+            disabled={anyLoading}
+            className="w-full px-4 py-2 bg-[#E5A00D] hover:bg-[#cc8f0b] disabled:opacity-50 text-black font-bold rounded-lg text-sm border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all"
+          >
+            {plexLoggingIn ? "Signing in with Plex..." : "Sign in with Plex"}
+          </button>
         </div>
       </div>
     </div>

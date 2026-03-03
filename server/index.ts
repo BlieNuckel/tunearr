@@ -12,6 +12,7 @@ import promotedAlbumRoutes from "./routes/promotedAlbum";
 import sabnzbdRoutes from "./routes/sabnzbd";
 import settingsRoutes from "./routes/settings";
 import torznabRoutes from "./routes/torznab";
+import usersRoutes from "./routes/users";
 import { errorHandler } from "./middleware/errorHandler";
 import { requireAuth } from "./middleware/requireAuth";
 
@@ -36,6 +37,7 @@ app.use("/api/lidarr", requireAuth, lidarrRoutes);
 app.use("/api/lastfm", requireAuth, lastfmRoutes);
 app.use("/api/plex", requireAuth, plexRoutes);
 app.use("/api/promoted-album", requireAuth, promotedAlbumRoutes);
+app.use("/api/users", usersRoutes);
 
 if (process.env.NODE_ENV === "production") {
   app.use(express.static(path.join(__dirname, "..", "build")));

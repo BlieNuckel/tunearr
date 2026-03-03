@@ -1,26 +1,35 @@
-export type SettingsTab = "general" | "integrations" | "recommendations";
+export type SettingsTab =
+  | "general"
+  | "integrations"
+  | "recommendations"
+  | "users";
 
 interface SettingsTabsProps {
   activeTab: SettingsTab;
   onTabChange: (tab: SettingsTab) => void;
+  isAdmin: boolean;
 }
 
-const TABS: { id: SettingsTab; label: string }[] = [
-  { id: "general", label: "General" },
-  { id: "integrations", label: "Integrations" },
-  { id: "recommendations", label: "Recommendations" },
+const ALL_TABS: { id: SettingsTab; label: string; adminOnly: boolean }[] = [
+  { id: "general", label: "General", adminOnly: false },
+  { id: "integrations", label: "Integrations", adminOnly: true },
+  { id: "recommendations", label: "Recommendations", adminOnly: true },
+  { id: "users", label: "Users", adminOnly: true },
 ];
 
 export default function SettingsTabs({
   activeTab,
   onTabChange,
+  isAdmin,
 }: SettingsTabsProps) {
+  const tabs = isAdmin ? ALL_TABS : ALL_TABS.filter((t) => !t.adminOnly);
+
   return (
     <div
       className="flex gap-2 overflow-x-auto snap-x snap-mandatory overlay-scrollbar p-1"
       role="tablist"
     >
-      {TABS.map((tab) => (
+      {tabs.map((tab) => (
         <button
           key={tab.id}
           role="tab"

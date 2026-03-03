@@ -5,6 +5,9 @@ import type { AuthUser } from "./types";
 type SessionRow = {
   user_id: number;
   username: string;
+  plex_username: string | null;
+  plex_email: string | null;
+  plex_thumb: string | null;
   role: string;
   enabled: number;
   theme: string;
@@ -31,7 +34,9 @@ export function createSession(userId: number): string {
 export function validateSession(token: string): AuthUser | null {
   const row = getDb()
     .prepare(
-      `SELECT s.user_id, s.expires_at, u.username, u.role, u.enabled, u.theme
+      `SELECT s.user_id, s.expires_at,
+              u.username, u.plex_username, u.plex_email, u.plex_thumb,
+              u.role, u.enabled, u.theme
        FROM sessions s
        JOIN users u ON u.id = s.user_id
        WHERE s.token = ?`
@@ -49,10 +54,11 @@ export function validateSession(token: string): AuthUser | null {
 
   return {
     id: row.user_id,
-    username: row.username,
+    username: row.username ?? row.plex_username ?? row.plex_email ?? "unknown",
     role: row.role as AuthUser["role"],
     enabled: true,
     theme: row.theme as AuthUser["theme"],
+    thumb: row.plex_thumb ?? null,
   };
 }
 

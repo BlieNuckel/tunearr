@@ -6,6 +6,7 @@ import {
   type AuthStatus,
   type AuthContextValue,
 } from "./authContextDef";
+import { login as plexOAuthLogin } from "@/utils/plexOAuth";
 
 interface AuthProviderProps {
   children: ReactNode;
@@ -36,6 +37,28 @@ async function postLogin(
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || "Login failed");
+  return data.user;
+}
+
+async function postPlexLogin(authToken: string): Promise<AuthUser> {
+  const res = await fetch("/api/auth/plex-login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ authToken }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Plex login failed");
+  return data.user;
+}
+
+async function postPlexSetup(authToken: string): Promise<AuthUser> {
+  const res = await fetch("/api/auth/plex-setup", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ authToken }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Plex setup failed");
   return data.user;
 }
 
@@ -101,6 +124,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setStatus("authenticated");
   }, []);
 
+  const plexLogin = useCallback(async () => {
+    const authToken = await plexOAuthLogin();
+    if (!authToken) throw new Error("Plex sign-in was cancelled");
+    const loggedInUser = await postPlexLogin(authToken);
+    setUser(loggedInUser);
+    setStatus("authenticated");
+  }, []);
+
   const logout = useCallback(async () => {
     await postLogout();
     setUser(null);
@@ -109,6 +140,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const setup = useCallback(async (username: string, password: string) => {
     const newUser = await postSetup(username, password);
+    setUser(newUser);
+    setStatus("authenticated");
+  }, []);
+
+  const plexSetup = useCallback(async () => {
+    const authToken = await plexOAuthLogin();
+    if (!authToken) throw new Error("Plex sign-in was cancelled");
+    const newUser = await postPlexSetup(authToken);
     setUser(newUser);
     setStatus("authenticated");
   }, []);
@@ -125,8 +164,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     status,
     user,
     login,
+    plexLogin,
     logout,
     setup,
+    plexSetup,
     updatePreferences,
   };
 

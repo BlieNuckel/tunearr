@@ -3,7 +3,9 @@ import express from "express";
 import {
   needsSetup,
   createAdminUser,
+  createPlexAdminUser,
   authenticateUser,
+  findOrCreatePlexUser,
   updateUserPreferences,
 } from "../auth/users";
 import { createSession, deleteSession } from "../auth/sessions";
@@ -14,6 +16,10 @@ import {
   parseCookieValue,
 } from "../middleware/requireAuth";
 import { validateSession } from "../auth/sessions";
+import { getPlexAccountFull } from "../api/plex/account";
+import { getConfigValue } from "../config";
+
+const TUNEARR_SERVER_CLIENT_ID = "tunearr-server";
 
 const router = express.Router();
 
@@ -42,6 +48,7 @@ function userResponse(user: AuthUser) {
     username: user.username,
     role: user.role,
     theme: user.theme,
+    thumb: user.thumb,
   };
 }
 
@@ -91,6 +98,50 @@ router.post(
 );
 
 router.post(
+  "/plex-setup",
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      if (!needsSetup()) {
+        const err = new Error("Setup already completed") as Error & {
+          status: number;
+        };
+        err.status = 400;
+        throw err;
+      }
+
+      const { authToken } = req.body;
+
+      if (!authToken || typeof authToken !== "string") {
+        const err = new Error("authToken is required") as Error & {
+          status: number;
+        };
+        err.status = 400;
+        throw err;
+      }
+
+      const plexAccount = await getPlexAccountFull(
+        authToken,
+        TUNEARR_SERVER_CLIENT_ID
+      );
+
+      const user = createPlexAdminUser(
+        String(plexAccount.id),
+        plexAccount.username,
+        plexAccount.email,
+        plexAccount.thumb
+      );
+
+      const token = createSession(user.id);
+      setSessionCookie(res, token);
+
+      res.status(201).json({ user: userResponse(user) });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+router.post(
   "/login",
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -110,6 +161,50 @@ router.post(
           status: number;
         };
         err.status = 401;
+        throw err;
+      }
+
+      const token = createSession(user.id);
+      setSessionCookie(res, token);
+
+      res.json({ user: userResponse(user) });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+router.post(
+  "/plex-login",
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { authToken } = req.body;
+
+      if (!authToken || typeof authToken !== "string") {
+        const err = new Error("authToken is required") as Error & {
+          status: number;
+        };
+        err.status = 400;
+        throw err;
+      }
+
+      const plexAccount = await getPlexAccountFull(
+        authToken,
+        TUNEARR_SERVER_CLIENT_ID
+      );
+
+      const user = findOrCreatePlexUser(
+        String(plexAccount.id),
+        plexAccount.username,
+        plexAccount.email,
+        plexAccount.thumb
+      );
+
+      if (!user.enabled) {
+        const err = new Error("Account is disabled") as Error & {
+          status: number;
+        };
+        err.status = 403;
         throw err;
       }
 
@@ -145,6 +240,10 @@ router.get("/me", (req: Request, res: Response) => {
   }
 
   res.json({ user: userResponse(user) });
+});
+
+router.get("/app-status", requireAuth, (_req: Request, res: Response) => {
+  res.json({ lidarrConfigured: !!getConfigValue("lidarrUrl") });
 });
 
 router.patch(

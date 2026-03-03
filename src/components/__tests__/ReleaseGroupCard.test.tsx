@@ -6,6 +6,12 @@ const mockAddToLidarr = vi.fn();
 const mockFetchTracks = vi.fn();
 const mockStop = vi.fn();
 
+let mockIsAdmin = true;
+
+vi.mock("../../hooks/useIsAdmin", () => ({
+  useIsAdmin: () => mockIsAdmin,
+}));
+
 vi.mock("../../hooks/useLidarr", () => ({
   default: () => ({
     state: "idle",
@@ -72,6 +78,7 @@ const makeReleaseGroup = (
 describe("ReleaseGroupCard", () => {
   afterEach(() => {
     vi.clearAllMocks();
+    mockIsAdmin = true;
   });
 
   it("renders album title, artist name, and year", () => {
@@ -271,6 +278,34 @@ describe("ReleaseGroupCard", () => {
       const mobileButton = screen.getByTestId("mobile-monitor-button");
       expect(mobileButton.className).toContain("bg-gray-200");
       expect(mobileButton.className).toContain("text-gray-500");
+    });
+  });
+
+  describe("non-admin permission", () => {
+    it("disables add button for non-admin users", () => {
+      mockIsAdmin = false;
+      render(<ReleaseGroupCard releaseGroup={makeReleaseGroup()} />);
+
+      const mobileButton = screen.getByTestId("mobile-monitor-button");
+      expect(mobileButton).toBeDisabled();
+      expect(mobileButton.className).toContain("cursor-not-allowed");
+    });
+
+    it("does not open purchase modal when non-admin clicks add", () => {
+      mockIsAdmin = false;
+      render(<ReleaseGroupCard releaseGroup={makeReleaseGroup()} />);
+
+      fireEvent.click(screen.getByTestId("mobile-monitor-button"));
+
+      expect(screen.queryByTestId("purchase-modal")).not.toBeInTheDocument();
+    });
+
+    it("enables add button for admin users", () => {
+      mockIsAdmin = true;
+      render(<ReleaseGroupCard releaseGroup={makeReleaseGroup()} />);
+
+      const mobileButton = screen.getByTestId("mobile-monitor-button");
+      expect(mobileButton).not.toBeDisabled();
     });
   });
 });

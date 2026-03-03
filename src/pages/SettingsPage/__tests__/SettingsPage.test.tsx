@@ -36,8 +36,10 @@ const mockLogout = vi.fn();
 
 const mockAuthValue: AuthContextValue = {
   status: "authenticated",
-  user: { id: 1, username: "testadmin", role: "admin", theme: "system" },
+  user: { id: 1, username: "testadmin", role: "admin", theme: "system", thumb: null },
   login: vi.fn(),
+  plexLogin: vi.fn(),
+  plexSetup: vi.fn(),
   logout: mockLogout,
   setup: vi.fn(),
   updatePreferences: vi.fn(),

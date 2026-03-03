@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { useLidarrContext } from "@/context/useLidarrContext";
+import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useAutoSave } from "@/hooks/useAutoSave";
 import useAutoSetupStatus from "@/hooks/useAutoSetupStatus";
 import LidarrConnectionSection from "./components/LidarrConnectionSection";
@@ -10,6 +11,7 @@ import SlskdSection from "./components/SlskdSection";
 import AutoSetupModal from "./components/AutoSetupModal";
 import ImportSection from "./components/ImportSection";
 import RecommendationsSection from "./components/RecommendationsSection";
+import UsersSection from "./components/UsersSection";
 import { DEFAULT_PROMOTED_ALBUM } from "@/context/promotedAlbumDefaults";
 import AccountSection from "./components/AccountSection";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -34,6 +36,7 @@ const TAB_LABELS: Record<SettingsTab, string> = {
   general: "General",
   integrations: "Integrations",
   recommendations: "Recommendations",
+  users: "Users",
 };
 
 function SectionBadge({ section }: { section: SettingsSection }) {
@@ -66,6 +69,8 @@ export default function SettingsPage() {
     loadLidarrOptionValues,
   } = useLidarrContext();
 
+  const isAdmin = useIsAdmin();
+
   const { fields, saveStatus, saveError, updateField, updateFields } =
     useAutoSave(settings, savePartialSettings);
 
@@ -89,7 +94,7 @@ export default function SettingsPage() {
   const isSearching = searchQuery.length > 0;
 
   useEffect(() => {
-    loadLidarrOptionValues();
+    if (isAdmin) loadLidarrOptionValues();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -132,7 +137,7 @@ export default function SettingsPage() {
     updateFields({ plexUrl: "", plexToken: "" });
   }, [updateFields]);
 
-  if (isLoading) {
+  if (isAdmin && isLoading) {
     return (
       <div className="max-w-lg space-y-6">
         <Skeleton className="h-8 w-32" />
@@ -162,13 +167,21 @@ export default function SettingsPage() {
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
           Settings
         </h1>
-        <SaveStatusIndicator status={saveStatus} error={saveError} />
+        {isAdmin && (
+          <SaveStatusIndicator status={saveStatus} error={saveError} />
+        )}
       </div>
 
-      <SettingsSearch query={searchQuery} onQueryChange={setSearchQuery} />
+      {isAdmin && (
+        <SettingsSearch query={searchQuery} onQueryChange={setSearchQuery} />
+      )}
 
       {!isSearching && (
-        <SettingsTabs activeTab={activeTab} onTabChange={setActiveTab} />
+        <SettingsTabs
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          isAdmin={isAdmin}
+        />
       )}
 
       <div className="space-y-6">
@@ -191,7 +204,7 @@ export default function SettingsPage() {
           </div>
         )}
 
-        {visible("import") && (
+        {isAdmin && visible("import") && (
           <div>
             {isSearching && <SectionBadge section="import" />}
             <ImportSection
@@ -201,7 +214,7 @@ export default function SettingsPage() {
           </div>
         )}
 
-        {visible("lidarrConnection") && (
+        {isAdmin && visible("lidarrConnection") && (
           <div>
             {isSearching && <SectionBadge section="lidarrConnection" />}
             <LidarrConnectionSection
@@ -215,7 +228,7 @@ export default function SettingsPage() {
           </div>
         )}
 
-        {visible("lidarrOptions") && (
+        {isAdmin && visible("lidarrOptions") && (
           <div>
             {isSearching && <SectionBadge section="lidarrOptions" />}
             <LidarrOptionsSection
@@ -236,7 +249,7 @@ export default function SettingsPage() {
           </div>
         )}
 
-        {visible("lastfm") && (
+        {isAdmin && visible("lastfm") && (
           <div>
             {isSearching && <SectionBadge section="lastfm" />}
             <LastfmSection
@@ -246,7 +259,7 @@ export default function SettingsPage() {
           </div>
         )}
 
-        {visible("plex") && (
+        {isAdmin && visible("plex") && (
           <div>
             {isSearching && <SectionBadge section="plex" />}
             <PlexSection
@@ -260,7 +273,7 @@ export default function SettingsPage() {
           </div>
         )}
 
-        {visible("slskd") && (
+        {isAdmin && visible("slskd") && (
           <div>
             {isSearching && <SectionBadge section="slskd" />}
             <SlskdSection
@@ -278,7 +291,7 @@ export default function SettingsPage() {
           </div>
         )}
 
-        {visible("recommendations") && (
+        {isAdmin && visible("recommendations") && (
           <div>
             {isSearching && <SectionBadge section="recommendations" />}
             <RecommendationsSection
@@ -287,6 +300,13 @@ export default function SettingsPage() {
                 updateField("promotedAlbum", updated)
               }
             />
+          </div>
+        )}
+
+        {isAdmin && visible("users") && (
+          <div>
+            {isSearching && <SectionBadge section="users" />}
+            <UsersSection />
           </div>
         )}
       </div>
@@ -305,11 +325,13 @@ export default function SettingsPage() {
         </div>
       )}
 
-      <AutoSetupModal
-        isOpen={autoSetupModalOpen}
-        onClose={() => setAutoSetupModalOpen(false)}
-        onSuccess={handleAutoSetupSuccess}
-      />
+      {isAdmin && (
+        <AutoSetupModal
+          isOpen={autoSetupModalOpen}
+          onClose={() => setAutoSetupModalOpen(false)}
+          onSuccess={handleAutoSetupSuccess}
+        />
+      )}
     </div>
   );
 }

@@ -79,6 +79,7 @@ describe("requireAuth middleware", () => {
       role: "admin",
       enabled: true,
       theme: "system",
+      thumb: null,
     };
     mockValidateSession.mockReturnValue(mockUser);
 

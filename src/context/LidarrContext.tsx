@@ -81,7 +81,7 @@ async function loadLidarrOptionValues(
 export const LidarrContextProvider = ({
   children,
 }: LidarrContextProviderProps) => {
-  const { status } = useAuth();
+  const { status, user } = useAuth();
 
   const [settings, setSettings] = useState<LidarrSettings>({
     lidarrUrl: "",
@@ -107,11 +107,10 @@ export const LidarrContextProvider = ({
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (status !== "authenticated") {
-      return;
+    if (status === "authenticated" && user?.role === "admin") {
+      loadSettings(setSettings, setIsLoading);
     }
-    loadSettings(setSettings, setIsLoading);
-  }, [status]);
+  }, [status, user?.role]);
 
   const savePartialSettings = async (partial: Partial<LidarrSettings>) => {
     const res = await fetch("/api/settings", {
@@ -170,7 +169,7 @@ export const LidarrContextProvider = ({
     options,
     settings,
     isConnected,
-    isLoading: status === "authenticated" && isLoading,
+    isLoading: status === "authenticated" && user?.role === "admin" && isLoading,
     saveSettings,
     savePartialSettings,
     testConnection,

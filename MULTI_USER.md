@@ -6,7 +6,7 @@ Tracking issue: [#58](https://github.com/BlieNuckel/tunearr/issues/58)
 
 - [x] Phase 1: SQLite database layer
 - [x] Phase 2: Local admin authentication
-- [ ] Phase 3: Plex OAuth sign-in
+- [x] Phase 3: Plex OAuth sign-in
 - [ ] Phase 4: Roles & user management
 - [ ] Phase 5: Request system — backend
 - [ ] Phase 6: Request UI — user side

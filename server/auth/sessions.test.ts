@@ -48,6 +48,7 @@ describe("validateSession", () => {
     expect(user!.role).toBe("admin");
     expect(user!.enabled).toBe(true);
     expect(user!.theme).toBe("system");
+    expect(user!.thumb).toBeNull();
   });
 
   it("returns null for a non-existent token", () => {
@@ -81,6 +82,21 @@ describe("validateSession", () => {
     const token = createSession(1);
     const user = validateSession(token);
     expect(user!.theme).toBe("dark");
+  });
+
+  it("returns plex_username when username is null", () => {
+    getDb()
+      .prepare(
+        `INSERT INTO users (plex_id, plex_username, plex_email, plex_thumb, role, enabled)
+         VALUES ('plex-1', 'plexuser', 'plex@test.com', 'https://thumb.jpg', 'user', 1)`
+      )
+      .run();
+
+    const token = createSession(2);
+    const user = validateSession(token);
+    expect(user).not.toBeNull();
+    expect(user!.username).toBe("plexuser");
+    expect(user!.thumb).toBe("https://thumb.jpg");
   });
 });
 

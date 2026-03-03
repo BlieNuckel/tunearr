@@ -7,6 +7,12 @@ import {
 } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 
+vi.mock("@/context/useAuth", () => ({
+  useAuth: () => ({
+    user: { id: 1, username: "admin", role: "admin", theme: "system", thumb: null },
+  }),
+}));
+
 vi.mock("@/hooks/usePlexLogin", () => ({
   default: () => ({ loading: false, login: vi.fn() }),
   fetchAccount: () => Promise.resolve(null),

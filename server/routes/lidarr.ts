@@ -1,4 +1,5 @@
 import express from "express";
+import { requireAdmin } from "../middleware/requireAdmin";
 import addRouter from "./lidarr/add";
 import albumsRouter from "./lidarr/albums";
 import artistsRouter from "./lidarr/artists";
@@ -14,12 +15,12 @@ import wantedRouter from "./lidarr/wanted";
 
 const router = express.Router();
 
-router.use(addRouter);
+router.use(requireAdmin, addRouter);
 router.use(albumsRouter);
 router.use(artistsRouter);
-router.use(autoSetupRouter);
+router.use(requireAdmin, autoSetupRouter);
 router.use(historyRouter);
-router.use(importRouter);
+router.use(requireAdmin, importRouter);
 router.use(queueRouter);
 router.use(searchRouter);
 router.use(wantedRouter);

@@ -42,6 +42,7 @@ describe("requireAdmin middleware", () => {
       role: "user",
       enabled: true,
       theme: "system",
+      thumb: null,
     });
     const res = await request(app).get("/test");
     expect(res.status).toBe(403);
@@ -55,6 +56,7 @@ describe("requireAdmin middleware", () => {
       role: "admin",
       enabled: true,
       theme: "system",
+      thumb: null,
     });
     const res = await request(app).get("/test");
     expect(res.status).toBe(200);

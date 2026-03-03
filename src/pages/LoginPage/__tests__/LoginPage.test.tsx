@@ -8,6 +8,8 @@ function renderWithAuth(overrides: Partial<AuthContextValue> = {}) {
     status: "unauthenticated",
     user: null,
     login: vi.fn(),
+    plexLogin: vi.fn(),
+    plexSetup: vi.fn(),
     logout: vi.fn(),
     setup: vi.fn(),
     updatePreferences: vi.fn(),
@@ -33,6 +35,13 @@ describe("LoginPage", () => {
     expect(screen.getByLabelText("Username")).toBeInTheDocument();
     expect(screen.getByLabelText("Password")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Sign In" })).toBeInTheDocument();
+  });
+
+  it("renders Plex sign-in button", () => {
+    renderWithAuth();
+    expect(
+      screen.getByRole("button", { name: "Sign in with Plex" })
+    ).toBeInTheDocument();
   });
 
   it("shows error when fields are empty", async () => {
@@ -93,5 +102,71 @@ describe("LoginPage", () => {
 
     expect(screen.getByText("Signing in...")).toBeInTheDocument();
     resolveLogin!();
+  });
+
+  it("calls plexLogin when Plex button clicked", async () => {
+    const user = userEvent.setup();
+    const mockPlexLogin = vi.fn().mockResolvedValue(undefined);
+    renderWithAuth({ plexLogin: mockPlexLogin });
+
+    await user.click(
+      screen.getByRole("button", { name: "Sign in with Plex" })
+    );
+
+    await waitFor(() => {
+      expect(mockPlexLogin).toHaveBeenCalled();
+    });
+  });
+
+  it("shows Plex loading state", async () => {
+    const user = userEvent.setup();
+    let resolvePlexLogin: () => void;
+    const plexPromise = new Promise<void>((resolve) => {
+      resolvePlexLogin = resolve;
+    });
+    const mockPlexLogin = vi.fn().mockReturnValue(plexPromise);
+    renderWithAuth({ plexLogin: mockPlexLogin });
+
+    await user.click(
+      screen.getByRole("button", { name: "Sign in with Plex" })
+    );
+
+    expect(screen.getByText("Signing in with Plex...")).toBeInTheDocument();
+    resolvePlexLogin!();
+  });
+
+  it("shows error from Plex login failure", async () => {
+    const user = userEvent.setup();
+    const mockPlexLogin = vi
+      .fn()
+      .mockRejectedValue(new Error("Plex sign-in was cancelled"));
+    renderWithAuth({ plexLogin: mockPlexLogin });
+
+    await user.click(
+      screen.getByRole("button", { name: "Sign in with Plex" })
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Plex sign-in was cancelled")
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("disables both buttons while Plex login is in progress", async () => {
+    const user = userEvent.setup();
+    const mockPlexLogin = vi
+      .fn()
+      .mockReturnValue(new Promise<void>(() => {}));
+    renderWithAuth({ plexLogin: mockPlexLogin });
+
+    await user.click(
+      screen.getByRole("button", { name: "Sign in with Plex" })
+    );
+
+    expect(screen.getByRole("button", { name: "Sign In" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Signing in with Plex..." })
+    ).toBeDisabled();
   });
 });
