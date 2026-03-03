@@ -18,10 +18,7 @@ export function parseCookieValue(
 }
 
 export function requireAuth(req: Request, _res: Response, next: NextFunction) {
-  const token = parseCookieValue(
-    req.headers.cookie,
-    SESSION_COOKIE_NAME
-  );
+  const token = parseCookieValue(req.headers.cookie, SESSION_COOKIE_NAME);
 
   if (!token) {
     const err = new Error("Authentication required") as Error & {

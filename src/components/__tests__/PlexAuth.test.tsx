@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  act,
+} from "@testing-library/react";
 
 const mockUsePlexLogin = vi.fn();
 const mockFetchAccount = vi.fn();
@@ -128,10 +134,16 @@ describe("PlexAuth", () => {
     act(() => {
       hookOpts.onServers([
         { name: "My Server", uri: "http://172.23.0.1:32400", local: true },
-        { name: "My Server", uri: "https://remote.example.com:32400", local: false },
+        {
+          name: "My Server",
+          uri: "https://remote.example.com:32400",
+          local: false,
+        },
       ]);
     });
-    expect(onServerUrl).toHaveBeenCalledWith("https://remote.example.com:32400");
+    expect(onServerUrl).toHaveBeenCalledWith(
+      "https://remote.example.com:32400"
+    );
   });
 
   it("falls back to first server when all are local", () => {
@@ -232,7 +244,11 @@ describe("PlexAuth", () => {
     act(() => {
       hookOpts.onServers([
         { name: "MyPlex", uri: "http://172.23.0.1:32400", local: true },
-        { name: "MyPlex", uri: "https://remote.example.com:32400", local: false },
+        {
+          name: "MyPlex",
+          uri: "https://remote.example.com:32400",
+          local: false,
+        },
       ]);
     });
 
@@ -288,7 +304,11 @@ describe("PlexAuth", () => {
     act(() => {
       hookOpts.onServers([
         { name: "MyPlex", uri: "http://172.23.0.1:32400", local: true },
-        { name: "MyPlex", uri: "https://remote.example.com:32400", local: false },
+        {
+          name: "MyPlex",
+          uri: "https://remote.example.com:32400",
+          local: false,
+        },
       ]);
     });
 
@@ -297,7 +317,9 @@ describe("PlexAuth", () => {
       target: { value: "https://remote.example.com:32400" },
     });
 
-    expect(onServerUrl).toHaveBeenCalledWith("https://remote.example.com:32400");
+    expect(onServerUrl).toHaveBeenCalledWith(
+      "https://remote.example.com:32400"
+    );
   });
 
   it("passes onLoginComplete to usePlexLogin hook", () => {

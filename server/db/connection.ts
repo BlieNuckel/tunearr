@@ -28,7 +28,7 @@ export function openDatabase(dbPath?: string): DatabaseInstance {
 export function getDb(): DatabaseInstance {
   if (!db) {
     throw new Error(
-      "Database not initialized. Call initializeDatabase() first.",
+      "Database not initialized. Call initializeDatabase() first."
     );
   }
   return db;

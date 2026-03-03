@@ -80,9 +80,7 @@ async function postLogout(): Promise<void> {
   await fetch("/api/auth/logout", { method: "POST" });
 }
 
-async function patchPreferences(
-  prefs: Record<string, unknown>
-): Promise<void> {
+async function patchPreferences(prefs: Record<string, unknown>): Promise<void> {
   const res = await fetch("/api/auth/preferences", {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },

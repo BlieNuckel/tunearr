@@ -58,7 +58,9 @@ describe("validateSession", () => {
   it("returns null and deletes an expired session", () => {
     const token = createSession(1);
     getDb()
-      .prepare("UPDATE sessions SET expires_at = '2000-01-01T00:00:00Z' WHERE token = ?")
+      .prepare(
+        "UPDATE sessions SET expires_at = '2000-01-01T00:00:00Z' WHERE token = ?"
+      )
       .run(token);
 
     expect(validateSession(token)).toBeNull();
@@ -126,7 +128,9 @@ describe("cleanExpiredSessions", () => {
     const validToken = createSession(1);
     const expiredToken = createSession(1);
     getDb()
-      .prepare("UPDATE sessions SET expires_at = '2000-01-01T00:00:00Z' WHERE token = ?")
+      .prepare(
+        "UPDATE sessions SET expires_at = '2000-01-01T00:00:00Z' WHERE token = ?"
+      )
       .run(expiredToken);
 
     cleanExpiredSessions();
@@ -135,7 +139,9 @@ describe("cleanExpiredSessions", () => {
       getDb().prepare("SELECT * FROM sessions WHERE token = ?").get(validToken)
     ).toBeDefined();
     expect(
-      getDb().prepare("SELECT * FROM sessions WHERE token = ?").get(expiredToken)
+      getDb()
+        .prepare("SELECT * FROM sessions WHERE token = ?")
+        .get(expiredToken)
     ).toBeUndefined();
   });
 });

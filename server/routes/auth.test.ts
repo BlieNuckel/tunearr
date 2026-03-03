@@ -294,9 +294,7 @@ describe("POST /auth/logout", () => {
 
     const cookie = setupRes.headers["set-cookie"][0];
 
-    const res = await request(app)
-      .post("/auth/logout")
-      .set("Cookie", cookie);
+    const res = await request(app).post("/auth/logout").set("Cookie", cookie);
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ success: true });

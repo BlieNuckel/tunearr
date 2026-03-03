@@ -54,7 +54,7 @@ describe("getDb", () => {
     const { getDb } = await loadConnection();
 
     expect(() => getDb()).toThrow(
-      "Database not initialized. Call initializeDatabase() first.",
+      "Database not initialized. Call initializeDatabase() first."
     );
   });
 

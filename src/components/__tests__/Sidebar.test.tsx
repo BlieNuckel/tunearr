@@ -50,7 +50,9 @@ describe("Sidebar", () => {
 
   it("renders account link to settings in both mobile and desktop", () => {
     renderSidebar();
-    const accountLinks = screen.getAllByRole("link", { name: /testadmin|Account/ });
+    const accountLinks = screen.getAllByRole("link", {
+      name: /testadmin|Account/,
+    });
     expect(accountLinks).toHaveLength(2);
     accountLinks.forEach((link) => {
       expect(link).toHaveAttribute("href", "/settings");

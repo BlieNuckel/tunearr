@@ -44,7 +44,10 @@ describe("parseCookieValue", () => {
 
   it("parses the correct cookie from multiple", () => {
     expect(
-      parseCookieValue("other=x; tunearr_session=abc123; another=y", "tunearr_session")
+      parseCookieValue(
+        "other=x; tunearr_session=abc123; another=y",
+        "tunearr_session"
+      )
     ).toBe("abc123");
   });
 

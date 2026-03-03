@@ -40,7 +40,9 @@ function discoverMigrationFiles(): MigrationFile[] {
     return [];
   }
 
-  const files = fs.readdirSync(MIGRATIONS_DIR).filter((f) => f.endsWith(".sql"));
+  const files = fs
+    .readdirSync(MIGRATIONS_DIR)
+    .filter((f) => f.endsWith(".sql"));
   const migrations: MigrationFile[] = [];
 
   for (const file of files) {
@@ -75,9 +77,10 @@ export function runMigrations(db: DatabaseInstance): void {
 
     const applyMigration = db.transaction(() => {
       db.exec(sql);
-      db.prepare(
-        "INSERT INTO _migrations (version, name) VALUES (?, ?)",
-      ).run(migration.version, migration.name);
+      db.prepare("INSERT INTO _migrations (version, name) VALUES (?, ?)").run(
+        migration.version,
+        migration.name
+      );
     });
 
     applyMigration();

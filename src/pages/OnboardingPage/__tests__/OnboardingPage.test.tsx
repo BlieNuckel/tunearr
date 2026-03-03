@@ -114,7 +114,6 @@ describe("OnboardingPage", () => {
         slskdUrl: "",
         slskdApiKey: "",
         slskdDownloadPath: "",
-
       },
     });
     expect(screen.getByText("Home Page")).toBeInTheDocument();

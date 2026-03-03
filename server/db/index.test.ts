@@ -18,7 +18,7 @@ describe("initializeDatabase", () => {
 
       const tables = db
         .prepare(
-          "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name",
+          "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
         )
         .all() as { name: string }[];
       const tableNames = tables.map((t) => t.name);
@@ -56,7 +56,7 @@ describe("initializeDatabase", () => {
 
       db.prepare("INSERT INTO users (username, role) VALUES (?, ?)").run(
         "testuser",
-        "admin",
+        "admin"
       );
 
       const user = db

@@ -31,14 +31,16 @@ const mobileMonitorStyles: Record<MonitorState, string> = {
 interface ReleaseGroupCardProps {
   releaseGroup: ReleaseGroup;
   inLibrary?: boolean;
+  defaultExpanded?: boolean;
 }
 
 export default function ReleaseGroupCard({
   releaseGroup,
   inLibrary = false,
+  defaultExpanded = false,
 }: ReleaseGroupCardProps) {
   const [isFlipped, setIsFlipped] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const artistName =
@@ -90,6 +92,11 @@ export default function ReleaseGroupCard({
       fetchTracks(albumMbid, artistName);
     }
   };
+
+  useEffect(() => {
+    if (defaultExpanded) loadTracksIfNeeded();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleMouseEnter = () => {
     setIsFlipped(true);

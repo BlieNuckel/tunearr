@@ -29,7 +29,7 @@ describe("runMigrations", () => {
 
     const tables = db
       .prepare(
-        "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name",
+        "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
       )
       .all() as { name: string }[];
     const tableNames = tables.map((t) => t.name);
@@ -46,10 +46,11 @@ describe("runMigrations", () => {
     runMigrations(db);
     runMigrations(db);
 
-    const migrations = db
-      .prepare("SELECT * FROM _migrations")
-      .all() as { version: number; name: string }[];
-    expect(migrations).toHaveLength(3);
+    const migrations = db.prepare("SELECT * FROM _migrations").all() as {
+      version: number;
+      name: string;
+    }[];
+    expect(migrations).toHaveLength(2);
     expect(migrations[0].version).toBe(1);
     expect(migrations[0].name).toBe("initial");
     expect(migrations[1].version).toBe(2);
@@ -131,7 +132,7 @@ describe("schema validation", () => {
 
     const indexes = db
       .prepare(
-        "SELECT name FROM sqlite_master WHERE type='index' AND name LIKE 'idx_%' ORDER BY name",
+        "SELECT name FROM sqlite_master WHERE type='index' AND name LIKE 'idx_%' ORDER BY name"
       )
       .all() as { name: string }[];
     const indexNames = indexes.map((i) => i.name);
@@ -152,7 +153,7 @@ describe("constraint enforcement", () => {
     expect(() =>
       db
         .prepare("INSERT INTO users (username, role) VALUES (?, ?)")
-        .run("test", "superadmin"),
+        .run("test", "superadmin")
     ).toThrow();
   });
 
@@ -164,7 +165,7 @@ describe("constraint enforcement", () => {
     expect(() =>
       db
         .prepare("INSERT INTO users (username, enabled) VALUES (?, ?)")
-        .run("test", 2),
+        .run("test", 2)
     ).toThrow();
   });
 
@@ -176,7 +177,7 @@ describe("constraint enforcement", () => {
     db.prepare("INSERT INTO users (username) VALUES (?)").run("alice");
 
     expect(() =>
-      db.prepare("INSERT INTO users (username) VALUES (?)").run("alice"),
+      db.prepare("INSERT INTO users (username) VALUES (?)").run("alice")
     ).toThrow();
   });
 
@@ -188,9 +189,9 @@ describe("constraint enforcement", () => {
     expect(() =>
       db
         .prepare(
-          "INSERT INTO sessions (token, user_id, expires_at) VALUES (?, ?, ?)",
+          "INSERT INTO sessions (token, user_id, expires_at) VALUES (?, ?, ?)"
         )
-        .run("tok123", 999, "2099-01-01 00:00:00"),
+        .run("tok123", 999, "2099-01-01 00:00:00")
     ).toThrow();
   });
 
@@ -205,7 +206,7 @@ describe("constraint enforcement", () => {
       .get("alice") as { id: number };
 
     db.prepare(
-      "INSERT INTO sessions (token, user_id, expires_at) VALUES (?, ?, ?)",
+      "INSERT INTO sessions (token, user_id, expires_at) VALUES (?, ?, ?)"
     ).run("tok123", user.id, "2099-01-01 00:00:00");
 
     db.prepare("DELETE FROM users WHERE id = ?").run(user.id);

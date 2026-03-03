@@ -13,4 +13,10 @@ export function initializeDatabase(dbPath?: string): void {
 }
 
 export { getDb, closeDatabase } from "./connection";
-export type { DatabaseInstance, User, Session, UserRole, Migration } from "./types";
+export type {
+  DatabaseInstance,
+  User,
+  Session,
+  UserRole,
+  Migration,
+} from "./types";

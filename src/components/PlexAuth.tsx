@@ -108,8 +108,7 @@ export default function PlexAuth({
     status: "idle",
   });
   const [servers, setServers] = useState<PlexServer[]>([]);
-  const serverName =
-    servers.find((s) => s.uri === serverUrl)?.name ?? "";
+  const serverName = servers.find((s) => s.uri === serverUrl)?.name ?? "";
 
   const handleAccount = useCallback(
     (acct: PlexAccount) => {
@@ -169,7 +168,7 @@ export default function PlexAuth({
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (cancelled || !data) return;
-        setServers((prev) => (prev.length > 0 ? prev : data.servers ?? []));
+        setServers((prev) => (prev.length > 0 ? prev : (data.servers ?? [])));
       });
 
     return () => {

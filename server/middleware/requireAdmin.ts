@@ -1,10 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 
-export function requireAdmin(
-  req: Request,
-  _res: Response,
-  next: NextFunction
-) {
+export function requireAdmin(req: Request, _res: Response, next: NextFunction) {
   if (!req.user) {
     const err = new Error("Authentication required") as Error & {
       status: number;
