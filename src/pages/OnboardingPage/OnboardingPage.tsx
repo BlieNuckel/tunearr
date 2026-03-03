@@ -1,5 +1,6 @@
 import { Navigate } from "react-router-dom";
 import { useLidarrContext } from "@/context/useLidarrContext";
+import { useAuth } from "@/context/useAuth";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import WizardShell from "./components/WizardShell";
 import WelcomeStep from "./steps/WelcomeStep";
@@ -9,10 +10,16 @@ import LastfmStep from "./steps/LastfmStep";
 import PlexStep from "./steps/PlexStep";
 import ImportStep from "./steps/ImportStep";
 import CompleteStep from "./steps/CompleteStep";
+import WaitingForSetup from "./components/WaitingForSetup";
 
 export default function OnboardingPage() {
   const { settings, isLoading } = useLidarrContext();
+  const { user } = useAuth();
   const wizard = useOnboarding();
+
+  if (user?.role !== "admin") {
+    return <WaitingForSetup />;
+  }
 
   if (!isLoading && settings.lidarrUrl) return <Navigate to="/" replace />;
 

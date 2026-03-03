@@ -8,6 +8,7 @@ import ImageWithShimmer from "./ImageWithShimmer";
 import useLidarr from "../hooks/useLidarr";
 import useReleaseTracks from "../hooks/useReleaseTracks";
 import useAudioPreview from "../hooks/useAudioPreview";
+import { useIsAdmin } from "../hooks/useIsAdmin";
 import { MonitorState, ReleaseGroup } from "../types";
 
 /** @returns {string} deterministic pastel HSL color derived from the input string */
@@ -26,6 +27,7 @@ const mobileMonitorStyles: Record<MonitorState, string> = {
   success: "bg-emerald-400 text-black cursor-default",
   already_monitored: "bg-gray-200 text-gray-500 cursor-default",
   error: "bg-rose-400 text-white",
+  no_permission: "bg-gray-200 text-gray-500 cursor-not-allowed",
 };
 
 interface ReleaseGroupCardProps {
@@ -49,6 +51,7 @@ export default function ReleaseGroupCard({
   const year = releaseGroup["first-release-date"]?.slice(0, 4) || "";
   const coverUrl = `https://coverartarchive.org/release-group/${albumMbid}/front-500`;
 
+  const isAdmin = useIsAdmin();
   const { state, errorMsg, addToLidarr } = useLidarr();
   const {
     media,
@@ -71,19 +74,22 @@ export default function ReleaseGroupCard({
     return () => observer.disconnect();
   }, []);
 
-  const effectiveState: MonitorState = inLibrary
-    ? "already_monitored"
-    : state === "idle" ||
-        state === "adding" ||
-        state === "success" ||
-        state === "already_monitored" ||
-        state === "error"
-      ? state
-      : "idle";
+  const effectiveState: MonitorState = !isAdmin
+    ? "no_permission"
+    : inLibrary
+      ? "already_monitored"
+      : state === "idle" ||
+          state === "adding" ||
+          state === "success" ||
+          state === "already_monitored" ||
+          state === "error"
+        ? state
+        : "idle";
   const disabled =
     effectiveState === "adding" ||
     effectiveState === "success" ||
-    effectiveState === "already_monitored";
+    effectiveState === "already_monitored" ||
+    effectiveState === "no_permission";
 
   const loadTracksIfNeeded = () => {
     if (media.length === 0 && !tracksLoading) {

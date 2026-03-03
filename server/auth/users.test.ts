@@ -8,7 +8,12 @@ import {
   findUserById,
   findOrCreatePlexUser,
   updateUserPreferences,
+  listAllUsers,
+  updateUserRole,
+  updateUserEnabled,
+  deleteUser,
 } from "./users";
+import { createSession, validateSession } from "./sessions";
 
 beforeEach(() => {
   initializeDatabase(":memory:");
@@ -231,5 +236,145 @@ describe("updateUserPreferences", () => {
     updateUserPreferences(user.id, {});
     const found = findUserById(user.id);
     expect(found!.theme).toBe("system");
+  });
+});
+
+describe("listAllUsers", () => {
+  it("returns empty array when no users exist", () => {
+    expect(listAllUsers()).toEqual([]);
+  });
+
+  it("returns all users ordered by id", async () => {
+    await createAdminUser("admin1", "password123");
+    await createAdminUser("admin2", "password456");
+
+    const users = listAllUsers();
+    expect(users).toHaveLength(2);
+    expect(users[0].username).toBe("admin1");
+    expect(users[1].username).toBe("admin2");
+  });
+});
+
+describe("updateUserRole", () => {
+  it("updates a user role from admin to user", async () => {
+    await createAdminUser("admin1", "password123");
+    const admin2 = await createAdminUser("admin2", "password456");
+
+    updateUserRole(admin2.id, "user");
+
+    const updated = findUserById(admin2.id);
+    expect(updated!.role).toBe("user");
+  });
+
+  it("updates a user role from user to admin", async () => {
+    await createAdminUser("admin1", "password123");
+    const admin2 = await createAdminUser("admin2", "password456");
+
+    updateUserRole(admin2.id, "user");
+    updateUserRole(admin2.id, "admin");
+
+    const updated = findUserById(admin2.id);
+    expect(updated!.role).toBe("admin");
+  });
+
+  it("prevents demoting the last admin", async () => {
+    const admin = await createAdminUser("admin", "password123");
+
+    expect(() => updateUserRole(admin.id, "user")).toThrow(
+      "Cannot demote the last admin"
+    );
+  });
+
+  it("invalidates sessions when demoting to user", async () => {
+    await createAdminUser("admin1", "password123");
+    const admin2 = await createAdminUser("admin2", "password456");
+    const token = createSession(admin2.id);
+
+    expect(validateSession(token)).not.toBeNull();
+    updateUserRole(admin2.id, "user");
+    expect(validateSession(token)).toBeNull();
+  });
+
+  it("throws 404 for non-existent user", () => {
+    expect(() => updateUserRole(999, "admin")).toThrow("User not found");
+  });
+});
+
+describe("updateUserEnabled", () => {
+  it("disables a user", async () => {
+    await createAdminUser("admin1", "password123");
+    const admin2 = await createAdminUser("admin2", "password456");
+
+    updateUserEnabled(admin2.id, false);
+
+    const updated = findUserById(admin2.id);
+    expect(updated!.enabled).toBe(false);
+  });
+
+  it("re-enables a user", async () => {
+    await createAdminUser("admin1", "password123");
+    const admin2 = await createAdminUser("admin2", "password456");
+
+    updateUserEnabled(admin2.id, false);
+    updateUserEnabled(admin2.id, true);
+
+    const updated = findUserById(admin2.id);
+    expect(updated!.enabled).toBe(true);
+  });
+
+  it("prevents disabling the last admin", async () => {
+    const admin = await createAdminUser("admin", "password123");
+
+    expect(() => updateUserEnabled(admin.id, false)).toThrow(
+      "Cannot disable the last admin"
+    );
+  });
+
+  it("invalidates sessions when disabling", async () => {
+    await createAdminUser("admin1", "password123");
+    const admin2 = await createAdminUser("admin2", "password456");
+    const token = createSession(admin2.id);
+
+    expect(validateSession(token)).not.toBeNull();
+    updateUserEnabled(admin2.id, false);
+    expect(validateSession(token)).toBeNull();
+  });
+
+  it("throws 404 for non-existent user", () => {
+    expect(() => updateUserEnabled(999, false)).toThrow("User not found");
+  });
+});
+
+describe("deleteUser", () => {
+  it("deletes a user", async () => {
+    await createAdminUser("admin1", "password123");
+    const admin2 = await createAdminUser("admin2", "password456");
+
+    deleteUser(admin2.id);
+
+    expect(findUserById(admin2.id)).toBeNull();
+    expect(listAllUsers()).toHaveLength(1);
+  });
+
+  it("prevents deleting the last admin", async () => {
+    const admin = await createAdminUser("admin", "password123");
+
+    expect(() => deleteUser(admin.id)).toThrow(
+      "Cannot delete the last admin"
+    );
+  });
+
+  it("throws 404 for non-existent user", () => {
+    expect(() => deleteUser(999)).toThrow("User not found");
+  });
+
+  it("deletes sessions when deleting user", async () => {
+    await createAdminUser("admin1", "password123");
+    const admin2 = await createAdminUser("admin2", "password456");
+    const token = createSession(admin2.id);
+
+    expect(validateSession(token)).not.toBeNull();
+    deleteUser(admin2.id);
+    expect(validateSession(token)).toBeNull();
   });
 });

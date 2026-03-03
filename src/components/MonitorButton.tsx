@@ -14,7 +14,10 @@ export default function MonitorButton({
 }: MonitorButtonProps) {
   const config = states[state] || states.idle;
   const disabled =
-    state === "adding" || state === "success" || state === "already_monitored";
+    state === "adding" ||
+    state === "success" ||
+    state === "already_monitored" ||
+    state === "no_permission";
 
   return (
     <div className="flex flex-col items-end gap-1">

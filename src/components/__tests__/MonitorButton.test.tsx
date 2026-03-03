@@ -13,6 +13,7 @@ describe("MonitorButton", () => {
     ["success", "Added"],
     ["already_monitored", "Already Monitored"],
     ["error", "Error"],
+    ["no_permission", "Admin Only"],
   ] as [MonitorState, string][])(
     "shows '%s' label for %s state",
     (state, label) => {
@@ -21,7 +22,7 @@ describe("MonitorButton", () => {
     }
   );
 
-  it("is disabled for adding, success, and already_monitored", () => {
+  it("is disabled for adding, success, already_monitored, and no_permission", () => {
     const { rerender } = render(
       <MonitorButton state="adding" onClick={onClick} />
     );
@@ -31,6 +32,9 @@ describe("MonitorButton", () => {
     expect(screen.getByRole("button")).toBeDisabled();
 
     rerender(<MonitorButton state="already_monitored" onClick={onClick} />);
+    expect(screen.getByRole("button")).toBeDisabled();
+
+    rerender(<MonitorButton state="no_permission" onClick={onClick} />);
     expect(screen.getByRole("button")).toBeDisabled();
   });
 

@@ -1,6 +1,8 @@
 import { getDb } from "../db";
 import type { AuthUser } from "./types";
+import type { UserRole } from "../db/types";
 import { hashPassword, verifyPassword } from "./password";
+import { deleteUserSessions } from "./sessions";
 
 type UserRow = {
   id: number;
@@ -167,4 +169,92 @@ export function updateUserPreferences(
       .prepare("UPDATE users SET theme = ?, updated_at = datetime('now') WHERE id = ?")
       .run(prefs.theme, userId);
   }
+}
+
+function getAdminCount(): number {
+  const row = getDb()
+    .prepare("SELECT COUNT(*) as count FROM users WHERE role = 'admin'")
+    .get() as { count: number };
+  return row.count;
+}
+
+export function listAllUsers(): AuthUser[] {
+  const rows = getDb()
+    .prepare(
+      `SELECT id, username, plex_username, plex_email, plex_thumb, role, enabled, theme
+       FROM users ORDER BY id`
+    )
+    .all() as UserRow[];
+
+  return rows.map(toAuthUser);
+}
+
+export function updateUserRole(userId: number, role: UserRole): void {
+  const user = findUserById(userId);
+  if (!user) {
+    const err = new Error("User not found") as Error & { status: number };
+    err.status = 404;
+    throw err;
+  }
+
+  if (user.role === "admin" && role === "user" && getAdminCount() <= 1) {
+    const err = new Error("Cannot demote the last admin") as Error & {
+      status: number;
+    };
+    err.status = 400;
+    throw err;
+  }
+
+  getDb()
+    .prepare("UPDATE users SET role = ?, updated_at = datetime('now') WHERE id = ?")
+    .run(role, userId);
+
+  if (role === "user" && user.role === "admin") {
+    deleteUserSessions(userId);
+  }
+}
+
+export function updateUserEnabled(userId: number, enabled: boolean): void {
+  const user = findUserById(userId);
+  if (!user) {
+    const err = new Error("User not found") as Error & { status: number };
+    err.status = 404;
+    throw err;
+  }
+
+  if (!enabled && user.role === "admin" && getAdminCount() <= 1) {
+    const err = new Error("Cannot disable the last admin") as Error & {
+      status: number;
+    };
+    err.status = 400;
+    throw err;
+  }
+
+  getDb()
+    .prepare("UPDATE users SET enabled = ?, updated_at = datetime('now') WHERE id = ?")
+    .run(enabled ? 1 : 0, userId);
+
+  if (!enabled) {
+    deleteUserSessions(userId);
+  }
+}
+
+export function deleteUser(userId: number): void {
+  const user = findUserById(userId);
+  if (!user) {
+    const err = new Error("User not found") as Error & { status: number };
+    err.status = 404;
+    throw err;
+  }
+
+  if (user.role === "admin" && getAdminCount() <= 1) {
+    const err = new Error("Cannot delete the last admin") as Error & {
+      status: number;
+    };
+    err.status = 400;
+    throw err;
+  }
+
+  deleteUserSessions(userId);
+  getDb().prepare("DELETE FROM users WHERE id = ?").run(userId);
 }

@@ -9,7 +9,12 @@ vi.mock("../api/plex/account", () => ({
   getPlexAccountFull: vi.fn(),
 }));
 
+vi.mock("../config", () => ({
+  getConfigValue: vi.fn(),
+}));
+
 import { getPlexAccountFull } from "../api/plex/account";
+import { getConfigValue } from "../config";
 
 let app: express.Express;
 
@@ -346,6 +351,45 @@ describe("GET /auth/me", () => {
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ user: null });
+  });
+});
+
+describe("GET /auth/app-status", () => {
+  it("returns 401 without authentication", async () => {
+    const res = await request(app).get("/auth/app-status");
+    expect(res.status).toBe(401);
+  });
+
+  it("returns lidarrConfigured: false when not configured", async () => {
+    const setupRes = await request(app)
+      .post("/auth/setup")
+      .send({ username: "admin", password: "password123" });
+    const cookie = setupRes.headers["set-cookie"][0];
+
+    vi.mocked(getConfigValue).mockReturnValue("");
+
+    const res = await request(app)
+      .get("/auth/app-status")
+      .set("Cookie", cookie);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ lidarrConfigured: false });
+  });
+
+  it("returns lidarrConfigured: true when configured", async () => {
+    const setupRes = await request(app)
+      .post("/auth/setup")
+      .send({ username: "admin", password: "password123" });
+    const cookie = setupRes.headers["set-cookie"][0];
+
+    vi.mocked(getConfigValue).mockReturnValue("http://lidarr:8686");
+
+    const res = await request(app)
+      .get("/auth/app-status")
+      .set("Cookie", cookie);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ lidarrConfigured: true });
   });
 });
 

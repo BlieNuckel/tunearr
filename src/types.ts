@@ -70,4 +70,5 @@ export type MonitorState =
   | "adding"
   | "success"
   | "already_monitored"
-  | "error";
+  | "error"
+  | "no_permission";

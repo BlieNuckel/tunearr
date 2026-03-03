@@ -17,6 +17,7 @@ import {
 } from "../middleware/requireAuth";
 import { validateSession } from "../auth/sessions";
 import { getPlexAccountFull } from "../api/plex/account";
+import { getConfigValue } from "../config";
 
 const TUNEARR_SERVER_CLIENT_ID = "tunearr-server";
 
@@ -239,6 +240,10 @@ router.get("/me", (req: Request, res: Response) => {
   }
 
   res.json({ user: userResponse(user) });
+});
+
+router.get("/app-status", requireAuth, (_req: Request, res: Response) => {
+  res.json({ lidarrConfigured: !!getConfigValue("lidarrUrl") });
 });
 
 router.patch(

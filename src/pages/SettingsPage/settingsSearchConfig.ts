@@ -9,7 +9,8 @@ export type SettingsSection =
   | "lastfm"
   | "plex"
   | "slskd"
-  | "recommendations";
+  | "recommendations"
+  | "users";
 
 type SectionMeta = {
   label: string;
@@ -81,6 +82,11 @@ export const SECTION_META: Record<SettingsSection, SectionMeta> = {
       "preference",
       "generic",
     ],
+  },
+  users: {
+    label: "Users",
+    tab: "users",
+    keywords: ["user", "admin", "role", "enable", "disable", "manage", "delete"],
   },
 };
 
