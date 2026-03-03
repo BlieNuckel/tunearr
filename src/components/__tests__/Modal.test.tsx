@@ -1,7 +1,16 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import Modal from "../Modal";
 
+const mockHaptic = vi.fn();
+vi.mock("@/hooks/useHaptics", () => ({
+  useHaptics: () => ({ haptic: mockHaptic, isSupported: true }),
+}));
+
 describe("Modal", () => {
+  beforeEach(() => {
+    mockHaptic.mockClear();
+  });
+
   it("renders nothing when not open", () => {
     render(
       <Modal isOpen={false} onClose={vi.fn()}>
@@ -42,5 +51,21 @@ describe("Modal", () => {
 
     fireEvent.click(screen.getByText("Content"));
     expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("triggers haptic feedback on close", () => {
+    const { rerender } = render(
+      <Modal isOpen={true} onClose={vi.fn()}>
+        <p>Content</p>
+      </Modal>
+    );
+
+    rerender(
+      <Modal isOpen={false} onClose={vi.fn()}>
+        <p>Content</p>
+      </Modal>
+    );
+
+    expect(mockHaptic).toHaveBeenCalledWith("soft");
   });
 });

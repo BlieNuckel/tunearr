@@ -1,8 +1,14 @@
 import { renderHook, act } from "@testing-library/react";
 import useLidarr from "../useLidarr";
 
+const mockHaptic = vi.fn();
+vi.mock("../useHaptics", () => ({
+  useHaptics: () => ({ haptic: mockHaptic, isSupported: true }),
+}));
+
 beforeEach(() => {
   vi.stubGlobal("fetch", vi.fn());
+  mockHaptic.mockClear();
 });
 
 afterEach(() => {
@@ -26,6 +32,7 @@ describe("useLidarr", () => {
 
     expect(result.current.state).toBe("success");
     expect(result.current.errorMsg).toBeNull();
+    expect(mockHaptic).toHaveBeenCalledWith("success");
   });
 
   it("transitions to already_monitored", async () => {
@@ -39,6 +46,7 @@ describe("useLidarr", () => {
     await act(() => result.current.addToLidarr({ albumMbid: "abc-123" }));
 
     expect(result.current.state).toBe("already_monitored");
+    expect(mockHaptic).toHaveBeenCalledWith("warning");
   });
 
   it("transitions to error on server error", async () => {
@@ -51,6 +59,7 @@ describe("useLidarr", () => {
 
     expect(result.current.state).toBe("error");
     expect(result.current.errorMsg).toBe("Not found");
+    expect(mockHaptic).toHaveBeenCalledWith("error");
   });
 
   it("falls back to generic message on invalid JSON", async () => {
@@ -63,5 +72,6 @@ describe("useLidarr", () => {
 
     expect(result.current.state).toBe("error");
     expect(result.current.errorMsg).toBe("Server error (500)");
+    expect(mockHaptic).toHaveBeenCalledWith("error");
   });
 });

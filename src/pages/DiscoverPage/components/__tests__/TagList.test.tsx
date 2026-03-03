@@ -1,6 +1,11 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import TagList from "../TagList";
 
+const mockHaptic = vi.fn();
+vi.mock("@/hooks/useHaptics", () => ({
+  useHaptics: () => ({ haptic: mockHaptic, isSupported: true }),
+}));
+
 const defaultProps = {
   tags: [{ name: "rock" }, { name: "alternative" }],
   activeTags: [] as string[],
@@ -40,6 +45,7 @@ describe("TagList", () => {
     render(<TagList {...defaultProps} />);
     fireEvent.click(screen.getByText("rock"));
     expect(defaultProps.onTagClick).toHaveBeenCalledWith("rock");
+    expect(mockHaptic).toHaveBeenCalledWith("selection");
   });
 
   it("highlights active tag", () => {

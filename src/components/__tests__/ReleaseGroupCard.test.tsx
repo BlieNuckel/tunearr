@@ -31,6 +31,11 @@ vi.mock("../../hooks/useAudioPreview", () => ({
   }),
 }));
 
+const mockHaptic = vi.fn();
+vi.mock("../../hooks/useHaptics", () => ({
+  useHaptics: () => ({ haptic: mockHaptic, isSupported: true }),
+}));
+
 vi.mock("../PurchaseLinksModal", () => ({
   default: ({
     isOpen,
@@ -162,6 +167,7 @@ describe("ReleaseGroupCard", () => {
 
       expect(expandContainer).toHaveAttribute("data-expanded", "true");
       expect(mockFetchTracks).toHaveBeenCalledWith("abc-123", "Test Artist");
+      expect(mockHaptic).toHaveBeenCalledWith("light");
     });
 
     it("collapses tracklist and stops audio when expanded card is clicked again", () => {
@@ -180,6 +186,7 @@ describe("ReleaseGroupCard", () => {
       fireEvent.click(clickTarget);
       expect(expandContainer).toHaveAttribute("data-expanded", "false");
       expect(mockStop).toHaveBeenCalled();
+      expect(mockHaptic).toHaveBeenCalledWith("soft");
     });
 
     it("opens purchase modal when + button is clicked", () => {

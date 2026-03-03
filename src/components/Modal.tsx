@@ -1,5 +1,6 @@
 import { ReactNode, useState } from "react";
 import { createPortal } from "react-dom";
+import { useHaptics } from "@/hooks/useHaptics";
 
 interface ModalProps {
   isOpen: boolean;
@@ -16,10 +17,12 @@ export default function Modal({
 }: ModalProps) {
   const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
   const [closing, setClosing] = useState(false);
+  const { haptic } = useHaptics();
 
   if (isOpen !== prevIsOpen) {
     setPrevIsOpen(isOpen);
     setClosing(!isOpen);
+    if (!isOpen) haptic("soft");
   }
 
   if (!isOpen && !closing) return null;

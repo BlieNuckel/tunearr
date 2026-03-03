@@ -2,6 +2,11 @@ import { renderHook, act } from "@testing-library/react";
 import { useAutoSave } from "../useAutoSave";
 import type { LidarrSettings } from "@/context/lidarrContextDef";
 
+const mockHaptic = vi.fn();
+vi.mock("../useHaptics", () => ({
+  useHaptics: () => ({ haptic: mockHaptic, isSupported: true }),
+}));
+
 const defaultSettings: LidarrSettings = {
   lidarrUrl: "http://lidarr:8686",
   lidarrApiKey: "key1",
@@ -19,6 +24,7 @@ const defaultSettings: LidarrSettings = {
 
 beforeEach(() => {
   vi.useFakeTimers();
+  mockHaptic.mockClear();
 });
 
 afterEach(() => {
@@ -121,6 +127,7 @@ describe("useAutoSave", () => {
     });
 
     expect(result.current.saveStatus).toBe("saved");
+    expect(mockHaptic).toHaveBeenCalledWith("soft");
 
     act(() => {
       vi.advanceTimersByTime(2000);
@@ -139,6 +146,7 @@ describe("useAutoSave", () => {
 
     expect(result.current.saveStatus).toBe("error");
     expect(result.current.saveError).toBe("Network error");
+    expect(mockHaptic).toHaveBeenCalledWith("error");
   });
 
   it("updateFields saves multiple fields immediately", async () => {

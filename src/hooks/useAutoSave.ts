@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import type { LidarrSettings } from "@/context/lidarrContextDef";
+import { useHaptics } from "./useHaptics";
 
 export type SaveStatus = "idle" | "saving" | "saved" | "error";
 
@@ -29,6 +30,7 @@ export function useAutoSave(
   const [saveError, setSaveError] = useState<string | null>(null);
   const timersRef = useRef<DebounceTimers>({});
   const savedTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const { haptic } = useHaptics();
 
   useEffect(() => {
     setFields(settings);
@@ -41,14 +43,16 @@ export function useAutoSave(
       try {
         await savePartialSettings(partial);
         setSaveStatus("saved");
+        haptic("soft");
         clearTimeout(savedTimerRef.current);
         savedTimerRef.current = setTimeout(() => setSaveStatus("idle"), 2000);
       } catch (err) {
         setSaveStatus("error");
         setSaveError(err instanceof Error ? err.message : "Save failed");
+        haptic("error");
       }
     },
-    [savePartialSettings]
+    [savePartialSettings, haptic]
   );
 
   const updateField = useCallback(

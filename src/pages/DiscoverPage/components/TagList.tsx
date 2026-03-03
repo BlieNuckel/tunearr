@@ -1,3 +1,5 @@
+import { useHaptics } from "@/hooks/useHaptics";
+
 interface Tag {
   name: string;
 }
@@ -17,6 +19,7 @@ export default function TagList({
   selectedArtist,
   onTagClick,
 }: TagListProps) {
+  const { haptic } = useHaptics();
   const tagsDisplay =
     activeTags.length === 1
       ? `"${activeTags[0]}"`
@@ -37,7 +40,10 @@ export default function TagList({
           {tags.map((tag, index) => (
             <button
               key={tag.name}
-              onClick={() => onTagClick(tag.name)}
+              onClick={() => {
+                haptic("selection");
+                onTagClick(tag.name);
+              }}
               style={{ "--stagger-index": index } as React.CSSProperties}
               className={`stagger-fade-in px-2.5 py-1 rounded-full text-xs border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all ${
                 activeTags.includes(tag.name)

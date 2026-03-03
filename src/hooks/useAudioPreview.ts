@@ -1,8 +1,10 @@
 import { useState, useRef, useCallback, useEffect } from "react";
+import { useHaptics } from "./useHaptics";
 
 export default function useAudioPreview() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playingUrl, setPlayingUrl] = useState<string | null>(null);
+  const { haptic } = useHaptics();
 
   useEffect(() => {
     const audio = new Audio();
@@ -18,19 +20,23 @@ export default function useAudioPreview() {
     };
   }, []);
 
-  const toggle = useCallback((previewUrl: string) => {
-    const audio = audioRef.current;
-    if (!audio) return;
+  const toggle = useCallback(
+    (previewUrl: string) => {
+      const audio = audioRef.current;
+      if (!audio) return;
 
-    if (audio.src === previewUrl && !audio.paused) {
-      audio.pause();
-      setPlayingUrl(null);
-    } else {
-      audio.src = previewUrl;
-      audio.play();
-      setPlayingUrl(previewUrl);
-    }
-  }, []);
+      if (audio.src === previewUrl && !audio.paused) {
+        audio.pause();
+        setPlayingUrl(null);
+      } else {
+        audio.src = previewUrl;
+        audio.play();
+        setPlayingUrl(previewUrl);
+      }
+      haptic("soft");
+    },
+    [haptic]
+  );
 
   const stop = useCallback(() => {
     const audio = audioRef.current;

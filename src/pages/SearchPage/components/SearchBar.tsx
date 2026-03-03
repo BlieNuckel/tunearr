@@ -1,6 +1,7 @@
 import { useState, SubmitEvent } from "react";
 import Dropdown from "@/components/Dropdown";
 import { SearchIcon } from "@/components/icons";
+import { useHaptics } from "@/hooks/useHaptics";
 
 interface SearchBarProps {
   onSearch: (query: string, searchType: string) => void;
@@ -15,10 +16,12 @@ export default function SearchBar({
 }: SearchBarProps) {
   const [query, setQuery] = useState(initialQuery);
   const [searchType, setSearchType] = useState(initialSearchType);
+  const { haptic } = useHaptics();
 
   const handleSubmit = (e: SubmitEvent) => {
     e.preventDefault();
     if (query.trim()) {
+      haptic("light");
       onSearch(query, searchType);
     }
   };

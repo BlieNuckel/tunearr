@@ -1,6 +1,11 @@
 import { renderHook, act } from "@testing-library/react";
 import useAudioPreview from "../useAudioPreview";
 
+const mockHaptic = vi.fn();
+vi.mock("../useHaptics", () => ({
+  useHaptics: () => ({ haptic: mockHaptic, isSupported: true }),
+}));
+
 const mockPlay = vi.fn().mockResolvedValue(undefined);
 const mockPause = vi.fn();
 let mockAudioInstance: {
@@ -50,6 +55,7 @@ describe("useAudioPreview", () => {
     expect(
       result.current.isTrackPlaying("https://example.com/preview.mp3")
     ).toBe(true);
+    expect(mockHaptic).toHaveBeenCalledWith("soft");
   });
 
   it("pauses when toggling the same track that is playing", () => {

@@ -8,6 +8,7 @@ import ImageWithShimmer from "./ImageWithShimmer";
 import useLidarr from "../hooks/useLidarr";
 import useReleaseTracks from "../hooks/useReleaseTracks";
 import useAudioPreview from "../hooks/useAudioPreview";
+import { useHaptics } from "../hooks/useHaptics";
 import { MonitorState, ReleaseGroup } from "../types";
 
 /** @returns {string} deterministic pastel HSL color derived from the input string */
@@ -57,6 +58,7 @@ export default function ReleaseGroupCard({
     fetchTracks,
   } = useReleaseTracks();
   const { toggle, stop, isTrackPlaying } = useAudioPreview();
+  const { haptic } = useHaptics();
 
   const expandContentRef = useRef<HTMLDivElement>(null);
   const [expandHeight, setExpandHeight] = useState(0);
@@ -102,8 +104,13 @@ export default function ReleaseGroupCard({
   };
 
   const handleMobileCardClick = () => {
-    if (!isExpanded) loadTracksIfNeeded();
-    if (isExpanded) stop();
+    if (!isExpanded) {
+      loadTracksIfNeeded();
+      haptic("light");
+    } else {
+      stop();
+      haptic("soft");
+    }
     setIsExpanded(!isExpanded);
   };
 

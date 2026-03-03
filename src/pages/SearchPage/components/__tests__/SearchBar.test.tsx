@@ -1,6 +1,11 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import SearchBar from "../SearchBar";
 
+const mockHaptic = vi.fn();
+vi.mock("@/hooks/useHaptics", () => ({
+  useHaptics: () => ({ haptic: mockHaptic, isSupported: true }),
+}));
+
 describe("SearchBar", () => {
   it("defaults to album search type", () => {
     render(<SearchBar onSearch={vi.fn()} />);
@@ -17,6 +22,7 @@ describe("SearchBar", () => {
     fireEvent.submit(screen.getByTestId("search-form"));
 
     expect(onSearch).toHaveBeenCalledWith("Radiohead", "album");
+    expect(mockHaptic).toHaveBeenCalledWith("light");
   });
 
   it("does not call onSearch for whitespace-only query", () => {

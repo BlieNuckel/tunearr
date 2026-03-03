@@ -1,6 +1,11 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import Pagination from "../Pagination";
 
+const mockHaptic = vi.fn();
+vi.mock("@/hooks/useHaptics", () => ({
+  useHaptics: () => ({ haptic: mockHaptic, isSupported: true }),
+}));
+
 describe("Pagination", () => {
   it("returns null when totalPages <= 1", () => {
     const { container } = render(
@@ -32,8 +37,10 @@ describe("Pagination", () => {
 
     fireEvent.click(screen.getByText("Previous"));
     expect(onPageChange).toHaveBeenCalledWith(1);
+    expect(mockHaptic).toHaveBeenCalledWith("light");
 
     fireEvent.click(screen.getByText("Next"));
     expect(onPageChange).toHaveBeenCalledWith(3);
+    expect(mockHaptic).toHaveBeenCalledTimes(2);
   });
 });

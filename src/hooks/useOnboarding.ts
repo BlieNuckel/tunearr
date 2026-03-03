@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLidarrContext } from "@/context/useLidarrContext";
+import { useHaptics } from "./useHaptics";
 
 export const STEPS = [
   "welcome",
@@ -40,6 +41,7 @@ const OPTIONAL_STEPS: StepId[] = ["lastfm", "plex", "import"];
 export function useOnboarding() {
   const { testConnection, saveSettings } = useLidarrContext();
   const navigate = useNavigate();
+  const { haptic } = useHaptics();
 
   const [stepIndex, setStepIndex] = useState(0);
   const [fields, setFields] = useState<OnboardingFields>({
@@ -88,6 +90,7 @@ export function useOnboarding() {
     if (stepIndex < STEPS.length - 1) {
       setStepIndex(stepIndex + 1);
       setError(null);
+      haptic("light");
     }
   };
 
@@ -142,6 +145,7 @@ export function useOnboarding() {
       setTestResult(result);
 
       if (result.success) {
+        haptic("success");
         if (result.qualityProfiles?.length) {
           updateField("qualityProfileId", result.qualityProfiles[0].id);
         }
@@ -154,6 +158,7 @@ export function useOnboarding() {
       }
     } catch {
       setError("Failed to test connection");
+      haptic("error");
     } finally {
       setTesting(false);
     }

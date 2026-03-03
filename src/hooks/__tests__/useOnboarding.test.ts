@@ -19,6 +19,11 @@ vi.mock("@/context/useLidarrContext", () => ({
   }),
 }));
 
+const mockHaptic = vi.fn();
+vi.mock("../useHaptics", () => ({
+  useHaptics: () => ({ haptic: mockHaptic, isSupported: true }),
+}));
+
 beforeEach(() => {
   vi.clearAllMocks();
 });
@@ -36,6 +41,7 @@ describe("useOnboarding", () => {
     await act(async () => result.current.next());
     expect(result.current.stepIndex).toBe(1);
     expect(result.current.currentStep).toBe("lidarrConnection");
+    expect(mockHaptic).toHaveBeenCalledWith("light");
 
     act(() => result.current.back());
     expect(result.current.stepIndex).toBe(0);
@@ -111,6 +117,7 @@ describe("useOnboarding", () => {
     expect(result.current.fields.metadataProfileId).toBe(3);
     expect(result.current.fields.rootFolderPath).toBe("/music");
     expect(result.current.testing).toBe(false);
+    expect(mockHaptic).toHaveBeenCalledWith("success");
   });
 
   it("handles test connection failure", async () => {
@@ -140,6 +147,7 @@ describe("useOnboarding", () => {
 
     expect(result.current.error).toBe("Failed to test connection");
     expect(result.current.testing).toBe(false);
+    expect(mockHaptic).toHaveBeenCalledWith("error");
   });
 
   it("saves settings and navigates on finish", async () => {

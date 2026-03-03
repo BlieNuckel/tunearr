@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { useHaptics } from "./useHaptics";
 
 type LidarrState =
   | "idle"
@@ -14,6 +15,7 @@ type LidarrState =
 export default function useLidarr() {
   const [state, setState] = useState<LidarrState>("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const { haptic } = useHaptics();
 
   const addToLidarr = useCallback(
     async ({ albumMbid }: { albumMbid: string }) => {
@@ -39,15 +41,18 @@ export default function useLidarr() {
 
         if (data.status === "already_monitored") {
           setState("already_monitored");
+          haptic("warning");
         } else {
           setState("success");
+          haptic("success");
         }
       } catch (err) {
         setState("error");
         setErrorMsg(err instanceof Error ? err.message : "Failed to add album");
+        haptic("error");
       }
     },
-    []
+    [haptic]
   );
 
   const removeFromLidarr = useCallback(
@@ -81,17 +86,20 @@ export default function useLidarr() {
           ].includes(data.status)
         ) {
           setState(data.status as LidarrState);
+          haptic("warning");
         } else {
           setState("success");
+          haptic("success");
         }
       } catch (err) {
         setState("error");
         setErrorMsg(
           err instanceof Error ? err.message : "Failed to remove album"
         );
+        haptic("error");
       }
     },
-    []
+    [haptic]
   );
 
   const reset = useCallback(() => {

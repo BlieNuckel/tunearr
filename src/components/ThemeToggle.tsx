@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useTheme } from "@/context/useTheme";
 import type { Theme } from "@/context/themeContextDef";
+import { useHaptics } from "@/hooks/useHaptics";
 
 const THEME_OPTIONS: Theme[] = ["light", "dark", "system"];
 
@@ -79,6 +80,7 @@ const ThemeToggle = () => {
   const { theme, setTheme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { haptic } = useHaptics();
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -126,6 +128,7 @@ const ThemeToggle = () => {
                 onClick={() => {
                   setTheme(option);
                   setIsOpen(false);
+                  haptic("selection");
                 }}
                 className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${
                   theme === option

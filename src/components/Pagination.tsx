@@ -1,3 +1,5 @@
+import { useHaptics } from "@/hooks/useHaptics";
+
 interface PaginationProps {
   page: number;
   totalPages: number;
@@ -9,12 +11,17 @@ export default function Pagination({
   totalPages,
   onPageChange,
 }: PaginationProps) {
+  const { haptic } = useHaptics();
+
   if (totalPages <= 1) return null;
 
   return (
     <div className="flex items-center justify-center gap-3 pt-4">
       <button
-        onClick={() => onPageChange(page - 1)}
+        onClick={() => {
+          haptic("light");
+          onPageChange(page - 1);
+        }}
         disabled={page <= 1}
         className="px-3 py-1.5 bg-white hover:bg-gray-50 disabled:opacity-50 text-gray-900 rounded-lg text-sm border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all"
       >
@@ -24,7 +31,10 @@ export default function Pagination({
         Page {page} of {totalPages}
       </span>
       <button
-        onClick={() => onPageChange(page + 1)}
+        onClick={() => {
+          haptic("light");
+          onPageChange(page + 1);
+        }}
         disabled={page >= totalPages}
         className="px-3 py-1.5 bg-white hover:bg-gray-50 disabled:opacity-50 text-gray-900 rounded-lg text-sm border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all"
       >
