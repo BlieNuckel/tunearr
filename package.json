@@ -24,7 +24,7 @@
     "web-vitals": "^5.1.0"
   },
   "scripts": {
-    "dev": "concurrently \"vite\" \"tsx server/index.ts\"",
+    "dev": "concurrently \"vite\" \"tsx --tsconfig server/tsconfig.json server/index.ts\"",
     "start": "concurrently \"vite\" \"tsx server/index.ts\"",
     "start:client": "vite",
     "start:server": "tsx server/index.ts",
