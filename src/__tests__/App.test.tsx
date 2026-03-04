@@ -53,7 +53,14 @@ const unconfiguredContext: LidarrContextValue = {
 
 const authenticatedAuth: AuthContextValue = {
   status: "authenticated",
-  user: { id: 1, username: "admin", userType: "local", role: "admin", theme: "system", thumb: null },
+  user: {
+    id: 1,
+    username: "admin",
+    userType: "local",
+    role: "admin",
+    theme: "system",
+    thumb: null,
+  },
   login: vi.fn(),
   plexLogin: vi.fn(),
   plexSetup: vi.fn(),

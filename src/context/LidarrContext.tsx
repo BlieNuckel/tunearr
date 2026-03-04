@@ -169,7 +169,8 @@ export const LidarrContextProvider = ({
     options,
     settings,
     isConnected,
-    isLoading: status === "authenticated" && user?.role === "admin" && isLoading,
+    isLoading:
+      status === "authenticated" && user?.role === "admin" && isLoading,
     saveSettings,
     savePartialSettings,
     testConnection,

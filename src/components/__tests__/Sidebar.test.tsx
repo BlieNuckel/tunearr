@@ -5,7 +5,14 @@ import Sidebar from "../Sidebar";
 
 const mockAuthValue: AuthContextValue = {
   status: "authenticated",
-  user: { id: 1, username: "testadmin", userType: "local", role: "admin", theme: "system", thumb: null },
+  user: {
+    id: 1,
+    username: "testadmin",
+    userType: "local",
+    role: "admin",
+    theme: "system",
+    thumb: null,
+  },
   login: vi.fn(),
   plexLogin: vi.fn(),
   plexSetup: vi.fn(),

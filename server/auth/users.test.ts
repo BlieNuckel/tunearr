@@ -79,7 +79,12 @@ describe("createPlexAdminUser", () => {
   });
 
   it("completes setup (needsSetup returns false)", () => {
-    createPlexAdminUser("plex-123", "plexadmin", "admin@plex.tv", "https://thumb.jpg");
+    createPlexAdminUser(
+      "plex-123",
+      "plexadmin",
+      "admin@plex.tv",
+      "https://thumb.jpg"
+    );
     expect(needsSetup()).toBe(false);
   });
 });
@@ -209,9 +214,7 @@ describe("findOrCreatePlexUser", () => {
       "plex@test.com",
       "https://thumb.jpg"
     );
-    getDb()
-      .prepare("UPDATE users SET enabled = 0 WHERE id = ?")
-      .run(user.id);
+    getDb().prepare("UPDATE users SET enabled = 0 WHERE id = ?").run(user.id);
 
     const updated = findOrCreatePlexUser(
       "plex-123",
@@ -241,8 +244,16 @@ describe("linkPlexAccount", () => {
     expect(linked.thumb).toBe("https://thumb.jpg");
 
     const row = getDb()
-      .prepare("SELECT plex_id, plex_username, plex_email, user_type, password_hash FROM users WHERE id = ?")
-      .get(localUser.id) as { plex_id: string; plex_username: string; plex_email: string; user_type: string; password_hash: string };
+      .prepare(
+        "SELECT plex_id, plex_username, plex_email, user_type, password_hash FROM users WHERE id = ?"
+      )
+      .get(localUser.id) as {
+      plex_id: string;
+      plex_username: string;
+      plex_email: string;
+      user_type: string;
+      password_hash: string;
+    };
     expect(row.plex_id).toBe("plex-456");
     expect(row.plex_username).toBe("plexname");
     expect(row.plex_email).toBe("plex@test.com");
@@ -259,7 +270,13 @@ describe("linkPlexAccount", () => {
     );
 
     expect(() =>
-      linkPlexAccount(plexUser.id, "plex-789", "other", "o@t.com", "https://t.jpg")
+      linkPlexAccount(
+        plexUser.id,
+        "plex-789",
+        "other",
+        "o@t.com",
+        "https://t.jpg"
+      )
     ).toThrow("Only local users can link a Plex account");
   });
 
@@ -268,7 +285,13 @@ describe("linkPlexAccount", () => {
     findOrCreatePlexUser("plex-456", "existing", "e@t.com", "https://t.jpg");
 
     expect(() =>
-      linkPlexAccount(localUser.id, "plex-456", "plexname", "p@t.com", "https://t.jpg")
+      linkPlexAccount(
+        localUser.id,
+        "plex-456",
+        "plexname",
+        "p@t.com",
+        "https://t.jpg"
+      )
     ).toThrow("This Plex account is already linked to another user");
   });
 

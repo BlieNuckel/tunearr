@@ -87,8 +87,8 @@ describe("getPlexAccountFull", () => {
   it("throws when plex.tv returns an error", async () => {
     mockFetch.mockResolvedValue({ ok: false, status: 401 });
 
-    await expect(
-      getPlexAccountFull("bad-token", "client-123")
-    ).rejects.toThrow("Plex returned 401");
+    await expect(getPlexAccountFull("bad-token", "client-123")).rejects.toThrow(
+      "Plex returned 401"
+    );
   });
 });

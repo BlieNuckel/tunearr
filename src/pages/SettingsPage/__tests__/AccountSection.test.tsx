@@ -7,7 +7,14 @@ const mockLogout = vi.fn();
 
 const mockAuthValue: AuthContextValue = {
   status: "authenticated",
-  user: { id: 1, username: "testadmin", userType: "local", role: "admin", theme: "system", thumb: null },
+  user: {
+    id: 1,
+    username: "testadmin",
+    userType: "local",
+    role: "admin",
+    theme: "system",
+    thumb: null,
+  },
   login: vi.fn(),
   plexLogin: vi.fn(),
   plexSetup: vi.fn(),
@@ -38,7 +45,14 @@ describe("AccountSection", () => {
 
   it("renders user role for non-admin users", () => {
     renderAccountSection({
-      user: { id: 2, username: "regularuser", userType: "local", role: "user", theme: "system", thumb: null },
+      user: {
+        id: 2,
+        username: "regularuser",
+        userType: "local",
+        role: "user",
+        theme: "system",
+        thumb: null,
+      },
     });
     expect(screen.getByText("regularuser")).toBeInTheDocument();
     expect(screen.getByText("user")).toBeInTheDocument();
@@ -57,14 +71,28 @@ describe("AccountSection", () => {
 
   it("shows Plex badge for plex users", () => {
     renderAccountSection({
-      user: { id: 3, username: "plexuser", userType: "plex", role: "user", theme: "system", thumb: "https://plex.tv/avatar.jpg" },
+      user: {
+        id: 3,
+        username: "plexuser",
+        userType: "plex",
+        role: "user",
+        theme: "system",
+        thumb: "https://plex.tv/avatar.jpg",
+      },
     });
     expect(screen.getByText("Plex")).toBeInTheDocument();
   });
 
   it("shows plex avatar image when thumb is available", () => {
     renderAccountSection({
-      user: { id: 3, username: "plexuser", userType: "plex", role: "user", theme: "system", thumb: "https://plex.tv/avatar.jpg" },
+      user: {
+        id: 3,
+        username: "plexuser",
+        userType: "plex",
+        role: "user",
+        theme: "system",
+        thumb: "https://plex.tv/avatar.jpg",
+      },
     });
     const avatar = screen.getByAltText("plexuser");
     expect(avatar).toBeInTheDocument();
@@ -83,7 +111,14 @@ describe("AccountSection", () => {
 
   it("does not show Connect Plex button for plex users", () => {
     renderAccountSection({
-      user: { id: 3, username: "plexuser", userType: "plex", role: "user", theme: "system", thumb: "https://plex.tv/avatar.jpg" },
+      user: {
+        id: 3,
+        username: "plexuser",
+        userType: "plex",
+        role: "user",
+        theme: "system",
+        thumb: "https://plex.tv/avatar.jpg",
+      },
     });
     expect(screen.queryByText("Connect Plex")).not.toBeInTheDocument();
   });
@@ -117,9 +152,11 @@ describe("AccountSection", () => {
   });
 
   it("shows error message when Plex linking fails", async () => {
-    const mockLinkPlex = vi.fn().mockRejectedValue(
-      new Error("This Plex account is already linked to another user")
-    );
+    const mockLinkPlex = vi
+      .fn()
+      .mockRejectedValue(
+        new Error("This Plex account is already linked to another user")
+      );
     renderAccountSection({ linkPlex: mockLinkPlex });
 
     const user = userEvent.setup();
