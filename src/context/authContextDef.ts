@@ -3,6 +3,7 @@ import { createContext } from "react";
 export type AuthUser = {
   id: number;
   username: string;
+  userType: "local" | "plex";
   role: "admin" | "user";
   theme: "light" | "dark" | "system";
   thumb: string | null;

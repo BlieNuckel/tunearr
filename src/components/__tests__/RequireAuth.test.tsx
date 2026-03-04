@@ -12,6 +12,7 @@ function renderWithAuth(
     user: {
       id: 1,
       username: "admin",
+      userType: "local",
       role: "admin",
       theme: "system",
       thumb: null,

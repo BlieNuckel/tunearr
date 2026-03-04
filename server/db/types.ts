@@ -1,6 +1,7 @@
 import type Database from "better-sqlite3";
 
 export type UserRole = "admin" | "user";
+export type UserType = "local" | "plex";
 
 export type User = {
   id: number;
@@ -9,6 +10,7 @@ export type User = {
   plex_id: string | null;
   plex_email: string | null;
   plex_thumb: string | null;
+  user_type: UserType;
   role: UserRole;
   enabled: 0 | 1;
   created_at: string;

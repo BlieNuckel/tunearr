@@ -76,6 +76,7 @@ describe("requireAuth middleware", () => {
     const mockUser: AuthUser = {
       id: 1,
       username: "admin",
+      userType: "local",
       role: "admin",
       enabled: true,
       theme: "system",

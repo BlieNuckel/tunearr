@@ -8,6 +8,7 @@ type SessionRow = {
   plex_username: string | null;
   plex_email: string | null;
   plex_thumb: string | null;
+  user_type: string;
   role: string;
   enabled: number;
   theme: string;
@@ -36,7 +37,7 @@ export function validateSession(token: string): AuthUser | null {
     .prepare(
       `SELECT s.user_id, s.expires_at,
               u.username, u.plex_username, u.plex_email, u.plex_thumb,
-              u.role, u.enabled, u.theme
+              u.user_type, u.role, u.enabled, u.theme
        FROM sessions s
        JOIN users u ON u.id = s.user_id
        WHERE s.token = ?`
@@ -55,6 +56,7 @@ export function validateSession(token: string): AuthUser | null {
   return {
     id: row.user_id,
     username: row.username ?? row.plex_username ?? row.plex_email ?? "unknown",
+    userType: row.user_type as AuthUser["userType"],
     role: row.role as AuthUser["role"],
     enabled: true,
     theme: row.theme as AuthUser["theme"],

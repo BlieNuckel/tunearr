@@ -10,6 +10,7 @@ type UserRow = {
   plex_username: string | null;
   plex_email: string | null;
   plex_thumb: string | null;
+  user_type: string;
   role: string;
   enabled: number;
   theme: string;
@@ -19,6 +20,7 @@ function toAuthUser(row: UserRow): AuthUser {
   return {
     id: row.id,
     username: row.username ?? row.plex_username ?? row.plex_email ?? "unknown",
+    userType: row.user_type as AuthUser["userType"],
     role: row.role as AuthUser["role"],
     enabled: !!row.enabled,
     theme: row.theme as AuthUser["theme"],
@@ -41,14 +43,15 @@ export async function createAdminUser(
 
   const result = getDb()
     .prepare(
-      `INSERT INTO users (username, password_hash, role, enabled)
-       VALUES (?, ?, 'admin', 1)`
+      `INSERT INTO users (username, password_hash, user_type, role, enabled)
+       VALUES (?, ?, 'local', 'admin', 1)`
     )
     .run(username, passwordHash);
 
   return {
     id: result.lastInsertRowid as number,
     username,
+    userType: "local",
     role: "admin",
     enabled: true,
     theme: "system",
@@ -62,7 +65,7 @@ export async function authenticateUser(
 ): Promise<AuthUser | null> {
   const row = getDb()
     .prepare(
-      `SELECT id, username, password_hash, plex_username, plex_email, plex_thumb, role, enabled, theme
+      `SELECT id, username, password_hash, plex_username, plex_email, plex_thumb, user_type, role, enabled, theme
        FROM users WHERE username = ?`
     )
     .get(username) as UserRow | undefined;
@@ -79,7 +82,7 @@ export async function authenticateUser(
 export function findUserById(id: number): AuthUser | null {
   const row = getDb()
     .prepare(
-      `SELECT id, username, plex_username, plex_email, plex_thumb, role, enabled, theme
+      `SELECT id, username, plex_username, plex_email, plex_thumb, user_type, role, enabled, theme
        FROM users WHERE id = ?`
     )
     .get(id) as UserRow | undefined;
@@ -97,14 +100,15 @@ export function createPlexAdminUser(
 ): AuthUser {
   const result = getDb()
     .prepare(
-      `INSERT INTO users (plex_id, plex_username, plex_email, plex_thumb, role, enabled)
-       VALUES (?, ?, ?, ?, 'admin', 1)`
+      `INSERT INTO users (plex_id, plex_username, plex_email, plex_thumb, user_type, role, enabled)
+       VALUES (?, ?, ?, ?, 'plex', 'admin', 1)`
     )
     .run(String(plexId), plexUsername, plexEmail, plexThumb);
 
   return {
     id: result.lastInsertRowid as number,
     username: plexUsername,
+    userType: "plex",
     role: "admin",
     enabled: true,
     theme: "system",
@@ -120,7 +124,7 @@ export function findOrCreatePlexUser(
 ): AuthUser {
   const existing = getDb()
     .prepare(
-      `SELECT id, username, plex_username, plex_email, plex_thumb, role, enabled, theme
+      `SELECT id, username, plex_username, plex_email, plex_thumb, user_type, role, enabled, theme
        FROM users WHERE plex_id = ?`
     )
     .get(String(plexId)) as UserRow | undefined;
@@ -143,14 +147,15 @@ export function findOrCreatePlexUser(
 
   const result = getDb()
     .prepare(
-      `INSERT INTO users (plex_id, plex_username, plex_email, plex_thumb, role, enabled)
-       VALUES (?, ?, ?, ?, 'user', 1)`
+      `INSERT INTO users (plex_id, plex_username, plex_email, plex_thumb, user_type, role, enabled)
+       VALUES (?, ?, ?, ?, 'plex', 'user', 1)`
     )
     .run(String(plexId), plexUsername, plexEmail, plexThumb);
 
   return {
     id: result.lastInsertRowid as number,
     username: plexUsername,
+    userType: "plex",
     role: "user",
     enabled: true,
     theme: "system",

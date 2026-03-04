@@ -45,6 +45,7 @@ describe("validateSession", () => {
     expect(user).not.toBeNull();
     expect(user!.id).toBe(1);
     expect(user!.username).toBe("admin");
+    expect(user!.userType).toBe("local");
     expect(user!.role).toBe("admin");
     expect(user!.enabled).toBe(true);
     expect(user!.theme).toBe("system");
@@ -87,8 +88,8 @@ describe("validateSession", () => {
   it("returns plex_username when username is null", () => {
     getDb()
       .prepare(
-        `INSERT INTO users (plex_id, plex_username, plex_email, plex_thumb, role, enabled)
-         VALUES ('plex-1', 'plexuser', 'plex@test.com', 'https://thumb.jpg', 'user', 1)`
+        `INSERT INTO users (plex_id, plex_username, plex_email, plex_thumb, user_type, role, enabled)
+         VALUES ('plex-1', 'plexuser', 'plex@test.com', 'https://thumb.jpg', 'plex', 'user', 1)`
       )
       .run();
 
@@ -96,6 +97,7 @@ describe("validateSession", () => {
     const user = validateSession(token);
     expect(user).not.toBeNull();
     expect(user!.username).toBe("plexuser");
+    expect(user!.userType).toBe("plex");
     expect(user!.thumb).toBe("https://thumb.jpg");
   });
 });

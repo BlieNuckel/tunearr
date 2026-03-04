@@ -45,6 +45,7 @@ function userResponse(user: AuthUser) {
   return {
     id: user.id,
     username: user.username,
+    userType: user.userType,
     role: user.role,
     theme: user.theme,
     thumb: user.thumb,

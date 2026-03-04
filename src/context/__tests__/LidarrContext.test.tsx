@@ -20,7 +20,7 @@ function makeAuthValue(
 ): AuthContextValue {
   return {
     status: "authenticated" as AuthStatus,
-    user: { id: 1, username: "admin", role: "admin", theme: "system", thumb: null },
+    user: { id: 1, username: "admin", userType: "local", role: "admin", theme: "system", thumb: null },
     login: vi.fn(),
     plexLogin: vi.fn(),
     plexSetup: vi.fn(),
@@ -71,7 +71,7 @@ describe("LidarrContextProvider", () => {
 
   it("does not fetch settings for non-admin users", () => {
     renderWithAuth({
-      user: { id: 2, username: "plexuser", role: "user", theme: "system", thumb: null },
+      user: { id: 2, username: "plexuser", userType: "plex", role: "user", theme: "system", thumb: null },
     });
 
     expect(screen.getByTestId("loading")).toHaveTextContent("false");

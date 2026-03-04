@@ -39,6 +39,7 @@ describe("requireAdmin middleware", () => {
     const app = buildApp({
       id: 2,
       username: "user",
+      userType: "local",
       role: "user",
       enabled: true,
       theme: "system",
@@ -53,6 +54,7 @@ describe("requireAdmin middleware", () => {
     const app = buildApp({
       id: 1,
       username: "admin",
+      userType: "local",
       role: "admin",
       enabled: true,
       theme: "system",

@@ -42,6 +42,7 @@ describe("createAdminUser", () => {
   it("creates an admin user and returns the AuthUser", async () => {
     const user = await createAdminUser("myadmin", "password123");
     expect(user.username).toBe("myadmin");
+    expect(user.userType).toBe("local");
     expect(user.role).toBe("admin");
     expect(user.enabled).toBe(true);
     expect(user.theme).toBe("system");
@@ -68,6 +69,7 @@ describe("createPlexAdminUser", () => {
       "https://thumb.jpg"
     );
     expect(user.username).toBe("plexadmin");
+    expect(user.userType).toBe("plex");
     expect(user.role).toBe("admin");
     expect(user.enabled).toBe(true);
     expect(user.theme).toBe("system");
@@ -87,6 +89,7 @@ describe("authenticateUser", () => {
     const user = await authenticateUser("admin", "password123");
     expect(user).not.toBeNull();
     expect(user!.username).toBe("admin");
+    expect(user!.userType).toBe("local");
     expect(user!.thumb).toBeNull();
   });
 
@@ -150,6 +153,7 @@ describe("findOrCreatePlexUser", () => {
 
     expect(user.id).toBeGreaterThan(0);
     expect(user.username).toBe("plexuser");
+    expect(user.userType).toBe("plex");
     expect(user.role).toBe("user");
     expect(user.enabled).toBe(true);
     expect(user.theme).toBe("system");

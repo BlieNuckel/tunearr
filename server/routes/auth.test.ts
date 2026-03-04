@@ -51,6 +51,7 @@ describe("POST /auth/setup", () => {
 
     expect(res.status).toBe(201);
     expect(res.body.user.username).toBe("admin");
+    expect(res.body.user.userType).toBe("local");
     expect(res.body.user.role).toBe("admin");
     expect(res.body.user.theme).toBe("system");
     expect(res.body.user.thumb).toBeNull();
@@ -103,6 +104,7 @@ describe("POST /auth/plex-setup", () => {
 
     expect(res.status).toBe(201);
     expect(res.body.user.username).toBe("plexadmin");
+    expect(res.body.user.userType).toBe("plex");
     expect(res.body.user.role).toBe("admin");
     expect(res.body.user.thumb).toBe("https://plex.tv/thumb.jpg");
     expect(res.headers["set-cookie"]).toBeDefined();
@@ -217,6 +219,7 @@ describe("POST /auth/plex-login", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.user.username).toBe("plexuser");
+    expect(res.body.user.userType).toBe("plex");
     expect(res.body.user.role).toBe("user");
     expect(res.body.user.thumb).toBe("https://plex.tv/thumb.jpg");
     expect(res.headers["set-cookie"]).toBeDefined();
@@ -333,6 +336,7 @@ describe("GET /auth/me", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.user.username).toBe("admin");
+    expect(res.body.user.userType).toBe("local");
     expect(res.body.user.theme).toBe("system");
     expect(res.body.user.thumb).toBeNull();
   });
