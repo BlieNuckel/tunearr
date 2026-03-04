@@ -1,4 +1,4 @@
-import type { UserRole, UserType } from "../db/types";
+import type { UserRole, UserType } from "../db/entity/User";
 
 export type AuthUser = {
   id: number;

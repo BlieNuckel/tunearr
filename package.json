@@ -18,6 +18,8 @@
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-router-dom": "^7.13.0",
+    "reflect-metadata": "^0.2.2",
+    "typeorm": "^0.3.28",
     "undici": "^7.22.0",
     "web-vitals": "^5.1.0"
   },
@@ -35,7 +37,10 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run --config vitest.config.ts",
-    "test:server": "vitest run --config server/vitest.config.ts"
+    "test:server": "vitest run --config server/vitest.config.ts",
+    "typeorm": "tsx node_modules/typeorm/cli.js",
+    "migration:generate": "pnpm typeorm migration:generate -d server/db/dataSource.ts",
+    "migration:run": "pnpm typeorm migration:run -d server/db/dataSource.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import express from "express";
 import request from "supertest";
-import { initializeDatabase, getDb, closeDatabase } from "../db";
+import { initializeDatabase, getDataSource, closeDatabase } from "../db";
 import authRouter from "./auth";
 import { errorHandler } from "../middleware/errorHandler";
 
@@ -13,8 +13,8 @@ import { getPlexAccountFull } from "../api/plex/account";
 
 let app: express.Express;
 
-beforeEach(() => {
-  initializeDatabase(":memory:");
+beforeEach(async () => {
+  await initializeDatabase(":memory:");
   app = express();
   app.use(express.json());
   app.use("/auth", authRouter);
@@ -22,8 +22,8 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-afterEach(() => {
-  closeDatabase();
+afterEach(async () => {
+  await closeDatabase();
 });
 
 describe("GET /auth/setup-status", () => {
@@ -257,9 +257,9 @@ describe("POST /auth/plex-login", () => {
       .post("/auth/plex-login")
       .send({ authToken: "valid-plex-token" });
 
-    getDb()
-      .prepare("UPDATE users SET enabled = 0 WHERE plex_id = '12345'")
-      .run();
+    await getDataSource().query(
+      "UPDATE users SET enabled = 0 WHERE plex_id = '12345'"
+    );
 
     const res = await request(app)
       .post("/auth/plex-login")
@@ -419,12 +419,10 @@ describe("POST /auth/link-plex", () => {
       thumb: "https://plex.tv/thumb.jpg",
     });
 
-    getDb()
-      .prepare(
-        `INSERT INTO users (plex_id, plex_username, plex_email, plex_thumb, user_type, role, enabled)
-         VALUES ('12345', 'existing', 'e@test.com', 'https://t.jpg', 'plex', 'user', 1)`
-      )
-      .run();
+    await getDataSource().query(
+      `INSERT INTO users (plex_id, plex_username, plex_email, plex_thumb, user_type, role, enabled)
+       VALUES ('12345', 'existing', 'e@test.com', 'https://t.jpg', 'plex', 'user', 1)`
+    );
 
     const res = await request(app)
       .post("/auth/link-plex")

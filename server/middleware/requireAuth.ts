@@ -17,7 +17,11 @@ export function parseCookieValue(
   return undefined;
 }
 
-export function requireAuth(req: Request, _res: Response, next: NextFunction) {
+export async function requireAuth(
+  req: Request,
+  _res: Response,
+  next: NextFunction
+) {
   const token = parseCookieValue(req.headers.cookie, SESSION_COOKIE_NAME);
 
   if (!token) {
@@ -28,7 +32,7 @@ export function requireAuth(req: Request, _res: Response, next: NextFunction) {
     return next(err);
   }
 
-  const user = validateSession(token);
+  const user = await validateSession(token);
   if (!user) {
     const err = new Error("Invalid or expired session") as Error & {
       status: number;

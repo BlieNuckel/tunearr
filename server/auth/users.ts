@@ -1,38 +1,24 @@
-import { getDb } from "../db";
+import { getDataSource } from "../db";
+import { User } from "../db/entity/User";
 import type { AuthUser } from "./types";
 import { hashPassword, verifyPassword } from "./password";
 
-type UserRow = {
-  id: number;
-  username: string;
-  password_hash: string;
-  plex_id: string | null;
-  plex_username: string | null;
-  plex_email: string | null;
-  plex_thumb: string | null;
-  user_type: string;
-  role: string;
-  enabled: number;
-  theme: string;
-};
-
-function toAuthUser(row: UserRow): AuthUser {
+function toAuthUser(row: User): AuthUser {
   return {
     id: row.id,
     username: row.username ?? row.plex_username ?? row.plex_email ?? "unknown",
-    userType: row.user_type as AuthUser["userType"],
-    role: row.role as AuthUser["role"],
+    userType: row.user_type,
+    role: row.role,
     enabled: !!row.enabled,
-    theme: row.theme as AuthUser["theme"],
+    theme: row.theme,
     thumb: row.plex_thumb ?? null,
   };
 }
 
-export function needsSetup(): boolean {
-  const row = getDb()
-    .prepare("SELECT COUNT(*) as count FROM users WHERE role = 'admin'")
-    .get() as { count: number };
-  return row.count === 0;
+export async function needsSetup(): Promise<boolean> {
+  const repo = getDataSource().getRepository(User);
+  const count = await repo.countBy({ role: "admin" });
+  return count === 0;
 }
 
 export async function createAdminUser(
@@ -40,16 +26,19 @@ export async function createAdminUser(
   password: string
 ): Promise<AuthUser> {
   const passwordHash = await hashPassword(password);
+  const repo = getDataSource().getRepository(User);
 
-  const result = getDb()
-    .prepare(
-      `INSERT INTO users (username, password_hash, user_type, role, enabled)
-       VALUES (?, ?, 'local', 'admin', 1)`
-    )
-    .run(username, passwordHash);
+  const user = repo.create({
+    username,
+    password_hash: passwordHash,
+    user_type: "local",
+    role: "admin",
+    enabled: 1,
+  });
+  const saved = await repo.save(user);
 
   return {
-    id: result.lastInsertRowid as number,
+    id: saved.id,
     username,
     userType: "local",
     role: "admin",
@@ -63,12 +52,8 @@ export async function authenticateUser(
   username: string,
   password: string
 ): Promise<AuthUser | null> {
-  const row = getDb()
-    .prepare(
-      `SELECT id, username, password_hash, plex_username, plex_email, plex_thumb, user_type, role, enabled, theme
-       FROM users WHERE username = ?`
-    )
-    .get(username) as UserRow | undefined;
+  const repo = getDataSource().getRepository(User);
+  const row = await repo.findOneBy({ username });
 
   if (!row || !row.password_hash) return null;
   if (!row.enabled) return null;
@@ -79,34 +64,36 @@ export async function authenticateUser(
   return toAuthUser(row);
 }
 
-export function findUserById(id: number): AuthUser | null {
-  const row = getDb()
-    .prepare(
-      `SELECT id, username, plex_username, plex_email, plex_thumb, user_type, role, enabled, theme
-       FROM users WHERE id = ?`
-    )
-    .get(id) as UserRow | undefined;
-
+export async function findUserById(
+  id: number
+): Promise<AuthUser | null> {
+  const repo = getDataSource().getRepository(User);
+  const row = await repo.findOneBy({ id });
   if (!row) return null;
-
   return toAuthUser(row);
 }
 
-export function createPlexAdminUser(
+export async function createPlexAdminUser(
   plexId: string,
   plexUsername: string,
   plexEmail: string,
   plexThumb: string
-): AuthUser {
-  const result = getDb()
-    .prepare(
-      `INSERT INTO users (plex_id, plex_username, plex_email, plex_thumb, user_type, role, enabled)
-       VALUES (?, ?, ?, ?, 'plex', 'admin', 1)`
-    )
-    .run(String(plexId), plexUsername, plexEmail, plexThumb);
+): Promise<AuthUser> {
+  const repo = getDataSource().getRepository(User);
+
+  const user = repo.create({
+    plex_id: String(plexId),
+    plex_username: plexUsername,
+    plex_email: plexEmail,
+    plex_thumb: plexThumb,
+    user_type: "plex",
+    role: "admin",
+    enabled: 1,
+  });
+  const saved = await repo.save(user);
 
   return {
-    id: result.lastInsertRowid as number,
+    id: saved.id,
     username: plexUsername,
     userType: "plex",
     role: "admin",
@@ -116,26 +103,27 @@ export function createPlexAdminUser(
   };
 }
 
-export function findOrCreatePlexUser(
+export async function findOrCreatePlexUser(
   plexId: string,
   plexUsername: string,
   plexEmail: string,
   plexThumb: string
-): AuthUser {
-  const existing = getDb()
-    .prepare(
-      `SELECT id, username, plex_username, plex_email, plex_thumb, user_type, role, enabled, theme
-       FROM users WHERE plex_id = ?`
-    )
-    .get(String(plexId)) as UserRow | undefined;
+): Promise<AuthUser> {
+  const repo = getDataSource().getRepository(User);
+  const existing = await repo.findOneBy({ plex_id: String(plexId) });
 
   if (existing) {
-    getDb()
-      .prepare(
-        `UPDATE users SET plex_username = ?, plex_email = ?, plex_thumb = ?, updated_at = datetime('now')
-         WHERE plex_id = ?`
-      )
-      .run(plexUsername, plexEmail, plexThumb, String(plexId));
+    await repo
+      .createQueryBuilder()
+      .update()
+      .set({
+        plex_username: plexUsername,
+        plex_email: plexEmail,
+        plex_thumb: plexThumb,
+      })
+      .where("plex_id = :plexId", { plexId: String(plexId) })
+      .callListeners(false)
+      .execute();
 
     return toAuthUser({
       ...existing,
@@ -145,15 +133,19 @@ export function findOrCreatePlexUser(
     });
   }
 
-  const result = getDb()
-    .prepare(
-      `INSERT INTO users (plex_id, plex_username, plex_email, plex_thumb, user_type, role, enabled)
-       VALUES (?, ?, ?, ?, 'plex', 'user', 1)`
-    )
-    .run(String(plexId), plexUsername, plexEmail, plexThumb);
+  const user = repo.create({
+    plex_id: String(plexId),
+    plex_username: plexUsername,
+    plex_email: plexEmail,
+    plex_thumb: plexThumb,
+    user_type: "plex",
+    role: "user",
+    enabled: 1,
+  });
+  const saved = await repo.save(user);
 
   return {
-    id: result.lastInsertRowid as number,
+    id: saved.id,
     username: plexUsername,
     userType: "plex",
     role: "user",
@@ -163,21 +155,15 @@ export function findOrCreatePlexUser(
   };
 }
 
-export function linkPlexAccount(
+export async function linkPlexAccount(
   userId: number,
   plexId: string,
   plexUsername: string,
   plexEmail: string,
   plexThumb: string
-): AuthUser {
-  const db = getDb();
-
-  const row = db
-    .prepare(
-      `SELECT id, username, password_hash, plex_id, plex_username, plex_email, plex_thumb, user_type, role, enabled, theme
-       FROM users WHERE id = ?`
-    )
-    .get(userId) as UserRow | undefined;
+): Promise<AuthUser> {
+  const repo = getDataSource().getRepository(User);
+  const row = await repo.findOneBy({ id: userId });
 
   if (!row) throw Object.assign(new Error("User not found"), { status: 404 });
 
@@ -187,10 +173,7 @@ export function linkPlexAccount(
     });
   }
 
-  const existing = db
-    .prepare("SELECT id FROM users WHERE plex_id = ?")
-    .get(String(plexId)) as { id: number } | undefined;
-
+  const existing = await repo.findOneBy({ plex_id: String(plexId) });
   if (existing) {
     throw Object.assign(
       new Error("This Plex account is already linked to another user"),
@@ -198,10 +181,19 @@ export function linkPlexAccount(
     );
   }
 
-  db.prepare(
-    `UPDATE users SET plex_id = ?, plex_username = ?, plex_email = ?, plex_thumb = ?, user_type = 'plex', updated_at = datetime('now')
-     WHERE id = ?`
-  ).run(String(plexId), plexUsername, plexEmail, plexThumb, userId);
+  await repo
+    .createQueryBuilder()
+    .update()
+    .set({
+      plex_id: String(plexId),
+      plex_username: plexUsername,
+      plex_email: plexEmail,
+      plex_thumb: plexThumb,
+      user_type: "plex" as const,
+    })
+    .where("id = :id", { id: userId })
+    .callListeners(false)
+    .execute();
 
   return toAuthUser({
     ...row,
@@ -213,15 +205,18 @@ export function linkPlexAccount(
   });
 }
 
-export function updateUserPreferences(
+export async function updateUserPreferences(
   userId: number,
   prefs: { theme?: AuthUser["theme"] }
-): void {
+): Promise<void> {
   if (prefs.theme) {
-    getDb()
-      .prepare(
-        "UPDATE users SET theme = ?, updated_at = datetime('now') WHERE id = ?"
-      )
-      .run(prefs.theme, userId);
+    const repo = getDataSource().getRepository(User);
+    await repo
+      .createQueryBuilder()
+      .update()
+      .set({ theme: prefs.theme })
+      .where("id = :id", { id: userId })
+      .callListeners(false)
+      .execute();
   }
 }
