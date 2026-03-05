@@ -21,12 +21,10 @@ const LOG_DIR =
   process.env.APP_CONFIG_DIR || path.join(__dirname, "..", "config");
 const LOGS_PATH = path.join(LOG_DIR, "logs");
 
-// Ensure logs directory exists (skip in test environment)
 if (!isTest && !fs.existsSync(LOGS_PATH)) {
   fs.mkdirSync(LOGS_PATH, { recursive: true });
 }
 
-// Text format for human-readable logs
 const textFormat = winston.format.combine(
   winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
   winston.format.printf((info) => {
@@ -44,17 +42,14 @@ const textFormat = winston.format.combine(
   })
 );
 
-// JSON format for machine-readable logs (UI)
 const jsonFormat = winston.format.combine(
   winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
   winston.format.json()
 );
 
-// Configure transports based on environment
 const transports: winston.transport[] = [];
 
 if (!isTest) {
-  // Text logs transport
   const textTransport = new DailyRotateFile({
     filename: path.join(LOGS_PATH, "tunearr-%DATE%.log"),
     datePattern: "YYYY-MM-DD",
@@ -67,12 +62,8 @@ if (!isTest) {
     handleRejections: false,
   });
 
-  // Suppress errors from file transport
-  textTransport.on("error", () => {
-    // Silently ignore transport errors
-  });
+  textTransport.on("error", () => {});
 
-  // JSON logs transport
   const jsonTransport = new DailyRotateFile({
     filename: path.join(LOGS_PATH, "tunearr-%DATE%.json"),
     datePattern: "YYYY-MM-DD",
@@ -85,15 +76,11 @@ if (!isTest) {
     handleRejections: false,
   });
 
-  // Suppress errors from file transport
-  jsonTransport.on("error", () => {
-    // Silently ignore transport errors
-  });
+  jsonTransport.on("error", () => {});
 
   transports.push(textTransport, jsonTransport);
 }
 
-// Console transport (development only)
 if (isDevelopment && !isTest) {
   const consoleTransport = new winston.transports.Console({
     format: textFormat,
@@ -102,7 +89,7 @@ if (isDevelopment && !isTest) {
 }
 
 const winstonLogger = winston.createLogger({
-  level: "info", // Default to info (no debug by default)
+  level: "info",
   transports,
 });
 
