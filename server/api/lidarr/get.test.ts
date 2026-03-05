@@ -10,6 +10,8 @@ vi.mock("./fetch", () => ({ lidarrFetch: mockFetch }));
 import { lidarrGet } from "./get";
 import { getLidarrConfig } from "./config";
 
+const jsonHeaders = { get: (key: string) => key === "content-type" ? "application/json" : null };
+
 const mockGetLidarrConfig = vi.mocked(getLidarrConfig);
 
 beforeEach(() => {
@@ -25,6 +27,7 @@ describe("lidarrGet", () => {
     mockFetch.mockResolvedValue({
       status: 200,
       ok: true,
+      headers: jsonHeaders,
       json: async () => ({ result: "ok" }),
     });
 
@@ -45,6 +48,7 @@ describe("lidarrGet", () => {
     mockFetch.mockResolvedValue({
       status: 200,
       ok: true,
+      headers: jsonHeaders,
       json: async () => [],
     });
 
@@ -60,6 +64,7 @@ describe("lidarrGet", () => {
     mockFetch.mockResolvedValue({
       status: 200,
       ok: true,
+      headers: jsonHeaders,
       json: async () => [{ id: 1 }],
     });
 
@@ -76,6 +81,7 @@ describe("lidarrGet", () => {
     mockFetch.mockResolvedValue({
       status: 404,
       ok: false,
+      headers: jsonHeaders,
       json: async () => ({ error: "not found" }),
     });
 
@@ -100,6 +106,7 @@ describe("lidarrGet", () => {
     mockFetch.mockResolvedValue({
       status: 200,
       ok: true,
+      headers: jsonHeaders,
       json: async () => ({}),
     });
 

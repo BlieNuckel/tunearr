@@ -1,5 +1,6 @@
 import { getLidarrConfig } from "./config";
 import { lidarrFetch } from "./fetch";
+import { parseResponseJson } from "./parseResponseJson";
 import { ProxyResponse } from "./types";
 
 /** Generic proxy helper for GET requests */
@@ -20,7 +21,7 @@ const lidarrGet = async <T = unknown>(
   );
   return {
     status: response.status,
-    data: await response.json(),
+    data: await parseResponseJson<T>(response),
     ok: response.ok,
   };
 };

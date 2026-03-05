@@ -10,6 +10,8 @@ vi.mock("./fetch", () => ({ lidarrFetch: mockFetch }));
 import { lidarrPut } from "./put";
 import { getLidarrConfig } from "./config";
 
+const jsonHeaders = { get: (key: string) => key === "content-type" ? "application/json" : null };
+
 const mockGetLidarrConfig = vi.mocked(getLidarrConfig);
 
 beforeEach(() => {
@@ -25,6 +27,7 @@ describe("lidarrPut", () => {
     mockFetch.mockResolvedValue({
       status: 200,
       ok: true,
+      headers: jsonHeaders,
       json: async () => ({ success: true }),
     });
 
@@ -47,6 +50,7 @@ describe("lidarrPut", () => {
     mockFetch.mockResolvedValue({
       status: 200,
       ok: true,
+      headers: jsonHeaders,
       json: async () => ({ updated: true }),
     });
 
@@ -63,6 +67,7 @@ describe("lidarrPut", () => {
     mockFetch.mockResolvedValue({
       status: 500,
       ok: false,
+      headers: jsonHeaders,
       json: async () => ({ message: "Internal error" }),
     });
 
