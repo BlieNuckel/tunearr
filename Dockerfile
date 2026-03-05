@@ -17,6 +17,7 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
 COPY --from=build /app/node_modules ./node_modules
 COPY server/ ./server/
+COPY shared/ ./shared/
 COPY --from=build /app/build ./build/
 
 ENV APP_CONFIG_DIR=/config
