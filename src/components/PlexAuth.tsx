@@ -79,7 +79,7 @@ function ServerPicker({
       <select
         value={selectedUrl}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full px-3 py-2 bg-white dark:bg-gray-800 border-2 border-black rounded-lg text-sm text-gray-900 dark:text-gray-100 shadow-cartoon-sm"
+        className="w-lg px-3 py-2 bg-white dark:bg-gray-800 border-2 border-black rounded-lg text-sm text-gray-900 dark:text-gray-100 shadow-cartoon-sm"
       >
         {servers.map((s) => (
           <option key={s.uri} value={s.uri}>
