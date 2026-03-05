@@ -10,7 +10,9 @@ vi.mock("./fetch", () => ({ lidarrFetch: mockFetch }));
 import { lidarrGet } from "./get";
 import { getLidarrConfig } from "./config";
 
-const jsonHeaders = { get: (key: string) => key === "content-type" ? "application/json" : null };
+const jsonHeaders = {
+  get: (key: string) => (key === "content-type" ? "application/json" : null),
+};
 
 const mockGetLidarrConfig = vi.mocked(getLidarrConfig);
 

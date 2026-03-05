@@ -24,7 +24,7 @@ export default function UsersSection() {
 
   const handleTogglePermission = async (
     userId: number,
-    permission: Permission,
+    permission: Permission
   ) => {
     const target = users.find((u) => u.id === userId);
     if (!target) return;

@@ -10,7 +10,7 @@ export async function parseResponseJson<T>(response: Response): Promise<T> {
     const body = await response.text();
     const preview = body.length > 200 ? body.slice(0, 200) + "…" : body;
     throw new Error(
-      `Lidarr returned non-JSON response (${response.status} ${contentType || "no content-type"}): ${preview}`,
+      `Lidarr returned non-JSON response (${response.status} ${contentType || "no content-type"}): ${preview}`
     );
   }
 

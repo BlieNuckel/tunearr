@@ -21,9 +21,6 @@ export const INITIAL_FORM: CreateFormState = {
   permissions: Permission.REQUEST,
 };
 
-export function togglePermissionBit(
-  current: number,
-  perm: Permission,
-): number {
+export function togglePermissionBit(current: number, perm: Permission): number {
   return (current & perm) !== 0 ? current & ~perm : current | perm;
 }

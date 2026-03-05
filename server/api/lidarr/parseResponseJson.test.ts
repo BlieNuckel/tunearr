@@ -4,7 +4,7 @@ import { parseResponseJson } from "./parseResponseJson";
 function makeResponse(
   body: string,
   contentType: string | null,
-  status = 200,
+  status = 200
 ): Response {
   const headers = new Headers();
   if (contentType) headers.set("content-type", contentType);
@@ -28,22 +28,20 @@ describe("parseResponseJson", () => {
     const response = makeResponse(
       "<!DOCTYPE html><html><body>Not Found</body></html>",
       "text/html",
-      404,
+      404
     );
     await expect(parseResponseJson(response)).rejects.toThrow(
-      "Lidarr returned non-JSON response",
+      "Lidarr returned non-JSON response"
     );
     await expect(
-      parseResponseJson(
-        makeResponse("<!DOCTYPE html>", "text/html", 404),
-      ),
+      parseResponseJson(makeResponse("<!DOCTYPE html>", "text/html", 404))
     ).rejects.toThrow("404");
   });
 
   it("throws on plain text response", async () => {
     const response = makeResponse("not json", "text/plain", 200);
     await expect(parseResponseJson(response)).rejects.toThrow(
-      "non-JSON response",
+      "non-JSON response"
     );
   });
 
