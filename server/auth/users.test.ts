@@ -9,7 +9,13 @@ import {
   findOrCreatePlexUser,
   linkPlexAccount,
   updateUserPreferences,
+  getAllUsers,
+  createLocalUser,
+  updateUserPermissions,
+  toggleUserEnabled,
+  deleteUser,
 } from "./users";
+import { Permission } from "../../shared/permissions";
 
 beforeEach(async () => {
   await initializeDatabase(":memory:");
@@ -315,5 +321,158 @@ describe("updateUserPreferences", () => {
     await updateUserPreferences(user.id, {});
     const found = await findUserById(user.id);
     expect(found!.theme).toBe("system");
+  });
+});
+
+describe("getAllUsers", () => {
+  it("returns empty array when no users exist", async () => {
+    const users = await getAllUsers();
+    expect(users).toEqual([]);
+  });
+
+  it("returns all users ordered by id", async () => {
+    await createAdminUser("admin", "password123");
+    await findOrCreatePlexUser(
+      "plex-1",
+      "plexuser",
+      "plex@test.com",
+      "https://thumb.jpg"
+    );
+
+    const users = await getAllUsers();
+    expect(users).toHaveLength(2);
+    expect(users[0].username).toBe("admin");
+    expect(users[1].username).toBe("plexuser");
+    expect(users[0].id).toBeLessThan(users[1].id);
+  });
+});
+
+describe("createLocalUser", () => {
+  it("creates a user with given permissions", async () => {
+    const user = await createLocalUser(
+      "testuser",
+      "password123",
+      Permission.REQUEST | Permission.REQUEST_VIEW
+    );
+
+    expect(user.username).toBe("testuser");
+    expect(user.userType).toBe("local");
+    expect(user.permissions).toBe(Permission.REQUEST | Permission.REQUEST_VIEW);
+    expect(user.enabled).toBe(true);
+    expect(user.theme).toBe("system");
+    expect(user.thumb).toBeNull();
+    expect(user.id).toBeGreaterThan(0);
+  });
+
+  it("stores a hashed password (not plaintext)", async () => {
+    await createLocalUser("testuser", "password123", Permission.REQUEST);
+    const rows = await getDataSource().query(
+      "SELECT password_hash FROM users WHERE username = 'testuser'"
+    );
+    expect(rows[0].password_hash).not.toBe("password123");
+    expect(rows[0].password_hash).toContain(":");
+  });
+
+  it("throws 409 for duplicate username", async () => {
+    await createLocalUser("testuser", "password123", Permission.REQUEST);
+    await expect(
+      createLocalUser("testuser", "otherpass", Permission.REQUEST)
+    ).rejects.toThrow("Username already exists");
+
+    try {
+      await createLocalUser("testuser", "otherpass", Permission.REQUEST);
+    } catch (err: unknown) {
+      expect((err as { status: number }).status).toBe(409);
+    }
+  });
+});
+
+describe("updateUserPermissions", () => {
+  it("updates the permissions of a user", async () => {
+    const user = await createAdminUser("admin", "password123");
+    const updated = await updateUserPermissions(
+      user.id,
+      Permission.REQUEST | Permission.MANAGE_REQUESTS
+    );
+
+    expect(updated.permissions).toBe(
+      Permission.REQUEST | Permission.MANAGE_REQUESTS
+    );
+
+    const rows = await getDataSource().query(
+      "SELECT permissions FROM users WHERE id = ?",
+      [user.id]
+    );
+    expect(rows[0].permissions).toBe(
+      Permission.REQUEST | Permission.MANAGE_REQUESTS
+    );
+  });
+
+  it("throws 404 for non-existent user", async () => {
+    await expect(
+      updateUserPermissions(999, Permission.REQUEST)
+    ).rejects.toThrow("User not found");
+
+    try {
+      await updateUserPermissions(999, Permission.REQUEST);
+    } catch (err: unknown) {
+      expect((err as { status: number }).status).toBe(404);
+    }
+  });
+});
+
+describe("toggleUserEnabled", () => {
+  it("toggles enabled from true to false", async () => {
+    const user = await createAdminUser("admin", "password123");
+    expect(user.enabled).toBe(true);
+
+    const toggled = await toggleUserEnabled(user.id);
+    expect(toggled.enabled).toBe(false);
+
+    const rows = await getDataSource().query(
+      "SELECT enabled FROM users WHERE id = ?",
+      [user.id]
+    );
+    expect(rows[0].enabled).toBe(0);
+  });
+
+  it("toggles enabled from false back to true", async () => {
+    const user = await createAdminUser("admin", "password123");
+    await toggleUserEnabled(user.id);
+    const toggled = await toggleUserEnabled(user.id);
+    expect(toggled.enabled).toBe(true);
+  });
+
+  it("throws 404 for non-existent user", async () => {
+    await expect(toggleUserEnabled(999)).rejects.toThrow("User not found");
+
+    try {
+      await toggleUserEnabled(999);
+    } catch (err: unknown) {
+      expect((err as { status: number }).status).toBe(404);
+    }
+  });
+});
+
+describe("deleteUser", () => {
+  it("deletes an existing user", async () => {
+    const user = await createAdminUser("admin", "password123");
+    await deleteUser(user.id);
+
+    const rows = await getDataSource().query(
+      "SELECT COUNT(*) as count FROM users WHERE id = ?",
+      [user.id]
+    );
+    expect(rows[0].count).toBe(0);
+  });
+
+  it("throws 404 for non-existent user", async () => {
+    await expect(deleteUser(999)).rejects.toThrow("User not found");
+
+    try {
+      await deleteUser(999);
+    } catch (err: unknown) {
+      expect((err as { status: number }).status).toBe(404);
+    }
   });
 });

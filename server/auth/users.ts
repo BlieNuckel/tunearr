@@ -221,3 +221,78 @@ export async function updateUserPreferences(
       .execute();
   }
 }
+
+export async function getAllUsers(): Promise<AuthUser[]> {
+  const repo = getDataSource().getRepository(User);
+  const rows = await repo.find({ order: { id: "ASC" } });
+  return rows.map(toAuthUser);
+}
+
+export async function createLocalUser(
+  username: string,
+  password: string,
+  permissions: number
+): Promise<AuthUser> {
+  const passwordHash = await hashPassword(password);
+  const repo = getDataSource().getRepository(User);
+
+  const existing = await repo.findOneBy({ username });
+  if (existing) {
+    throw Object.assign(new Error("Username already exists"), { status: 409 });
+  }
+
+  const user = repo.create({
+    username,
+    password_hash: passwordHash,
+    user_type: "local",
+    permissions,
+    enabled: 1,
+  });
+  const saved = await repo.save(user);
+  return toAuthUser(saved);
+}
+
+export async function updateUserPermissions(
+  userId: number,
+  permissions: number
+): Promise<AuthUser> {
+  const repo = getDataSource().getRepository(User);
+  const row = await repo.findOneBy({ id: userId });
+  if (!row) throw Object.assign(new Error("User not found"), { status: 404 });
+
+  await repo
+    .createQueryBuilder()
+    .update()
+    .set({ permissions })
+    .where("id = :id", { id: userId })
+    .callListeners(false)
+    .execute();
+
+  return toAuthUser({ ...row, permissions });
+}
+
+export async function toggleUserEnabled(
+  userId: number
+): Promise<AuthUser> {
+  const repo = getDataSource().getRepository(User);
+  const row = await repo.findOneBy({ id: userId });
+  if (!row) throw Object.assign(new Error("User not found"), { status: 404 });
+
+  const newEnabled = row.enabled ? 0 : 1;
+  await repo
+    .createQueryBuilder()
+    .update()
+    .set({ enabled: newEnabled })
+    .where("id = :id", { id: userId })
+    .callListeners(false)
+    .execute();
+
+  return toAuthUser({ ...row, enabled: newEnabled });
+}
+
+export async function deleteUser(userId: number): Promise<void> {
+  const repo = getDataSource().getRepository(User);
+  const row = await repo.findOneBy({ id: userId });
+  if (!row) throw Object.assign(new Error("User not found"), { status: 404 });
+  await repo.remove(row);
+}

@@ -1,4 +1,5 @@
 import { filterSections, SECTION_META } from "../settingsSearchConfig";
+import { Permission } from "@shared/permissions";
 
 describe("filterSections", () => {
   it("returns empty array for empty query", () => {
@@ -66,5 +67,55 @@ describe("SECTION_META", () => {
 
   it("assigns plex to integrations tab", () => {
     expect(SECTION_META.plex.tab).toBe("integrations");
+  });
+
+  it("has users section assigned to admin tab", () => {
+    expect(SECTION_META.users).toBeDefined();
+    expect(SECTION_META.users.tab).toBe("admin");
+    expect(SECTION_META.users.label).toBe("User Management");
+  });
+
+  it("users section requires MANAGE_USERS permission", () => {
+    expect(SECTION_META.users.permission).toBe(Permission.MANAGE_USERS);
+  });
+});
+
+describe("filterSections with permissions", () => {
+  it("returns users section when searching with MANAGE_USERS permission", () => {
+    const result = filterSections("user", Permission.MANAGE_USERS);
+    expect(result).toContain("users");
+  });
+
+  it("returns users section for admin users", () => {
+    const result = filterSections("manage", Permission.ADMIN);
+    expect(result).toContain("users");
+  });
+
+  it("hides users section when user lacks MANAGE_USERS permission", () => {
+    const result = filterSections("user", Permission.REQUEST);
+    expect(result).not.toContain("users");
+  });
+
+  it("hides admin-only sections from non-admin users", () => {
+    const result = filterSections("lidarr", Permission.REQUEST);
+    expect(result).not.toContain("lidarrConnection");
+    expect(result).not.toContain("lidarrOptions");
+  });
+
+  it("shows admin-only sections to admin users", () => {
+    const result = filterSections("lidarr", Permission.ADMIN);
+    expect(result).toContain("lidarrConnection");
+    expect(result).toContain("lidarrOptions");
+  });
+
+  it("does not filter by permission when userPermissions is undefined", () => {
+    const result = filterSections("lidarr");
+    expect(result).toContain("lidarrConnection");
+    expect(result).toContain("lidarrOptions");
+  });
+
+  it("shows sections without permission requirements to all users", () => {
+    const result = filterSections("theme", Permission.REQUEST);
+    expect(result).toContain("theme");
   });
 });

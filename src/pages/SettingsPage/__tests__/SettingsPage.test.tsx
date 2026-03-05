@@ -133,7 +133,7 @@ describe("SettingsPage", () => {
   it("shows Account section with username and Sign Out button", () => {
     renderSettingsPage();
     expect(screen.getByText("testadmin")).toBeInTheDocument();
-    expect(screen.getByText("Admin")).toBeInTheDocument();
+    expect(screen.getAllByText("Admin").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("Sign Out")).toBeInTheDocument();
   });
 
