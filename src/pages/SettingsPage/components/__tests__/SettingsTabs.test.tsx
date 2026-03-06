@@ -1,10 +1,24 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { SettingsTab } from "../../settingsSearchConfig";
 import SettingsTabs from "../SettingsTabs";
+
+const allTabs: SettingsTab[] = [
+  "general",
+  "integrations",
+  "recommendations",
+  "logs",
+];
 
 describe("SettingsTabs", () => {
   it("renders all tabs", () => {
-    render(<SettingsTabs activeTab="general" onTabChange={vi.fn()} />);
+    render(
+      <SettingsTabs
+        activeTab="general"
+        onTabChange={vi.fn()}
+        visibleTabs={allTabs}
+      />
+    );
 
     expect(screen.getByText("General")).toBeInTheDocument();
     expect(screen.getByText("Integrations")).toBeInTheDocument();
@@ -13,7 +27,13 @@ describe("SettingsTabs", () => {
   });
 
   it("highlights the active tab", () => {
-    render(<SettingsTabs activeTab="integrations" onTabChange={vi.fn()} />);
+    render(
+      <SettingsTabs
+        activeTab="integrations"
+        onTabChange={vi.fn()}
+        visibleTabs={allTabs}
+      />
+    );
 
     const integrationsTab = screen.getByRole("tab", { name: "Integrations" });
     expect(integrationsTab).toHaveAttribute("aria-selected", "true");
@@ -22,7 +42,13 @@ describe("SettingsTabs", () => {
 
   it("calls onTabChange when clicking a tab", async () => {
     const onTabChange = vi.fn();
-    render(<SettingsTabs activeTab="general" onTabChange={onTabChange} />);
+    render(
+      <SettingsTabs
+        activeTab="general"
+        onTabChange={onTabChange}
+        visibleTabs={allTabs}
+      />
+    );
 
     const logsTab = screen.getByRole("tab", { name: "Logs" });
     await userEvent.click(logsTab);
@@ -31,7 +57,13 @@ describe("SettingsTabs", () => {
   });
 
   it("renders tabs in correct order", () => {
-    render(<SettingsTabs activeTab="general" onTabChange={vi.fn()} />);
+    render(
+      <SettingsTabs
+        activeTab="general"
+        onTabChange={vi.fn()}
+        visibleTabs={allTabs}
+      />
+    );
 
     const tabs = screen.getAllByRole("tab");
     expect(tabs[0]).toHaveTextContent("General");
