@@ -133,8 +133,31 @@ export const SECTION_META: Record<SettingsSection, SectionMeta> = {
     label: "Logs",
     tab: "logs",
     keywords: ["logs", "log", "debug", "error", "history", "system"],
+    permission: Permission.ADMIN,
   },
 };
+
+const TAB_ORDER: SettingsTab[] = [
+  "general",
+  "integrations",
+  "recommendations",
+  "logs",
+  "admin",
+];
+
+export function getVisibleTabs(userPermissions?: number): SettingsTab[] {
+  const visibleSet = new Set<SettingsTab>();
+  for (const meta of Object.values(SECTION_META)) {
+    if (
+      meta.permission === undefined ||
+      (userPermissions !== undefined &&
+        hasPermission(userPermissions, meta.permission))
+    ) {
+      visibleSet.add(meta.tab);
+    }
+  }
+  return TAB_ORDER.filter((tab) => visibleSet.has(tab));
+}
 
 export function filterSections(
   query: string,

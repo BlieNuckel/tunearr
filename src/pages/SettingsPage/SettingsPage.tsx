@@ -3,7 +3,7 @@ import { useLidarrContext } from "@/context/useLidarrContext";
 import { useAutoSave } from "@/hooks/useAutoSave";
 import useAutoSetupStatus from "@/hooks/useAutoSetupStatus";
 import { useAuth } from "@/context/useAuth";
-import { hasPermission, Permission } from "@shared/permissions";
+import { hasPermission } from "@shared/permissions";
 import LidarrConnectionSection from "./components/LidarrConnectionSection";
 import LidarrOptionsSection from "./components/LidarrOptionsSection";
 import LastfmSection from "./components/LastfmSection";
@@ -23,6 +23,7 @@ import SettingsSearch from "./components/SettingsSearch";
 import SaveStatusIndicator from "./components/SaveStatusIndicator";
 import {
   filterSections,
+  getVisibleTabs,
   SECTION_META,
   TAB_LABELS,
   type SettingsSection,
@@ -82,16 +83,7 @@ export default function SettingsPage() {
   const [testResult, setTestResult] = useState<TestResult | null>(null);
   const [autoSetupModalOpen, setAutoSetupModalOpen] = useState(false);
 
-  const visibleTabs = useMemo(() => {
-    const tabs: SettingsTab[] = ["general"];
-    if (user && hasPermission(user.permissions, Permission.ADMIN)) {
-      tabs.push("integrations", "recommendations");
-    }
-    if (user && hasPermission(user.permissions, Permission.MANAGE_USERS)) {
-      tabs.push("admin");
-    }
-    return tabs;
-  }, [user]);
+  const visibleTabs = useMemo(() => getVisibleTabs(user?.permissions), [user]);
 
   const handleAutoSetupSuccess = useCallback(() => {
     refetchAutoSetup();
