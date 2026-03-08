@@ -9,6 +9,9 @@ const COLORS: Record<string, string> = {
   failed: "bg-rose-400 text-white dark:text-white",
   queued: "bg-gray-300 dark:bg-gray-600 text-black dark:text-gray-100",
   monitored: "bg-amber-300 text-black dark:text-black",
+  pending: "bg-amber-300 text-black dark:text-black",
+  approved: "bg-emerald-400 text-black dark:text-black",
+  declined: "bg-rose-400 text-white dark:text-white",
 };
 
 export default function StatusBadge({ status }: StatusBadgeProps) {

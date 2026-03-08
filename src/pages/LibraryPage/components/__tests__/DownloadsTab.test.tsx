@@ -1,5 +1,5 @@
 import { render, screen, waitFor, fireEvent } from "@testing-library/react";
-import StatusPage from "../StatusPage";
+import DownloadsTab from "../DownloadsTab";
 
 beforeEach(() => {
   vi.stubGlobal("fetch", vi.fn());
@@ -44,30 +44,29 @@ function mockAllEndpoints(
   });
 }
 
-describe("StatusPage", () => {
+describe("DownloadsTab", () => {
   it("shows loading state initially", () => {
     vi.mocked(fetch).mockReturnValue(new Promise(() => {}));
-    const { container } = render(<StatusPage />);
+    const { container } = render(<DownloadsTab />);
     const skeletons = container.querySelectorAll(".animate-shimmer");
     expect(skeletons.length).toBeGreaterThan(0);
   });
 
   it("renders all sections after loading", async () => {
     mockAllEndpoints();
-    render(<StatusPage />);
+    render(<DownloadsTab />);
 
     await waitFor(() => {
       expect(screen.getByText("Download Queue")).toBeInTheDocument();
     });
 
-    expect(screen.getByText("Download Queue")).toBeInTheDocument();
     expect(screen.getByText("Wanted / Missing")).toBeInTheDocument();
     expect(screen.getByText("Recent Imports")).toBeInTheDocument();
   });
 
   it("shows error state on fetch failure", async () => {
     vi.mocked(fetch).mockRejectedValue(new Error("Connection failed"));
-    render(<StatusPage />);
+    render(<DownloadsTab />);
 
     await waitFor(() => {
       expect(
@@ -93,27 +92,7 @@ describe("StatusPage", () => {
       ],
     });
 
-    render(<StatusPage />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Download Queue")).toBeInTheDocument();
-    });
-  });
-
-  it("renders wanted items", async () => {
-    mockAllEndpoints({
-      wanted: [
-        {
-          id: 1,
-          title: "In Rainbows",
-          foreignAlbumId: "f1",
-          artist: { artistName: "Radiohead" },
-          lastEvent: null,
-        },
-      ],
-    });
-
-    render(<StatusPage />);
+    render(<DownloadsTab />);
 
     await waitFor(() => {
       expect(screen.getByText("Download Queue")).toBeInTheDocument();
@@ -130,8 +109,7 @@ describe("StatusPage", () => {
     };
 
     mockAllEndpoints({ wanted: [wantedItem] });
-
-    render(<StatusPage />);
+    render(<DownloadsTab />);
 
     await waitFor(() => {
       expect(screen.getByText("In Rainbows")).toBeInTheDocument();
@@ -157,15 +135,13 @@ describe("StatusPage", () => {
 
   it("refreshes data when Refresh button is clicked", async () => {
     mockAllEndpoints();
-
-    render(<StatusPage />);
+    render(<DownloadsTab />);
 
     await waitFor(() => {
       expect(screen.getByText("Download Queue")).toBeInTheDocument();
     });
 
     const initialCallCount = vi.mocked(fetch).mock.calls.length;
-
     fireEvent.click(screen.getByRole("button", { name: "Refresh queue" }));
 
     await waitFor(() => {
@@ -212,7 +188,7 @@ describe("StatusPage", () => {
       return Promise.resolve(new Response("{}", { status: 200 }));
     });
 
-    render(<StatusPage />);
+    render(<DownloadsTab />);
 
     await waitFor(() => {
       expect(screen.getByText("In Rainbows")).toBeInTheDocument();

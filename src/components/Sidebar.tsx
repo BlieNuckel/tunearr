@@ -3,7 +3,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import {
   DiscoverIcon,
   SearchIcon,
-  SparklesIcon,
+  LibraryIcon,
   UserCircleIcon,
 } from "@/components/icons";
 import { useAuth } from "@/context/useAuth";
@@ -17,7 +17,7 @@ type NavItem = {
 const links: NavItem[] = [
   { to: "/", label: "Discover", icon: DiscoverIcon },
   { to: "/search", label: "Search", icon: SearchIcon },
-  { to: "/status", label: "Status", icon: SparklesIcon },
+  { to: "/library", label: "Library", icon: LibraryIcon },
 ];
 
 const mobileLinks: NavItem[] = [

@@ -43,7 +43,7 @@ describe("Sidebar", () => {
     renderSidebar();
     expect(screen.getAllByRole("link", { name: /Discover/ })).toHaveLength(2);
     expect(screen.getAllByRole("link", { name: /Search/ })).toHaveLength(2);
-    expect(screen.getAllByRole("link", { name: /Status/ })).toHaveLength(2);
+    expect(screen.getAllByRole("link", { name: /Library/ })).toHaveLength(2);
   });
 
   it("shows username in desktop sidebar account link", () => {
@@ -83,12 +83,12 @@ describe("Sidebar", () => {
     expect(searchLinks[1]).toHaveClass("text-black");
   });
 
-  it("highlights Status link on status page", () => {
-    renderSidebar("/status");
-    const statusLinks = screen.getAllByRole("link", { name: /Status/ });
-    expect(statusLinks).toHaveLength(2);
-    expect(statusLinks[0]).toHaveClass("bg-amber-300");
-    expect(statusLinks[1]).toHaveClass("text-black");
+  it("highlights Library link on library page", () => {
+    renderSidebar("/library");
+    const libraryLinks = screen.getAllByRole("link", { name: /Library/ });
+    expect(libraryLinks).toHaveLength(2);
+    expect(libraryLinks[0]).toHaveClass("bg-amber-300");
+    expect(libraryLinks[1]).toHaveClass("text-black");
   });
 
   it("highlights account link on settings page", () => {

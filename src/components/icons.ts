@@ -15,4 +15,7 @@ export {
   PauseIcon,
   UserCircleIcon,
   ArrowRightStartOnRectangleIcon as LogoutIcon,
+  RectangleStackIcon as LibraryIcon,
+  HandThumbUpIcon as ApproveIcon,
+  HandThumbDownIcon as DeclineIcon,
 } from "@heroicons/react/20/solid";

@@ -65,6 +65,26 @@ export interface RecentImport {
   };
 }
 
+export type RequestStatus = "pending" | "approved" | "declined";
+
+export interface RequestUser {
+  id: number;
+  username: string;
+  thumb: string | null;
+}
+
+export interface RequestItem {
+  id: number;
+  albumMbid: string;
+  artistName: string | null;
+  albumTitle: string | null;
+  status: RequestStatus;
+  createdAt: string;
+  updatedAt: string;
+  approvedAt: string | null;
+  user: RequestUser | null;
+}
+
 export type MonitorState =
   | "idle"
   | "adding"

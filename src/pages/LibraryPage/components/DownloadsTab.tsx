@@ -1,18 +1,54 @@
 import { useState, useEffect, useCallback } from "react";
-import QueueTable from "./components/QueueTable";
-import WantedList from "./components/WantedList";
-import RecentImports from "./components/RecentImports";
+import QueueTable from "./QueueTable";
+import WantedList from "./WantedList";
+import RecentImports from "./RecentImports";
 import Skeleton from "@/components/Skeleton";
 import { RefreshIcon } from "@/components/icons";
 import { QueueItem, WantedItem, RecentImport } from "@/types";
 
-export default function StatusPage() {
-  const [queue, setQueue] = useState<QueueItem[]>([]);
-  const [wanted, setWanted] = useState<WantedItem[]>([]);
-  const [history, setHistory] = useState<RecentImport[]>([]);
-  const [loading, setLoading] = useState(true);
+type DownloadsState = {
+  queue: QueueItem[];
+  wanted: WantedItem[];
+  history: RecentImport[];
+  loading: boolean;
+  error: string | null;
+};
+
+function LoadingSkeleton() {
+  return (
+    <div className="space-y-8">
+      {[...Array(3)].map((_, sectionIndex) => (
+        <section key={sectionIndex}>
+          <Skeleton className="h-7 w-40 mb-4" />
+          <div className="space-y-2">
+            {[...Array(3)].map((_, i) => (
+              <div
+                key={i}
+                className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-xl px-4 py-3 border-2 border-black shadow-cartoon-sm"
+              >
+                <div className="space-y-2 flex-1">
+                  <Skeleton className="h-4 w-1/3" />
+                  <Skeleton className="h-3 w-1/4" />
+                </div>
+                <Skeleton className="h-6 w-20 rounded-full" />
+              </div>
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+  );
+}
+
+export default function DownloadsTab() {
+  const [state, setState] = useState<DownloadsState>({
+    queue: [],
+    wanted: [],
+    history: [],
+    loading: true,
+    error: null,
+  });
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const fetchAll = useCallback(async () => {
     try {
@@ -22,24 +58,32 @@ export default function StatusPage() {
         fetch("/api/lidarr/history"),
       ]);
 
+      const updates: Partial<DownloadsState> = {};
       if (queueRes.ok) {
         const data = await queueRes.json();
-        setQueue(data.records || []);
+        updates.queue = data.records || [];
       }
       if (wantedRes.ok) {
         const data = await wantedRes.json();
-        setWanted(data.records || []);
+        updates.wanted = data.records || [];
       }
       if (historyRes.ok) {
         const data = await historyRes.json();
-        setHistory(data.records || []);
+        updates.history = data.records || [];
       }
+
+      setState((prev) => ({
+        ...prev,
+        ...updates,
+        loading: false,
+        error: null,
+      }));
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "An unknown error occurred"
-      );
-    } finally {
-      setLoading(false);
+      setState((prev) => ({
+        ...prev,
+        loading: false,
+        error: err instanceof Error ? err.message : "An unknown error occurred",
+      }));
     }
   }, []);
 
@@ -76,45 +120,24 @@ export default function StatusPage() {
       });
 
       if (res.ok) {
-        setWanted((prev) =>
-          prev.filter((item) => item.foreignAlbumId !== albumMbid)
-        );
+        setState((prev) => ({
+          ...prev,
+          wanted: prev.wanted.filter(
+            (item) => item.foreignAlbumId !== albumMbid
+          ),
+        }));
       }
     } catch {
       // Silently fail — user can retry
     }
   };
 
-  if (loading) {
-    return (
-      <div className="space-y-8">
-        {[...Array(3)].map((_, sectionIndex) => (
-          <section key={sectionIndex}>
-            <Skeleton className="h-7 w-40 mb-4" />
-            <div className="space-y-2">
-              {[...Array(3)].map((_, i) => (
-                <div
-                  key={i}
-                  className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-xl px-4 py-3 border-2 border-black shadow-cartoon-sm"
-                >
-                  <div className="space-y-2 flex-1">
-                    <Skeleton className="h-4 w-1/3" />
-                    <Skeleton className="h-3 w-1/4" />
-                  </div>
-                  <Skeleton className="h-6 w-20 rounded-full" />
-                </div>
-              ))}
-            </div>
-          </section>
-        ))}
-      </div>
-    );
-  }
+  if (state.loading) return <LoadingSkeleton />;
 
-  if (error) {
+  if (state.error) {
     return (
       <div className="text-rose-500">
-        <p>Failed to load status: {error}</p>
+        <p>Failed to load status: {state.error}</p>
         <p className="text-gray-400 text-sm mt-1">
           Make sure Lidarr is configured in Settings.
         </p>
@@ -141,7 +164,7 @@ export default function StatusPage() {
             <span className="hidden sm:inline">Refresh</span>
           </button>
         </div>
-        <QueueTable items={queue} />
+        <QueueTable items={state.queue} />
       </section>
 
       <section>
@@ -149,7 +172,7 @@ export default function StatusPage() {
           Wanted / Missing
         </h2>
         <WantedList
-          items={wanted}
+          items={state.wanted}
           onSearch={handleAlbumSearch}
           onRemove={handleAlbumRemove}
         />
@@ -159,7 +182,7 @@ export default function StatusPage() {
         <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
           Recent Imports
         </h2>
-        <RecentImports items={history} />
+        <RecentImports items={state.history} />
       </section>
     </div>
   );
