@@ -28,12 +28,12 @@ type TagResultEntry = {
   tags: { name: string; count: number }[];
 };
 
-let cachedResult: PromotedAlbumResult = null;
-let cachedAt = 0;
+type CacheEntry = { result: PromotedAlbumResult; cachedAt: number };
+
+const userCache = new Map<string, CacheEntry>();
 
 export function clearPromotedAlbumCache() {
-  cachedResult = null;
-  cachedAt = 0;
+  userCache.clear();
 }
 
 function mergeTagsFromResults(
@@ -273,12 +273,13 @@ export async function getPromotedAlbum(
   const config = getConfigValue("promotedAlbum");
   const cacheDurationMs = config.cacheDurationMinutes * 60 * 1000;
 
+  const cached = userCache.get(plexToken);
   if (
     !forceRefresh &&
-    cachedResult &&
-    Date.now() - cachedAt < cacheDurationMs
+    cached &&
+    Date.now() - cached.cachedAt < cacheDurationMs
   ) {
-    return cachedResult;
+    return cached.result;
   }
 
   const genericTags = new Set(config.genericTags.map((t) => t.toLowerCase()));
@@ -402,8 +403,7 @@ export async function getPromotedAlbum(
     trace,
   };
 
-  cachedResult = result;
-  cachedAt = Date.now();
+  userCache.set(plexToken, { result, cachedAt: Date.now() });
 
   return result;
 }

@@ -236,6 +236,19 @@ describe("getPromotedAlbum", () => {
     expect(mockGetTopArtists).not.toHaveBeenCalled();
   });
 
+  it("caches results per user — different tokens get independent results", async () => {
+    mockGetTopArtists.mockResolvedValue(plexArtists);
+    mockGetArtistTopTags.mockResolvedValue(tags);
+    mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
+    mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
+
+    await getPromotedAlbum("user-a-token");
+    mockGetTopArtists.mockClear();
+
+    await getPromotedAlbum("user-b-token");
+    expect(mockGetTopArtists).toHaveBeenCalledWith("user-b-token", 10);
+  });
+
   it("busts cache when forceRefresh is true", async () => {
     mockGetTopArtists.mockResolvedValue(plexArtists);
     mockGetArtistTopTags.mockResolvedValue(tags);

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { Request, Response, NextFunction } from "express";
 
 const mockGetPromotedAlbum = vi.fn();
 
@@ -10,8 +11,22 @@ import express from "express";
 import request from "supertest";
 import promotedAlbumRouter from "./promotedAlbum";
 
-const app = express();
-app.use("/", promotedAlbumRouter);
+function withUser(plexToken?: string) {
+  return (req: Request, _res: Response, next: NextFunction) => {
+    req.user = {
+      id: 1,
+      username: "test",
+      userType: "local" as const,
+      permissions: 0,
+      enabled: true,
+      theme: "system" as const,
+      thumb: null,
+      hasPlexToken: !!plexToken,
+      plexToken: plexToken ?? null,
+    };
+    next();
+  };
+}
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -19,6 +34,10 @@ beforeEach(() => {
 
 describe("GET /", () => {
   it("returns promoted album data", async () => {
+    const app = express();
+    app.use(withUser("plex-token-123"));
+    app.use("/", promotedAlbumRouter);
+
     const data = {
       album: {
         name: "OK Computer",
@@ -36,10 +55,14 @@ describe("GET /", () => {
     const res = await request(app).get("/");
     expect(res.status).toBe(200);
     expect(res.body).toEqual(data);
-    expect(mockGetPromotedAlbum).toHaveBeenCalledWith("", false);
+    expect(mockGetPromotedAlbum).toHaveBeenCalledWith("plex-token-123", false);
   });
 
   it("returns null when no album found", async () => {
+    const app = express();
+    app.use(withUser("plex-token-123"));
+    app.use("/", promotedAlbumRouter);
+
     mockGetPromotedAlbum.mockResolvedValue(null);
 
     const res = await request(app).get("/");
@@ -48,9 +71,24 @@ describe("GET /", () => {
   });
 
   it("forwards refresh param as forceRefresh", async () => {
+    const app = express();
+    app.use(withUser("plex-token-123"));
+    app.use("/", promotedAlbumRouter);
+
     mockGetPromotedAlbum.mockResolvedValue(null);
 
     await request(app).get("/?refresh=true");
-    expect(mockGetPromotedAlbum).toHaveBeenCalledWith("", true);
+    expect(mockGetPromotedAlbum).toHaveBeenCalledWith("plex-token-123", true);
+  });
+
+  it("returns null without calling service when user has no plex token", async () => {
+    const app = express();
+    app.use(withUser());
+    app.use("/", promotedAlbumRouter);
+
+    const res = await request(app).get("/");
+    expect(res.status).toBe(200);
+    expect(res.body).toBeNull();
+    expect(mockGetPromotedAlbum).not.toHaveBeenCalled();
   });
 });

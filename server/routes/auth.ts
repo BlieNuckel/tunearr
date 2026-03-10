@@ -19,6 +19,7 @@ import {
 } from "../middleware/requireAuth";
 import { validateSession } from "../auth/sessions";
 import { getPlexAccountFull } from "../api/plex/account";
+import { getServerAccessToken } from "../api/plex/servers";
 
 const TUNEARR_SERVER_CLIENT_ID = "tunearr-server";
 
@@ -199,17 +200,17 @@ router.post(
         throw err;
       }
 
-      const plexAccount = await getPlexAccountFull(
-        authToken,
-        TUNEARR_SERVER_CLIENT_ID
-      );
+      const [plexAccount, serverToken] = await Promise.all([
+        getPlexAccountFull(authToken, TUNEARR_SERVER_CLIENT_ID),
+        getServerAccessToken(authToken, TUNEARR_SERVER_CLIENT_ID),
+      ]);
 
       const user = await findOrCreatePlexUser(
         String(plexAccount.id),
         plexAccount.username,
         plexAccount.email,
         plexAccount.thumb,
-        authToken
+        serverToken
       );
 
       if (!user.enabled) {
@@ -245,10 +246,10 @@ router.post(
         throw err;
       }
 
-      const plexAccount = await getPlexAccountFull(
-        authToken,
-        TUNEARR_SERVER_CLIENT_ID
-      );
+      const [plexAccount, serverToken] = await Promise.all([
+        getPlexAccountFull(authToken, TUNEARR_SERVER_CLIENT_ID),
+        getServerAccessToken(authToken, TUNEARR_SERVER_CLIENT_ID),
+      ]);
 
       const user = await linkPlexAccount(
         req.user!.id,
@@ -256,7 +257,7 @@ router.post(
         plexAccount.username,
         plexAccount.email,
         plexAccount.thumb,
-        authToken
+        serverToken
       );
 
       res.json({ user: userResponse(user) });
@@ -316,7 +317,11 @@ router.post(
         throw err;
       }
 
-      await updateUserPlexToken(req.user!.id, authToken);
+      const serverToken = await getServerAccessToken(
+        authToken,
+        TUNEARR_SERVER_CLIENT_ID
+      );
+      await updateUserPlexToken(req.user!.id, serverToken);
 
       res.json({ success: true });
     } catch (err) {
