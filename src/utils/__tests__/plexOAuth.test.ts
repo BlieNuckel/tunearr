@@ -30,52 +30,66 @@ vi.stubGlobal("localStorage", mockLocalStorage);
 
 import { login } from "../plexOAuth";
 
+const originalUserAgent = navigator.userAgent;
+
+function createPopup() {
+  return { closed: false, close: vi.fn(), location: { href: "" } };
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   mockLocalStorage.clear();
   vi.useFakeTimers();
+  Object.defineProperty(navigator, "userAgent", {
+    value: originalUserAgent,
+    configurable: true,
+  });
 });
 
 describe("plexOAuth", () => {
   describe("login", () => {
-    it("creates a PIN and opens a popup", async () => {
+    it("opens a blank window first, then navigates to plex auth after PIN", async () => {
+      const popup = createPopup();
+      mockOpen.mockReturnValue(popup);
+
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ id: 42, code: "abc123", authToken: null }),
       });
-
-      const popup = { closed: false, close: vi.fn() };
-      mockOpen.mockReturnValue(popup);
-
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ id: 42, code: "abc123", authToken: "mytoken" }),
       });
 
       const promise = login();
+
+      expect(mockOpen).toHaveBeenCalledWith(
+        "about:blank",
+        "PlexAuth",
+        expect.stringContaining("width=")
+      );
+
       await vi.advanceTimersByTimeAsync(1000);
       const token = await promise;
 
-      expect(mockFetch).toHaveBeenCalledTimes(2);
+      expect(popup.location.href).toContain("app.plex.tv/auth");
+      expect(popup.location.href).toContain("code=abc123");
       expect(mockFetch.mock.calls[0][0]).toContain(
         "https://plex.tv/api/v2/pins?strong=true"
       );
       expect(mockFetch.mock.calls[0][1].method).toBe("POST");
-      expect(mockOpen).toHaveBeenCalledTimes(1);
-      expect(mockOpen.mock.calls[0][0]).toContain("app.plex.tv/auth");
-      expect(mockOpen.mock.calls[0][0]).toContain("code=abc123");
       expect(token).toBe("mytoken");
       expect(popup.close).toHaveBeenCalled();
     });
 
     it("returns null when popup is closed before auth", async () => {
+      const popup = { closed: true, close: vi.fn(), location: { href: "" } };
+      mockOpen.mockReturnValue(popup);
+
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ id: 42, code: "abc123", authToken: null }),
       });
-
-      const popup = { closed: true, close: vi.fn() };
-      mockOpen.mockReturnValue(popup);
 
       const promise = login();
       await vi.advanceTimersByTimeAsync(1000);
@@ -84,21 +98,30 @@ describe("plexOAuth", () => {
       expect(token).toBeNull();
     });
 
-    it("throws when PIN creation fails", async () => {
+    it("closes popup and throws when PIN creation fails", async () => {
+      const popup = createPopup();
+      mockOpen.mockReturnValue(popup);
+
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 500,
       });
 
       await expect(login()).rejects.toThrow("Failed to create Plex PIN: 500");
+      expect(popup.close).toHaveBeenCalled();
     });
 
     it("generates and persists a client ID", async () => {
+      mockOpen.mockReturnValue({
+        closed: true,
+        close: vi.fn(),
+        location: { href: "" },
+      });
+
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ id: 1, code: "x", authToken: null }),
       });
-      mockOpen.mockReturnValue({ closed: true, close: vi.fn() });
 
       const promise = login();
       await vi.advanceTimersByTimeAsync(1000);
@@ -111,14 +134,13 @@ describe("plexOAuth", () => {
     });
 
     it("polls until token is received", async () => {
+      const popup = createPopup();
+      mockOpen.mockReturnValue(popup);
+
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ id: 42, code: "abc", authToken: null }),
       });
-
-      const popup = { closed: false, close: vi.fn() };
-      mockOpen.mockReturnValue(popup);
-
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ id: 42, code: "abc", authToken: null }),
@@ -137,15 +159,41 @@ describe("plexOAuth", () => {
       expect(mockFetch).toHaveBeenCalledTimes(3);
     });
 
+    it("opens a plain tab on mobile", async () => {
+      Object.defineProperty(navigator, "userAgent", {
+        value:
+          "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15",
+        configurable: true,
+      });
+
+      const popup = {
+        closed: true,
+        close: vi.fn(),
+        location: { href: "" },
+      };
+      mockOpen.mockReturnValue(popup);
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ id: 42, code: "abc123", authToken: null }),
+      });
+
+      const promise = login();
+      await vi.advanceTimersByTimeAsync(1000);
+      await promise;
+
+      expect(mockOpen).toHaveBeenCalledWith("about:blank", "_blank");
+      expect(popup.location.href).toContain("app.plex.tv/auth");
+    });
+
     it("returns null when poll request fails", async () => {
+      const popup = createPopup();
+      mockOpen.mockReturnValue(popup);
+
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ id: 42, code: "abc", authToken: null }),
       });
-
-      const popup = { closed: false, close: vi.fn() };
-      mockOpen.mockReturnValue(popup);
-
       mockFetch.mockResolvedValueOnce({ ok: false, status: 500 });
 
       const promise = login();

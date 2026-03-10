@@ -11,6 +11,10 @@ const CLIENT_ID_KEY = "tunearr-plex-client-id";
 const PRODUCT_NAME = "Tunearr";
 const POLL_INTERVAL_MS = 1000;
 
+function isMobile(): boolean {
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
 function generateUUID(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(16));
   bytes[6] = (bytes[6] & 0x0f) | 0x40;
@@ -56,14 +60,21 @@ async function getPin(): Promise<PlexPinResponse> {
   return res.json();
 }
 
-function openPopup(code: string): Window | null {
-  const url = `https://app.plex.tv/auth/#!?clientID=${encodeURIComponent(getClientId())}&code=${encodeURIComponent(code)}&context%5Bdevice%5D%5Bproduct%5D=${encodeURIComponent(PRODUCT_NAME)}`;
+function buildAuthUrl(code: string): string {
+  return `https://app.plex.tv/auth/#!?clientID=${encodeURIComponent(getClientId())}&code=${encodeURIComponent(code)}&context%5Bdevice%5D%5Bproduct%5D=${encodeURIComponent(PRODUCT_NAME)}`;
+}
+
+function openBlankWindow(): Window | null {
+  if (isMobile()) {
+    return window.open("about:blank", "_blank");
+  }
+
   const width = 800;
   const height = 700;
   const left = window.screenX + (window.innerWidth - width) / 2;
   const top = window.screenY + (window.innerHeight - height) / 2;
   return window.open(
-    url,
+    "about:blank",
     "PlexAuth",
     `width=${width},height=${height},left=${left},top=${top}`
   );
@@ -106,7 +117,17 @@ function pollForToken(
 }
 
 export async function login(): Promise<string | null> {
-  const pin = await getPin();
-  const popup = openPopup(pin.code);
-  return pollForToken(pin.id, popup);
+  // Open window synchronously to preserve the user gesture context —
+  // mobile browsers block window.open after an await
+  const popup = openBlankWindow();
+  try {
+    const pin = await getPin();
+    if (popup) {
+      popup.location.href = buildAuthUrl(pin.code);
+    }
+    return pollForToken(pin.id, popup);
+  } catch (err) {
+    popup?.close();
+    throw err;
+  }
 }
