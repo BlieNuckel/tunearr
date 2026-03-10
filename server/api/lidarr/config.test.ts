@@ -19,7 +19,6 @@ const baseConfig = {
   lidarrMetadataProfileId: 1,
   lastfmApiKey: "",
   plexUrl: "",
-  plexToken: "",
   importPath: "",
   slskdUrl: "",
   slskdApiKey: "",

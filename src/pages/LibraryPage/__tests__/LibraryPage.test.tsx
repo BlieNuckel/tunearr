@@ -25,6 +25,7 @@ function makeAuthContext(permissions: number): AuthContextValue {
       permissions,
       theme: "system",
       thumb: null,
+      hasPlexToken: false,
     },
     login: vi.fn(),
     plexLogin: vi.fn(),
@@ -33,6 +34,7 @@ function makeAuthContext(permissions: number): AuthContextValue {
     plexSetup: vi.fn(),
     linkPlex: vi.fn(),
     updatePreferences: vi.fn(),
+    refreshUser: vi.fn(),
   };
 }
 

@@ -40,6 +40,7 @@ describe("InitialSchema migration", () => {
       "updated_at",
       "theme",
       "plex_username",
+      "plex_token",
       "user_type",
     ]);
   });

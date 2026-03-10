@@ -19,7 +19,6 @@ const fullConfig = {
   lidarrMetadataProfileId: 1,
   lastfmApiKey: "",
   plexUrl: "http://plex:32400",
-  plexToken: "plex-token-123",
   importPath: "",
   slskdUrl: "",
   slskdApiKey: "",
@@ -33,24 +32,31 @@ beforeEach(() => {
 });
 
 describe("getPlexConfig", () => {
-  it("returns config when Plex is configured", () => {
+  it("returns config when Plex URL is configured and token provided", () => {
     mockGetConfig.mockReturnValue(fullConfig);
 
-    const config = getPlexConfig();
+    const config = getPlexConfig("plex-token-123");
     expect(config.baseUrl).toBe("http://plex:32400");
     expect(config.headers["X-Plex-Token"]).toBe("plex-token-123");
     expect(config.headers["Accept"]).toBe("application/json");
     expect(config.token).toBe("plex-token-123");
   });
 
-  it("throws when Plex is not configured", () => {
+  it("throws when Plex URL is not configured", () => {
     mockGetConfig.mockReturnValue({
       ...fullConfig,
       plexUrl: "",
-      plexToken: "",
     });
 
-    expect(() => getPlexConfig()).toThrow("Plex URL and token not configured");
+    expect(() => getPlexConfig("some-token")).toThrow(
+      "Plex URL not configured"
+    );
+  });
+
+  it("throws when no token is provided", () => {
+    mockGetConfig.mockReturnValue(fullConfig);
+
+    expect(() => getPlexConfig("")).toThrow("No Plex token available");
   });
 
   it("strips trailing slashes from URL", () => {
@@ -59,7 +65,7 @@ describe("getPlexConfig", () => {
       plexUrl: "http://plex:32400///",
     });
 
-    const config = getPlexConfig();
+    const config = getPlexConfig("plex-token-123");
     expect(config.baseUrl).toBe("http://plex:32400");
   });
 });

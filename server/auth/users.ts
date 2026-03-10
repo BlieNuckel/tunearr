@@ -13,6 +13,8 @@ function toAuthUser(row: User): AuthUser {
     enabled: !!row.enabled,
     theme: row.theme,
     thumb: row.plex_thumb ?? null,
+    hasPlexToken: !!row.plex_token,
+    plexToken: row.plex_token ?? null,
   };
 }
 
@@ -48,6 +50,8 @@ export async function createAdminUser(
     enabled: true,
     theme: "system",
     thumb: null,
+    hasPlexToken: false,
+    plexToken: null,
   };
 }
 
@@ -78,7 +82,8 @@ export async function createPlexAdminUser(
   plexId: string,
   plexUsername: string,
   plexEmail: string,
-  plexThumb: string
+  plexThumb: string,
+  plexToken: string
 ): Promise<AuthUser> {
   const repo = getDataSource().getRepository(User);
 
@@ -87,6 +92,7 @@ export async function createPlexAdminUser(
     plex_username: plexUsername,
     plex_email: plexEmail,
     plex_thumb: plexThumb,
+    plex_token: plexToken,
     user_type: "plex",
     permissions: Permission.ADMIN,
     enabled: 1,
@@ -101,6 +107,8 @@ export async function createPlexAdminUser(
     enabled: true,
     theme: "system",
     thumb: plexThumb,
+    hasPlexToken: true,
+    plexToken,
   };
 }
 
@@ -108,7 +116,8 @@ export async function findOrCreatePlexUser(
   plexId: string,
   plexUsername: string,
   plexEmail: string,
-  plexThumb: string
+  plexThumb: string,
+  plexToken: string
 ): Promise<AuthUser> {
   const repo = getDataSource().getRepository(User);
   const existing = await repo.findOneBy({ plex_id: String(plexId) });
@@ -121,6 +130,7 @@ export async function findOrCreatePlexUser(
         plex_username: plexUsername,
         plex_email: plexEmail,
         plex_thumb: plexThumb,
+        plex_token: plexToken,
       })
       .where("plex_id = :plexId", { plexId: String(plexId) })
       .callListeners(false)
@@ -131,6 +141,7 @@ export async function findOrCreatePlexUser(
       plex_username: plexUsername,
       plex_email: plexEmail,
       plex_thumb: plexThumb,
+      plex_token: plexToken,
     });
   }
 
@@ -139,6 +150,7 @@ export async function findOrCreatePlexUser(
     plex_username: plexUsername,
     plex_email: plexEmail,
     plex_thumb: plexThumb,
+    plex_token: plexToken,
     user_type: "plex",
     permissions: Permission.REQUEST,
     enabled: 1,
@@ -153,6 +165,8 @@ export async function findOrCreatePlexUser(
     enabled: true,
     theme: "system",
     thumb: plexThumb,
+    hasPlexToken: true,
+    plexToken,
   };
 }
 
@@ -161,7 +175,8 @@ export async function linkPlexAccount(
   plexId: string,
   plexUsername: string,
   plexEmail: string,
-  plexThumb: string
+  plexThumb: string,
+  plexToken: string
 ): Promise<AuthUser> {
   const repo = getDataSource().getRepository(User);
   const row = await repo.findOneBy({ id: userId });
@@ -190,6 +205,7 @@ export async function linkPlexAccount(
       plex_username: plexUsername,
       plex_email: plexEmail,
       plex_thumb: plexThumb,
+      plex_token: plexToken,
       user_type: "plex" as const,
     })
     .where("id = :id", { id: userId })
@@ -202,8 +218,23 @@ export async function linkPlexAccount(
     plex_username: plexUsername,
     plex_email: plexEmail,
     plex_thumb: plexThumb,
+    plex_token: plexToken,
     user_type: "plex",
   });
+}
+
+export async function updateUserPlexToken(
+  userId: number,
+  plexToken: string
+): Promise<void> {
+  const repo = getDataSource().getRepository(User);
+  await repo
+    .createQueryBuilder()
+    .update()
+    .set({ plex_token: plexToken })
+    .where("id = :id", { id: userId })
+    .callListeners(false)
+    .execute();
 }
 
 export async function updateUserPreferences(

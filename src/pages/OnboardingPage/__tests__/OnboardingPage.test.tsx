@@ -18,6 +18,14 @@ vi.mock("@/utils/plexOAuth", () => ({
   getClientId: () => "test-client-id",
 }));
 
+vi.mock("@/context/useAuth", () => ({
+  useAuth: () => ({
+    user: { hasPlexToken: false },
+    status: "authenticated",
+    refreshUser: vi.fn(),
+  }),
+}));
+
 import OnboardingPage from "../OnboardingPage";
 import {
   LidarrContext,
@@ -41,7 +49,6 @@ function renderOnboarding(overrides: Partial<LidarrContextValue> = {}) {
       lidarrMetadataProfileId: 1,
       lastfmApiKey: "",
       plexUrl: "",
-      plexToken: "",
       importPath: "",
       slskdUrl: "",
       slskdApiKey: "",
@@ -89,7 +96,6 @@ describe("OnboardingPage", () => {
         lidarrMetadataProfileId: 1,
         lastfmApiKey: "",
         plexUrl: "",
-        plexToken: "",
         importPath: "",
         slskdUrl: "",
         slskdApiKey: "",
@@ -109,7 +115,6 @@ describe("OnboardingPage", () => {
         lidarrMetadataProfileId: 1,
         lastfmApiKey: "",
         plexUrl: "",
-        plexToken: "",
         importPath: "",
         slskdUrl: "",
         slskdApiKey: "",

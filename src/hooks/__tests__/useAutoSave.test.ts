@@ -10,7 +10,6 @@ const defaultSettings: LidarrSettings = {
   lidarrMetadataProfileId: 1,
   lastfmApiKey: "lfm-key",
   plexUrl: "http://plex:32400",
-  plexToken: "plex-token",
   importPath: "/imports",
   slskdUrl: "",
   slskdApiKey: "",
@@ -148,16 +147,16 @@ describe("useAutoSave", () => {
     await act(async () => {
       result.current.updateFields({
         plexUrl: "http://new-plex",
-        plexToken: "new-token",
+        lastfmApiKey: "new-key",
       });
     });
 
     expect(save).toHaveBeenCalledWith({
       plexUrl: "http://new-plex",
-      plexToken: "new-token",
+      lastfmApiKey: "new-key",
     });
     expect(result.current.fields.plexUrl).toBe("http://new-plex");
-    expect(result.current.fields.plexToken).toBe("new-token");
+    expect(result.current.fields.lastfmApiKey).toBe("new-key");
   });
 
   it("syncs fields when settings prop changes", () => {

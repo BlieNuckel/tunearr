@@ -2,18 +2,14 @@ import PlexAuth from "@/components/PlexAuth";
 
 interface PlexSectionProps {
   url: string;
-  token: string;
   onUrlChange: (url: string) => void;
-  onTokenChange: (token: string) => void;
   onSignOut: () => void;
-  onLoginComplete: (token: string, serverUrl: string) => void;
+  onLoginComplete: (serverUrl: string) => void;
 }
 
 export default function PlexSection({
   url,
-  token,
   onUrlChange,
-  onTokenChange,
   onSignOut,
   onLoginComplete,
 }: PlexSectionProps) {
@@ -23,9 +19,7 @@ export default function PlexSection({
         Plex
       </h2>
       <PlexAuth
-        token={token}
         serverUrl={url}
-        onToken={onTokenChange}
         onServerUrl={onUrlChange}
         onSignOut={onSignOut}
         onLoginComplete={onLoginComplete}

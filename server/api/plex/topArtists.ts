@@ -6,7 +6,6 @@ import type {
   PlexTopArtist,
 } from "./types";
 
-/** Find the first music library section key */
 const getMusicSectionKey = async (
   baseUrl: string,
   headers: Record<string, string>
@@ -21,9 +20,11 @@ const getMusicSectionKey = async (
   return musicSection.key;
 };
 
-/** Fetch the most-played artists from the Plex music library */
-export async function getTopArtists(limit: number): Promise<PlexTopArtist[]> {
-  const { baseUrl, headers } = getPlexConfig();
+export async function getTopArtists(
+  plexToken: string,
+  limit: number
+): Promise<PlexTopArtist[]> {
+  const { baseUrl, headers } = getPlexConfig(plexToken);
   const sectionKey = await getMusicSectionKey(baseUrl, headers);
 
   const url = `${baseUrl}/library/sections/${sectionKey}/all?type=8&sort=viewCount:desc&X-Plex-Container-Start=0&X-Plex-Container-Size=${limit}`;

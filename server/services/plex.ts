@@ -6,9 +6,10 @@ type PlexThumbnailResult =
   | { ok: false; status: number };
 
 export async function fetchPlexThumbnail(
+  plexToken: string,
   path: string
 ): Promise<PlexThumbnailResult> {
-  const { baseUrl, headers } = getPlexConfig();
+  const { baseUrl, headers } = getPlexConfig(plexToken);
   const upstream = await resilientFetch(`${baseUrl}${path}`, { headers });
 
   if (!upstream.ok) {

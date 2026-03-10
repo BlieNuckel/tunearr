@@ -22,6 +22,7 @@ function makeAuthValue(permissions: number): AuthContextValue {
       permissions,
       theme: "system",
       thumb: null,
+      hasPlexToken: false,
     },
     login: vi.fn(),
     plexLogin: vi.fn(),
@@ -30,6 +31,7 @@ function makeAuthValue(permissions: number): AuthContextValue {
     logout: vi.fn(),
     setup: vi.fn(),
     updatePreferences: vi.fn(),
+    refreshUser: vi.fn(),
   };
 }
 
@@ -41,7 +43,6 @@ const emptySettings = {
   lidarrMetadataProfileId: 1,
   lastfmApiKey: "",
   plexUrl: "",
-  plexToken: "",
   importPath: "",
   slskdUrl: "",
   slskdApiKey: "",

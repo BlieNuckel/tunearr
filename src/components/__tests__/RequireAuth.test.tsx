@@ -16,6 +16,7 @@ function renderWithAuth(
       permissions: 2,
       theme: "system",
       thumb: null,
+      hasPlexToken: false,
     },
     login: vi.fn(),
     plexLogin: vi.fn(),
@@ -24,6 +25,7 @@ function renderWithAuth(
     logout: vi.fn(),
     setup: vi.fn(),
     updatePreferences: vi.fn(),
+    refreshUser: vi.fn(),
     ...overrides,
   };
 

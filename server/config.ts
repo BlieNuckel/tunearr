@@ -32,7 +32,6 @@ export type IConfig = {
   lidarrMetadataProfileId: number;
   lastfmApiKey: string;
   plexUrl: string;
-  plexToken: string;
   importPath: string;
   slskdUrl: string;
   slskdApiKey: string;
@@ -77,7 +76,6 @@ const DEFAULT_CONFIG: IConfig = {
   lidarrMetadataProfileId: 1,
   lastfmApiKey: "",
   plexUrl: "",
-  plexToken: "",
   importPath: "",
   slskdUrl: "",
   slskdApiKey: "",
@@ -183,9 +181,6 @@ export const setConfig = (newConfig: Partial<IConfigInput>) => {
   }
   if (typeof mergedConfig.plexUrl !== "string") {
     throw new Error("plexUrl must be a string");
-  }
-  if (typeof mergedConfig.plexToken !== "string") {
-    throw new Error("plexToken must be a string");
   }
   if (typeof mergedConfig.importPath !== "string") {
     throw new Error("importPath must be a string");

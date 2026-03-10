@@ -14,6 +14,7 @@ const mockAuthValue: AuthContextValue = {
     permissions: 1,
     theme: "system",
     thumb: null,
+    hasPlexToken: false,
   },
   login: vi.fn(),
   plexLogin: vi.fn(),
@@ -22,6 +23,7 @@ const mockAuthValue: AuthContextValue = {
   logout: mockLogout,
   setup: vi.fn(),
   updatePreferences: vi.fn(),
+  refreshUser: vi.fn(),
 };
 
 function renderAccountSection(overrides: Partial<AuthContextValue> = {}) {
@@ -52,6 +54,7 @@ describe("AccountSection", () => {
         permissions: 8,
         theme: "system",
         thumb: null,
+        hasPlexToken: false,
       },
     });
     expect(screen.getByText("regularuser")).toBeInTheDocument();
@@ -78,6 +81,7 @@ describe("AccountSection", () => {
         permissions: 8,
         theme: "system",
         thumb: "https://plex.tv/avatar.jpg",
+        hasPlexToken: true,
       },
     });
     expect(screen.getByText("Plex")).toBeInTheDocument();
@@ -92,6 +96,7 @@ describe("AccountSection", () => {
         permissions: 8,
         theme: "system",
         thumb: "https://plex.tv/avatar.jpg",
+        hasPlexToken: true,
       },
     });
     const avatar = screen.getByAltText("plexuser");
@@ -118,6 +123,7 @@ describe("AccountSection", () => {
         permissions: 8,
         theme: "system",
         thumb: "https://plex.tv/avatar.jpg",
+        hasPlexToken: true,
       },
     });
     expect(screen.queryByText("Connect Plex")).not.toBeInTheDocument();
