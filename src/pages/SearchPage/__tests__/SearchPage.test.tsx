@@ -11,6 +11,12 @@ vi.mock("@/hooks/useSearch", () => ({
   }),
 }));
 
+vi.mock("@/hooks/useLibraryAlbums", () => ({
+  default: () => ({
+    isAlbumInLibrary: () => false,
+  }),
+}));
+
 function renderSearchPage(query = "") {
   const path = query ? `/search?q=${query}&searchType=album` : "/search";
   return render(

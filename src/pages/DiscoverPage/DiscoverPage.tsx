@@ -1,5 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import useDiscover from "@/hooks/useDiscover";
+import useLibraryAlbums from "@/hooks/useLibraryAlbums";
 import usePromotedAlbum from "@/hooks/usePromotedAlbum";
 import PromotedAlbum from "./components/PromotedAlbum";
 import PlexTopArtists from "./components/PlexTopArtists";
@@ -13,7 +14,6 @@ import Skeleton from "@/components/Skeleton";
 export default function DiscoverPage() {
   const {
     libraryArtists,
-    libraryAlbums,
     libraryLoading,
     plexTopArtists,
     plexLoading,
@@ -37,33 +37,20 @@ export default function DiscoverPage() {
     refresh: refreshPromotedAlbum,
   } = usePromotedAlbum();
 
+  const { isAlbumInLibrary } = useLibraryAlbums();
+
   const [selectedArtist, setSelectedArtist] = useState<string | null>(null);
   const [activeTags, setActiveTags] = useState<string[]>([]);
 
   const effectiveSelectedArtist = selectedArtist ?? autoSelectedArtist;
 
-  const libraryMbids = useMemo(
-    () => new Set(libraryArtists.map((a) => a.foreignArtistId)),
-    [libraryArtists]
-  );
-
-  const libraryNames = useMemo(
-    () => new Set(libraryArtists.map((a) => a.name.toLowerCase())),
-    [libraryArtists]
-  );
-
-  const libraryAlbumMbids = useMemo(
-    () => new Set(libraryAlbums.map((a) => a.foreignAlbumId)),
-    [libraryAlbums]
-  );
-
   const isInLibrary = (name: string, mbid?: string) => {
-    if (mbid && libraryMbids.has(mbid)) return true;
-    return libraryNames.has(name.toLowerCase());
-  };
-
-  const isAlbumInLibrary = (albumMbid: string) => {
-    return libraryAlbumMbids.has(albumMbid);
+    if (mbid) {
+      return libraryArtists.some((a) => a.foreignArtistId === mbid);
+    }
+    return libraryArtists.some(
+      (a) => a.name.toLowerCase() === name.toLowerCase()
+    );
   };
 
   const handleArtistSelect = (name: string) => {

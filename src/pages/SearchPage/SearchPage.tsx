@@ -4,12 +4,14 @@ import SearchBar from "./components/SearchBar";
 import ReleaseGroupCard from "@/components/ReleaseGroupCard";
 import Skeleton from "@/components/Skeleton";
 import useSearch from "@/hooks/useSearch";
+import useLibraryAlbums from "@/hooks/useLibraryAlbums";
 
 const DEAL_ROTATIONS = [-4, 3.5, -3, 4.5, -3.5, 3];
 
 export default function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { results, loading, error, search } = useSearch();
+  const { isAlbumInLibrary } = useLibraryAlbums();
 
   const query = searchParams.get("q") ?? "";
   const searchType = searchParams.get("searchType") ?? "album";
@@ -79,7 +81,10 @@ export default function SearchPage() {
                 } as React.CSSProperties
               }
             >
-              <ReleaseGroupCard releaseGroup={rg} />
+              <ReleaseGroupCard
+                releaseGroup={rg}
+                inLibrary={isAlbumInLibrary(rg.id)}
+              />
             </div>
           ))}
         </div>
