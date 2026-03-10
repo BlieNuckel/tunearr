@@ -25,7 +25,7 @@ export default function AccountSection() {
       <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
         Account
       </h2>
-      <div className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 border-2 border-black rounded-lg shadow-cartoon-sm">
+      <div className="w-fit flex items-center justify-between p-4 bg-white dark:bg-gray-800 border-2 border-black rounded-lg shadow-cartoon-sm">
         <div className="flex items-center gap-3">
           <UserAvatar thumb={user?.thumb ?? null} username={user?.username} />
           <div>
