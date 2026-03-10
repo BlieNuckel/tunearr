@@ -6,7 +6,8 @@ const router = express.Router();
 
 router.get("/", async (req: Request, res: Response) => {
   const forceRefresh = req.query.refresh === "true";
-  const result = await getPromotedAlbum(forceRefresh);
+  const plexToken = req.user?.plexToken ?? "";
+  const result = await getPromotedAlbum(plexToken, forceRefresh);
   res.json(result);
 });
 

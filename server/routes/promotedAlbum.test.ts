@@ -36,7 +36,7 @@ describe("GET /", () => {
     const res = await request(app).get("/");
     expect(res.status).toBe(200);
     expect(res.body).toEqual(data);
-    expect(mockGetPromotedAlbum).toHaveBeenCalledWith(false);
+    expect(mockGetPromotedAlbum).toHaveBeenCalledWith("", false);
   });
 
   it("returns null when no album found", async () => {
@@ -51,6 +51,6 @@ describe("GET /", () => {
     mockGetPromotedAlbum.mockResolvedValue(null);
 
     await request(app).get("/?refresh=true");
-    expect(mockGetPromotedAlbum).toHaveBeenCalledWith(true);
+    expect(mockGetPromotedAlbum).toHaveBeenCalledWith("", true);
   });
 });

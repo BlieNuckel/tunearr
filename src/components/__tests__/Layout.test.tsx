@@ -12,6 +12,7 @@ const mockAuthValue: AuthContextValue = {
     permissions: 2,
     theme: "system",
     thumb: null,
+    hasPlexToken: false,
   },
   login: vi.fn(),
   plexLogin: vi.fn(),
@@ -20,6 +21,7 @@ const mockAuthValue: AuthContextValue = {
   logout: vi.fn(),
   setup: vi.fn(),
   updatePreferences: vi.fn(),
+  refreshUser: vi.fn(),
 };
 
 function renderLayout(path = "/") {

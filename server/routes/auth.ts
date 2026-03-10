@@ -8,6 +8,7 @@ import {
   findOrCreatePlexUser,
   linkPlexAccount,
   updateUserPreferences,
+  updateUserPlexToken,
 } from "../auth/users";
 import { createSession, deleteSession } from "../auth/sessions";
 import type { AuthUser } from "../auth/types";
@@ -50,6 +51,7 @@ function userResponse(user: AuthUser) {
     permissions: user.permissions,
     theme: user.theme,
     thumb: user.thumb,
+    hasPlexToken: user.hasPlexToken,
   };
 }
 
@@ -136,7 +138,8 @@ router.post(
         String(plexAccount.id),
         plexAccount.username,
         plexAccount.email,
-        plexAccount.thumb
+        plexAccount.thumb,
+        authToken
       );
 
       const token = await createSession(user.id);
@@ -205,7 +208,8 @@ router.post(
         String(plexAccount.id),
         plexAccount.username,
         plexAccount.email,
-        plexAccount.thumb
+        plexAccount.thumb,
+        authToken
       );
 
       if (!user.enabled) {
@@ -251,7 +255,8 @@ router.post(
         String(plexAccount.id),
         plexAccount.username,
         plexAccount.email,
-        plexAccount.thumb
+        plexAccount.thumb,
+        authToken
       );
 
       res.json({ user: userResponse(user) });
@@ -295,6 +300,30 @@ router.get("/me", async (req: Request, res: Response, next: NextFunction) => {
     next(err);
   }
 });
+
+router.post(
+  "/store-plex-token",
+  requireAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { authToken } = req.body;
+
+      if (!authToken || typeof authToken !== "string") {
+        const err = new Error("authToken is required") as Error & {
+          status: number;
+        };
+        err.status = 400;
+        throw err;
+      }
+
+      await updateUserPlexToken(req.user!.id, authToken);
+
+      res.json({ success: true });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
 
 router.patch(
   "/preferences",

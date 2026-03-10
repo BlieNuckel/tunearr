@@ -48,6 +48,7 @@ const mockAuthValue: AuthContextValue = {
     permissions: 1,
     theme: "system",
     thumb: null,
+    hasPlexToken: true,
   },
   login: vi.fn(),
   plexLogin: vi.fn(),
@@ -56,6 +57,7 @@ const mockAuthValue: AuthContextValue = {
   logout: mockLogout,
   setup: vi.fn(),
   updatePreferences: vi.fn(),
+  refreshUser: vi.fn(),
 };
 
 function renderSettingsPage(overrides: Partial<LidarrContextValue> = {}) {
@@ -69,7 +71,6 @@ function renderSettingsPage(overrides: Partial<LidarrContextValue> = {}) {
       lidarrMetadataProfileId: 1,
       lastfmApiKey: "lfm-key",
       plexUrl: "http://plex:32400",
-      plexToken: "plex-token",
       importPath: "/imports",
       slskdUrl: "",
       slskdApiKey: "",
@@ -287,14 +288,29 @@ describe("SettingsPage", () => {
 
     await waitFor(() => {
       expect(mockSavePartialSettings).toHaveBeenCalledWith({
-        plexToken: "",
         plexUrl: "",
       });
     });
   });
 
   it("automatically saves settings when signing in to Plex", async () => {
-    renderSettingsPage();
+    mockFetchAccount.mockResolvedValue(null);
+
+    renderSettingsPage({
+      settings: {
+        lidarrUrl: "http://lidarr:8686",
+        lidarrApiKey: "key1",
+        lidarrQualityProfileId: 1,
+        lidarrRootFolderPath: "/music",
+        lidarrMetadataProfileId: 1,
+        lastfmApiKey: "lfm-key",
+        plexUrl: "",
+        importPath: "/imports",
+        slskdUrl: "",
+        slskdApiKey: "",
+        slskdDownloadPath: "",
+      },
+    });
     fireEvent.click(screen.getByText("Integrations"));
 
     await waitFor(() => {
@@ -304,16 +320,13 @@ describe("SettingsPage", () => {
     const hookOpts = mockUsePlexLogin.mock.calls[0][0];
 
     await act(async () => {
-      hookOpts.onToken("new-token");
       hookOpts.onServers([
         { name: "My Server", uri: "http://plex:32400", local: true },
       ]);
-      hookOpts.onLoginComplete("new-token", "http://plex:32400");
     });
 
     await waitFor(() => {
       expect(mockSavePartialSettings).toHaveBeenCalledWith({
-        plexToken: "new-token",
         plexUrl: "http://plex:32400",
       });
     });

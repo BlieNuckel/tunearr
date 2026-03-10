@@ -18,6 +18,7 @@ export class InitialSchema1709000000000 implements MigrationInterface {
         "updated_at" TEXT NOT NULL DEFAULT (datetime('now')),
         "theme" TEXT NOT NULL DEFAULT 'system' CHECK ("theme" IN ('light', 'dark', 'system')),
         "plex_username" TEXT,
+        "plex_token" TEXT,
         "user_type" TEXT NOT NULL DEFAULT 'local' CHECK ("user_type" IN ('local', 'plex'))
       )
     `);

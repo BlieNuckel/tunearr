@@ -71,7 +71,8 @@ describe("createPlexAdminUser", () => {
       "plex-123",
       "plexadmin",
       "admin@plex.tv",
-      "https://thumb.jpg"
+      "https://thumb.jpg",
+      "plex-token-123"
     );
     expect(user.username).toBe("plexadmin");
     expect(user.userType).toBe("plex");
@@ -87,7 +88,8 @@ describe("createPlexAdminUser", () => {
       "plex-123",
       "plexadmin",
       "admin@plex.tv",
-      "https://thumb.jpg"
+      "https://thumb.jpg",
+      "plex-token-123"
     );
     expect(await needsSetup()).toBe(false);
   });
@@ -159,7 +161,8 @@ describe("findOrCreatePlexUser", () => {
       "plex-123",
       "plexuser",
       "plex@test.com",
-      "https://thumb.jpg"
+      "https://thumb.jpg",
+      "plex-token-123"
     );
 
     expect(user.id).toBeGreaterThan(0);
@@ -183,13 +186,15 @@ describe("findOrCreatePlexUser", () => {
       "plex-123",
       "plexuser",
       "plex@test.com",
-      "https://thumb.jpg"
+      "https://thumb.jpg",
+      "plex-token-123"
     );
     const second = await findOrCreatePlexUser(
       "plex-123",
       "plexuser",
       "plex@test.com",
-      "https://thumb.jpg"
+      "https://thumb.jpg",
+      "plex-token-123"
     );
 
     expect(second.id).toBe(first.id);
@@ -200,13 +205,15 @@ describe("findOrCreatePlexUser", () => {
       "plex-123",
       "oldname",
       "old@test.com",
-      "https://old-thumb.jpg"
+      "https://old-thumb.jpg",
+      "plex-token-123"
     );
     const updated = await findOrCreatePlexUser(
       "plex-123",
       "newname",
       "new@test.com",
-      "https://new-thumb.jpg"
+      "https://new-thumb.jpg",
+      "plex-token-456"
     );
 
     expect(updated.username).toBe("newname");
@@ -218,7 +225,8 @@ describe("findOrCreatePlexUser", () => {
       "plex-123",
       "plexuser",
       "plex@test.com",
-      "https://thumb.jpg"
+      "https://thumb.jpg",
+      "plex-token-123"
     );
     await getDataSource().query("UPDATE users SET enabled = 0 WHERE id = ?", [
       user.id,
@@ -228,7 +236,8 @@ describe("findOrCreatePlexUser", () => {
       "plex-123",
       "plexuser",
       "plex@test.com",
-      "https://thumb.jpg"
+      "https://thumb.jpg",
+      "plex-token-123"
     );
     expect(updated.enabled).toBe(false);
   });
@@ -243,7 +252,8 @@ describe("linkPlexAccount", () => {
       "plex-456",
       "plexname",
       "plex@test.com",
-      "https://thumb.jpg"
+      "https://thumb.jpg",
+      "plex-token-456"
     );
 
     expect(linked.id).toBe(localUser.id);
@@ -267,7 +277,8 @@ describe("linkPlexAccount", () => {
       "plex-123",
       "plexadmin",
       "admin@plex.tv",
-      "https://thumb.jpg"
+      "https://thumb.jpg",
+      "plex-token-123"
     );
 
     await expect(
@@ -276,7 +287,8 @@ describe("linkPlexAccount", () => {
         "plex-789",
         "other",
         "o@t.com",
-        "https://t.jpg"
+        "https://t.jpg",
+        "plex-token-789"
       )
     ).rejects.toThrow("Only local users can link a Plex account");
   });
@@ -287,7 +299,8 @@ describe("linkPlexAccount", () => {
       "plex-456",
       "existing",
       "e@t.com",
-      "https://t.jpg"
+      "https://t.jpg",
+      "plex-token-456"
     );
 
     await expect(
@@ -296,14 +309,22 @@ describe("linkPlexAccount", () => {
         "plex-456",
         "plexname",
         "p@t.com",
-        "https://t.jpg"
+        "https://t.jpg",
+        "plex-token-456"
       )
     ).rejects.toThrow("This Plex account is already linked to another user");
   });
 
   it("throws when user does not exist", async () => {
     await expect(
-      linkPlexAccount(999, "plex-456", "plexname", "p@t.com", "https://t.jpg")
+      linkPlexAccount(
+        999,
+        "plex-456",
+        "plexname",
+        "p@t.com",
+        "https://t.jpg",
+        "plex-token-456"
+      )
     ).rejects.toThrow("User not found");
   });
 });
@@ -336,7 +357,8 @@ describe("getAllUsers", () => {
       "plex-1",
       "plexuser",
       "plex@test.com",
-      "https://thumb.jpg"
+      "https://thumb.jpg",
+      "plex-token-1"
     );
 
     const users = await getAllUsers();

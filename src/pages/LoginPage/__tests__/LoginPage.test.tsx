@@ -14,6 +14,7 @@ function renderWithAuth(overrides: Partial<AuthContextValue> = {}) {
     logout: vi.fn(),
     setup: vi.fn(),
     updatePreferences: vi.fn(),
+    refreshUser: vi.fn(),
     ...overrides,
   };
 

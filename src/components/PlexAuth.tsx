@@ -6,14 +6,13 @@ import usePlexLogin, {
 } from "@/hooks/usePlexLogin";
 import type { PlexAccount, PlexServer } from "@/hooks/usePlexLogin";
 import { getClientId } from "@/utils/plexOAuth";
+import { useAuth } from "@/context/useAuth";
 
 interface PlexAuthProps {
-  token: string;
   serverUrl?: string;
-  onToken: (token: string) => void;
   onServerUrl: (url: string) => void;
   onSignOut?: () => void;
-  onLoginComplete?: (token: string, serverUrl: string) => void;
+  onLoginComplete?: (serverUrl: string) => void;
 }
 
 function SignedInCard({
@@ -93,88 +92,67 @@ function ServerPicker({
 
 type AccountFetch =
   | { status: "idle" }
-  | { status: "fetching"; forToken: string }
-  | { status: "done"; forToken: string; account: PlexAccount | null };
+  | { status: "fetching" }
+  | { status: "done"; account: PlexAccount | null };
 
 export default function PlexAuth({
-  token,
   serverUrl = "",
-  onToken,
   onServerUrl,
   onSignOut: onSignOutProp,
   onLoginComplete,
 }: PlexAuthProps) {
+  const { user } = useAuth();
+  const hasPlexToken = user?.hasPlexToken ?? false;
+
   const [fetchState, setFetchState] = useState<AccountFetch>({
     status: "idle",
   });
   const [servers, setServers] = useState<PlexServer[]>([]);
   const serverName = servers.find((s) => s.uri === serverUrl)?.name ?? "";
 
-  const handleAccount = useCallback(
-    (acct: PlexAccount) => {
-      setFetchState({ status: "done", forToken: token, account: acct });
-    },
-    [token]
-  );
+  const handleAccount = useCallback((acct: PlexAccount) => {
+    setFetchState({ status: "done", account: acct });
+  }, []);
 
   const { loading, login } = usePlexLogin({
-    onToken,
     onServers: (fetched: PlexServer[]) => {
       setServers(fetched);
       const best = pickBestServer(fetched);
       if (best) {
         onServerUrl(best.uri);
+        onLoginComplete?.(best.uri);
       }
     },
     onAccount: handleAccount,
-    onLoginComplete,
   });
 
   useEffect(() => {
-    if (!token) return;
-    if (
-      (fetchState.status === "fetching" && fetchState.forToken === token) ||
-      (fetchState.status === "done" && fetchState.forToken === token)
-    ) {
-      return;
-    }
+    if (!hasPlexToken) return;
+    if (fetchState.status !== "idle") return;
 
     let cancelled = false;
-    setFetchState({ status: "fetching", forToken: token });
+    setFetchState({ status: "fetching" });
 
-    fetchAccount(token).then((acct) => {
+    const clientId = getClientId();
+
+    Promise.all([
+      fetchAccount(),
+      fetch(`/api/plex/servers?clientId=${encodeURIComponent(clientId)}`).then(
+        (res) => (res.ok ? res.json() : null)
+      ),
+    ]).then(([acct, serversData]) => {
       if (cancelled) return;
-      setFetchState({ status: "done", forToken: token, account: acct });
+      setFetchState({ status: "done", account: acct });
+      if (serversData?.servers) {
+        setServers((prev) => (prev.length > 0 ? prev : serversData.servers));
+      }
     });
 
     return () => {
       cancelled = true;
     };
-    // fetchState is intentionally omitted — we only want to re-run when token changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
-
-  useEffect(() => {
-    if (!token) {
-      setServers([]);
-      return;
-    }
-
-    let cancelled = false;
-    const clientId = getClientId();
-    fetch(
-      `/api/plex/servers?token=${encodeURIComponent(token)}&clientId=${encodeURIComponent(clientId)}`
-    )
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (cancelled || !data) return;
-        setServers((prev) => (prev.length > 0 ? prev : (data.servers ?? [])));
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [token]);
+  }, [hasPlexToken]);
 
   const handleSignOut = () => {
     setFetchState({ status: "idle" });
@@ -182,17 +160,13 @@ export default function PlexAuth({
     if (onSignOutProp) {
       onSignOutProp();
     } else {
-      onToken("");
       onServerUrl("");
     }
   };
 
-  const isLoading =
-    fetchState.status === "fetching" && fetchState.forToken === token;
+  const isLoading = fetchState.status === "fetching";
   const account =
-    token && fetchState.status === "done" && fetchState.forToken === token
-      ? fetchState.account
-      : null;
+    hasPlexToken && fetchState.status === "done" ? fetchState.account : null;
 
   if (isLoading) {
     return (

@@ -20,6 +20,11 @@ vi.mock("@/utils/plexOAuth", () => ({
   getClientId: () => "test-client-id",
 }));
 
+const mockUseAuth = vi.fn();
+vi.mock("@/context/useAuth", () => ({
+  useAuth: () => mockUseAuth(),
+}));
+
 const mockFetch = vi.fn();
 vi.stubGlobal("fetch", mockFetch);
 
@@ -33,16 +38,18 @@ beforeEach(() => {
     (servers: { local: boolean }[]) =>
       servers.find((s) => !s.local) ?? servers[0]
   );
+  mockUseAuth.mockReturnValue({
+    user: { hasPlexToken: false },
+    status: "authenticated",
+  });
 });
 
 describe("PlexAuth", () => {
   const defaultProps = {
-    token: "",
-    onToken: vi.fn(),
     onServerUrl: vi.fn(),
   };
 
-  it("renders sign-in button when no token", () => {
+  it("renders sign-in button when user has no plex token", () => {
     mockUsePlexLogin.mockReturnValue({ loading: false, login: vi.fn() });
     render(<PlexAuth {...defaultProps} />);
     expect(screen.getByText("Sign in with Plex")).toBeInTheDocument();
@@ -63,14 +70,19 @@ describe("PlexAuth", () => {
     expect(loginFn).toHaveBeenCalled();
   });
 
-  it("shows signed-in card when token exists and account loads", async () => {
+  it("shows signed-in card when user has plex token and account loads", async () => {
+    mockUseAuth.mockReturnValue({
+      user: { hasPlexToken: true },
+      status: "authenticated",
+    });
     mockUsePlexLogin.mockReturnValue({ loading: false, login: vi.fn() });
     mockFetchAccount.mockResolvedValue({
       username: "testuser",
       thumb: "https://plex.tv/thumb.jpg",
     });
+    mockFetch.mockResolvedValue({ ok: false });
 
-    render(<PlexAuth {...defaultProps} token="my-token" />);
+    render(<PlexAuth {...defaultProps} />);
 
     await waitFor(() => {
       expect(screen.getByText("testuser")).toBeInTheDocument();
@@ -83,37 +95,49 @@ describe("PlexAuth", () => {
   });
 
   it("shows loading state while fetching account", () => {
+    mockUseAuth.mockReturnValue({
+      user: { hasPlexToken: true },
+      status: "authenticated",
+    });
     mockUsePlexLogin.mockReturnValue({ loading: false, login: vi.fn() });
     mockFetchAccount.mockReturnValue(new Promise(() => {}));
+    mockFetch.mockReturnValue(new Promise(() => {}));
 
-    render(<PlexAuth {...defaultProps} token="my-token" />);
+    render(<PlexAuth {...defaultProps} />);
 
     expect(screen.getByText("Loading account...")).toBeInTheDocument();
   });
 
   it("falls back to sign-in button when account fetch fails", async () => {
+    mockUseAuth.mockReturnValue({
+      user: { hasPlexToken: true },
+      status: "authenticated",
+    });
     mockUsePlexLogin.mockReturnValue({ loading: false, login: vi.fn() });
     mockFetchAccount.mockResolvedValue(null);
+    mockFetch.mockResolvedValue({ ok: false });
 
-    render(<PlexAuth {...defaultProps} token="my-token" />);
+    render(<PlexAuth {...defaultProps} />);
 
     await waitFor(() => {
       expect(screen.getByText("Sign in with Plex")).toBeInTheDocument();
     });
   });
 
-  it("calls onToken and onServerUrl with empty strings on sign out", async () => {
-    const onToken = vi.fn();
+  it("calls onServerUrl with empty string on sign out (default behavior)", async () => {
     const onServerUrl = vi.fn();
+    mockUseAuth.mockReturnValue({
+      user: { hasPlexToken: true },
+      status: "authenticated",
+    });
     mockUsePlexLogin.mockReturnValue({ loading: false, login: vi.fn() });
     mockFetchAccount.mockResolvedValue({
       username: "testuser",
       thumb: "https://plex.tv/thumb.jpg",
     });
+    mockFetch.mockResolvedValue({ ok: false });
 
-    render(
-      <PlexAuth token="my-token" onToken={onToken} onServerUrl={onServerUrl} />
-    );
+    render(<PlexAuth onServerUrl={onServerUrl} />);
 
     await waitFor(() => {
       expect(screen.getByText("Sign out")).toBeInTheDocument();
@@ -121,14 +145,13 @@ describe("PlexAuth", () => {
 
     fireEvent.click(screen.getByText("Sign out"));
 
-    expect(onToken).toHaveBeenCalledWith("");
     expect(onServerUrl).toHaveBeenCalledWith("");
   });
 
   it("passes onServers callback that picks best (non-local) server URL", () => {
     mockUsePlexLogin.mockReturnValue({ loading: false, login: vi.fn() });
     const onServerUrl = vi.fn();
-    render(<PlexAuth {...defaultProps} onServerUrl={onServerUrl} />);
+    render(<PlexAuth onServerUrl={onServerUrl} />);
 
     const hookOpts = mockUsePlexLogin.mock.calls[0][0];
     act(() => {
@@ -149,7 +172,7 @@ describe("PlexAuth", () => {
   it("falls back to first server when all are local", () => {
     mockUsePlexLogin.mockReturnValue({ loading: false, login: vi.fn() });
     const onServerUrl = vi.fn();
-    render(<PlexAuth {...defaultProps} onServerUrl={onServerUrl} />);
+    render(<PlexAuth onServerUrl={onServerUrl} />);
 
     const hookOpts = mockUsePlexLogin.mock.calls[0][0];
     act(() => {
@@ -160,55 +183,21 @@ describe("PlexAuth", () => {
     expect(onServerUrl).toHaveBeenCalledWith("http://plex:32400");
   });
 
-  it("displays server name in signed-in card after login", async () => {
-    mockUsePlexLogin.mockReturnValue({ loading: false, login: vi.fn() });
-    mockFetchAccount.mockResolvedValue({
-      username: "testuser",
-      thumb: "https://plex.tv/thumb.jpg",
-    });
-
-    render(
-      <PlexAuth
-        {...defaultProps}
-        token="my-token"
-        serverUrl="http://plex:32400"
-      />
-    );
-
-    await waitFor(() => {
-      expect(screen.getByText("testuser")).toBeInTheDocument();
-    });
-
-    const hookOpts = mockUsePlexLogin.mock.calls[0][0];
-    act(() => {
-      hookOpts.onServers([
-        { name: "My Server", uri: "http://plex:32400", local: true },
-      ]);
-    });
-    hookOpts.onAccount({
-      username: "testuser",
-      thumb: "https://plex.tv/thumb.jpg",
-    });
-  });
-
   it("calls custom onSignOut prop when provided instead of default behavior", async () => {
-    const onToken = vi.fn();
     const onServerUrl = vi.fn();
     const onSignOut = vi.fn();
+    mockUseAuth.mockReturnValue({
+      user: { hasPlexToken: true },
+      status: "authenticated",
+    });
     mockUsePlexLogin.mockReturnValue({ loading: false, login: vi.fn() });
     mockFetchAccount.mockResolvedValue({
       username: "testuser",
       thumb: "https://plex.tv/thumb.jpg",
     });
+    mockFetch.mockResolvedValue({ ok: false });
 
-    render(
-      <PlexAuth
-        token="my-token"
-        onToken={onToken}
-        onServerUrl={onServerUrl}
-        onSignOut={onSignOut}
-      />
-    );
+    render(<PlexAuth onServerUrl={onServerUrl} onSignOut={onSignOut} />);
 
     await waitFor(() => {
       expect(screen.getByText("Sign out")).toBeInTheDocument();
@@ -217,24 +206,22 @@ describe("PlexAuth", () => {
     fireEvent.click(screen.getByText("Sign out"));
 
     expect(onSignOut).toHaveBeenCalledTimes(1);
-    expect(onToken).not.toHaveBeenCalled();
     expect(onServerUrl).not.toHaveBeenCalled();
   });
 
   it("shows server picker when signed in with multiple connections", async () => {
+    mockUseAuth.mockReturnValue({
+      user: { hasPlexToken: true },
+      status: "authenticated",
+    });
     mockUsePlexLogin.mockReturnValue({ loading: false, login: vi.fn() });
     mockFetchAccount.mockResolvedValue({
       username: "testuser",
       thumb: "https://plex.tv/thumb.jpg",
     });
+    mockFetch.mockResolvedValue({ ok: false });
 
-    render(
-      <PlexAuth
-        {...defaultProps}
-        token="my-token"
-        serverUrl="http://172.23.0.1:32400"
-      />
-    );
+    render(<PlexAuth {...defaultProps} serverUrl="http://172.23.0.1:32400" />);
 
     await waitFor(() => {
       expect(screen.getByText("testuser")).toBeInTheDocument();
@@ -257,13 +244,18 @@ describe("PlexAuth", () => {
   });
 
   it("does not show server picker with single connection", async () => {
+    mockUseAuth.mockReturnValue({
+      user: { hasPlexToken: true },
+      status: "authenticated",
+    });
     mockUsePlexLogin.mockReturnValue({ loading: false, login: vi.fn() });
     mockFetchAccount.mockResolvedValue({
       username: "testuser",
       thumb: "https://plex.tv/thumb.jpg",
     });
+    mockFetch.mockResolvedValue({ ok: false });
 
-    render(<PlexAuth {...defaultProps} token="my-token" />);
+    render(<PlexAuth {...defaultProps} />);
 
     await waitFor(() => {
       expect(screen.getByText("testuser")).toBeInTheDocument();
@@ -281,19 +273,19 @@ describe("PlexAuth", () => {
 
   it("calls onServerUrl when user selects a different server", async () => {
     const onServerUrl = vi.fn();
+    mockUseAuth.mockReturnValue({
+      user: { hasPlexToken: true },
+      status: "authenticated",
+    });
     mockUsePlexLogin.mockReturnValue({ loading: false, login: vi.fn() });
     mockFetchAccount.mockResolvedValue({
       username: "testuser",
       thumb: "https://plex.tv/thumb.jpg",
     });
+    mockFetch.mockResolvedValue({ ok: false });
 
     render(
-      <PlexAuth
-        {...defaultProps}
-        token="my-token"
-        serverUrl="http://172.23.0.1:32400"
-        onServerUrl={onServerUrl}
-      />
+      <PlexAuth serverUrl="http://172.23.0.1:32400" onServerUrl={onServerUrl} />
     );
 
     await waitFor(() => {
@@ -319,22 +311,6 @@ describe("PlexAuth", () => {
 
     expect(onServerUrl).toHaveBeenCalledWith(
       "https://remote.example.com:32400"
-    );
-  });
-
-  it("passes onLoginComplete to usePlexLogin hook", () => {
-    const onLoginComplete = vi.fn();
-    mockUsePlexLogin.mockReturnValue({ loading: false, login: vi.fn() });
-
-    render(<PlexAuth {...defaultProps} onLoginComplete={onLoginComplete} />);
-
-    const hookOpts = mockUsePlexLogin.mock.calls[0][0];
-
-    hookOpts.onLoginComplete("test-token", "http://server:32400");
-
-    expect(onLoginComplete).toHaveBeenCalledWith(
-      "test-token",
-      "http://server:32400"
     );
   });
 });

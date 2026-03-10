@@ -39,6 +39,8 @@ const adminUser: AuthUser = {
   enabled: true,
   theme: "system",
   thumb: null,
+  hasPlexToken: false,
+  plexToken: null,
 };
 
 const regularUser: AuthUser = {
@@ -49,6 +51,8 @@ const regularUser: AuthUser = {
   enabled: true,
   theme: "system",
   thumb: null,
+  hasPlexToken: false,
+  plexToken: null,
 };
 
 describe("requirePermission middleware", () => {

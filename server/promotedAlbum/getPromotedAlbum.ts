@@ -267,6 +267,7 @@ function selectAlbum(
 }
 
 export async function getPromotedAlbum(
+  plexToken: string,
   forceRefresh = false
 ): Promise<PromotedAlbumResult> {
   const config = getConfigValue("promotedAlbum");
@@ -307,7 +308,7 @@ export async function getPromotedAlbum(
     libraryArtistMbids.has(artistMbid);
   const albumInLibrary = (rgMbid: string) => libraryAlbumMbids.has(rgMbid);
 
-  const plexArtists = await getTopArtists(config.topArtistsCount);
+  const plexArtists = await getTopArtists(plexToken, config.topArtistsCount);
   if (plexArtists.length === 0) return null;
 
   const pickedArtists = weightedRandomPick(

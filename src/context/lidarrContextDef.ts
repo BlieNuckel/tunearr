@@ -24,7 +24,6 @@ export interface LidarrSettings {
   lidarrMetadataProfileId: number;
   lastfmApiKey: string;
   plexUrl: string;
-  plexToken: string;
   importPath: string;
   slskdUrl: string;
   slskdApiKey: string;

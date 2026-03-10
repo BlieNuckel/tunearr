@@ -1,10 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
+import { createElement, type ReactNode } from "react";
 
 const mockLogin = vi.fn();
 vi.mock("@/utils/plexOAuth", () => ({
   login: () => mockLogin(),
   getClientId: () => "test-client-id",
+}));
+
+const mockRefreshUser = vi.fn();
+vi.mock("@/context/useAuth", () => ({
+  useAuth: () => ({
+    refreshUser: mockRefreshUser,
+    user: { hasPlexToken: false },
+    status: "authenticated",
+  }),
 }));
 
 const mockFetch = vi.fn();
@@ -14,6 +24,7 @@ import usePlexLogin, { fetchAccount, pickBestServer } from "../usePlexLogin";
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockRefreshUser.mockResolvedValue(undefined);
 });
 
 function mockFetchResponses(
@@ -21,6 +32,9 @@ function mockFetchResponses(
   account: { ok: boolean; data?: unknown }
 ) {
   mockFetch.mockImplementation((url: string) => {
+    if (url.includes("/api/auth/store-plex-token")) {
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    }
     if (url.includes("/api/plex/servers")) {
       return Promise.resolve({
         ok: servers.ok,
@@ -37,9 +51,12 @@ function mockFetchResponses(
   });
 }
 
+function wrapper({ children }: { children: ReactNode }) {
+  return createElement("div", null, children);
+}
+
 describe("usePlexLogin", () => {
-  it("calls onToken, onServers, and onAccount after successful login", async () => {
-    const onToken = vi.fn();
+  it("stores token, refreshes user, and calls onServers/onAccount after login", async () => {
     const onServers = vi.fn();
     const onAccount = vi.fn();
     mockLogin.mockResolvedValue("my-token");
@@ -58,15 +75,23 @@ describe("usePlexLogin", () => {
       }
     );
 
-    const { result } = renderHook(() =>
-      usePlexLogin({ onToken, onServers, onAccount })
+    const { result } = renderHook(
+      () => usePlexLogin({ onServers, onAccount }),
+      {
+        wrapper,
+      }
     );
 
     await act(async () => {
       result.current.login();
     });
 
-    expect(onToken).toHaveBeenCalledWith("my-token");
+    expect(mockFetch).toHaveBeenCalledWith("/api/auth/store-plex-token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ authToken: "my-token" }),
+    });
+    expect(mockRefreshUser).toHaveBeenCalled();
     expect(onServers).toHaveBeenCalledWith([
       { name: "My Server", uri: "http://plex:32400", local: true },
     ]);
@@ -77,21 +102,22 @@ describe("usePlexLogin", () => {
   });
 
   it("does not call callbacks when login returns null", async () => {
-    const onToken = vi.fn();
+    const onServers = vi.fn();
     mockLogin.mockResolvedValue(null);
 
-    const { result } = renderHook(() => usePlexLogin({ onToken }));
+    const { result } = renderHook(() => usePlexLogin({ onServers }), {
+      wrapper,
+    });
 
     await act(async () => {
       result.current.login();
     });
 
-    expect(onToken).not.toHaveBeenCalled();
+    expect(onServers).not.toHaveBeenCalled();
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
   it("sets loading during login", async () => {
-    const onToken = vi.fn();
     let resolveLogin: (v: string) => void;
     mockLogin.mockReturnValue(
       new Promise((r) => {
@@ -99,7 +125,7 @@ describe("usePlexLogin", () => {
       })
     );
 
-    const { result } = renderHook(() => usePlexLogin({ onToken }));
+    const { result } = renderHook(() => usePlexLogin({}), { wrapper });
 
     expect(result.current.loading).toBe(false);
 
@@ -121,7 +147,6 @@ describe("usePlexLogin", () => {
   });
 
   it("handles server fetch failure gracefully", async () => {
-    const onToken = vi.fn();
     const onServers = vi.fn();
     const onAccount = vi.fn();
     mockLogin.mockResolvedValue("my-token");
@@ -133,118 +158,35 @@ describe("usePlexLogin", () => {
       }
     );
 
-    const { result } = renderHook(() =>
-      usePlexLogin({ onToken, onServers, onAccount })
+    const { result } = renderHook(
+      () => usePlexLogin({ onServers, onAccount }),
+      {
+        wrapper,
+      }
     );
 
     await act(async () => {
       result.current.login();
     });
 
-    expect(onToken).toHaveBeenCalledWith("my-token");
     expect(onServers).not.toHaveBeenCalled();
     expect(onAccount).toHaveBeenCalled();
   });
 
   it("handles account fetch failure gracefully", async () => {
-    const onToken = vi.fn();
     const onAccount = vi.fn();
     mockLogin.mockResolvedValue("my-token");
     mockFetchResponses({ ok: true, data: { servers: [] } }, { ok: false });
 
-    const { result } = renderHook(() => usePlexLogin({ onToken, onAccount }));
+    const { result } = renderHook(() => usePlexLogin({ onAccount }), {
+      wrapper,
+    });
 
     await act(async () => {
       result.current.login();
     });
 
-    expect(onToken).toHaveBeenCalledWith("my-token");
     expect(onAccount).not.toHaveBeenCalled();
-  });
-
-  it("calls onLoginComplete with token and serverUrl after successful login", async () => {
-    const onToken = vi.fn();
-    const onLoginComplete = vi.fn();
-    mockLogin.mockResolvedValue("my-token");
-    mockFetchResponses(
-      {
-        ok: true,
-        data: {
-          servers: [
-            { name: "My Server", uri: "http://plex:32400", local: true },
-          ],
-        },
-      },
-      { ok: true, data: { username: "test", thumb: "url" } }
-    );
-
-    const { result } = renderHook(() =>
-      usePlexLogin({ onToken, onLoginComplete })
-    );
-
-    await act(async () => {
-      result.current.login();
-    });
-
-    expect(onLoginComplete).toHaveBeenCalledWith(
-      "my-token",
-      "http://plex:32400"
-    );
-  });
-
-  it("calls onLoginComplete with empty serverUrl when no servers available", async () => {
-    const onToken = vi.fn();
-    const onLoginComplete = vi.fn();
-    mockLogin.mockResolvedValue("my-token");
-    mockFetchResponses(
-      { ok: true, data: { servers: [] } },
-      { ok: true, data: { username: "test", thumb: "url" } }
-    );
-
-    const { result } = renderHook(() =>
-      usePlexLogin({ onToken, onLoginComplete })
-    );
-
-    await act(async () => {
-      result.current.login();
-    });
-
-    expect(onLoginComplete).toHaveBeenCalledWith("my-token", "");
-  });
-
-  it("prefers non-local server for onLoginComplete", async () => {
-    const onToken = vi.fn();
-    const onLoginComplete = vi.fn();
-    mockLogin.mockResolvedValue("my-token");
-    mockFetchResponses(
-      {
-        ok: true,
-        data: {
-          servers: [
-            { name: "My Server", uri: "http://172.23.0.1:32400", local: true },
-            {
-              name: "My Server",
-              uri: "https://remote.example.com:32400",
-              local: false,
-            },
-          ],
-        },
-      },
-      { ok: true, data: { username: "test", thumb: "url" } }
-    );
-
-    const { result } = renderHook(() =>
-      usePlexLogin({ onToken, onLoginComplete })
-    );
-
-    await act(async () => {
-      result.current.login();
-    });
-
-    expect(onLoginComplete).toHaveBeenCalledWith(
-      "my-token",
-      "https://remote.example.com:32400"
-    );
   });
 });
 
@@ -271,7 +213,7 @@ describe("pickBestServer", () => {
 });
 
 describe("fetchAccount", () => {
-  it("returns account data on success", async () => {
+  it("returns account data on success with token", async () => {
     mockFetch.mockResolvedValue({
       ok: true,
       json: async () => ({ username: "user1", thumb: "https://thumb.url" }),
@@ -279,6 +221,22 @@ describe("fetchAccount", () => {
 
     const account = await fetchAccount("my-token");
     expect(account).toEqual({ username: "user1", thumb: "https://thumb.url" });
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining("token=my-token")
+    );
+  });
+
+  it("returns account data without token param when none provided", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ username: "user1", thumb: "https://thumb.url" }),
+    });
+
+    const account = await fetchAccount();
+    expect(account).toEqual({ username: "user1", thumb: "https://thumb.url" });
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.not.stringContaining("token=")
+    );
   });
 
   it("returns null on failure", async () => {

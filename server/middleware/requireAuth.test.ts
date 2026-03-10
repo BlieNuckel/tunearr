@@ -81,6 +81,8 @@ describe("requireAuth middleware", () => {
       enabled: true,
       theme: "system",
       thumb: null,
+      hasPlexToken: false,
+      plexToken: null,
     };
     mockValidateSession.mockReturnValue(mockUser);
 

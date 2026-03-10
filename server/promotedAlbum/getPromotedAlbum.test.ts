@@ -107,7 +107,7 @@ describe("getPromotedAlbum", () => {
       data: [],
     });
 
-    const result = await getPromotedAlbum();
+    const result = await getPromotedAlbum("test-plex-token");
     expect(result).not.toBeNull();
     expect(result!.album).toEqual({
       name: expect.any(String),
@@ -121,7 +121,7 @@ describe("getPromotedAlbum", () => {
     });
     expect(result!.tag).toBe("alternative");
     expect(result!.inLibrary).toBe(false);
-    expect(mockGetTopArtists).toHaveBeenCalledWith(10);
+    expect(mockGetTopArtists).toHaveBeenCalledWith("test-plex-token", 10);
   });
 
   it("fetches both page 1 and a deep page of tag albums", async () => {
@@ -130,7 +130,7 @@ describe("getPromotedAlbum", () => {
     mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
     mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
 
-    await getPromotedAlbum();
+    await getPromotedAlbum("test-plex-token");
 
     expect(mockGetTopAlbumsByTag).toHaveBeenCalledTimes(2);
     const calls = mockGetTopAlbumsByTag.mock.calls;
@@ -143,7 +143,7 @@ describe("getPromotedAlbum", () => {
   it("returns null when Plex has no artists", async () => {
     mockGetTopArtists.mockResolvedValue([]);
 
-    const result = await getPromotedAlbum();
+    const result = await getPromotedAlbum("test-plex-token");
     expect(result).toBeNull();
   });
 
@@ -154,7 +154,7 @@ describe("getPromotedAlbum", () => {
       { name: "favorites", count: 80 },
     ]);
 
-    const result = await getPromotedAlbum();
+    const result = await getPromotedAlbum("test-plex-token");
     expect(result).toBeNull();
   });
 
@@ -162,7 +162,7 @@ describe("getPromotedAlbum", () => {
     mockGetTopArtists.mockResolvedValue(plexArtists);
     mockGetArtistTopTags.mockRejectedValue(new Error("API error"));
 
-    const result = await getPromotedAlbum();
+    const result = await getPromotedAlbum("test-plex-token");
     expect(result).toBeNull();
   });
 
@@ -177,7 +177,7 @@ describe("getPromotedAlbum", () => {
     });
     mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
 
-    const result = await getPromotedAlbum();
+    const result = await getPromotedAlbum("test-plex-token");
     expect(result).toBeNull();
   });
 
@@ -198,7 +198,7 @@ describe("getPromotedAlbum", () => {
       });
     });
 
-    const result = await getPromotedAlbum();
+    const result = await getPromotedAlbum("test-plex-token");
     expect(result).not.toBeNull();
     expect(result!.inLibrary).toBe(true);
   });
@@ -217,7 +217,7 @@ describe("getPromotedAlbum", () => {
       return Promise.resolve({ ok: true, data: [] });
     });
 
-    const result = await getPromotedAlbum();
+    const result = await getPromotedAlbum("test-plex-token");
     expect(result).not.toBeNull();
     expect(result!.inLibrary).toBe(false);
   });
@@ -228,10 +228,10 @@ describe("getPromotedAlbum", () => {
     mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
     mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
 
-    const first = await getPromotedAlbum();
+    const first = await getPromotedAlbum("test-plex-token");
     mockGetTopArtists.mockClear();
 
-    const second = await getPromotedAlbum();
+    const second = await getPromotedAlbum("test-plex-token");
     expect(second).toEqual(first);
     expect(mockGetTopArtists).not.toHaveBeenCalled();
   });
@@ -242,10 +242,10 @@ describe("getPromotedAlbum", () => {
     mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
     mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
 
-    await getPromotedAlbum();
+    await getPromotedAlbum("test-plex-token");
     mockGetTopArtists.mockClear();
 
-    await getPromotedAlbum(true);
+    await getPromotedAlbum("test-plex-token", true);
     expect(mockGetTopArtists).toHaveBeenCalled();
   });
 
@@ -255,7 +255,7 @@ describe("getPromotedAlbum", () => {
     mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
     mockLidarrGet.mockRejectedValue(new Error("Connection refused"));
 
-    const result = await getPromotedAlbum();
+    const result = await getPromotedAlbum("test-plex-token");
     expect(result).not.toBeNull();
     expect(result!.inLibrary).toBe(false);
   });
@@ -266,7 +266,7 @@ describe("getPromotedAlbum", () => {
     mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
     mockLidarrGet.mockResolvedValue({ ok: false, status: 500, data: {} });
 
-    const result = await getPromotedAlbum();
+    const result = await getPromotedAlbum("test-plex-token");
     expect(result).not.toBeNull();
     expect(result!.inLibrary).toBe(false);
   });
@@ -278,11 +278,11 @@ describe("getPromotedAlbum", () => {
     mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
     mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
 
-    await getPromotedAlbum();
+    await getPromotedAlbum("test-plex-token");
     mockGetTopArtists.mockClear();
 
     vi.advanceTimersByTime(31 * 60 * 1000);
-    await getPromotedAlbum();
+    await getPromotedAlbum("test-plex-token");
     expect(mockGetTopArtists).toHaveBeenCalled();
 
     vi.useRealTimers();
@@ -299,11 +299,11 @@ describe("getPromotedAlbum", () => {
     mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
     mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
 
-    await getPromotedAlbum();
+    await getPromotedAlbum("test-plex-token");
     mockGetTopArtists.mockClear();
 
     vi.advanceTimersByTime(6 * 60 * 1000);
-    await getPromotedAlbum();
+    await getPromotedAlbum("test-plex-token");
     expect(mockGetTopArtists).toHaveBeenCalled();
 
     vi.useRealTimers();
@@ -327,7 +327,7 @@ describe("getPromotedAlbum", () => {
     mockGetTopAlbumsByTag.mockResolvedValue(duplicatedPage);
     mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
 
-    const result = await getPromotedAlbum();
+    const result = await getPromotedAlbum("test-plex-token");
     expect(result).not.toBeNull();
     // MBID is converted from release to release-group
     expect(result!.album.mbid).toBe("rg-alb-1");
@@ -340,7 +340,7 @@ describe("getPromotedAlbum", () => {
     mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
     mockGetReleaseGroupIdFromRelease.mockResolvedValue(null);
 
-    const result = await getPromotedAlbum();
+    const result = await getPromotedAlbum("test-plex-token");
     expect(result).toBeNull();
   });
 
@@ -351,7 +351,7 @@ describe("getPromotedAlbum", () => {
       mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
       mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
 
-      const result = await getPromotedAlbum();
+      const result = await getPromotedAlbum("test-plex-token");
       expect(result!.trace.plexArtists).toHaveLength(2);
       expect(result!.trace.plexArtists.map((a) => a.name)).toEqual([
         "Radiohead",
@@ -365,7 +365,7 @@ describe("getPromotedAlbum", () => {
       mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
       mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
 
-      const result = await getPromotedAlbum();
+      const result = await getPromotedAlbum("test-plex-token");
       const picked = result!.trace.plexArtists.filter((a) => a.picked);
       expect(picked).toHaveLength(2);
     });
@@ -376,7 +376,7 @@ describe("getPromotedAlbum", () => {
       mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
       mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
 
-      const result = await getPromotedAlbum();
+      const result = await getPromotedAlbum("test-plex-token");
       expect(result!.trace.chosenTag.name).toBe(result!.tag);
     });
 
@@ -386,7 +386,7 @@ describe("getPromotedAlbum", () => {
       mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
       mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
 
-      const result = await getPromotedAlbum();
+      const result = await getPromotedAlbum("test-plex-token");
       expect(result!.trace.albumPool.page1Count).toBe(2);
       expect(result!.trace.albumPool.deepPageCount).toBe(2);
       expect(result!.trace.albumPool.totalAfterDedup).toBe(2);
@@ -400,7 +400,7 @@ describe("getPromotedAlbum", () => {
       mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
       mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
 
-      const result = await getPromotedAlbum();
+      const result = await getPromotedAlbum("test-plex-token");
       expect(result!.trace.selectionReason).toBe("preferred_non_library");
     });
 
@@ -424,7 +424,7 @@ describe("getPromotedAlbum", () => {
         });
       });
 
-      const result = await getPromotedAlbum();
+      const result = await getPromotedAlbum("test-plex-token");
       expect(result!.trace.selectionReason).toBe("fallback_in_library");
     });
 
@@ -434,7 +434,7 @@ describe("getPromotedAlbum", () => {
       mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
       mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
 
-      const result = await getPromotedAlbum();
+      const result = await getPromotedAlbum("test-plex-token");
       const altTag = result!.trace.weightedTags.find(
         (t) => t.name === "alternative"
       );
@@ -450,7 +450,7 @@ describe("getPromotedAlbum", () => {
       mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
       mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
 
-      const result = await getPromotedAlbum();
+      const result = await getPromotedAlbum("test-plex-token");
       const radiohead = result!.trace.plexArtists.find(
         (a) => a.name === "Radiohead"
       );
@@ -470,8 +470,8 @@ describe("getPromotedAlbum", () => {
       mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
       mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
 
-      await getPromotedAlbum();
-      expect(mockGetTopArtists).toHaveBeenCalledWith(5);
+      await getPromotedAlbum("test-plex-token");
+      expect(mockGetTopArtists).toHaveBeenCalledWith("test-plex-token", 5);
     });
 
     it("uses custom genericTags from config", async () => {
@@ -484,7 +484,7 @@ describe("getPromotedAlbum", () => {
       mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
       mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
 
-      const result = await getPromotedAlbum();
+      const result = await getPromotedAlbum("test-plex-token");
       if (result) {
         expect(result.tag).toBe("rock");
       }
@@ -527,7 +527,7 @@ describe("getPromotedAlbum", () => {
         return Promise.resolve({ ok: true, data: [] });
       });
 
-      const result = await getPromotedAlbum();
+      const result = await getPromotedAlbum("test-plex-token");
       expect(result).not.toBeNull();
       expect(result!.trace.selectionReason).toBe("preferred_library");
       expect(result!.album.artistMbid).toBe("lib-art-1");
@@ -543,7 +543,7 @@ describe("getPromotedAlbum", () => {
       mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
       mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
 
-      const result = await getPromotedAlbum();
+      const result = await getPromotedAlbum("test-plex-token");
       expect(result).not.toBeNull();
       expect(result!.trace.selectionReason).toBe("no_preference");
     });
@@ -559,7 +559,7 @@ describe("getPromotedAlbum", () => {
       mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
       mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
 
-      await getPromotedAlbum();
+      await getPromotedAlbum("test-plex-token");
       const calls = mockGetTopAlbumsByTag.mock.calls;
       expect(calls[1][1]).toBe("5");
     });

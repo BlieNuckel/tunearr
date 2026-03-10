@@ -36,7 +36,6 @@ describe("getConfig", () => {
     expect(config.lidarrMetadataProfileId).toBe(1);
     expect(config.lastfmApiKey).toBe("");
     expect(config.plexUrl).toBe("");
-    expect(config.plexToken).toBe("");
     expect(config.importPath).toBe("");
     expect(config.slskdUrl).toBe("");
     expect(config.slskdApiKey).toBe("");

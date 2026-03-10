@@ -11,13 +11,19 @@ vi.mock("@/utils/plexOAuth", () => ({
   getClientId: () => "test-client-id",
 }));
 
+vi.mock("@/context/useAuth", () => ({
+  useAuth: () => ({
+    user: { hasPlexToken: false },
+    status: "authenticated",
+    refreshUser: vi.fn(),
+  }),
+}));
+
 import PlexSection from "../PlexSection";
 
 const defaultProps = {
   url: "",
-  token: "",
   onUrlChange: vi.fn(),
-  onTokenChange: vi.fn(),
   onSignOut: vi.fn(),
   onLoginComplete: vi.fn(),
 };

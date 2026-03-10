@@ -29,7 +29,10 @@ describe("fetchPlexThumbnail", () => {
       arrayBuffer: async () => imageBuffer,
     });
 
-    const result = await fetchPlexThumbnail("/library/metadata/123/thumb");
+    const result = await fetchPlexThumbnail(
+      "token123",
+      "/library/metadata/123/thumb"
+    );
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.contentType).toBe("image/jpeg");
@@ -55,7 +58,7 @@ describe("fetchPlexThumbnail", () => {
       headers: new Map(),
     });
 
-    const result = await fetchPlexThumbnail("/bad/path");
+    const result = await fetchPlexThumbnail("token123", "/bad/path");
     expect(result).toEqual({ ok: false, status: 404 });
   });
 });

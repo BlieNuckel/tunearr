@@ -21,11 +21,26 @@ vi.mock("../api/plex/account", () => ({
   getPlexAccount: (...args: unknown[]) => mockGetPlexAccount(...args),
 }));
 
+import type { AuthUser } from "../auth/types";
 import express from "express";
 import request from "supertest";
 import plexRouter from "./plex";
 
 const app = express();
+app.use((req, _res, next) => {
+  req.user = <AuthUser>{
+    id: 1,
+    username: "admin",
+    userType: "plex",
+    permissions: 1,
+    enabled: true,
+    theme: "system",
+    thumb: null,
+    hasPlexToken: true,
+    plexToken: "test-plex-token",
+  };
+  next();
+});
 app.use("/", plexRouter);
 app.use(
   (
@@ -50,14 +65,14 @@ describe("GET /top-artists", () => {
     const res = await request(app).get("/top-artists");
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ artists });
-    expect(mockGetTopArtists).toHaveBeenCalledWith(10);
+    expect(mockGetTopArtists).toHaveBeenCalledWith("test-plex-token", 10);
   });
 
   it("forwards custom limit", async () => {
     mockGetTopArtists.mockResolvedValue([]);
 
     await request(app).get("/top-artists?limit=25");
-    expect(mockGetTopArtists).toHaveBeenCalledWith(25);
+    expect(mockGetTopArtists).toHaveBeenCalledWith("test-plex-token", 25);
   });
 });
 
@@ -82,6 +97,7 @@ describe("GET /thumb", () => {
     expect(res.headers["content-type"]).toContain("image/jpeg");
     expect(res.headers["cache-control"]).toBe("public, max-age=86400");
     expect(mockFetchPlexThumbnail).toHaveBeenCalledWith(
+      "test-plex-token",
       "/library/metadata/123/thumb"
     );
   });

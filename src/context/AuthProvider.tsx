@@ -178,6 +178,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     []
   );
 
+  const refreshUser = useCallback(async () => {
+    const currentUser = await fetchCurrentUser();
+    if (currentUser) {
+      setUser(currentUser);
+    }
+  }, []);
+
   const value: AuthContextValue = {
     status,
     user,
@@ -188,6 +195,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setup,
     plexSetup,
     updatePreferences,
+    refreshUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

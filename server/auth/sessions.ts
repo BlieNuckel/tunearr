@@ -50,6 +50,8 @@ export async function validateSession(token: string): Promise<AuthUser | null> {
     enabled: true,
     theme: user.theme,
     thumb: user.plex_thumb ?? null,
+    hasPlexToken: !!user.plex_token,
+    plexToken: user.plex_token ?? null,
   };
 }
 

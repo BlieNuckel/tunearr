@@ -49,6 +49,9 @@ export class User {
   @Column({ type: "text", nullable: true })
   plex_username!: string | null;
 
+  @Column({ type: "text", nullable: true })
+  plex_token!: string | null;
+
   @Column({ type: "text", default: "local" })
   user_type!: UserType;
 }

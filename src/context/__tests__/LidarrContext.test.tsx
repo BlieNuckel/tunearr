@@ -27,6 +27,7 @@ function makeAuthValue(
       permissions: 1,
       theme: "system",
       thumb: null,
+      hasPlexToken: false,
     },
     login: vi.fn(),
     plexLogin: vi.fn(),
@@ -35,6 +36,7 @@ function makeAuthValue(
     logout: vi.fn(),
     setup: vi.fn(),
     updatePreferences: vi.fn(),
+    refreshUser: vi.fn(),
     ...overrides,
   };
 }
@@ -90,6 +92,7 @@ describe("LidarrContextProvider", () => {
         permissions: 8,
         theme: "system",
         thumb: null,
+        hasPlexToken: true,
       },
     });
 

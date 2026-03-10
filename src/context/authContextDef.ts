@@ -7,6 +7,7 @@ export type AuthUser = {
   permissions: number;
   theme: "light" | "dark" | "system";
   thumb: string | null;
+  hasPlexToken: boolean;
 };
 
 export type AuthStatus =
@@ -25,6 +26,7 @@ export interface AuthContextValue {
   plexSetup: () => Promise<void>;
   linkPlex: () => Promise<void>;
   updatePreferences: (prefs: { theme?: AuthUser["theme"] }) => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextValue | undefined>(

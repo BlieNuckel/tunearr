@@ -60,7 +60,7 @@ describe("getTopArtists", () => {
         })
       );
 
-    const result = await getTopArtists(10);
+    const result = await getTopArtists("tok", 10);
 
     expect(result).toHaveLength(2);
     expect(result[0].name).toBe("Radiohead");
@@ -82,7 +82,7 @@ describe("getTopArtists", () => {
       })
     );
 
-    await expect(getTopArtists(10)).rejects.toThrow(
+    await expect(getTopArtists("tok", 10)).rejects.toThrow(
       "No music library found in Plex"
     );
   });
@@ -90,6 +90,6 @@ describe("getTopArtists", () => {
   it("throws on sections API error", async () => {
     mockFetch.mockResolvedValue({ ok: false, status: 401 });
 
-    await expect(getTopArtists(10)).rejects.toThrow("Plex returned 401");
+    await expect(getTopArtists("tok", 10)).rejects.toThrow("Plex returned 401");
   });
 });

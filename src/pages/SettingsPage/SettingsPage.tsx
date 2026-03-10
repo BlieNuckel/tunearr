@@ -128,14 +128,14 @@ export default function SettingsPage() {
   );
 
   const handlePlexLoginComplete = useCallback(
-    (token: string, serverUrl: string) => {
-      updateFields({ plexUrl: serverUrl, plexToken: token });
+    (serverUrl: string) => {
+      updateFields({ plexUrl: serverUrl });
     },
     [updateFields]
   );
 
   const handlePlexSignOut = useCallback(() => {
-    updateFields({ plexUrl: "", plexToken: "" });
+    updateFields({ plexUrl: "" });
   }, [updateFields]);
 
   if (isLoading) {
@@ -270,9 +270,7 @@ export default function SettingsPage() {
             {isSearching && <SectionBadge section="plex" />}
             <PlexSection
               url={fields.plexUrl}
-              token={fields.plexToken}
               onUrlChange={(v) => updateField("plexUrl", v)}
-              onTokenChange={(v) => updateField("plexToken", v)}
               onSignOut={handlePlexSignOut}
               onLoginComplete={handlePlexLoginComplete}
             />

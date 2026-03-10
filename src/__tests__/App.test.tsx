@@ -18,7 +18,6 @@ const connectedContext: LidarrContextValue = {
     lidarrMetadataProfileId: 1,
     lastfmApiKey: "",
     plexUrl: "",
-    plexToken: "",
     importPath: "",
     slskdUrl: "",
     slskdApiKey: "",
@@ -42,7 +41,6 @@ const unconfiguredContext: LidarrContextValue = {
     lidarrMetadataProfileId: 1,
     lastfmApiKey: "",
     plexUrl: "",
-    plexToken: "",
     importPath: "",
     slskdUrl: "",
     slskdApiKey: "",
@@ -60,6 +58,7 @@ const authenticatedAuth: AuthContextValue = {
     permissions: 1,
     theme: "system",
     thumb: null,
+    hasPlexToken: false,
   },
   login: vi.fn(),
   plexLogin: vi.fn(),
@@ -68,6 +67,7 @@ const authenticatedAuth: AuthContextValue = {
   logout: vi.fn(),
   setup: vi.fn(),
   updatePreferences: vi.fn(),
+  refreshUser: vi.fn(),
 };
 
 vi.stubGlobal(
