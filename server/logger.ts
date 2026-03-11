@@ -33,8 +33,8 @@ const textFormat = winston.format.combine(
     const baseMessage = `${timestamp} [${levelLabel}] [${label}] ${message}`;
     if (data !== undefined) {
       const dataStr =
-        data instanceof Error
-          ? data.stack || `${data.name}: ${data.message}`
+        typeof data === "object" && data !== null && "stack" in data
+          ? String((data as Record<string, unknown>).stack)
           : JSON.stringify(data, null, 2);
       return `${baseMessage}\n${dataStr}`;
     }
@@ -93,13 +93,20 @@ const winstonLogger = winston.createLogger({
   transports,
 });
 
+function serializeData(data: unknown): unknown {
+  if (data instanceof Error) {
+    return { name: data.name, message: data.message, stack: data.stack };
+  }
+  return data;
+}
+
 export function createLogger(label: string): Logger {
   return {
     debug(message: string, data?: unknown) {
       winstonLogger.debug({
         label,
         message,
-        ...(data !== undefined && { data }),
+        ...(data !== undefined && { data: serializeData(data) }),
       });
     },
 
@@ -107,7 +114,7 @@ export function createLogger(label: string): Logger {
       winstonLogger.info({
         label,
         message,
-        ...(data !== undefined && { data }),
+        ...(data !== undefined && { data: serializeData(data) }),
       });
     },
 
@@ -115,7 +122,7 @@ export function createLogger(label: string): Logger {
       winstonLogger.warn({
         label,
         message,
-        ...(data !== undefined && { data }),
+        ...(data !== undefined && { data: serializeData(data) }),
       });
     },
 
@@ -123,7 +130,7 @@ export function createLogger(label: string): Logger {
       winstonLogger.error({
         label,
         message,
-        ...(data !== undefined && { data }),
+        ...(data !== undefined && { data: serializeData(data) }),
       });
     },
   };
