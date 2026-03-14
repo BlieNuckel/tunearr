@@ -150,6 +150,44 @@ describe("useExploration", () => {
     expect(result.current.accumulatedTags).toEqual([]);
   });
 
+  it("excludes skipped suggestion MBIDs from next round", async () => {
+    const source = makeReleaseGroup("src-1", "Source Album");
+    const picked = makeReleaseGroup("sug-1", "Picked");
+    const skipped1 = makeReleaseGroup("skip-1", "Skipped 1");
+    const skipped2 = makeReleaseGroup("skip-2", "Skipped 2");
+
+    mockSuggestionsResponse(
+      [
+        { releaseGroup: picked, tags: ["rock"] },
+        { releaseGroup: skipped1, tags: ["pop"] },
+        { releaseGroup: skipped2, tags: ["jazz"] },
+      ],
+      [{ name: "rock", count: 80 }]
+    );
+
+    const { result } = renderHook(() => useExploration());
+    await act(() => result.current.startExploration(source));
+
+    mockSuggestionsResponse(
+      [
+        {
+          releaseGroup: makeReleaseGroup("sug-2", "Next"),
+          tags: ["indie"],
+        },
+      ],
+      [{ name: "rock", count: 80 }]
+    );
+
+    await act(() => result.current.selectSuggestion(0));
+
+    const secondCall = vi.mocked(fetch).mock.calls[1];
+    const body = JSON.parse(secondCall[1]!.body as string);
+    expect(body.excludeMbids).toContain("src-1");
+    expect(body.excludeMbids).toContain("sug-1");
+    expect(body.excludeMbids).toContain("skip-1");
+    expect(body.excludeMbids).toContain("skip-2");
+  });
+
   it("sets error on failed fetch", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(
       new Response(JSON.stringify({ error: "Server error" }), { status: 500 })

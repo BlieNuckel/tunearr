@@ -50,8 +50,11 @@ async function fetchSuggestions(
   return res.json();
 }
 
-function getExcludeMbids(collected: CollectedAlbum[]): string[] {
-  return collected.map((c) => c.releaseGroup.id);
+function getExcludeMbids(
+  collected: CollectedAlbum[],
+  skipped: string[]
+): string[] {
+  return [...collected.map((c) => c.releaseGroup.id), ...skipped];
 }
 
 function getArtistName(rg: ReleaseGroup): string {
@@ -64,6 +67,7 @@ export default function useExploration() {
   const [collectedAlbums, setCollectedAlbums] = useState<CollectedAlbum[]>([]);
   const [suggestions, setSuggestions] = useState<ExplorationSuggestion[]>([]);
   const [accumulatedTags, setAccumulatedTags] = useState<TagWeight[]>([]);
+  const [skippedMbids, setSkippedMbids] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -71,7 +75,8 @@ export default function useExploration() {
     async (
       source: ReleaseGroup,
       collected: CollectedAlbum[],
-      tags: TagWeight[]
+      tags: TagWeight[],
+      skipped: string[]
     ) => {
       setLoading(true);
       setError(null);
@@ -82,7 +87,7 @@ export default function useExploration() {
           getArtistName(source),
           source.title,
           source.id,
-          getExcludeMbids(collected),
+          getExcludeMbids(collected, skipped),
           tags
         );
 
@@ -106,7 +111,8 @@ export default function useExploration() {
       setRound(1);
       setPhase("round");
       setAccumulatedTags([]);
-      loadSuggestions(sourceAlbum, collected, []);
+      setSkippedMbids([]);
+      loadSuggestions(sourceAlbum, collected, [], []);
     },
     [loadSuggestions]
   );
@@ -115,6 +121,14 @@ export default function useExploration() {
     (index: number) => {
       const suggestion = suggestions[index];
       if (!suggestion) return;
+
+      const newSkipped = [
+        ...skippedMbids,
+        ...suggestions
+          .filter((_, i) => i !== index)
+          .map((s) => s.releaseGroup.id),
+      ];
+      setSkippedMbids(newSkipped);
 
       const newCollected = [
         ...collectedAlbums,
@@ -129,15 +143,28 @@ export default function useExploration() {
 
       const nextRound = round + 1;
       setRound(nextRound);
-      loadSuggestions(suggestion.releaseGroup, newCollected, accumulatedTags);
+      loadSuggestions(
+        suggestion.releaseGroup,
+        newCollected,
+        accumulatedTags,
+        newSkipped
+      );
     },
-    [suggestions, collectedAlbums, round, accumulatedTags, loadSuggestions]
+    [
+      suggestions,
+      collectedAlbums,
+      skippedMbids,
+      round,
+      accumulatedTags,
+      loadSuggestions,
+    ]
   );
 
   const reset = useCallback(() => {
     setPhase("search");
     setRound(0);
     setCollectedAlbums([]);
+    setSkippedMbids([]);
     setSuggestions([]);
     setAccumulatedTags([]);
     setLoading(false);
