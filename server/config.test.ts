@@ -1,32 +1,103 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import fs from "fs";
 import path from "path";
 import os from "os";
+import { initializeDatabase, closeDatabase } from "./db/index";
+import {
+  getConfig,
+  setConfig,
+  getConfigValue,
+  initializeConfig,
+  DEFAULT_PROMOTED_ALBUM,
+} from "./config";
 
 let tmpDir: string;
 let originalEnv: string | undefined;
 
-beforeEach(() => {
+beforeEach(async () => {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "config-test-"));
-  // Create logs directory for winston logger before resetModules
   fs.mkdirSync(path.join(tmpDir, "logs"), { recursive: true });
   originalEnv = process.env.APP_CONFIG_DIR;
   process.env.APP_CONFIG_DIR = tmpDir;
-  vi.resetModules();
+  await initializeDatabase(path.join(tmpDir, "test.db"));
 });
 
-afterEach(() => {
+afterEach(async () => {
+  await closeDatabase();
   process.env.APP_CONFIG_DIR = originalEnv;
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
-async function loadConfig() {
-  return (await import("./config")) as typeof import("./config");
-}
+describe("initializeConfig", () => {
+  it("seeds defaults when no config.json exists", () => {
+    initializeConfig();
+    const config = getConfig();
+
+    expect(config.lidarrUrl).toBe("");
+    expect(config.lidarrApiKey).toBe("");
+    expect(config.promotedAlbum).toEqual(DEFAULT_PROMOTED_ALBUM);
+  });
+
+  it("migrates data from config.json on first run", () => {
+    fs.writeFileSync(
+      path.join(tmpDir, "config.json"),
+      JSON.stringify({
+        lidarrUrl: "http://lidarr:8686",
+        lidarrApiKey: "abc",
+      })
+    );
+
+    initializeConfig();
+    const config = getConfig();
+
+    expect(config.lidarrUrl).toBe("http://lidarr:8686");
+    expect(config.lidarrApiKey).toBe("abc");
+    expect(config.lidarrQualityProfileId).toBe(1);
+  });
+
+  it("renames config.json to config.json.migrated after migration", () => {
+    fs.writeFileSync(
+      path.join(tmpDir, "config.json"),
+      JSON.stringify({ lidarrUrl: "http://test:8686" })
+    );
+
+    initializeConfig();
+
+    expect(fs.existsSync(path.join(tmpDir, "config.json"))).toBe(false);
+    expect(fs.existsSync(path.join(tmpDir, "config.json.migrated"))).toBe(true);
+  });
+
+  it("does not overwrite existing DB config on subsequent calls", () => {
+    initializeConfig();
+    setConfig({ lidarrUrl: "http://updated:8686" });
+
+    initializeConfig();
+    const config = getConfig();
+    expect(config.lidarrUrl).toBe("http://updated:8686");
+  });
+
+  it("deep merges promotedAlbum from config.json", () => {
+    fs.writeFileSync(
+      path.join(tmpDir, "config.json"),
+      JSON.stringify({
+        promotedAlbum: { topArtistsCount: 20, cacheDurationMinutes: 60 },
+      })
+    );
+
+    initializeConfig();
+    const config = getConfig();
+
+    expect(config.promotedAlbum.topArtistsCount).toBe(20);
+    expect(config.promotedAlbum.cacheDurationMinutes).toBe(60);
+    expect(config.promotedAlbum.pickedArtistsCount).toBe(
+      DEFAULT_PROMOTED_ALBUM.pickedArtistsCount
+    );
+  });
+});
 
 describe("getConfig", () => {
-  it("returns defaults when no config file exists", async () => {
-    const { getConfig } = await loadConfig();
+  it("returns defaults when DB row exists with empty data", () => {
+    initializeConfig();
     const config = getConfig();
 
     expect(config.lidarrUrl).toBe("");
@@ -42,15 +113,11 @@ describe("getConfig", () => {
     expect(config.slskdDownloadPath).toBe("");
   });
 
-  it("reads and merges saved config with defaults", async () => {
-    fs.writeFileSync(
-      path.join(tmpDir, "config.json"),
-      JSON.stringify({ lidarrUrl: "http://lidarr:8686", lidarrApiKey: "abc" })
-    );
+  it("reads saved config and merges with defaults", () => {
+    initializeConfig();
+    setConfig({ lidarrUrl: "http://lidarr:8686", lidarrApiKey: "abc" });
 
-    const { getConfig } = await loadConfig();
     const config = getConfig();
-
     expect(config.lidarrUrl).toBe("http://lidarr:8686");
     expect(config.lidarrApiKey).toBe("abc");
     expect(config.lidarrQualityProfileId).toBe(1);
@@ -58,9 +125,11 @@ describe("getConfig", () => {
 });
 
 describe("setConfig", () => {
-  it("writes config and merges with existing", async () => {
-    const { setConfig, getConfig } = await loadConfig();
+  beforeEach(() => {
+    initializeConfig();
+  });
 
+  it("writes config and merges with existing", () => {
     const base = {
       lidarrUrl: "http://test:8686",
       lidarrApiKey: "key1",
@@ -79,9 +148,7 @@ describe("setConfig", () => {
     expect(config.lidarrUrl).toBe("http://updated:8686");
   });
 
-  it("validates types", async () => {
-    const { setConfig } = await loadConfig();
-
+  it("validates types", () => {
     expect(() => setConfig({ lidarrUrl: 123 as unknown as string })).toThrow(
       "lidarrUrl must be a string"
     );
@@ -94,124 +161,29 @@ describe("setConfig", () => {
       })
     ).toThrow("lidarrQualityProfileId must be a number");
   });
-
-  it("creates config directory if missing", async () => {
-    const nestedDir = path.join(tmpDir, "nested", "dir");
-    process.env.APP_CONFIG_DIR = nestedDir;
-
-    const { setConfig } = await loadConfig();
-    setConfig({
-      lidarrUrl: "http://test:8686",
-      lidarrApiKey: "key",
-      lidarrQualityProfileId: 1,
-      lidarrRootFolderPath: "/music",
-      lidarrMetadataProfileId: 1,
-    });
-
-    expect(fs.existsSync(path.join(nestedDir, "config.json"))).toBe(true);
-  });
 });
 
 describe("getConfigValue", () => {
-  it("returns specific config value", async () => {
-    fs.writeFileSync(
-      path.join(tmpDir, "config.json"),
-      JSON.stringify({ lastfmApiKey: "fm-key-123" })
-    );
+  it("returns specific config value", () => {
+    initializeConfig();
+    setConfig({ lastfmApiKey: "fm-key-123" });
 
-    const { getConfigValue } = await loadConfig();
     expect(getConfigValue("lastfmApiKey")).toBe("fm-key-123");
     expect(getConfigValue("lidarrQualityProfileId")).toBe(1);
   });
 });
 
-describe("initializeConfig", () => {
-  it("creates config directory and default config file", async () => {
-    const { initializeConfig } = await loadConfig();
-
-    expect(fs.existsSync(tmpDir)).toBe(true);
-    expect(fs.existsSync(path.join(tmpDir, "config.json"))).toBe(false);
-
-    initializeConfig();
-
-    expect(fs.existsSync(path.join(tmpDir, "config.json"))).toBe(true);
-
-    const content = JSON.parse(
-      fs.readFileSync(path.join(tmpDir, "config.json"), "utf-8")
-    );
-    expect(content.lidarrUrl).toBe("");
-    expect(content.lidarrApiKey).toBe("");
-    expect(content.promotedAlbum).toBeDefined();
-  });
-
-  it("does not overwrite existing config file", async () => {
-    const existing = { lidarrUrl: "http://existing:8686", lidarrApiKey: "abc" };
-    fs.writeFileSync(
-      path.join(tmpDir, "config.json"),
-      JSON.stringify(existing)
-    );
-
-    const { initializeConfig } = await loadConfig();
-    initializeConfig();
-
-    const content = JSON.parse(
-      fs.readFileSync(path.join(tmpDir, "config.json"), "utf-8")
-    );
-    expect(content.lidarrUrl).toBe("http://existing:8686");
-    expect(content.lidarrApiKey).toBe("abc");
-  });
-
-  it("creates nested config directory if it does not exist", async () => {
-    const nestedDir = path.join(tmpDir, "nested", "config");
-    fs.rmSync(tmpDir, { recursive: true, force: true });
-
-    process.env.APP_CONFIG_DIR = nestedDir;
-
-    const { initializeConfig } = await loadConfig();
-    initializeConfig();
-
-    expect(fs.existsSync(nestedDir)).toBe(true);
-    expect(fs.existsSync(path.join(nestedDir, "config.json"))).toBe(true);
-  });
-});
-
 describe("promotedAlbum config", () => {
-  it("returns full defaults when no promotedAlbum in saved config", async () => {
-    fs.writeFileSync(
-      path.join(tmpDir, "config.json"),
-      JSON.stringify({ lidarrUrl: "http://test:8686" })
-    );
+  beforeEach(() => {
+    initializeConfig();
+  });
 
-    const { getConfig, DEFAULT_PROMOTED_ALBUM } = await loadConfig();
+  it("returns full defaults when no promotedAlbum has been set", () => {
     const config = getConfig();
-
     expect(config.promotedAlbum).toEqual(DEFAULT_PROMOTED_ALBUM);
   });
 
-  it("deep merges partial promotedAlbum with defaults", async () => {
-    fs.writeFileSync(
-      path.join(tmpDir, "config.json"),
-      JSON.stringify({
-        promotedAlbum: { topArtistsCount: 20, cacheDurationMinutes: 60 },
-      })
-    );
-
-    const { getConfig, DEFAULT_PROMOTED_ALBUM } = await loadConfig();
-    const config = getConfig();
-
-    expect(config.promotedAlbum.topArtistsCount).toBe(20);
-    expect(config.promotedAlbum.cacheDurationMinutes).toBe(60);
-    expect(config.promotedAlbum.pickedArtistsCount).toBe(
-      DEFAULT_PROMOTED_ALBUM.pickedArtistsCount
-    );
-    expect(config.promotedAlbum.genericTags).toEqual(
-      DEFAULT_PROMOTED_ALBUM.genericTags
-    );
-  });
-
-  it("deep merges promotedAlbum on setConfig", async () => {
-    const { setConfig, getConfig } = await loadConfig();
-
+  it("deep merges promotedAlbum on setConfig", () => {
     setConfig({ promotedAlbum: { topArtistsCount: 25 } as never });
     const config = getConfig();
 
@@ -219,9 +191,7 @@ describe("promotedAlbum config", () => {
     expect(config.promotedAlbum.pickedArtistsCount).toBe(3);
   });
 
-  it("validates positive integers", async () => {
-    const { setConfig } = await loadConfig();
-
+  it("validates positive integers", () => {
     expect(() =>
       setConfig({ promotedAlbum: { topArtistsCount: 0 } as never })
     ).toThrow("topArtistsCount must be a positive integer");
@@ -231,9 +201,7 @@ describe("promotedAlbum config", () => {
     ).toThrow("pickedArtistsCount must be a positive integer");
   });
 
-  it("validates deepPageMax >= deepPageMin", async () => {
-    const { setConfig } = await loadConfig();
-
+  it("validates deepPageMax >= deepPageMin", () => {
     expect(() =>
       setConfig({
         promotedAlbum: { deepPageMin: 5, deepPageMax: 3 } as never,
@@ -241,33 +209,25 @@ describe("promotedAlbum config", () => {
     ).toThrow("deepPageMax must be >= deepPageMin");
   });
 
-  it("validates cacheDurationMinutes is non-negative", async () => {
-    const { setConfig } = await loadConfig();
-
+  it("validates cacheDurationMinutes is non-negative", () => {
     expect(() =>
       setConfig({ promotedAlbum: { cacheDurationMinutes: -1 } as never })
     ).toThrow("cacheDurationMinutes must be a non-negative number");
   });
 
-  it("validates libraryPreference enum", async () => {
-    const { setConfig } = await loadConfig();
-
+  it("validates libraryPreference enum", () => {
     expect(() =>
       setConfig({ promotedAlbum: { libraryPreference: "invalid" } as never })
     ).toThrow("libraryPreference must be one of");
   });
 
-  it("validates genericTags is an array", async () => {
-    const { setConfig } = await loadConfig();
-
+  it("validates genericTags is an array", () => {
     expect(() =>
       setConfig({ promotedAlbum: { genericTags: "not-array" } as never })
     ).toThrow("genericTags must be an array");
   });
 
-  it("allows valid promotedAlbum config", async () => {
-    const { setConfig, getConfig } = await loadConfig();
-
+  it("allows valid promotedAlbum config", () => {
     setConfig({
       promotedAlbum: {
         cacheDurationMinutes: 0,

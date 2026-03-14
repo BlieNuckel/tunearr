@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { getDataSource } from "./db/index";
 import { createLogger } from "./logger";
 
 const log = createLogger("Config");
@@ -83,25 +84,43 @@ const DEFAULT_CONFIG: IConfig = {
   promotedAlbum: DEFAULT_PROMOTED_ALBUM,
 };
 
-const CONFIG_DIR =
-  process.env.APP_CONFIG_DIR || path.join(__dirname, "..", "config");
-const CONFIG_PATH = path.join(CONFIG_DIR, "config.json");
+type RawStatement = {
+  get(...params: unknown[]): Record<string, unknown> | undefined;
+  run(...params: unknown[]): unknown;
+};
+
+type RawDatabase = {
+  prepare(sql: string): RawStatement;
+};
+
+function getRawDb(): RawDatabase {
+  const ds = getDataSource();
+  return (ds.driver as unknown as { databaseConnection: RawDatabase })
+    .databaseConnection;
+}
+
+function mergeWithDefaults(saved: Record<string, unknown>): IConfig {
+  return {
+    ...DEFAULT_CONFIG,
+    ...saved,
+    promotedAlbum: {
+      ...DEFAULT_PROMOTED_ALBUM,
+      ...((saved.promotedAlbum as Record<string, unknown>) ?? {}),
+    },
+  } as IConfig;
+}
 
 export const getConfig = (): IConfig => {
-  try {
-    const data = fs.readFileSync(CONFIG_PATH, "utf-8");
-    const saved = JSON.parse(data);
-    return {
-      ...DEFAULT_CONFIG,
-      ...saved,
-      promotedAlbum: {
-        ...DEFAULT_PROMOTED_ALBUM,
-        ...(saved.promotedAlbum ?? {}),
-      },
-    };
-  } catch {
+  const db = getRawDb();
+  const row = db.prepare("SELECT data FROM config WHERE id = 1").get() as
+    | { data: string }
+    | undefined;
+
+  if (!row) {
     return { ...DEFAULT_CONFIG, promotedAlbum: { ...DEFAULT_PROMOTED_ALBUM } };
   }
+
+  return mergeWithDefaults(JSON.parse(row.data));
 };
 
 const VALID_LIBRARY_PREFERENCES: LibraryPreference[] = [
@@ -145,22 +164,7 @@ function validatePromotedAlbumConfig(config: PromotedAlbumConfig) {
   }
 }
 
-export const setConfig = (newConfig: Partial<IConfigInput>) => {
-  if (!fs.existsSync(CONFIG_DIR)) {
-    log.info(`Config directory missing, creating it in ${CONFIG_DIR}`);
-    fs.mkdirSync(CONFIG_DIR, { recursive: true });
-  }
-
-  const currentConfig = getConfig();
-  const mergedConfig = {
-    ...currentConfig,
-    ...newConfig,
-    promotedAlbum: {
-      ...currentConfig.promotedAlbum,
-      ...(newConfig.promotedAlbum ?? {}),
-    },
-  };
-
+function validateConfig(mergedConfig: IConfig) {
   if (typeof mergedConfig.lidarrUrl !== "string") {
     throw new Error("lidarrUrl must be a string");
   }
@@ -194,26 +198,67 @@ export const setConfig = (newConfig: Partial<IConfigInput>) => {
   if (typeof mergedConfig.slskdDownloadPath !== "string") {
     throw new Error("slskdDownloadPath must be a string");
   }
+}
+
+export const setConfig = (newConfig: Partial<IConfigInput>) => {
+  const currentConfig = getConfig();
+  const mergedConfig = {
+    ...currentConfig,
+    ...newConfig,
+    promotedAlbum: {
+      ...currentConfig.promotedAlbum,
+      ...(newConfig.promotedAlbum ?? {}),
+    },
+  };
+
+  validateConfig(mergedConfig);
 
   if (newConfig.promotedAlbum !== undefined) {
     validatePromotedAlbumConfig(mergedConfig.promotedAlbum);
   }
 
-  fs.writeFileSync(CONFIG_PATH, JSON.stringify(mergedConfig, null, 2));
+  const db = getRawDb();
+  db.prepare("UPDATE config SET data = ? WHERE id = 1").run(
+    JSON.stringify(mergedConfig)
+  );
 };
 
 export const getConfigValue = <K extends keyof IConfig>(key: K): IConfig[K] => {
   return getConfig()[key];
 };
 
+function getConfigJsonPath(): string {
+  const configDir =
+    process.env.APP_CONFIG_DIR || path.join(__dirname, "..", "config");
+  return path.join(configDir, "config.json");
+}
+
 export const initializeConfig = () => {
-  if (!fs.existsSync(CONFIG_DIR)) {
-    log.info(`Config directory missing, creating it in ${CONFIG_DIR}`);
-    fs.mkdirSync(CONFIG_DIR, { recursive: true });
+  const db = getRawDb();
+  const row = db.prepare("SELECT data FROM config WHERE id = 1").get();
+
+  if (row) {
+    return;
   }
 
-  if (!fs.existsSync(CONFIG_PATH)) {
-    log.info(`Config file missing, creating default config at ${CONFIG_PATH}`);
-    fs.writeFileSync(CONFIG_PATH, JSON.stringify(DEFAULT_CONFIG, null, 2));
+  let initialConfig: IConfig = {
+    ...DEFAULT_CONFIG,
+    promotedAlbum: { ...DEFAULT_PROMOTED_ALBUM },
+  };
+
+  const configJsonPath = getConfigJsonPath();
+  if (fs.existsSync(configJsonPath)) {
+    try {
+      const saved = JSON.parse(fs.readFileSync(configJsonPath, "utf-8"));
+      initialConfig = mergeWithDefaults(saved);
+      fs.renameSync(configJsonPath, configJsonPath + ".migrated");
+      log.info("Migrated config from config.json to database");
+    } catch {
+      log.warn("Failed to read config.json, using defaults");
+    }
   }
+
+  db.prepare("INSERT INTO config (id, data) VALUES (1, ?)").run(
+    JSON.stringify(initialConfig)
+  );
 };
