@@ -8,17 +8,9 @@ import ImageWithShimmer from "./ImageWithShimmer";
 import useLidarr from "../hooks/useLidarr";
 import useReleaseTracks from "../hooks/useReleaseTracks";
 import useAudioPreview from "../hooks/useAudioPreview";
+import { pastelColorFromId } from "../utils/color";
+import { getMonitorState } from "../utils/monitorState";
 import { MonitorState, ReleaseGroup } from "../types";
-
-/** @returns {string} deterministic pastel HSL color derived from the input string */
-function pastelColorFromId(id: string): string {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) {
-    hash = id.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const hue = Math.abs(hash) % 360;
-  return `hsl(${hue}, 70%, 85%)`;
-}
 
 const mobileMonitorStyles: Record<MonitorState, string> = {
   idle: "bg-amber-300 hover:bg-amber-200 text-black",
@@ -73,18 +65,7 @@ export default function ReleaseGroupCard({
     return () => observer.disconnect();
   }, []);
 
-  const effectiveState: MonitorState = inLibrary
-    ? "already_monitored"
-    : state === "requesting"
-      ? "adding"
-      : state === "pending"
-        ? "success"
-        : state === "idle" ||
-            state === "success" ||
-            state === "already_monitored" ||
-            state === "error"
-          ? state
-          : "idle";
+  const effectiveState = getMonitorState(state, inLibrary);
   const disabled =
     effectiveState === "adding" ||
     effectiveState === "success" ||

@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import type { PromotedAlbumData } from "@/hooks/usePromotedAlbum";
-import type { MonitorState } from "@/types";
 import MonitorButton from "@/components/MonitorButton";
 import PurchaseLinksModal from "@/components/PurchaseLinksModal";
 import RecommendationTraceModal from "./RecommendationTraceModal";
@@ -16,16 +15,8 @@ import useAudioPreview from "@/hooks/useAudioPreview";
 import ImageWithShimmer from "@/components/ImageWithShimmer";
 import Skeleton from "@/components/Skeleton";
 import TrackList from "@/components/TrackList";
-
-/** @returns deterministic pastel HSL color derived from the input string */
-function pastelColorFromId(id: string): string {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) {
-    hash = id.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const hue = Math.abs(hash) % 360;
-  return `hsl(${hue}, 70%, 85%)`;
-}
+import { pastelColorFromId } from "@/utils/color";
+import { getMonitorState } from "@/utils/monitorState";
 
 interface PromotedAlbumProps {
   data: PromotedAlbumData | null;
@@ -72,18 +63,7 @@ export default function PromotedAlbum({
     return () => observer.disconnect();
   }, []);
 
-  const effectiveState: MonitorState = inLibrary
-    ? "already_monitored"
-    : state === "requesting"
-      ? "adding"
-      : state === "pending"
-        ? "success"
-        : state === "idle" ||
-            state === "success" ||
-            state === "already_monitored" ||
-            state === "error"
-          ? state
-          : "idle";
+  const effectiveState = getMonitorState(state, inLibrary);
 
   const handleMonitorClick = () => {
     if (effectiveState === "idle" || effectiveState === "error") {
