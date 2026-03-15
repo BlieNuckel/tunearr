@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/context/useAuth";
-import { LogoutIcon, UserCircleIcon } from "@/components/icons";
+import { LogoutIcon } from "@/components/icons";
+import UserAvatar from "@/components/UserAvatar";
 import { getActivePermissions } from "@shared/permissions";
 
 export default function AccountSection() {
@@ -27,7 +28,11 @@ export default function AccountSection() {
       </h2>
       <div className="w-fit flex items-center gap-6 p-4 bg-white dark:bg-gray-800 border-2 border-black rounded-lg shadow-cartoon-sm">
         <div className="flex items-center gap-3">
-          <UserAvatar thumb={user?.thumb ?? null} username={user?.username} />
+          <UserAvatar
+            thumb={user?.thumb ?? null}
+            username={user?.username}
+            className="w-10 h-10"
+          />
           <div>
             <p className="text-base font-bold text-gray-900 dark:text-gray-100">
               {user?.username}
@@ -66,28 +71,6 @@ export default function AccountSection() {
         <p className="text-sm text-red-600 dark:text-red-400">{linkError}</p>
       )}
     </div>
-  );
-}
-
-function UserAvatar({
-  thumb,
-  username,
-}: {
-  thumb: string | null;
-  username: string | undefined;
-}) {
-  if (thumb) {
-    return (
-      <img
-        src={thumb}
-        alt={username ?? "User avatar"}
-        className="w-10 h-10 rounded-full border-2 border-black object-cover"
-      />
-    );
-  }
-
-  return (
-    <UserCircleIcon className="w-10 h-10 text-gray-400 dark:text-gray-500" />
   );
 }
 

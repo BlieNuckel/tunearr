@@ -6,6 +6,7 @@ import {
   LibraryIcon,
   UserCircleIcon,
 } from "@/components/icons";
+import UserAvatar from "@/components/UserAvatar";
 import { useAuth } from "@/context/useAuth";
 
 type NavItem = {
@@ -26,6 +27,7 @@ const mobileLinks: NavItem[] = [
 ];
 
 function MobileNav() {
+  const { user } = useAuth();
   const { pathname } = useLocation();
   const navRef = useRef<HTMLUListElement>(null);
   const pillRef = useRef<HTMLDivElement>(null);
@@ -95,7 +97,15 @@ function MobileNav() {
                   }`
                 }
               >
-                <link.icon className="w-6 h-6" />
+                {link.to === "/settings" && user?.thumb ? (
+                  <UserAvatar
+                    thumb={user.thumb}
+                    username={user.username}
+                    className="w-6 h-6"
+                  />
+                ) : (
+                  <link.icon className="w-6 h-6" />
+                )}
                 <span>{link.label}</span>
               </NavLink>
             </li>
@@ -242,7 +252,11 @@ export default function Sidebar() {
               }`
             }
           >
-            <UserCircleIcon className="w-5 h-5" />
+            <UserAvatar
+              thumb={user?.thumb ?? null}
+              username={user?.username}
+              className="w-5 h-5"
+            />
             <span>{user?.username}</span>
           </NavLink>
         </div>
