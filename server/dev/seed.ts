@@ -1,0 +1,320 @@
+import "reflect-metadata";
+import { Repository } from "typeorm";
+import {
+  initializeDatabase,
+  getDataSource,
+  User,
+  Request,
+  closeDatabase,
+} from "../db/index";
+import { hashPassword } from "../auth/password";
+import { Permission } from "../../shared/permissions";
+
+type SeedUser = {
+  username: string;
+  password: string;
+  permissions: number;
+  user_type: "local" | "plex";
+  plex_username?: string;
+  plex_thumb?: string;
+};
+
+type SeedRequest = {
+  username: string;
+  album_mbid: string;
+  artist_name: string;
+  album_title: string;
+  status: "pending" | "approved" | "declined";
+  created_at: string;
+};
+
+const USERS: SeedUser[] = [
+  {
+    username: "admin",
+    password: "admin",
+    permissions: Permission.ADMIN,
+    user_type: "local",
+  },
+  {
+    username: "manager",
+    password: "manager",
+    permissions:
+      Permission.REQUEST | Permission.MANAGE_REQUESTS | Permission.REQUEST_VIEW,
+    user_type: "local",
+  },
+  {
+    username: "viewer",
+    password: "viewer",
+    permissions: Permission.REQUEST | Permission.REQUEST_VIEW,
+    user_type: "local",
+  },
+  {
+    username: "requester",
+    password: "requester",
+    permissions: Permission.REQUEST,
+    user_type: "local",
+  },
+  {
+    username: "autoapprover",
+    password: "autoapprover",
+    permissions: Permission.REQUEST | Permission.AUTO_APPROVE,
+    user_type: "local",
+  },
+  {
+    username: "plex_alice",
+    password: "plex_alice",
+    permissions: Permission.REQUEST,
+    user_type: "plex",
+    plex_username: "alice_plex",
+    plex_thumb: "https://i.pravatar.cc/150?u=alice",
+  },
+  {
+    username: "plex_bob",
+    password: "plex_bob",
+    permissions: Permission.REQUEST | Permission.REQUEST_VIEW,
+    user_type: "plex",
+    plex_username: "bob_plex",
+    plex_thumb: "https://i.pravatar.cc/150?u=bob",
+  },
+];
+
+const REQUESTS: SeedRequest[] = [
+  // Pending requests
+  {
+    username: "requester",
+    album_mbid: "b3b7e934-445b-4c68-a097-730c6a6d47e5",
+    artist_name: "Radiohead",
+    album_title: "OK Computer",
+    status: "pending",
+    created_at: "2026-03-14T10:00:00Z",
+  },
+  {
+    username: "plex_alice",
+    album_mbid: "5d0f1615-a1dd-3477-aa5a-ffee39064fd4",
+    artist_name: "Björk",
+    album_title: "Homogenic",
+    status: "pending",
+    created_at: "2026-03-14T11:30:00Z",
+  },
+  {
+    username: "plex_bob",
+    album_mbid: "dfa56e7e-1a3b-38a4-890c-9e06023cf97e",
+    artist_name: "Portishead",
+    album_title: "Dummy",
+    status: "pending",
+    created_at: "2026-03-13T09:00:00Z",
+  },
+  {
+    username: "requester",
+    album_mbid: "f6384fc0-fb5c-4d68-8c2c-0d94bdb7f4f8",
+    artist_name: "Massive Attack",
+    album_title: "Mezzanine",
+    status: "pending",
+    created_at: "2026-03-12T14:00:00Z",
+  },
+
+  // Approved requests (these will show various Lidarr lifecycle states when MOCK_LIDARR=true)
+  {
+    username: "requester",
+    album_mbid: "70b23c5f-3740-3e4e-8b72-1b2c52528eb3",
+    artist_name: "Radiohead",
+    album_title: "In Rainbows",
+    status: "approved",
+    created_at: "2026-03-10T08:00:00Z",
+  },
+  {
+    username: "plex_alice",
+    album_mbid: "aa1ea1bc-fc59-35f4-93a3-380e8b1b2031",
+    artist_name: "Radiohead",
+    album_title: "Kid A",
+    status: "approved",
+    created_at: "2026-03-09T16:00:00Z",
+  },
+  {
+    username: "plex_bob",
+    album_mbid: "09474191-15d3-3130-8a1f-cbd9a6d8a94e",
+    artist_name: "Boards of Canada",
+    album_title: "Music Has the Right to Children",
+    status: "approved",
+    created_at: "2026-03-08T12:00:00Z",
+  },
+  {
+    username: "autoapprover",
+    album_mbid: "d5242e28-9e8d-4574-8fee-90f6tried0a1",
+    artist_name: "Aphex Twin",
+    album_title: "Selected Ambient Works 85-92",
+    status: "approved",
+    created_at: "2026-03-07T10:00:00Z",
+  },
+  {
+    username: "requester",
+    album_mbid: "a0b1c2d3-e4f5-6789-abcd-ef0123456789",
+    artist_name: "Burial",
+    album_title: "Untrue",
+    status: "approved",
+    created_at: "2026-03-06T09:00:00Z",
+  },
+  {
+    username: "plex_alice",
+    album_mbid: "deadbeef-0001-4000-8000-000000000001",
+    artist_name: "Autechre",
+    album_title: "Tri Repetae",
+    status: "approved",
+    created_at: "2026-03-05T15:00:00Z",
+  },
+  {
+    username: "plex_bob",
+    album_mbid: "deadbeef-0002-4000-8000-000000000002",
+    artist_name: "Four Tet",
+    album_title: "Rounds",
+    status: "approved",
+    created_at: "2026-03-04T11:00:00Z",
+  },
+  {
+    username: "requester",
+    album_mbid: "deadbeef-0003-4000-8000-000000000003",
+    artist_name: "Flying Lotus",
+    album_title: "Cosmogramma",
+    status: "approved",
+    created_at: "2026-03-03T13:00:00Z",
+  },
+
+  // Declined requests
+  {
+    username: "requester",
+    album_mbid: "deadbeef-dec1-4000-8000-000000000001",
+    artist_name: "Nickelback",
+    album_title: "Silver Side Up",
+    status: "declined",
+    created_at: "2026-03-11T09:00:00Z",
+  },
+  {
+    username: "plex_alice",
+    album_mbid: "deadbeef-dec2-4000-8000-000000000002",
+    artist_name: "Creed",
+    album_title: "Human Clay",
+    status: "declined",
+    created_at: "2026-03-10T15:00:00Z",
+  },
+];
+
+async function createSeedUser(
+  userRepo: Repository<User>,
+  seedUser: SeedUser
+): Promise<User> {
+  const existing = await userRepo.findOne({
+    where: { username: seedUser.username },
+  });
+  if (existing) {
+    console.log(
+      `  User "${seedUser.username}" already exists (id=${existing.id}), skipping`
+    );
+    return existing;
+  }
+
+  const user = userRepo.create({
+    username: seedUser.username,
+    password_hash: await hashPassword(seedUser.password),
+    permissions: seedUser.permissions,
+    user_type: seedUser.user_type,
+    plex_username: seedUser.plex_username ?? null,
+    plex_thumb: seedUser.plex_thumb ?? null,
+    enabled: 1,
+    theme: "system",
+  });
+
+  const saved = await userRepo.save(user);
+  console.log(
+    `  Created user "${seedUser.username}" (id=${saved.id}, permissions=${seedUser.permissions})`
+  );
+  return saved;
+}
+
+async function createSeedRequest(
+  requestRepo: Repository<Request>,
+  seedReq: SeedRequest,
+  userId: number,
+  adminId: number
+): Promise<Request> {
+  const request = requestRepo.create({
+    user_id: userId,
+    album_mbid: seedReq.album_mbid,
+    artist_name: seedReq.artist_name,
+    album_title: seedReq.album_title,
+    status: seedReq.status,
+    created_at: seedReq.created_at,
+    approved_by: seedReq.status === "approved" ? adminId : null,
+    approved_at: seedReq.status === "approved" ? seedReq.created_at : null,
+  });
+
+  return requestRepo.save(request);
+}
+
+async function seed() {
+  console.log("Initializing database...");
+  await initializeDatabase();
+
+  const ds = getDataSource();
+  const userRepo = ds.getRepository(User);
+  const requestRepo = ds.getRepository(Request);
+
+  console.log("\nCreating users...");
+  const userMap = new Map<string, User>();
+  for (const seedUser of USERS) {
+    const user = await createSeedUser(userRepo, seedUser);
+    userMap.set(seedUser.username, user);
+  }
+
+  const admin = userMap.get("admin")!;
+
+  console.log("\nCreating requests...");
+  let created = 0;
+  let skipped = 0;
+  for (const seedReq of REQUESTS) {
+    const user = userMap.get(seedReq.username);
+    if (!user) {
+      console.log(`  Skipping request: user "${seedReq.username}" not found`);
+      skipped++;
+      continue;
+    }
+
+    const existing = await requestRepo.findOne({
+      where: { album_mbid: seedReq.album_mbid, user_id: user.id },
+    });
+    if (existing) {
+      skipped++;
+      continue;
+    }
+
+    await createSeedRequest(requestRepo, seedReq, user.id, admin.id);
+    console.log(
+      `  ${seedReq.status.padEnd(8)} "${seedReq.album_title}" by ${seedReq.artist_name} (${seedReq.username})`
+    );
+    created++;
+  }
+
+  console.log(
+    `\nDone! Created ${created} requests, skipped ${skipped} duplicates.`
+  );
+  console.log("\nSeed accounts (password = username):");
+  for (const u of USERS) {
+    const permNames = Object.entries(Permission)
+      .filter(
+        ([, v]) =>
+          typeof v === "number" &&
+          v !== 0 &&
+          (u.permissions & (v as number)) !== 0
+      )
+      .map(([k]) => k);
+    console.log(`  ${u.username.padEnd(16)} ${permNames.join(", ")}`);
+  }
+  console.log("\nTo see mock Lidarr lifecycle states, run the server with:");
+  console.log("  MOCK_LIDARR=true pnpm dev");
+
+  await closeDatabase();
+}
+
+seed().catch((err) => {
+  console.error("Seed failed:", err);
+  process.exit(1);
+});

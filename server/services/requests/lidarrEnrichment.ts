@@ -1,3 +1,4 @@
+import { mockEnrichRequestsWithLidarr } from "../../dev/mockLidarrEnrichment";
 import { lidarrGet } from "../../api/lidarr/get";
 import type {
   LidarrPaginatedResponse,
@@ -199,6 +200,10 @@ async function fetchLidarrData() {
 export async function enrichRequestsWithLidarr(
   albumMbids: string[]
 ): Promise<(LidarrLifecycleDetails | null)[]> {
+  if (process.env.MOCK_LIDARR === "true") {
+    return mockEnrichRequestsWithLidarr(albumMbids);
+  }
+
   try {
     const { queueMap, importedMap, wantedMap } = await fetchLidarrData();
     return albumMbids.map((mbid) =>
