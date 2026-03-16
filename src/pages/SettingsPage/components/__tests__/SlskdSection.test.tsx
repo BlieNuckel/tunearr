@@ -20,7 +20,7 @@ describe("SlskdSection", () => {
   it("renders all three input fields", () => {
     render(<SlskdSection {...defaultProps} />);
 
-    expect(screen.getByText("Soulseek (slskd)")).toBeInTheDocument();
+    expect(screen.getByText("slskd (Soulseek)")).toBeInTheDocument();
     expect(
       screen.getByPlaceholderText("http://slskd:5030")
     ).toBeInTheDocument();

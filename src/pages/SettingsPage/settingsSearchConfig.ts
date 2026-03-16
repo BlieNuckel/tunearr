@@ -92,7 +92,7 @@ export const SECTION_META: Record<SettingsSection, SectionMeta> = {
     permission: Permission.ADMIN,
   },
   slskd: {
-    label: "Soulseek (slskd)",
+    label: "slskd",
     tab: "integrations",
     keywords: ["slskd", "soulseek", "download", "api", "key", "path"],
     permission: Permission.ADMIN,
@@ -144,33 +144,6 @@ const TAB_ORDER: SettingsTab[] = [
   "logs",
   "admin",
 ];
-
-export const SECTION_ORDER: SettingsSection[] = [
-  "account",
-  "theme",
-  "import",
-  "lidarrConnection",
-  "lidarrOptions",
-  "lastfm",
-  "plex",
-  "slskd",
-  "recommendations",
-  "users",
-  "logs",
-];
-
-export function getVisibleSections(
-  userPermissions?: number
-): SettingsSection[] {
-  return SECTION_ORDER.filter((section) => {
-    const meta = SECTION_META[section];
-    return (
-      meta.permission === undefined ||
-      (userPermissions !== undefined &&
-        hasPermission(userPermissions, meta.permission))
-    );
-  });
-}
 
 export function getVisibleTabs(userPermissions?: number): SettingsTab[] {
   const visibleSet = new Set<SettingsTab>();

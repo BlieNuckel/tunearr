@@ -1,9 +1,4 @@
-import {
-  filterSections,
-  getVisibleSections,
-  SECTION_META,
-  SECTION_ORDER,
-} from "../settingsSearchConfig";
+import { filterSections, SECTION_META } from "../settingsSearchConfig";
 import { Permission } from "@shared/permissions";
 
 describe("filterSections", () => {
@@ -82,53 +77,6 @@ describe("SECTION_META", () => {
 
   it("users section requires MANAGE_USERS permission", () => {
     expect(SECTION_META.users.permission).toBe(Permission.MANAGE_USERS);
-  });
-});
-
-describe("SECTION_ORDER", () => {
-  it("contains all sections from SECTION_META", () => {
-    const metaKeys = Object.keys(SECTION_META);
-    expect(SECTION_ORDER).toHaveLength(metaKeys.length);
-    for (const key of metaKeys) {
-      expect(SECTION_ORDER).toContain(key);
-    }
-  });
-});
-
-describe("getVisibleSections", () => {
-  it("returns only unpermissioned sections when no permissions specified", () => {
-    const result = getVisibleSections();
-    expect(result).toContain("account");
-    expect(result).toContain("theme");
-    expect(result).not.toContain("lidarrConnection");
-    expect(result).not.toContain("users");
-  });
-
-  it("returns only non-permissioned sections for basic user", () => {
-    const result = getVisibleSections(Permission.REQUEST);
-    expect(result).toContain("account");
-    expect(result).toContain("theme");
-    expect(result).not.toContain("lidarrConnection");
-    expect(result).not.toContain("users");
-    expect(result).not.toContain("logs");
-  });
-
-  it("returns all sections for admin", () => {
-    const result = getVisibleSections(Permission.ADMIN);
-    expect(result).toEqual(SECTION_ORDER);
-  });
-
-  it("includes users section for MANAGE_USERS permission", () => {
-    const result = getVisibleSections(Permission.MANAGE_USERS);
-    expect(result).toContain("users");
-    expect(result).not.toContain("lidarrConnection");
-  });
-
-  it("preserves SECTION_ORDER ordering", () => {
-    const result = getVisibleSections(Permission.ADMIN);
-    const accountIdx = result.indexOf("account");
-    const logsIdx = result.indexOf("logs");
-    expect(accountIdx).toBeLessThan(logsIdx);
   });
 });
 

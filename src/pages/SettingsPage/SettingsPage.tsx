@@ -2,8 +2,8 @@ import { useState, useCallback, useEffect, useMemo } from "react";
 import { useLidarrContext } from "@/context/useLidarrContext";
 import { useAutoSave } from "@/hooks/useAutoSave";
 import useAutoSetupStatus from "@/hooks/useAutoSetupStatus";
-import useActiveSectionObserver from "@/hooks/useActiveSectionObserver";
 import { useAuth } from "@/context/useAuth";
+import { hasPermission } from "@shared/permissions";
 import LidarrConnectionSection from "./components/LidarrConnectionSection";
 import LidarrOptionsSection from "./components/LidarrOptionsSection";
 import LastfmSection from "./components/LastfmSection";
@@ -18,17 +18,16 @@ import { DEFAULT_PROMOTED_ALBUM } from "@/context/promotedAlbumDefaults";
 import AccountSection from "./components/AccountSection";
 import ThemeToggle from "@/components/ThemeToggle";
 import Skeleton from "@/components/Skeleton";
+import SettingsTabs from "./components/SettingsTabs";
 import SettingsSearch from "./components/SettingsSearch";
 import SaveStatusIndicator from "./components/SaveStatusIndicator";
-import { DesktopToc, MobileTocBar } from "@/components/TableOfContents";
-import type { TocSection } from "@/components/TableOfContents";
-import type { LidarrSettings, LidarrOptions } from "@/context/lidarrContextDef";
 import {
   filterSections,
-  getVisibleSections,
+  getVisibleTabs,
   SECTION_META,
   TAB_LABELS,
   type SettingsSection,
+  type SettingsTab,
 } from "./settingsSearchConfig";
 
 type TestResult = {
@@ -37,29 +36,23 @@ type TestResult = {
   error?: string;
 };
 
-type AutoSetupStatus = {
-  indexerExists: boolean;
-  downloadClientExists: boolean;
-} | null;
-
 function SectionBadge({ section }: { section: SettingsSection }) {
   const meta = SECTION_META[section];
   return (
-    <span className="inline-block text-xs font-medium px-2 py-0.5 mb-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
+    <span className="inline-block text-xs font-medium px-2 py-0.5 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
       {TAB_LABELS[meta.tab]}
     </span>
   );
 }
 
-function sectionToTocItem(section: SettingsSection): TocSection {
-  return { id: section, label: SECTION_META[section].label };
-}
-
-function scrollToSection(id: string) {
-  document.getElementById(`settings-${id}`)?.scrollIntoView({
-    behavior: "smooth",
-    block: "start",
-  });
+function isSectionVisible(
+  section: SettingsSection,
+  activeTab: SettingsTab,
+  searchQuery: string,
+  matchingSections: SettingsSection[]
+): boolean {
+  if (searchQuery) return matchingSections.includes(section);
+  return SECTION_META[section].tab === activeTab;
 }
 
 export default function SettingsPage() {
@@ -84,41 +77,22 @@ export default function SettingsPage() {
     refetch: refetchAutoSetup,
   } = useAutoSetupStatus();
 
+  const [activeTab, setActiveTab] = useState<SettingsTab>("general");
   const [searchQuery, setSearchQuery] = useState("");
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<TestResult | null>(null);
   const [autoSetupModalOpen, setAutoSetupModalOpen] = useState(false);
 
-  const allSections = useMemo(
-    () => getVisibleSections(user?.permissions),
-    [user]
-  );
+  const visibleTabs = useMemo(() => getVisibleTabs(user?.permissions), [user]);
+
+  const handleAutoSetupSuccess = useCallback(() => {
+    refetchAutoSetup();
+  }, [refetchAutoSetup]);
 
   const matchingSections = searchQuery
     ? filterSections(searchQuery, user?.permissions)
     : [];
   const isSearching = searchQuery.length > 0;
-
-  const visibleSections = isSearching ? matchingSections : allSections;
-
-  const tocSections = useMemo(
-    () => visibleSections.map(sectionToTocItem),
-    [visibleSections]
-  );
-
-  const sectionIds = useMemo(
-    () => visibleSections.map((s) => `settings-${s}`),
-    [visibleSections]
-  );
-
-  const { activeSection: activeObservedId, sectionRefs } =
-    useActiveSectionObserver(sectionIds);
-
-  const activeSection = activeObservedId?.replace("settings-", "") ?? null;
-
-  const handleAutoSetupSuccess = useCallback(() => {
-    refetchAutoSetup();
-  }, [refetchAutoSetup]);
 
   useEffect(() => {
     loadLidarrOptionValues();
@@ -185,6 +159,18 @@ export default function SettingsPage() {
     );
   }
 
+  const visible = (section: SettingsSection) => {
+    const meta = SECTION_META[section];
+    if (
+      meta.permission !== undefined &&
+      user &&
+      !hasPermission(user.permissions, meta.permission)
+    ) {
+      return false;
+    }
+    return isSectionVisible(section, activeTab, searchQuery, matchingSections);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
@@ -196,46 +182,145 @@ export default function SettingsPage() {
 
       <SettingsSearch query={searchQuery} onQueryChange={setSearchQuery} />
 
-      <div className="flex gap-8">
-        <div className="flex-1 min-w-0 divide-y divide-gray-200 dark:divide-gray-700">
-          {visibleSections.map((section) => (
-            <div
-              key={section}
-              id={`settings-${section}`}
-              ref={sectionRefs[`settings-${section}`]}
-              className="py-8 first:pt-0"
-            >
-              {isSearching && <SectionBadge section={section} />}
-              <SettingsSectionContent
-                section={section}
-                fields={fields}
-                options={options}
-                testing={testing}
-                isConnected={isConnected}
-                autoSetupStatus={autoSetupStatus}
-                autoSetupLoading={autoSetupLoading}
-                updateField={updateField}
-                onTest={handleTest}
-                onPlexLoginComplete={handlePlexLoginComplete}
-                onPlexSignOut={handlePlexSignOut}
-                onAutoSetup={() => setAutoSetupModalOpen(true)}
-              />
-            </div>
-          ))}
-        </div>
-
-        <DesktopToc
-          sections={tocSections}
-          activeSection={activeSection}
-          onSelect={scrollToSection}
+      {!isSearching && (
+        <SettingsTabs
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          visibleTabs={visibleTabs}
         />
-      </div>
+      )}
 
-      <MobileTocBar
-        sections={tocSections}
-        activeSection={activeSection}
-        onSelect={scrollToSection}
-      />
+      <div className="space-y-6">
+        {visible("account") && (
+          <div>
+            {isSearching && <SectionBadge section="account" />}
+            <AccountSection />
+          </div>
+        )}
+
+        {visible("theme") && (
+          <div>
+            {isSearching && <SectionBadge section="theme" />}
+            <div className="space-y-4">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                Theme
+              </h2>
+              <ThemeToggle />
+            </div>
+          </div>
+        )}
+
+        {visible("import") && (
+          <div>
+            {isSearching && <SectionBadge section="import" />}
+            <ImportSection
+              importPath={fields.importPath}
+              onImportPathChange={(v) => updateField("importPath", v)}
+            />
+          </div>
+        )}
+
+        {visible("lidarrConnection") && (
+          <div>
+            {isSearching && <SectionBadge section="lidarrConnection" />}
+            <LidarrConnectionSection
+              url={fields.lidarrUrl}
+              apiKey={fields.lidarrApiKey}
+              testing={testing}
+              onUrlChange={(v) => updateField("lidarrUrl", v)}
+              onApiKeyChange={(v) => updateField("lidarrApiKey", v)}
+              onTest={handleTest}
+            />
+          </div>
+        )}
+
+        {visible("lidarrOptions") && (
+          <div>
+            {isSearching && <SectionBadge section="lidarrOptions" />}
+            <LidarrOptionsSection
+              rootFolders={options.rootFolderPaths}
+              rootFolderPath={fields.lidarrRootFolderPath}
+              qualityProfiles={options.qualityProfiles}
+              qualityProfileId={fields.lidarrQualityProfileId}
+              metadataProfiles={options.metadataProfiles}
+              metadataProfileId={fields.lidarrMetadataProfileId}
+              onRootFolderChange={(v) => updateField("lidarrRootFolderPath", v)}
+              onQualityProfileChange={(v) =>
+                updateField("lidarrQualityProfileId", v)
+              }
+              onMetadataProfileChange={(v) =>
+                updateField("lidarrMetadataProfileId", v)
+              }
+            />
+          </div>
+        )}
+
+        {visible("lastfm") && (
+          <div>
+            {isSearching && <SectionBadge section="lastfm" />}
+            <LastfmSection
+              apiKey={fields.lastfmApiKey}
+              onApiKeyChange={(v) => updateField("lastfmApiKey", v)}
+            />
+          </div>
+        )}
+
+        {visible("plex") && (
+          <div>
+            {isSearching && <SectionBadge section="plex" />}
+            <PlexSection
+              url={fields.plexUrl}
+              onUrlChange={(v) => updateField("plexUrl", v)}
+              onSignOut={handlePlexSignOut}
+              onLoginComplete={handlePlexLoginComplete}
+            />
+          </div>
+        )}
+
+        {visible("slskd") && (
+          <div>
+            {isSearching && <SectionBadge section="slskd" />}
+            <SlskdSection
+              url={fields.slskdUrl}
+              apiKey={fields.slskdApiKey}
+              downloadPath={fields.slskdDownloadPath}
+              onUrlChange={(v) => updateField("slskdUrl", v)}
+              onApiKeyChange={(v) => updateField("slskdApiKey", v)}
+              onDownloadPathChange={(v) => updateField("slskdDownloadPath", v)}
+              isConnected={isConnected}
+              autoSetupStatus={autoSetupStatus}
+              autoSetupLoading={autoSetupLoading}
+              onAutoSetup={() => setAutoSetupModalOpen(true)}
+            />
+          </div>
+        )}
+
+        {visible("recommendations") && (
+          <div>
+            {isSearching && <SectionBadge section="recommendations" />}
+            <RecommendationsSection
+              config={fields.promotedAlbum ?? DEFAULT_PROMOTED_ALBUM}
+              onConfigChange={(updated) =>
+                updateField("promotedAlbum", updated)
+              }
+            />
+          </div>
+        )}
+
+        {visible("users") && (
+          <div>
+            {isSearching && <SectionBadge section="users" />}
+            <UsersSection />
+          </div>
+        )}
+
+        {visible("logs") && (
+          <div>
+            {isSearching && <SectionBadge section="logs" />}
+            <LogsSection />
+          </div>
+        )}
+      </div>
 
       {testResult && (
         <div
@@ -258,129 +343,4 @@ export default function SettingsPage() {
       />
     </div>
   );
-}
-
-interface SettingsSectionContentProps {
-  section: SettingsSection;
-  fields: LidarrSettings;
-  options: LidarrOptions;
-  testing: boolean;
-  isConnected: boolean;
-  autoSetupStatus: AutoSetupStatus;
-  autoSetupLoading: boolean;
-  updateField: <K extends keyof LidarrSettings>(
-    key: K,
-    value: LidarrSettings[K]
-  ) => void;
-  onTest: (e: React.MouseEvent<HTMLButtonElement>) => void;
-  onPlexLoginComplete: (serverUrl: string) => void;
-  onPlexSignOut: () => void;
-  onAutoSetup: () => void;
-}
-
-function SettingsSectionContent({
-  section,
-  fields,
-  options,
-  testing,
-  isConnected,
-  autoSetupStatus,
-  autoSetupLoading,
-  updateField,
-  onTest,
-  onPlexLoginComplete,
-  onPlexSignOut,
-  onAutoSetup,
-}: SettingsSectionContentProps) {
-  switch (section) {
-    case "account":
-      return <AccountSection />;
-    case "theme":
-      return (
-        <div className="space-y-4">
-          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-            Theme
-          </h2>
-          <ThemeToggle />
-        </div>
-      );
-    case "import":
-      return (
-        <ImportSection
-          importPath={fields.importPath}
-          onImportPathChange={(v) => updateField("importPath", v)}
-        />
-      );
-    case "lidarrConnection":
-      return (
-        <LidarrConnectionSection
-          url={fields.lidarrUrl}
-          apiKey={fields.lidarrApiKey}
-          testing={testing}
-          onUrlChange={(v) => updateField("lidarrUrl", v)}
-          onApiKeyChange={(v) => updateField("lidarrApiKey", v)}
-          onTest={onTest}
-        />
-      );
-    case "lidarrOptions":
-      return (
-        <LidarrOptionsSection
-          rootFolders={options.rootFolderPaths}
-          rootFolderPath={fields.lidarrRootFolderPath}
-          qualityProfiles={options.qualityProfiles}
-          qualityProfileId={fields.lidarrQualityProfileId}
-          metadataProfiles={options.metadataProfiles}
-          metadataProfileId={fields.lidarrMetadataProfileId}
-          onRootFolderChange={(v) => updateField("lidarrRootFolderPath", v)}
-          onQualityProfileChange={(v) =>
-            updateField("lidarrQualityProfileId", v)
-          }
-          onMetadataProfileChange={(v) =>
-            updateField("lidarrMetadataProfileId", v)
-          }
-        />
-      );
-    case "lastfm":
-      return (
-        <LastfmSection
-          apiKey={fields.lastfmApiKey}
-          onApiKeyChange={(v) => updateField("lastfmApiKey", v)}
-        />
-      );
-    case "plex":
-      return (
-        <PlexSection
-          url={fields.plexUrl}
-          onUrlChange={(v) => updateField("plexUrl", v)}
-          onSignOut={onPlexSignOut}
-          onLoginComplete={onPlexLoginComplete}
-        />
-      );
-    case "slskd":
-      return (
-        <SlskdSection
-          url={fields.slskdUrl}
-          apiKey={fields.slskdApiKey}
-          downloadPath={fields.slskdDownloadPath}
-          onUrlChange={(v) => updateField("slskdUrl", v)}
-          onApiKeyChange={(v) => updateField("slskdApiKey", v)}
-          onDownloadPathChange={(v) => updateField("slskdDownloadPath", v)}
-          isConnected={isConnected}
-          autoSetupStatus={autoSetupStatus}
-          autoSetupLoading={autoSetupLoading}
-          onAutoSetup={onAutoSetup}
-        />
-      );
-    case "recommendations":
-      return (
-        <RecommendationsSection
-          config={fields.promotedAlbum ?? DEFAULT_PROMOTED_ALBUM}
-          onConfigChange={(updated) => updateField("promotedAlbum", updated)}
-        />
-      );
-    case "users":
-      return <UsersSection />;
-    case "logs":
-      return <LogsSection />;
-  }
 }

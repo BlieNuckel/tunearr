@@ -134,19 +134,12 @@ describe("SettingsPage", () => {
     expect(screen.getByText("Settings")).toBeInTheDocument();
   });
 
-  it("renders all sections for admin user on single page", () => {
+  it("renders General tab by default with Account, Theme and Import", () => {
     renderSettingsPage();
-    expect(screen.getAllByText("Account").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("Theme").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("Manual Import").length).toBeGreaterThanOrEqual(
-      1
-    );
-    expect(
-      screen.getAllByText("Lidarr Connection").length
-    ).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("Last.fm").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("Plex").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText("System Logs")).toBeInTheDocument();
+    expect(screen.getByText("Account")).toBeInTheDocument();
+    expect(screen.getByText("Theme")).toBeInTheDocument();
+    expect(screen.getByText("Manual Import")).toBeInTheDocument();
+    expect(screen.queryByText("Lidarr Connection")).not.toBeInTheDocument();
   });
 
   it("shows Account section with username and Sign Out button", () => {
@@ -156,6 +149,24 @@ describe("SettingsPage", () => {
     expect(screen.getByText("Sign Out")).toBeInTheDocument();
   });
 
+  it("shows Integrations sections when Integrations tab clicked", () => {
+    renderSettingsPage();
+    fireEvent.click(screen.getByText("Integrations"));
+
+    expect(screen.getByText("Lidarr Connection")).toBeInTheDocument();
+    expect(screen.getByText("Last.fm")).toBeInTheDocument();
+    expect(screen.getByText("Plex")).toBeInTheDocument();
+    expect(screen.queryByText("Theme")).not.toBeInTheDocument();
+  });
+
+  it("shows Logs section when Logs tab clicked", () => {
+    renderSettingsPage();
+    fireEvent.click(screen.getByText("Logs"));
+
+    expect(screen.getByText("System Logs")).toBeInTheDocument();
+    expect(screen.queryByText("Theme")).not.toBeInTheDocument();
+  });
+
   it("renders search input", () => {
     renderSettingsPage();
     expect(
@@ -163,42 +174,32 @@ describe("SettingsPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("filters sections by search query", () => {
+  it("filters sections by search query across tabs", () => {
     renderSettingsPage();
     fireEvent.change(screen.getByPlaceholderText("Search settings..."), {
       target: { value: "lidarr" },
     });
 
-    expect(
-      screen.getAllByText("Lidarr Connection").length
-    ).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("Lidarr Connection")).toBeInTheDocument();
     expect(screen.queryByText("Theme")).not.toBeInTheDocument();
   });
 
-  it("shows category badges during search", () => {
+  it("hides tabs when searching", () => {
+    renderSettingsPage();
+    fireEvent.change(screen.getByPlaceholderText("Search settings..."), {
+      target: { value: "plex" },
+    });
+
+    expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
+  });
+
+  it("shows tab-origin badges during search", () => {
     renderSettingsPage();
     fireEvent.change(screen.getByPlaceholderText("Search settings..."), {
       target: { value: "plex" },
     });
 
     expect(screen.getByText("Integrations")).toBeInTheDocument();
-  });
-
-  it("restores all sections when clearing search", () => {
-    renderSettingsPage();
-    fireEvent.change(screen.getByPlaceholderText("Search settings..."), {
-      target: { value: "theme" },
-    });
-    const lidarrDuringSearch = screen.queryAllByText("Lidarr Connection");
-    expect(lidarrDuringSearch).toHaveLength(0);
-
-    fireEvent.change(screen.getByPlaceholderText("Search settings..."), {
-      target: { value: "" },
-    });
-    expect(
-      screen.getAllByText("Lidarr Connection").length
-    ).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("Theme").length).toBeGreaterThanOrEqual(1);
   });
 
   it("does not render the old Save button", () => {
@@ -210,6 +211,7 @@ describe("SettingsPage", () => {
     mockTestConnection.mockResolvedValue({ success: true, version: "2.0.0" });
 
     renderSettingsPage();
+    fireEvent.click(screen.getByText("Integrations"));
     fireEvent.click(screen.getByText("Test Connection"));
 
     await waitFor(() => {
@@ -221,6 +223,7 @@ describe("SettingsPage", () => {
     mockTestConnection.mockResolvedValue({ success: true, version: "2.0.0" });
 
     renderSettingsPage();
+    fireEvent.click(screen.getByText("Integrations"));
     fireEvent.click(screen.getByText("Test Connection"));
 
     await waitFor(() => {
@@ -235,6 +238,7 @@ describe("SettingsPage", () => {
     });
 
     renderSettingsPage();
+    fireEvent.click(screen.getByText("Integrations"));
     fireEvent.click(screen.getByText("Test Connection"));
 
     await waitFor(() => {
@@ -272,6 +276,7 @@ describe("SettingsPage", () => {
     });
 
     renderSettingsPage();
+    fireEvent.click(screen.getByText("Integrations"));
 
     await waitFor(() => {
       expect(screen.getByText("Sign out")).toBeInTheDocument();
@@ -306,6 +311,7 @@ describe("SettingsPage", () => {
         slskdDownloadPath: "",
       },
     });
+    fireEvent.click(screen.getByText("Integrations"));
 
     await waitFor(() => {
       expect(screen.getByText("Sign in with Plex")).toBeInTheDocument();
@@ -326,12 +332,19 @@ describe("SettingsPage", () => {
     });
   });
 
-  it("renders desktop TOC with section names", () => {
+  it("returns to previously active tab when clearing search", () => {
     renderSettingsPage();
-    const nav = screen.getByLabelText("Table of contents");
-    expect(nav).toBeInTheDocument();
-    expect(nav).toHaveTextContent("Account");
-    expect(nav).toHaveTextContent("Theme");
-    expect(nav).toHaveTextContent("Lidarr Connection");
+    fireEvent.click(screen.getByText("Integrations"));
+
+    fireEvent.change(screen.getByPlaceholderText("Search settings..."), {
+      target: { value: "theme" },
+    });
+    expect(screen.getByText("Theme")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByPlaceholderText("Search settings..."), {
+      target: { value: "" },
+    });
+    expect(screen.getByText("Lidarr Connection")).toBeInTheDocument();
+    expect(screen.queryByText("Theme")).not.toBeInTheDocument();
   });
 });

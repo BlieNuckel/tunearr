@@ -26,7 +26,7 @@ export default function AccountSection() {
       <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
         Account
       </h2>
-      <div className="w-fit flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 p-4 bg-white dark:bg-gray-800 border-2 border-black rounded-lg shadow-cartoon-sm">
+      <div className="w-fit flex items-center gap-6 p-4 bg-white dark:bg-gray-800 border-2 border-black rounded-lg shadow-cartoon-sm">
         <div className="flex items-center gap-3">
           <UserAvatar
             thumb={user?.thumb ?? null}
