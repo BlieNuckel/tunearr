@@ -12,8 +12,8 @@ vi.mock("react-router-dom", () => ({
   useNavigate: () => mockNavigate,
 }));
 
-vi.mock("@/context/useLidarrContext", () => ({
-  useLidarrContext: () => ({
+vi.mock("@/context/useSettings", () => ({
+  useSettings: () => ({
     testConnection: mockTestConnection,
     saveSettings: mockSaveSettings,
   }),

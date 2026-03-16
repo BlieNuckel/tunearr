@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useLidarrContext } from "@/context/useLidarrContext";
+import { useSettings } from "@/context/useSettings";
 
 export const STEPS = [
   "welcome",
@@ -37,7 +37,7 @@ export interface TestResult {
 const OPTIONAL_STEPS: StepId[] = ["lastfm", "plex", "import"];
 
 export function useOnboarding() {
-  const { testConnection, saveSettings } = useLidarrContext();
+  const { testConnection, saveSettings } = useSettings();
   const navigate = useNavigate();
 
   const [stepIndex, setStepIndex] = useState(0);

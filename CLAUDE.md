@@ -26,7 +26,7 @@ Full-stack TypeScript app: React 19 frontend + Express 5 backend. Vite proxies `
 
 **Tailwind CSS v4:** Uses `@tailwindcss/postcss` — the legacy `tailwind.config.cjs` is ignored. All custom theme values, keyframes, and animations are defined in `src/index.css` using `@theme` blocks and plain CSS.
 
-**State management:** `LidarrContext` holds global settings, connection status, and Lidarr options (profiles, root paths). `ThemeContext` manages light/dark/system theme. All other state is page-local via custom hooks in `src/hooks/` — each hook owns its own loading/error/data lifecycle.
+**State management:** `SettingsContext` holds global settings, connection status, and Lidarr options (profiles, root paths). `ThemeContext` manages light/dark/system theme. All other state is page-local via custom hooks in `src/hooks/` — each hook owns its own loading/error/data lifecycle.
 
 **Backend (`/server`):** Express with four layers:
 

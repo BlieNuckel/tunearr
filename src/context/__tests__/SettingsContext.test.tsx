@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
-import { LidarrContextProvider } from "../LidarrContext";
-import { useLidarrContext } from "../useLidarrContext";
+import { SettingsContextProvider } from "../SettingsContext";
+import { useSettings } from "../useSettings";
 import {
   AuthContext,
   type AuthContextValue,
@@ -42,7 +42,7 @@ function makeAuthValue(
 }
 
 function TestConsumer() {
-  const ctx = useLidarrContext();
+  const ctx = useSettings();
   return (
     <div>
       <span data-testid="loading">{String(ctx.isLoading)}</span>
@@ -55,14 +55,14 @@ function TestConsumer() {
 function renderWithAuth(authOverrides: Partial<AuthContextValue> = {}) {
   return render(
     <AuthContext.Provider value={makeAuthValue(authOverrides)}>
-      <LidarrContextProvider>
+      <SettingsContextProvider>
         <TestConsumer />
-      </LidarrContextProvider>
+      </SettingsContextProvider>
     </AuthContext.Provider>
   );
 }
 
-describe("LidarrContextProvider", () => {
+describe("SettingsContextProvider", () => {
   it("provides initial loading state", () => {
     vi.mocked(fetch).mockReturnValue(new Promise(() => {}));
 

@@ -28,9 +28,9 @@ vi.mock("@/context/useAuth", () => ({
 
 import OnboardingPage from "../OnboardingPage";
 import {
-  LidarrContext,
-  type LidarrContextValue,
-} from "@/context/lidarrContextDef";
+  SettingsContext,
+  type SettingsContextValue,
+} from "@/context/settingsContextDef";
 
 const mockTestConnection = vi.fn();
 const mockSaveSettings = vi.fn();
@@ -38,8 +38,8 @@ const mockFetch = vi.fn();
 
 vi.stubGlobal("fetch", mockFetch);
 
-function renderOnboarding(overrides: Partial<LidarrContextValue> = {}) {
-  const defaultContext: LidarrContextValue = {
+function renderOnboarding(overrides: Partial<SettingsContextValue> = {}) {
+  const defaultContext: SettingsContextValue = {
     options: { qualityProfiles: [], metadataProfiles: [], rootFolderPaths: [] },
     settings: {
       lidarrUrl: "",
@@ -64,14 +64,14 @@ function renderOnboarding(overrides: Partial<LidarrContextValue> = {}) {
   };
 
   return render(
-    <LidarrContext.Provider value={defaultContext}>
+    <SettingsContext.Provider value={defaultContext}>
       <MemoryRouter initialEntries={["/onboarding"]}>
         <Routes>
           <Route path="/onboarding" element={<OnboardingPage />} />
           <Route path="/" element={<div>Home Page</div>} />
         </Routes>
       </MemoryRouter>
-    </LidarrContext.Provider>
+    </SettingsContext.Provider>
   );
 }
 

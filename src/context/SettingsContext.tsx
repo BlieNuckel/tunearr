@@ -1,20 +1,20 @@
 import { ReactNode, useState, useEffect } from "react";
 import {
-  LidarrContext,
-  type LidarrSettings,
+  SettingsContext,
+  type AppSettings,
   type LidarrOptions,
-  type LidarrContextValue,
-} from "./lidarrContextDef";
+  type SettingsContextValue,
+} from "./settingsContextDef";
 import { DEFAULT_PROMOTED_ALBUM } from "./promotedAlbumDefaults";
 import { useAuth } from "./useAuth";
 import { hasPermission, Permission } from "@shared/permissions";
 
-interface LidarrContextProviderProps {
+interface SettingsContextProviderProps {
   children: ReactNode;
 }
 
 async function loadConfigStatus(
-  setSettings: (fn: (prev: LidarrSettings) => LidarrSettings) => void,
+  setSettings: (fn: (prev: AppSettings) => AppSettings) => void,
   setIsLoading: (v: boolean) => void
 ) {
   setIsLoading(true);
@@ -34,7 +34,7 @@ async function loadConfigStatus(
 }
 
 async function loadSettings(
-  setSettings: (s: LidarrSettings) => void,
+  setSettings: (s: AppSettings) => void,
   setIsLoading: (v: boolean) => void
 ) {
   setIsLoading(true);
@@ -98,12 +98,12 @@ async function loadLidarrOptionValues(
   }
 }
 
-export const LidarrContextProvider = ({
+export const SettingsContextProvider = ({
   children,
-}: LidarrContextProviderProps) => {
+}: SettingsContextProviderProps) => {
   const { status, user } = useAuth();
 
-  const [settings, setSettings] = useState<LidarrSettings>({
+  const [settings, setSettings] = useState<AppSettings>({
     lidarrUrl: "",
     lidarrApiKey: "",
     lidarrQualityProfileId: 1,
@@ -141,7 +141,7 @@ export const LidarrContextProvider = ({
     }
   }, [isAuthenticated, isAdmin]);
 
-  const savePartialSettings = async (partial: Partial<LidarrSettings>) => {
+  const savePartialSettings = async (partial: Partial<AppSettings>) => {
     const res = await fetch("/api/settings", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -168,11 +168,11 @@ export const LidarrContextProvider = ({
     }
   };
 
-  const saveSettings = async (newSettings: LidarrSettings) => {
+  const saveSettings = async (newSettings: AppSettings) => {
     await savePartialSettings(newSettings);
   };
 
-  const testConnection = async (testSettings: LidarrSettings) => {
+  const testConnection = async (testSettings: AppSettings) => {
     const res = await fetch("/api/settings/test", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -194,7 +194,7 @@ export const LidarrContextProvider = ({
     };
   };
 
-  const value: LidarrContextValue = {
+  const value: SettingsContextValue = {
     options,
     settings,
     isConnected,
@@ -206,6 +206,8 @@ export const LidarrContextProvider = ({
   };
 
   return (
-    <LidarrContext.Provider value={value}>{children}</LidarrContext.Provider>
+    <SettingsContext.Provider value={value}>
+      {children}
+    </SettingsContext.Provider>
   );
 };

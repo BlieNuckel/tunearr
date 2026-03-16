@@ -4,7 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import "./index.css";
 import App from "./App";
 import { AuthProvider } from "./context/AuthProvider";
-import { LidarrContextProvider } from "./context/LidarrContext";
+import { SettingsContextProvider } from "./context/SettingsContext";
 import { ThemeProvider } from "./context/ThemeContext";
 
 const rootElement = document.getElementById("root");
@@ -16,9 +16,9 @@ root.render(
     <BrowserRouter>
       <AuthProvider>
         <ThemeProvider>
-          <LidarrContextProvider>
+          <SettingsContextProvider>
             <App />
-          </LidarrContextProvider>
+          </SettingsContextProvider>
         </ThemeProvider>
       </AuthProvider>
     </BrowserRouter>

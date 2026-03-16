@@ -2,9 +2,9 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import RequireOnboarding from "../RequireOnboarding";
 import {
-  LidarrContext,
-  type LidarrContextValue,
-} from "@/context/lidarrContextDef";
+  SettingsContext,
+  type SettingsContextValue,
+} from "@/context/settingsContextDef";
 import {
   AuthContext,
   type AuthContextValue,
@@ -50,10 +50,10 @@ const emptySettings = {
 };
 
 function renderWithContext(
-  contextValue: Partial<LidarrContextValue>,
+  contextValue: Partial<SettingsContextValue>,
   permissions = Permission.ADMIN
 ) {
-  const defaultValue: LidarrContextValue = {
+  const defaultValue: SettingsContextValue = {
     options: { qualityProfiles: [], metadataProfiles: [], rootFolderPaths: [] },
     settings: emptySettings,
     isConnected: false,
@@ -67,7 +67,7 @@ function renderWithContext(
 
   return render(
     <AuthContext.Provider value={makeAuthValue(permissions)}>
-      <LidarrContext.Provider value={defaultValue}>
+      <SettingsContext.Provider value={defaultValue}>
         <MemoryRouter initialEntries={["/"]}>
           <Routes>
             <Route element={<RequireOnboarding />}>
@@ -76,7 +76,7 @@ function renderWithContext(
             <Route path="/onboarding" element={<div>Onboarding</div>} />
           </Routes>
         </MemoryRouter>
-      </LidarrContext.Provider>
+      </SettingsContext.Provider>
     </AuthContext.Provider>
   );
 }

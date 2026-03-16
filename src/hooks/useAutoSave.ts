@@ -1,30 +1,30 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import type { LidarrSettings } from "@/context/lidarrContextDef";
+import type { AppSettings } from "@/context/settingsContextDef";
 
 export type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 type DebounceTimers = Partial<
-  Record<keyof LidarrSettings, ReturnType<typeof setTimeout>>
+  Record<keyof AppSettings, ReturnType<typeof setTimeout>>
 >;
 
 const TEXT_DEBOUNCE_MS = 800;
 
-const IMMEDIATE_FIELDS: Set<keyof LidarrSettings> = new Set([
+const IMMEDIATE_FIELDS: Set<keyof AppSettings> = new Set([
   "lidarrQualityProfileId",
   "lidarrRootFolderPath",
   "lidarrMetadataProfileId",
   "promotedAlbum",
 ]);
 
-function isImmediateField(key: keyof LidarrSettings): boolean {
+function isImmediateField(key: keyof AppSettings): boolean {
   return IMMEDIATE_FIELDS.has(key);
 }
 
 export function useAutoSave(
-  settings: LidarrSettings,
-  savePartialSettings: (partial: Partial<LidarrSettings>) => Promise<void>
+  settings: AppSettings,
+  savePartialSettings: (partial: Partial<AppSettings>) => Promise<void>
 ) {
-  const [fields, setFields] = useState<LidarrSettings>(settings);
+  const [fields, setFields] = useState<AppSettings>(settings);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
   const timersRef = useRef<DebounceTimers>({});
@@ -35,7 +35,7 @@ export function useAutoSave(
   }, [settings]);
 
   const performSave = useCallback(
-    async (partial: Partial<LidarrSettings>) => {
+    async (partial: Partial<AppSettings>) => {
       setSaveStatus("saving");
       setSaveError(null);
       try {
@@ -52,7 +52,7 @@ export function useAutoSave(
   );
 
   const updateField = useCallback(
-    <K extends keyof LidarrSettings>(key: K, value: LidarrSettings[K]) => {
+    <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
       setFields((prev) => ({ ...prev, [key]: value }));
 
       const timer = timersRef.current[key];
@@ -70,7 +70,7 @@ export function useAutoSave(
   );
 
   const updateFields = useCallback(
-    (partial: Partial<LidarrSettings>) => {
+    (partial: Partial<AppSettings>) => {
       setFields((prev) => ({ ...prev, ...partial }));
       performSave(partial);
     },
@@ -80,7 +80,7 @@ export function useAutoSave(
   useEffect(() => {
     const timers = timersRef.current;
     return () => {
-      for (const key of Object.keys(timers) as (keyof LidarrSettings)[]) {
+      for (const key of Object.keys(timers) as (keyof AppSettings)[]) {
         clearTimeout(timers[key]);
       }
       clearTimeout(savedTimerRef.current);
