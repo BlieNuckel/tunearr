@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AuthContext, type AuthContextValue } from "@/context/authContextDef";
-import AccountSection from "../components/AccountSection";
+import AccountSection from "../sections/general/AccountSection";
 
 const mockLogout = vi.fn();
 

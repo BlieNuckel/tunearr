@@ -1,8 +1,8 @@
 import { renderHook, act } from "@testing-library/react";
 import { useAutoSave } from "../useAutoSave";
-import type { LidarrSettings } from "@/context/lidarrContextDef";
+import type { AppSettings } from "@/context/settingsContextDef";
 
-const defaultSettings: LidarrSettings = {
+const defaultSettings: AppSettings = {
   lidarrUrl: "http://lidarr:8686",
   lidarrApiKey: "key1",
   lidarrQualityProfileId: 1,

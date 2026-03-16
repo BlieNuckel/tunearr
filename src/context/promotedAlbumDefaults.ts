@@ -1,4 +1,4 @@
-import type { PromotedAlbumSettings } from "./lidarrContextDef";
+import type { PromotedAlbumSettings } from "./settingsContextDef";
 
 export const DEFAULT_PROMOTED_ALBUM: PromotedAlbumSettings = {
   cacheDurationMinutes: 30,

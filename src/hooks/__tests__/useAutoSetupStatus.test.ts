@@ -1,16 +1,16 @@
 import { renderHook, waitFor } from "@testing-library/react";
 
-const mockUseLidarrContext = vi.fn();
+const mockUseSettings = vi.fn();
 
-vi.mock("@/context/useLidarrContext", () => ({
-  useLidarrContext: () => mockUseLidarrContext(),
+vi.mock("@/context/useSettings", () => ({
+  useSettings: () => mockUseSettings(),
 }));
 
 import useAutoSetupStatus from "../useAutoSetupStatus";
 
 beforeEach(() => {
   vi.stubGlobal("fetch", vi.fn());
-  mockUseLidarrContext.mockReturnValue({ isConnected: true });
+  mockUseSettings.mockReturnValue({ isConnected: true });
 });
 
 afterEach(() => {
@@ -43,7 +43,7 @@ describe("useAutoSetupStatus", () => {
   });
 
   it("does not fetch when disconnected", async () => {
-    mockUseLidarrContext.mockReturnValue({ isConnected: false });
+    mockUseSettings.mockReturnValue({ isConnected: false });
 
     const { result } = renderHook(() => useAutoSetupStatus());
 

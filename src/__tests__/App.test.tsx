@@ -2,13 +2,13 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import App from "../App";
 import {
-  LidarrContext,
-  type LidarrContextValue,
-} from "@/context/lidarrContextDef";
+  SettingsContext,
+  type SettingsContextValue,
+} from "@/context/settingsContextDef";
 import { ThemeContext } from "@/context/themeContextDef";
 import { AuthContext, type AuthContextValue } from "@/context/authContextDef";
 
-const connectedContext: LidarrContextValue = {
+const connectedContext: SettingsContextValue = {
   options: { qualityProfiles: [], metadataProfiles: [], rootFolderPaths: [] },
   settings: {
     lidarrUrl: "http://lidarr:8686",
@@ -31,7 +31,7 @@ const connectedContext: LidarrContextValue = {
   loadLidarrOptionValues: vi.fn(),
 };
 
-const unconfiguredContext: LidarrContextValue = {
+const unconfiguredContext: SettingsContextValue = {
   ...connectedContext,
   settings: {
     lidarrUrl: "",
@@ -78,7 +78,7 @@ vi.stubGlobal(
 function renderApp(path: string, context = connectedContext) {
   return render(
     <AuthContext.Provider value={authenticatedAuth}>
-      <LidarrContext.Provider value={context}>
+      <SettingsContext.Provider value={context}>
         <ThemeContext.Provider
           value={{
             theme: "system",
@@ -91,7 +91,7 @@ function renderApp(path: string, context = connectedContext) {
             <App />
           </MemoryRouter>
         </ThemeContext.Provider>
-      </LidarrContext.Provider>
+      </SettingsContext.Provider>
     </AuthContext.Provider>
   );
 }

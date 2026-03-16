@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import SaveStatusIndicator from "../components/SaveStatusIndicator";
+import SaveStatusIndicator from "../shared/SaveStatusIndicator";
 
 describe("SaveStatusIndicator", () => {
   it("renders nothing when idle", () => {

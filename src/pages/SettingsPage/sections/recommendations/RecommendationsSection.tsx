@@ -1,7 +1,7 @@
 import type {
   PromotedAlbumSettings,
   LibraryPreference,
-} from "@/context/lidarrContextDef";
+} from "@/context/settingsContextDef";
 import { DEFAULT_PROMOTED_ALBUM } from "@/context/promotedAlbumDefaults";
 import TagListEditor from "./TagListEditor";
 

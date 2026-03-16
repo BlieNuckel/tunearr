@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from "@testing-library/react";
-import SettingsSearch from "../components/SettingsSearch";
+import SettingsSearch from "../shared/SettingsSearch";
 
 describe("SettingsSearch", () => {
   it("renders search input with placeholder", () => {

@@ -4,6 +4,7 @@ export type SettingsTab =
   | "general"
   | "integrations"
   | "recommendations"
+  | "notifications"
   | "admin"
   | "logs";
 
@@ -11,6 +12,7 @@ export const TAB_LABELS: Record<SettingsTab, string> = {
   general: "General",
   integrations: "Integrations",
   recommendations: "Recommendations",
+  notifications: "Notifications",
   admin: "Users",
   logs: "Logs",
 };
@@ -141,6 +143,7 @@ const TAB_ORDER: SettingsTab[] = [
   "general",
   "integrations",
   "recommendations",
+  "notifications",
   "logs",
   "admin",
 ];
@@ -156,6 +159,14 @@ export function getVisibleTabs(userPermissions?: number): SettingsTab[] {
       visibleSet.add(meta.tab);
     }
   }
+
+  if (
+    userPermissions !== undefined &&
+    hasPermission(userPermissions, Permission.ADMIN)
+  ) {
+    visibleSet.add("notifications");
+  }
+
   return TAB_ORDER.filter((tab) => visibleSet.has(tab));
 }
 

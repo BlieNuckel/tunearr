@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useLidarrContext } from "@/context/useLidarrContext";
+import { useSettings } from "@/context/useSettings";
 
 type AutoSetupStatus = {
   indexerExists: boolean;
@@ -7,7 +7,7 @@ type AutoSetupStatus = {
 };
 
 export default function useAutoSetupStatus() {
-  const { isConnected } = useLidarrContext();
+  const { isConnected } = useSettings();
   const [status, setStatus] = useState<AutoSetupStatus | null>(null);
   const [loading, setLoading] = useState(false);
 

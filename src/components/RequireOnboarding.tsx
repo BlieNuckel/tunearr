@@ -1,5 +1,5 @@
 import { Navigate, Outlet } from "react-router-dom";
-import { useLidarrContext } from "@/context/useLidarrContext";
+import { useSettings } from "@/context/useSettings";
 import { useAuth } from "@/context/useAuth";
 import { hasPermission, Permission } from "@shared/permissions";
 
@@ -20,7 +20,7 @@ function AwaitingSetup() {
 }
 
 export default function RequireOnboarding() {
-  const { settings, isLoading } = useLidarrContext();
+  const { settings, isLoading } = useSettings();
   const { user } = useAuth();
 
   if (isLoading) return null;

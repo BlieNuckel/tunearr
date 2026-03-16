@@ -1,5 +1,6 @@
 import { render, screen, fireEvent } from "@testing-library/react";
-import SettingsTabs from "../components/SettingsTabs";
+import { MemoryRouter } from "react-router-dom";
+import SettingsTabs from "../shared/SettingsTabs";
 import type { SettingsTab } from "../settingsSearchConfig";
 
 const ALL_TABS: SettingsTab[] = [
@@ -9,15 +10,25 @@ const ALL_TABS: SettingsTab[] = [
   "admin",
 ];
 
+const renderSettingsTabs = (
+  activeTab: SettingsTab,
+  onTabChange: (tab: SettingsTab) => void,
+  visibleTabs: SettingsTab[]
+) => {
+  return render(
+    <MemoryRouter initialEntries={["/settings"]}>
+      <SettingsTabs
+        activeTab={activeTab}
+        onTabChange={onTabChange}
+        visibleTabs={visibleTabs}
+      />
+    </MemoryRouter>
+  );
+};
+
 describe("SettingsTabs", () => {
   it("renders all visible tabs", () => {
-    render(
-      <SettingsTabs
-        activeTab="general"
-        onTabChange={vi.fn()}
-        visibleTabs={ALL_TABS}
-      />
-    );
+    renderSettingsTabs("general", vi.fn(), ALL_TABS);
     expect(screen.getByText("General")).toBeInTheDocument();
     expect(screen.getByText("Integrations")).toBeInTheDocument();
     expect(screen.getByText("Recommendations")).toBeInTheDocument();
@@ -25,26 +36,14 @@ describe("SettingsTabs", () => {
   });
 
   it("only renders tabs in visibleTabs", () => {
-    render(
-      <SettingsTabs
-        activeTab="general"
-        onTabChange={vi.fn()}
-        visibleTabs={["general"]}
-      />
-    );
+    renderSettingsTabs("general", vi.fn(), ["general"]);
     expect(screen.getByText("General")).toBeInTheDocument();
     expect(screen.queryByText("Integrations")).not.toBeInTheDocument();
     expect(screen.queryByText("Users")).not.toBeInTheDocument();
   });
 
   it("marks active tab with aria-selected", () => {
-    render(
-      <SettingsTabs
-        activeTab="general"
-        onTabChange={vi.fn()}
-        visibleTabs={ALL_TABS}
-      />
-    );
+    renderSettingsTabs("general", vi.fn(), ALL_TABS);
     expect(screen.getByText("General")).toHaveAttribute(
       "aria-selected",
       "true"
@@ -57,25 +56,13 @@ describe("SettingsTabs", () => {
 
   it("calls onTabChange when tab is clicked", () => {
     const onTabChange = vi.fn();
-    render(
-      <SettingsTabs
-        activeTab="general"
-        onTabChange={onTabChange}
-        visibleTabs={ALL_TABS}
-      />
-    );
+    renderSettingsTabs("general", onTabChange, ALL_TABS);
     fireEvent.click(screen.getByText("Integrations"));
     expect(onTabChange).toHaveBeenCalledWith("integrations");
   });
 
   it("renders tablist role", () => {
-    render(
-      <SettingsTabs
-        activeTab="general"
-        onTabChange={vi.fn()}
-        visibleTabs={ALL_TABS}
-      />
-    );
+    renderSettingsTabs("general", vi.fn(), ALL_TABS);
     expect(screen.getByRole("tablist")).toBeInTheDocument();
   });
 });
