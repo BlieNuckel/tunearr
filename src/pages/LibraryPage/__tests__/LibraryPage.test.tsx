@@ -49,24 +49,16 @@ function renderWithAuth(permissions: number) {
 async function toggleFilterChip(
   user: ReturnType<typeof userEvent.setup>,
   pillText: string,
-  chipText: string
+  optionLabel: string
 ) {
-  const desktop = document.querySelector('[class*="md:block"]')!;
-  const existingChips = desktop.querySelectorAll("button");
-  const alreadyVisible = Array.from(existingChips).find(
-    (el) => el.textContent === chipText && !el.textContent?.includes(":")
-  );
-  if (!alreadyVisible) {
-    const pills = screen.getAllByRole("button", { name: new RegExp(pillText) });
-    const desktopPill = pills[pills.length - 1];
-    await user.click(desktopPill);
+  const existingOption = screen.queryByRole("option", { name: optionLabel });
+  if (!existingOption) {
+    const pill = screen.getByRole("button", { name: new RegExp(pillText) });
+    await user.click(pill);
   }
-  const chips = screen.getAllByRole("button", { name: chipText });
-  const chip =
-    chips.find(
-      (el) => !el.querySelector("svg") || el.closest('[class*="md:block"]')
-    ) ?? chips[0];
-  await user.click(chip);
+
+  const option = screen.getByRole("option", { name: optionLabel });
+  await user.click(option);
 }
 
 describe("LibraryPage", () => {
@@ -91,7 +83,7 @@ describe("LibraryPage", () => {
 
     await user.click(screen.getByRole("button", { name: /Requester/ }));
 
-    expect(screen.getByRole("button", { name: "Me" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Me" })).toBeInTheDocument();
   });
 
   it("shows status filter options when status pill is clicked", async () => {
@@ -100,12 +92,12 @@ describe("LibraryPage", () => {
 
     await user.click(screen.getByRole("button", { name: /Status/ }));
 
-    expect(screen.getByRole("button", { name: "Pending" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Pending" })).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Approved" })
+      screen.getByRole("option", { name: "Approved" })
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Declined" })
+      screen.getByRole("option", { name: "Declined" })
     ).toBeInTheDocument();
   });
 
