@@ -1,3 +1,4 @@
+import { In } from "typeorm";
 import { getDataSource, Request } from "../../db/index";
 import { hasPermission, Permission } from "../../../shared/permissions";
 import { getAlbumByMbid } from "../lidarr/helpers";
@@ -163,13 +164,16 @@ export async function declineRequest(
 }
 
 export async function getRequests(filters?: {
-  status?: string;
+  status?: string[];
   userId?: number;
 }) {
   const repo = getRequestRepo();
 
   const where: Record<string, unknown> = {};
-  if (filters?.status) where.status = filters.status;
+  if (filters?.status && filters.status.length > 0) {
+    where.status =
+      filters.status.length === 1 ? filters.status[0] : In(filters.status);
+  }
   if (filters?.userId) where.user_id = filters.userId;
 
   return repo.find({

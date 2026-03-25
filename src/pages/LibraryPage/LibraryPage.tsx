@@ -3,12 +3,15 @@ import { useAuth } from "@/context/useAuth";
 import { hasPermission } from "@shared/permissions";
 import { Permission } from "@shared/permissions";
 import { useRequests } from "@/hooks/useRequests";
-import MineAllToggle from "./components/MineAllToggle";
+import RequestFilter from "./components/RequestFilter";
 import RequestList from "./components/RequestList";
 
 export default function LibraryPage() {
   const { user } = useAuth();
-  const [showAll, setShowAll] = useState(false);
+  const [filters, setFilters] = useState<Record<string, string[]>>({
+    requester: [],
+    status: [],
+  });
 
   const canViewAll =
     user !== null &&
@@ -22,13 +25,21 @@ export default function LibraryPage() {
   const isAdmin =
     user !== null && hasPermission(user.permissions, Permission.ADMIN);
 
-  const effectiveShowAll = canViewAll && showAll;
+  const showMine = filters.requester.includes("mine") || !canViewAll;
+  const effectiveShowAll = canViewAll && !filters.requester.includes("mine");
   const requestsOptions = useMemo(
-    () => (effectiveShowAll ? {} : { userId: user?.id }),
-    [effectiveShowAll, user?.id]
+    () => ({
+      ...(showMine ? { userId: user?.id } : {}),
+      ...(filters.status.length > 0 ? { status: filters.status } : {}),
+    }),
+    [showMine, user?.id, filters.status]
   );
   const { requests, loading, error, approveRequest, declineRequest, refresh } =
     useRequests(requestsOptions);
+
+  const handleFilterChange = useCallback((key: string, values: string[]) => {
+    setFilters((prev) => ({ ...prev, [key]: values }));
+  }, []);
 
   const handleSearch = useCallback(async (albumId: number) => {
     try {
@@ -64,16 +75,14 @@ export default function LibraryPage() {
         Library
       </h1>
 
-      {canViewAll && <MineAllToggle showAll={showAll} onToggle={setShowAll} />}
+      <RequestFilter values={filters} onChange={handleFilterChange} />
 
       <RequestList
         requests={requests}
         loading={loading}
         error={error}
         emptyMessage={
-          effectiveShowAll
-            ? "No requests yet"
-            : "You haven't made any requests yet"
+          showMine ? "You haven't made any requests yet" : "No requests yet"
         }
         showUser={effectiveShowAll}
         showActions={canManageRequests && effectiveShowAll}

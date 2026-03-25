@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { In } from "typeorm";
 import { Permission } from "../../../shared/permissions";
 
 const mockFulfillRequest = vi.fn();
@@ -233,11 +234,29 @@ describe("getRequests", () => {
     });
   });
 
-  it("filters by status", async () => {
+  it("filters by single status", async () => {
     mockFind.mockResolvedValue([]);
-    await getRequests({ status: "pending" });
+    await getRequests({ status: ["pending"] });
     expect(mockFind).toHaveBeenCalledWith(
       expect.objectContaining({ where: { status: "pending" } })
+    );
+  });
+
+  it("filters by multiple statuses using In()", async () => {
+    mockFind.mockResolvedValue([]);
+    await getRequests({ status: ["pending", "approved"] });
+    expect(mockFind).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { status: In(["pending", "approved"]) },
+      })
+    );
+  });
+
+  it("does not filter status when array is empty", async () => {
+    mockFind.mockResolvedValue([]);
+    await getRequests({ status: [] });
+    expect(mockFind).toHaveBeenCalledWith(
+      expect.objectContaining({ where: {} })
     );
   });
 

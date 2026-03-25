@@ -6,8 +6,8 @@ import { Permission } from "@shared/permissions";
 
 beforeEach(() => {
   vi.stubGlobal("fetch", vi.fn());
-  vi.mocked(fetch).mockResolvedValue(
-    new Response(JSON.stringify([]), { status: 200 })
+  vi.mocked(fetch).mockImplementation(() =>
+    Promise.resolve(new Response(JSON.stringify([]), { status: 200 }))
   );
 });
 
@@ -46,6 +46,21 @@ function renderWithAuth(permissions: number) {
   );
 }
 
+async function toggleFilterChip(
+  user: ReturnType<typeof userEvent.setup>,
+  pillText: string,
+  optionLabel: string
+) {
+  const existingOption = screen.queryByRole("option", { name: optionLabel });
+  if (!existingOption) {
+    const pill = screen.getByRole("button", { name: new RegExp(pillText) });
+    await user.click(pill);
+  }
+
+  const option = screen.getByRole("option", { name: optionLabel });
+  await user.click(option);
+}
+
 describe("LibraryPage", () => {
   it("renders page title", async () => {
     renderWithAuth(Permission.REQUEST);
@@ -53,48 +68,48 @@ describe("LibraryPage", () => {
     expect(screen.getByText("Library")).toBeInTheDocument();
   });
 
-  it("does not show mine/all toggle for basic users", async () => {
+  it("shows requester and status filter pills", async () => {
     renderWithAuth(Permission.REQUEST);
 
     expect(
-      screen.queryByRole("tab", { name: "My Requests" })
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("tab", { name: "All Requests" })
-    ).not.toBeInTheDocument();
+      screen.getByRole("button", { name: /Requester/ })
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Status/ })).toBeInTheDocument();
   });
 
-  it("shows mine/all toggle for users with REQUEST_VIEW permission", async () => {
-    renderWithAuth(Permission.REQUEST | Permission.REQUEST_VIEW);
+  it("shows filter options when pill is clicked", async () => {
+    renderWithAuth(Permission.REQUEST);
+    const user = userEvent.setup();
 
+    await user.click(screen.getByRole("button", { name: /Requester/ }));
+
+    expect(screen.getByRole("option", { name: "Me" })).toBeInTheDocument();
+  });
+
+  it("shows status filter options when status pill is clicked", async () => {
+    renderWithAuth(Permission.REQUEST);
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: /Status/ }));
+
+    expect(screen.getByRole("option", { name: "Pending" })).toBeInTheDocument();
     expect(
-      screen.getByRole("tab", { name: "My Requests" })
+      screen.getByRole("option", { name: "Approved" })
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("tab", { name: "All Requests" })
+      screen.getByRole("option", { name: "Declined" })
     ).toBeInTheDocument();
   });
 
-  it("shows mine/all toggle for users with MANAGE_REQUESTS permission", async () => {
-    renderWithAuth(Permission.REQUEST | Permission.MANAGE_REQUESTS);
-
-    expect(
-      screen.getByRole("tab", { name: "All Requests" })
-    ).toBeInTheDocument();
-  });
-
-  it("shows mine/all toggle for admins", async () => {
+  it("defaults to showing all requests with no filters active", async () => {
     renderWithAuth(Permission.ADMIN);
 
-    expect(
-      screen.getByRole("tab", { name: "My Requests" })
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("tab", { name: "All Requests" })
-    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(vi.mocked(fetch)).toHaveBeenCalledWith("/api/requests");
+    });
   });
 
-  it("defaults to showing user's own requests", async () => {
+  it("fetches only user requests for basic users", async () => {
     renderWithAuth(Permission.REQUEST);
 
     await waitFor(() => {
@@ -102,19 +117,78 @@ describe("LibraryPage", () => {
     });
   });
 
-  it("fetches all requests when toggling to All Requests", async () => {
+  it("fetches user requests when selecting 'Me' filter", async () => {
     renderWithAuth(Permission.ADMIN);
     const user = userEvent.setup();
 
-    await user.click(screen.getByRole("tab", { name: "All Requests" }));
+    await toggleFilterChip(user, "Requester", "Me");
 
     await waitFor(() => {
-      expect(vi.mocked(fetch)).toHaveBeenCalledWith("/api/requests");
+      expect(vi.mocked(fetch)).toHaveBeenCalledWith("/api/requests?userId=1");
     });
   });
 
-  it("shows empty state for user's requests", async () => {
-    renderWithAuth(Permission.REQUEST);
+  it("fetches all requests when deselecting 'Me' filter as admin", async () => {
+    renderWithAuth(Permission.ADMIN);
+    const user = userEvent.setup();
+
+    await toggleFilterChip(user, "Requester", "Me");
+    await waitFor(() => {
+      expect(vi.mocked(fetch)).toHaveBeenCalledWith("/api/requests?userId=1");
+    });
+
+    await toggleFilterChip(user, "Requester", "Me");
+    await waitFor(() => {
+      expect(vi.mocked(fetch)).toHaveBeenLastCalledWith("/api/requests");
+    });
+  });
+
+  it("fetches filtered requests when selecting a status", async () => {
+    renderWithAuth(Permission.ADMIN);
+    const user = userEvent.setup();
+
+    await toggleFilterChip(user, "Status", "Pending");
+
+    await waitFor(() => {
+      expect(vi.mocked(fetch)).toHaveBeenCalledWith(
+        "/api/requests?status=pending"
+      );
+    });
+  });
+
+  it("combines requester and status filters", async () => {
+    renderWithAuth(Permission.ADMIN);
+    const user = userEvent.setup();
+
+    await toggleFilterChip(user, "Requester", "Me");
+    await toggleFilterChip(user, "Status", "Approved");
+
+    await waitFor(() => {
+      expect(vi.mocked(fetch)).toHaveBeenCalledWith(
+        "/api/requests?userId=1&status=approved"
+      );
+    });
+  });
+
+  it("sends repeated status params for multi-select", async () => {
+    renderWithAuth(Permission.ADMIN);
+    const user = userEvent.setup();
+
+    await toggleFilterChip(user, "Status", "Pending");
+    await toggleFilterChip(user, "Status", "Approved");
+
+    await waitFor(() => {
+      expect(vi.mocked(fetch)).toHaveBeenCalledWith(
+        "/api/requests?status=pending&status=approved"
+      );
+    });
+  });
+
+  it("shows empty state for user's requests when 'Me' filter active", async () => {
+    renderWithAuth(Permission.ADMIN);
+    const user = userEvent.setup();
+
+    await toggleFilterChip(user, "Requester", "Me");
 
     await waitFor(() => {
       expect(
@@ -123,24 +197,57 @@ describe("LibraryPage", () => {
     });
   });
 
+  it("does not show reset button when no filters are active", async () => {
+    renderWithAuth(Permission.ADMIN);
+
+    expect(screen.queryByText("Reset filters")).not.toBeInTheDocument();
+  });
+
+  it("shows reset button when a filter is active and resets on click", async () => {
+    renderWithAuth(Permission.ADMIN);
+    const user = userEvent.setup();
+
+    await toggleFilterChip(user, "Requester", "Me");
+    await toggleFilterChip(user, "Status", "Approved");
+
+    expect(screen.getByText("Reset filters")).toBeInTheDocument();
+
+    await user.click(screen.getByText("Reset filters"));
+
+    expect(screen.queryByText("Reset filters")).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(vi.mocked(fetch)).toHaveBeenLastCalledWith("/api/requests");
+    });
+  });
+
+  it("shows empty state for all requests when no filters active", async () => {
+    renderWithAuth(Permission.ADMIN);
+
+    await waitFor(() => {
+      expect(screen.getByText("No requests yet")).toBeInTheDocument();
+    });
+  });
+
   it("renders request cards when data is loaded", async () => {
-    vi.mocked(fetch).mockResolvedValue(
-      new Response(
-        JSON.stringify([
-          {
-            id: 1,
-            albumMbid: "abc",
-            artistName: "Radiohead",
-            albumTitle: "OK Computer",
-            status: "pending",
-            createdAt: "2024-01-01T00:00:00Z",
-            updatedAt: "2024-01-01T00:00:00Z",
-            approvedAt: null,
-            user: { id: 1, username: "testuser", thumb: null },
-            lidarr: null,
-          },
-        ]),
-        { status: 200 }
+    vi.mocked(fetch).mockImplementation(() =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify([
+            {
+              id: 1,
+              albumMbid: "abc",
+              artistName: "Radiohead",
+              albumTitle: "OK Computer",
+              status: "pending",
+              createdAt: "2024-01-01T00:00:00Z",
+              updatedAt: "2024-01-01T00:00:00Z",
+              approvedAt: null,
+              user: { id: 1, username: "testuser", thumb: null },
+              lidarr: null,
+            },
+          ]),
+          { status: 200 }
+        )
       )
     );
 

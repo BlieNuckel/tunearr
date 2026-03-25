@@ -34,8 +34,18 @@ router.post(
   }
 );
 
+function parseStatusFilter(
+  raw: string | string[] | undefined
+): string[] | undefined {
+  if (!raw) return undefined;
+  if (Array.isArray(raw)) return raw.filter(Boolean);
+  return [raw];
+}
+
 router.get("/", async (req: Request, res: Response) => {
-  const status = req.query.status as string | undefined;
+  const status = parseStatusFilter(
+    req.query.status as string | string[] | undefined
+  );
   const userId = req.query.userId ? Number(req.query.userId) : undefined;
 
   const requests = await getRequests({ status, userId });

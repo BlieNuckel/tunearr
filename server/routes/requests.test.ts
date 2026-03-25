@@ -172,12 +172,22 @@ describe("GET /", () => {
     expect(res.body[0].lidarr).toBeNull();
   });
 
-  it("passes status filter", async () => {
+  it("passes single status as array", async () => {
     mockGetRequests.mockResolvedValue([]);
     mockEnrichRequestsWithLidarr.mockResolvedValue([]);
     await request(app).get("/?status=pending");
     expect(mockGetRequests).toHaveBeenCalledWith({
-      status: "pending",
+      status: ["pending"],
+      userId: undefined,
+    });
+  });
+
+  it("passes repeated status params as array", async () => {
+    mockGetRequests.mockResolvedValue([]);
+    mockEnrichRequestsWithLidarr.mockResolvedValue([]);
+    await request(app).get("/?status=pending&status=approved");
+    expect(mockGetRequests).toHaveBeenCalledWith({
+      status: ["pending", "approved"],
       userId: undefined,
     });
   });

@@ -21,7 +21,7 @@ type LogsResponse = {
 type UseLogsParams = {
   page: number;
   pageSize: number;
-  level?: LogLevel;
+  level?: LogLevel[];
   search?: string;
 };
 
@@ -46,7 +46,9 @@ export default function useLogs({
       });
 
       if (level) {
-        params.append("level", level);
+        for (const l of level) {
+          params.append("level", l);
+        }
       }
 
       if (search) {

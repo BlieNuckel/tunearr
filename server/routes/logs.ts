@@ -10,7 +10,10 @@ router.get("/", (req: Request, res: Response) => {
     100,
     Math.max(1, parseInt(req.query.pageSize as string) || 25)
   );
-  const level = req.query.level as LogLevel | undefined;
+  const rawLevel = req.query.level as string | string[] | undefined;
+  const level = rawLevel
+    ? ((Array.isArray(rawLevel) ? rawLevel : [rawLevel]) as LogLevel[])
+    : undefined;
   const search = req.query.search as string | undefined;
 
   try {

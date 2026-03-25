@@ -31,11 +31,12 @@ function readLogs(): LogEntry[] {
 
 function filterLogs(
   logs: LogEntry[],
-  level?: LogLevel,
+  level?: LogLevel[],
   search?: string
 ): LogEntry[] {
   let filtered = logs;
-  if (level) filtered = filtered.filter((log) => log.level === level);
+  if (level && level.length > 0)
+    filtered = filtered.filter((log) => level.includes(log.level));
   if (search) {
     const searchLower = search.toLowerCase();
     filtered = filtered.filter(
@@ -50,7 +51,7 @@ function filterLogs(
 export function getLogs(
   page: number,
   pageSize: number,
-  level?: LogLevel,
+  level?: LogLevel[],
   search?: string
 ): LogsResponse {
   const allLogs = readLogs();

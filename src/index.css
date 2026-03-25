@@ -153,6 +153,32 @@
   animation: backdrop-fade-out 0.15s ease-in both;
 }
 
+@keyframes sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes sheet-out {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+
+.animate-sheet-in {
+  animation: sheet-in 0.3s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+.animate-sheet-out {
+  animation: sheet-out 0.2s ease-in both;
+}
+
 @keyframes slide-up-fade-in {
   from {
     opacity: 0;
