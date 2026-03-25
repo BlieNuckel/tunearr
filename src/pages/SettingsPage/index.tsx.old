@@ -1,26 +1,26 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
-import { useLidarrContext } from "@/context/useLidarrContext";
+import { useSettings } from "@/context/useSettings";
 import { useAutoSave } from "@/hooks/useAutoSave";
 import useAutoSetupStatus from "@/hooks/useAutoSetupStatus";
 import { useAuth } from "@/context/useAuth";
 import { hasPermission } from "@shared/permissions";
-import LidarrConnectionSection from "./components/LidarrConnectionSection";
-import LidarrOptionsSection from "./components/LidarrOptionsSection";
-import LastfmSection from "./components/LastfmSection";
-import PlexSection from "./components/PlexSection";
-import SlskdSection from "./components/SlskdSection";
-import AutoSetupModal from "./components/AutoSetupModal";
-import ImportSection from "./components/ImportSection";
-import RecommendationsSection from "./components/RecommendationsSection";
-import UsersSection from "./components/UsersSection";
-import LogsSection from "./components/LogsSection";
+import LidarrConnectionSection from "./sections/integrations/LidarrConnectionSection";
+import LidarrOptionsSection from "./sections/integrations/LidarrOptionsSection";
+import LastfmSection from "./sections/integrations/LastfmSection";
+import PlexSection from "./sections/integrations/PlexSection";
+import SlskdSection from "./sections/integrations/SlskdSection";
+import AutoSetupModal from "./shared/AutoSetupModal";
+import ImportSection from "./sections/general/ImportSection";
+import RecommendationsSection from "./sections/recommendations/RecommendationsSection";
+import UsersSection from "./sections/users/UsersSection";
+import LogsSection from "./sections/logs/LogsSection";
 import { DEFAULT_PROMOTED_ALBUM } from "@/context/promotedAlbumDefaults";
-import AccountSection from "./components/AccountSection";
+import AccountSection from "./sections/general/AccountSection";
 import ThemeToggle from "@/components/ThemeToggle";
 import Skeleton from "@/components/Skeleton";
-import SettingsTabs from "./components/SettingsTabs";
-import SettingsSearch from "./components/SettingsSearch";
-import SaveStatusIndicator from "./components/SaveStatusIndicator";
+import SettingsTabs from "./shared/SettingsTabs";
+import SettingsSearch from "./shared/SettingsSearch";
+import SaveStatusIndicator from "./shared/SaveStatusIndicator";
 import {
   filterSections,
   getVisibleTabs,
@@ -64,7 +64,7 @@ export default function SettingsPage() {
     savePartialSettings,
     testConnection,
     loadLidarrOptionValues,
-  } = useLidarrContext();
+  } = useSettings();
 
   const { user } = useAuth();
 

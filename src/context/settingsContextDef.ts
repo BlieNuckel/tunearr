@@ -16,7 +16,7 @@ export interface PromotedAlbumSettings {
   libraryPreference: LibraryPreference;
 }
 
-export interface LidarrSettings {
+export interface AppSettings {
   lidarrUrl: string;
   lidarrApiKey: string;
   lidarrQualityProfileId: number;
@@ -37,14 +37,14 @@ export type LidarrOptions = {
   rootFolderPaths: { id: number; path: string }[];
 };
 
-export interface LidarrContextValue {
+export interface SettingsContextValue {
   options: LidarrOptions;
-  settings: LidarrSettings;
+  settings: AppSettings;
   isConnected: boolean;
   isLoading: boolean;
-  saveSettings: (newSettings: LidarrSettings) => Promise<void>;
-  savePartialSettings: (partial: Partial<LidarrSettings>) => Promise<void>;
-  testConnection: (testSettings: LidarrSettings) => Promise<{
+  saveSettings: (newSettings: AppSettings) => Promise<void>;
+  savePartialSettings: (partial: Partial<AppSettings>) => Promise<void>;
+  testConnection: (testSettings: AppSettings) => Promise<{
     success: boolean;
     version?: string;
     error?: string;
@@ -55,6 +55,6 @@ export interface LidarrContextValue {
   loadLidarrOptionValues: () => Promise<void>;
 }
 
-export const LidarrContext = createContext<LidarrContextValue | undefined>(
+export const SettingsContext = createContext<SettingsContextValue | undefined>(
   undefined
 );

@@ -1,5 +1,5 @@
 import { Navigate } from "react-router-dom";
-import { useLidarrContext } from "@/context/useLidarrContext";
+import { useSettings } from "@/context/useSettings";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import WizardShell from "./components/WizardShell";
 import WelcomeStep from "./steps/WelcomeStep";
@@ -11,7 +11,7 @@ import ImportStep from "./steps/ImportStep";
 import CompleteStep from "./steps/CompleteStep";
 
 export default function OnboardingPage() {
-  const { settings, isLoading } = useLidarrContext();
+  const { settings, isLoading } = useSettings();
   const wizard = useOnboarding();
 
   if (!isLoading && settings.lidarrUrl) return <Navigate to="/" replace />;
