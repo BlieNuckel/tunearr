@@ -2,6 +2,14 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import ReleaseGroupCard from "../ReleaseGroupCard";
 import type { ReleaseGroup } from "../../types";
 
+Object.defineProperty(window, "matchMedia", {
+  value: vi.fn().mockReturnValue({
+    matches: true,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+  }),
+});
+
 const mockRequestAlbum = vi.fn();
 const mockFetchTracks = vi.fn();
 const mockStop = vi.fn();
@@ -222,30 +230,7 @@ describe("ReleaseGroupCard", () => {
     expect(screen.queryByTestId("detail-overlay")).not.toBeInTheDocument();
   });
 
-  describe("inLibrary badge", () => {
-    it('shows "In Library" badge when inLibrary is true', () => {
-      render(
-        <ReleaseGroupCard releaseGroup={makeReleaseGroup()} inLibrary={true} />
-      );
-
-      const badges = screen.getAllByText("In Library");
-      expect(badges.length).toBeGreaterThanOrEqual(1);
-    });
-
-    it('does not show "In Library" badge when inLibrary is false', () => {
-      render(
-        <ReleaseGroupCard releaseGroup={makeReleaseGroup()} inLibrary={false} />
-      );
-
-      expect(screen.queryByText("In Library")).not.toBeInTheDocument();
-    });
-
-    it('does not show "In Library" badge when inLibrary is undefined', () => {
-      render(<ReleaseGroupCard releaseGroup={makeReleaseGroup()} />);
-
-      expect(screen.queryByText("In Library")).not.toBeInTheDocument();
-    });
-
+  describe("inLibrary behavior", () => {
     it("disables add button when inLibrary is true", () => {
       render(
         <ReleaseGroupCard releaseGroup={makeReleaseGroup()} inLibrary={true} />
@@ -260,10 +245,31 @@ describe("ReleaseGroupCard", () => {
         <ReleaseGroupCard releaseGroup={makeReleaseGroup()} inLibrary={true} />
       );
 
-      // Mobile button should have the already_monitored style
       const mobileButton = screen.getByTestId("mobile-monitor-button");
       expect(mobileButton.className).toContain("bg-gray-200");
       expect(mobileButton.className).toContain("text-gray-500");
+    });
+  });
+
+  describe("more menu", () => {
+    it("renders more options button on mobile and desktop", () => {
+      render(<ReleaseGroupCard releaseGroup={makeReleaseGroup()} />);
+
+      const moreButtons = screen.getAllByLabelText("More options");
+      expect(moreButtons.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it("does not expand card when more menu is clicked on mobile", () => {
+      render(<ReleaseGroupCard releaseGroup={makeReleaseGroup()} />);
+
+      const expandContainer = screen
+        .getByTestId("mobile-tracklist")
+        .closest("[data-expanded]")!;
+
+      const moreButtons = screen.getAllByLabelText("More options");
+      fireEvent.click(moreButtons[0]);
+
+      expect(expandContainer).toHaveAttribute("data-expanded", "false");
     });
   });
 });

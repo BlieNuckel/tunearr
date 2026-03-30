@@ -11,7 +11,7 @@ describe("MonitorButton", () => {
     ["idle", "Request"],
     ["adding", "Requesting..."],
     ["success", "Requested"],
-    ["already_monitored", "Already Monitored"],
+    ["already_monitored", "Monitored"],
     ["error", "Error"],
   ] as [MonitorState, string][])(
     "shows '%s' label for %s state",

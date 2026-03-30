@@ -15,7 +15,7 @@ const states = {
       "bg-emerald-400 text-black dark:text-black border-2 border-black shadow-cartoon-sm cursor-default",
   },
   already_monitored: {
-    label: "Already Monitored",
+    label: "Monitored",
     className:
       "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border-2 border-black shadow-cartoon-sm cursor-default",
   },

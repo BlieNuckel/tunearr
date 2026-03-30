@@ -18,4 +18,5 @@ export {
   RectangleStackIcon as LibraryIcon,
   HandThumbUpIcon as ApproveIcon,
   HandThumbDownIcon as DeclineIcon,
+  EllipsisVerticalIcon,
 } from "@heroicons/react/20/solid";
