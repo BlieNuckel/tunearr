@@ -19,4 +19,7 @@ export {
   HandThumbUpIcon as ApproveIcon,
   HandThumbDownIcon as DeclineIcon,
   EllipsisVerticalIcon,
+  ArrowLeftIcon,
+  XMarkIcon,
+  DocumentIcon,
 } from "@heroicons/react/20/solid";

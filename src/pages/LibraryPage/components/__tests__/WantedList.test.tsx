@@ -1,6 +1,17 @@
 import { render, screen } from "@testing-library/react";
 import WantedList from "../WantedList";
+import { Permission } from "@shared/permissions";
 import type { WantedItem } from "@/types";
+
+vi.mock("react-router-dom", () => ({
+  useNavigate: () => vi.fn(),
+}));
+
+vi.mock("@/context/useAuth", () => ({
+  useAuth: () => ({
+    user: { id: 1, permissions: Permission.ADMIN },
+  }),
+}));
 
 Object.defineProperty(window, "matchMedia", {
   value: vi.fn().mockReturnValue({

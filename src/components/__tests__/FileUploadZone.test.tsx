@@ -1,11 +1,11 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import FileUploadZone from "../FileUploadZone";
 
 describe("FileUploadZone", () => {
   it("renders drop zone text", () => {
     render(<FileUploadZone onFiles={vi.fn()} />);
     expect(
-      screen.getByText("Drop audio files here or click to browse")
+      screen.getByText("Drop audio files or a folder here, or click to browse")
     ).toBeInTheDocument();
     expect(
       screen.getByText("FLAC, MP3, OGG, WAV, M4A, AAC")
@@ -24,28 +24,34 @@ describe("FileUploadZone", () => {
     fireEvent.change(input);
 
     expect(onFiles).toHaveBeenCalledTimes(1);
+    expect(onFiles).toHaveBeenCalledWith([file]);
   });
 
-  it("calls onFiles on drop", () => {
+  it("calls onFiles on drop with plain files", async () => {
     const onFiles = vi.fn();
     render(<FileUploadZone onFiles={onFiles} />);
 
     const dropZone = screen
-      .getByText("Drop audio files here or click to browse")
+      .getByText("Drop audio files or a folder here, or click to browse")
       .closest("div")!;
     const file = new File(["audio"], "track.mp3", { type: "audio/mpeg" });
 
     fireEvent.drop(dropZone, {
-      dataTransfer: { files: [file] },
+      dataTransfer: {
+        files: [file],
+        items: [{ webkitGetAsEntry: () => null }],
+      },
     });
 
-    expect(onFiles).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(onFiles).toHaveBeenCalledTimes(1);
+    });
   });
 
   it("prevents default on dragover", () => {
     render(<FileUploadZone onFiles={vi.fn()} />);
     const dropZone = screen
-      .getByText("Drop audio files here or click to browse")
+      .getByText("Drop audio files or a folder here, or click to browse")
       .closest("div")!;
 
     const event = new Event("dragover", { bubbles: true, cancelable: true });

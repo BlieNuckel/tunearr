@@ -28,7 +28,7 @@ describe("ImportReview", () => {
     expect(screen.getByText("song.flac")).toBeInTheDocument();
   });
 
-  it("shows warning count for items with rejections", () => {
+  it("shows rejection reasons inline", () => {
     const items = [
       makeItem({
         rejections: [{ reason: "bad quality" }, { reason: "wrong format" }],
@@ -37,15 +37,16 @@ describe("ImportReview", () => {
     render(
       <ImportReview items={items} onConfirm={vi.fn()} onCancel={vi.fn()} />
     );
-    expect(screen.getByText("2 warnings")).toBeInTheDocument();
+    expect(screen.getByText("bad quality")).toBeInTheDocument();
+    expect(screen.getByText("wrong format")).toBeInTheDocument();
   });
 
-  it("uses singular 'warning' for single rejection", () => {
+  it("shows single rejection reason inline", () => {
     const items = [makeItem({ rejections: [{ reason: "issue" }] })];
     render(
       <ImportReview items={items} onConfirm={vi.fn()} onCancel={vi.fn()} />
     );
-    expect(screen.getByText("1 warning")).toBeInTheDocument();
+    expect(screen.getByText("issue")).toBeInTheDocument();
   });
 
   it("shows correct button text for singular file", () => {

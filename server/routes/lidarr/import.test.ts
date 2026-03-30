@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// Create mock factory functions that will be called during module initialization
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let mockExistsSync: any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -28,6 +27,11 @@ vi.mock("../../services/lidarr/helpers", () => ({
   getOrAddAlbum: vi.fn(),
 }));
 
+vi.mock("../../middleware/requirePermission", () => ({
+  requirePermission: () => (_req: unknown, _res: unknown, next: () => void) =>
+    next(),
+}));
+
 vi.mock("fs", () => ({
   default: {
     existsSync: (p: string) => (mockExistsSync || vi.fn(() => true))(p),
@@ -45,22 +49,24 @@ vi.mock("crypto", () => ({
 }));
 
 vi.mock("multer", () => {
-  const multerMock = () => ({
-    array:
-      () =>
-      (
-        req: {
-          body: Record<string, unknown>;
-          __uploadId: string;
-          __uploadDir: string;
-        },
-        _res: unknown,
-        next: () => void
-      ) => {
-        req.__uploadId = "test-uuid-1234";
-        req.__uploadDir = "/imports/test-uuid-1234";
-        next();
+  const makeMiddleware =
+    () =>
+    (
+      req: {
+        body: Record<string, unknown>;
+        __uploadId: string;
+        __uploadDir: string;
       },
+      _res: unknown,
+      next: () => void
+    ) => {
+      req.__uploadId = "test-uuid-1234";
+      req.__uploadDir = "/imports/test-uuid-1234";
+      next();
+    };
+  const multerMock = () => ({
+    array: () => makeMiddleware(),
+    single: () => makeMiddleware(),
   });
   multerMock.diskStorage = () => ({});
   return { default: multerMock };
@@ -196,6 +202,88 @@ describe("POST /import/upload", () => {
       albumId: 10,
       items: scanItems,
     });
+  });
+});
+
+describe("POST /import/upload-file", () => {
+  it("returns 400 when import path is not configured", async () => {
+    mockGetConfigValue.mockReturnValue("");
+
+    const res = await request(app).post("/import/upload-file").send({});
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain("Import path not configured");
+  });
+
+  it("returns uploadId on success", async () => {
+    mockGetConfigValue.mockReturnValue("/imports");
+    mockExistsSync.mockReturnValue(true);
+
+    const res = await request(app).post("/import/upload-file").send({});
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ uploadId: "test-uuid-1234" });
+  });
+});
+
+describe("POST /import/scan", () => {
+  it("returns 400 when uploadId or albumMbid missing", async () => {
+    mockGetConfigValue.mockReturnValue("/imports");
+    mockExistsSync.mockReturnValue(true);
+
+    const res = await request(app).post("/import/scan").send({});
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain("uploadId and albumMbid are required");
+  });
+
+  it("returns 404 when upload directory not found", async () => {
+    mockGetConfigValue.mockReturnValue("/imports");
+    mockExistsSync.mockImplementation((p: string) =>
+      p === "/imports" ? true : false
+    );
+
+    const res = await request(app)
+      .post("/import/scan")
+      .send({ uploadId: "some-uuid", albumMbid: "mbid-1" });
+    expect(res.status).toBe(404);
+    expect(res.body.error).toContain("Upload directory not found");
+  });
+
+  it("returns scan results on success", async () => {
+    mockGetConfigValue.mockReturnValue("/imports");
+    mockExistsSync.mockReturnValue(true);
+    const scanItems = [
+      {
+        path: "/imports/some-uuid/song.flac",
+        name: "song.flac",
+        rejections: [{ reason: "bad quality" }],
+      },
+    ];
+    mockScanUploadedFiles.mockResolvedValue({
+      ok: true,
+      artistId: 1,
+      albumId: 10,
+      items: scanItems,
+    });
+
+    const res = await request(app)
+      .post("/import/scan")
+      .send({ uploadId: "some-uuid", albumMbid: "mbid-1" });
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      uploadId: "some-uuid",
+      artistId: 1,
+      albumId: 10,
+      items: scanItems,
+    });
+  });
+
+  it("returns 400 for path traversal attempts", async () => {
+    mockGetConfigValue.mockReturnValue("/imports");
+
+    const res = await request(app)
+      .post("/import/scan")
+      .send({ uploadId: "../../etc", albumMbid: "mbid-1" });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("Invalid uploadId");
   });
 });
 

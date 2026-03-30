@@ -1,6 +1,17 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import ReleaseGroupCard from "../ReleaseGroupCard";
+import { Permission } from "@shared/permissions";
 import type { ReleaseGroup } from "../../types";
+
+vi.mock("react-router-dom", () => ({
+  useNavigate: () => vi.fn(),
+}));
+
+vi.mock("../../context/useAuth", () => ({
+  useAuth: () => ({
+    user: { id: 1, permissions: Permission.ADMIN },
+  }),
+}));
 
 Object.defineProperty(window, "matchMedia", {
   value: vi.fn().mockReturnValue({

@@ -1,21 +1,18 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import PurchaseLinksModal from "../PurchaseLinksModal";
+import { Permission } from "@shared/permissions";
 
-vi.mock("../../hooks/useManualImport", () => ({
-  default: vi.fn(() => ({
-    step: "idle",
-    items: [],
-    error: null,
-    artistId: null,
-    albumId: null,
-    upload: vi.fn(),
-    confirm: vi.fn(),
-    cancel: vi.fn(),
-    reset: vi.fn(),
-  })),
+const mockNavigate = vi.fn();
+
+vi.mock("react-router-dom", () => ({
+  useNavigate: () => mockNavigate,
 }));
 
-import useManualImport from "../../hooks/useManualImport";
+vi.mock("../../context/useAuth", () => ({
+  useAuth: () => ({
+    user: { id: 1, permissions: Permission.ADMIN },
+  }),
+}));
 
 const defaultProps = {
   isOpen: true,
@@ -41,91 +38,18 @@ describe("PurchaseLinksModal", () => {
     expect(screen.queryByText("Purchase Options")).not.toBeInTheDocument();
   });
 
-  it("shows file upload zone in idle step", () => {
+  it("shows upload button for admin users", () => {
     render(<PurchaseLinksModal {...defaultProps} />);
-    expect(
-      screen.getByText("Drop audio files here or click to browse")
-    ).toBeInTheDocument();
+    expect(screen.getByText("Upload purchased files")).toBeInTheDocument();
   });
 
-  it("shows uploading state", () => {
-    vi.mocked(useManualImport).mockReturnValue({
-      step: "uploading",
-      items: [],
-      error: null,
-      uploadId: null,
-      artistId: null,
-      albumId: null,
-      upload: vi.fn(),
-      confirm: vi.fn(),
-      cancel: vi.fn(),
-      reset: vi.fn(),
-    });
+  it("navigates to upload page when upload button clicked", () => {
+    const onClose = vi.fn();
+    render(<PurchaseLinksModal {...defaultProps} onClose={onClose} />);
 
-    render(<PurchaseLinksModal {...defaultProps} />);
-    expect(
-      screen.getByText("Uploading and scanning files...")
-    ).toBeInTheDocument();
-  });
-
-  it("shows importing state", () => {
-    vi.mocked(useManualImport).mockReturnValue({
-      step: "importing",
-      items: [],
-      error: null,
-      uploadId: null,
-      artistId: null,
-      albumId: null,
-      upload: vi.fn(),
-      confirm: vi.fn(),
-      cancel: vi.fn(),
-      reset: vi.fn(),
-    });
-
-    render(<PurchaseLinksModal {...defaultProps} />);
-    expect(screen.getByText("Importing to Lidarr...")).toBeInTheDocument();
-  });
-
-  it("shows done state", () => {
-    vi.mocked(useManualImport).mockReturnValue({
-      step: "done",
-      items: [],
-      error: null,
-      uploadId: null,
-      artistId: null,
-      albumId: null,
-      upload: vi.fn(),
-      confirm: vi.fn(),
-      cancel: vi.fn(),
-      reset: vi.fn(),
-    });
-
-    render(<PurchaseLinksModal {...defaultProps} />);
-    expect(
-      screen.getByText("Files imported successfully!")
-    ).toBeInTheDocument();
-  });
-
-  it("shows error state with try again button", () => {
-    const reset = vi.fn();
-    vi.mocked(useManualImport).mockReturnValue({
-      step: "error",
-      items: [],
-      error: "Upload failed",
-      uploadId: null,
-      artistId: null,
-      albumId: null,
-      upload: vi.fn(),
-      confirm: vi.fn(),
-      cancel: vi.fn(),
-      reset,
-    });
-
-    render(<PurchaseLinksModal {...defaultProps} />);
-    expect(screen.getByText("Upload failed")).toBeInTheDocument();
-
-    fireEvent.click(screen.getByText("Try again"));
-    expect(reset).toHaveBeenCalled();
+    fireEvent.click(screen.getByText("Upload purchased files"));
+    expect(onClose).toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalledWith("/library/upload?mbid=mbid-123");
   });
 
   it("shows Request Album button when onAddToLibrary provided", () => {
@@ -153,28 +77,6 @@ describe("PurchaseLinksModal", () => {
 
     fireEvent.click(screen.getByText("Request Album"));
     expect(onAddToLibrary).toHaveBeenCalled();
-    expect(onClose).toHaveBeenCalled();
-  });
-
-  it("calls cancel on close during reviewing step", () => {
-    const cancel = vi.fn();
-    const onClose = vi.fn();
-    vi.mocked(useManualImport).mockReturnValue({
-      step: "reviewing",
-      items: [],
-      error: null,
-      uploadId: "u1",
-      artistId: null,
-      albumId: null,
-      upload: vi.fn(),
-      confirm: vi.fn(),
-      cancel,
-      reset: vi.fn(),
-    });
-
-    render(<PurchaseLinksModal {...defaultProps} onClose={onClose} />);
-    fireEvent.click(screen.getByText("Close"));
-    expect(cancel).toHaveBeenCalled();
     expect(onClose).toHaveBeenCalled();
   });
 });

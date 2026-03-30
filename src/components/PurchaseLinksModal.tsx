@@ -1,9 +1,9 @@
+import { useNavigate } from "react-router-dom";
 import Modal from "./Modal";
 import PurchaseLinks from "./PurchaseLinks";
-import FileUploadZone from "./FileUploadZone";
-import ImportReview from "./ImportReview";
-import Spinner from "./Spinner";
-import useManualImport from "../hooks/useManualImport";
+import { useAuth } from "../context/useAuth";
+import { hasPermission, Permission } from "@shared/permissions";
+import { CloudUploadIcon } from "@/components/icons";
 
 interface PurchaseLinksModalProps {
   isOpen: boolean;
@@ -22,25 +22,23 @@ export default function PurchaseLinksModal({
   albumMbid,
   onAddToLibrary,
 }: PurchaseLinksModalProps) {
-  const { step, items, error, upload, confirm, cancel, reset } =
-    useManualImport();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const isAdmin =
+    user !== null && hasPermission(user.permissions, Permission.ADMIN);
 
   const handleAddToLibrary = () => {
     onAddToLibrary?.();
     onClose();
   };
 
-  const handleClose = () => {
-    if (step === "reviewing") {
-      cancel();
-    } else {
-      reset();
-    }
+  const handleUploadClick = () => {
     onClose();
+    navigate(`/library/upload?mbid=${albumMbid}`);
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose}>
+    <Modal isOpen={isOpen} onClose={onClose}>
       <div className="space-y-4">
         <div>
           <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
@@ -53,65 +51,17 @@ export default function PurchaseLinksModal({
 
         <PurchaseLinks artistName={artistName} albumTitle={albumTitle} />
 
-        <div className="border-t-2 border-black pt-4">
-          <p className="text-gray-600 dark:text-gray-400 text-sm font-medium mb-2">
-            Upload purchased files:
-          </p>
-
-          {step === "idle" && (
-            <div className="animate-fade-in">
-              <FileUploadZone onFiles={(files) => upload(files, albumMbid)} />
-            </div>
-          )}
-
-          {step === "uploading" && (
-            <div className="flex items-center justify-center gap-2 py-6 animate-fade-in">
-              <Spinner className="h-5 w-5 text-amber-400" />
-              <p className="text-gray-600 dark:text-gray-400 text-sm">
-                Uploading and scanning files...
-              </p>
-            </div>
-          )}
-
-          {step === "reviewing" && (
-            <div className="animate-fade-in">
-              <ImportReview
-                items={items}
-                onConfirm={() => confirm(items)}
-                onCancel={cancel}
-              />
-            </div>
-          )}
-
-          {step === "importing" && (
-            <div className="flex items-center justify-center gap-2 py-6 animate-fade-in">
-              <Spinner className="h-5 w-5 text-emerald-500" />
-              <p className="text-gray-600 dark:text-gray-400 text-sm">
-                Importing to Lidarr...
-              </p>
-            </div>
-          )}
-
-          {step === "done" && (
-            <div className="bg-emerald-400 text-black border-2 border-black rounded-xl p-3 text-sm font-medium shadow-cartoon-sm animate-slide-up">
-              Files imported successfully!
-            </div>
-          )}
-
-          {step === "error" && (
-            <div className="space-y-2 animate-fade-in">
-              <div className="bg-rose-400 text-white border-2 border-black rounded-xl p-3 text-sm font-medium shadow-cartoon-sm">
-                {error}
-              </div>
-              <button
-                onClick={reset}
-                className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-sm underline"
-              >
-                Try again
-              </button>
-            </div>
-          )}
-        </div>
+        {isAdmin && (
+          <div className="border-t-2 border-black pt-4">
+            <button
+              onClick={handleUploadClick}
+              className="w-full flex items-center justify-center gap-2 bg-amber-50 dark:bg-gray-700/50 hover:bg-amber-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium py-3 px-4 rounded-xl border-2 border-dashed border-amber-400 hover:border-amber-500 transition-all text-sm"
+            >
+              <CloudUploadIcon className="w-5 h-5 text-amber-400" />
+              Upload purchased files
+            </button>
+          </div>
+        )}
 
         <div className="pt-4 border-t-2 border-black space-y-2">
           {onAddToLibrary ? (
@@ -123,7 +73,7 @@ export default function PurchaseLinksModal({
                 Request Album
               </button>
               <button
-                onClick={handleClose}
+                onClick={onClose}
                 className="w-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 font-medium py-2 px-4 rounded-xl border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all"
               >
                 Cancel
@@ -131,7 +81,7 @@ export default function PurchaseLinksModal({
             </>
           ) : (
             <button
-              onClick={handleClose}
+              onClick={onClose}
               className="w-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 font-medium py-2 px-4 rounded-xl border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all"
             >
               Close

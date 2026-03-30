@@ -13,35 +13,40 @@ export default function ImportReview({
 }: ImportReviewProps) {
   return (
     <div className="space-y-3">
-      <div className="max-h-60 overflow-y-auto space-y-1">
+      <div className="max-h-80 overflow-y-auto space-y-1">
         {items.map((item: ManualImportItem, i: number) => (
           <div
             key={i}
-            className="flex items-center gap-2 p-2 bg-amber-50 dark:bg-gray-700/50 rounded-lg text-sm border-2 border-black shadow-cartoon-sm"
+            className="p-2 bg-amber-50 dark:bg-gray-700/50 rounded-lg text-sm border-2 border-black shadow-cartoon-sm"
           >
-            <div className="flex-1 min-w-0">
-              <p className="text-gray-900 dark:text-gray-100 truncate">
-                {item.name}
-              </p>
-              <div className="flex gap-2 text-xs">
-                {item.tracks?.[0] && (
-                  <span className="text-gray-500 dark:text-gray-400">
-                    {item.tracks[0].trackNumber}. {item.tracks[0].title}
+            <div className="flex items-center gap-2">
+              <div className="flex-1 min-w-0">
+                <p className="text-gray-900 dark:text-gray-100 truncate">
+                  {item.name}
+                </p>
+                <div className="flex gap-2 text-xs">
+                  {item.tracks?.[0] && (
+                    <span className="text-gray-500 dark:text-gray-400">
+                      {item.tracks[0].trackNumber}. {item.tracks[0].title}
+                    </span>
+                  )}
+                  <span className="text-gray-400 dark:text-gray-500">
+                    {item.quality?.quality?.name}
                   </span>
-                )}
-                <span className="text-gray-400 dark:text-gray-500">
-                  {item.quality?.quality?.name}
-                </span>
+                </div>
               </div>
             </div>
             {item.rejections?.length > 0 && (
-              <span
-                className="text-amber-600 dark:text-amber-400 text-xs font-bold flex-shrink-0"
-                title={item.rejections.map((r) => r.reason).join(", ")}
-              >
-                {item.rejections.length} warning
-                {item.rejections.length > 1 ? "s" : ""}
-              </span>
+              <div className="mt-1.5 space-y-0.5">
+                {item.rejections.map((r, j) => (
+                  <p
+                    key={j}
+                    className="text-amber-700 dark:text-amber-400 text-xs"
+                  >
+                    {r.reason}
+                  </p>
+                ))}
+              </div>
             )}
           </div>
         ))}

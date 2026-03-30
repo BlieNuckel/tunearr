@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import MonitorButton from "./MonitorButton";
 import TrackList from "./TrackList";
 import PurchaseLinksModal from "./PurchaseLinksModal";
@@ -10,6 +11,8 @@ import useLidarr from "../hooks/useLidarr";
 import useWanted from "../hooks/useWanted";
 import useReleaseTracks from "../hooks/useReleaseTracks";
 import useAudioPreview from "../hooks/useAudioPreview";
+import { useAuth } from "../context/useAuth";
+import { hasPermission, Permission } from "@shared/permissions";
 import { pastelColorFromId } from "../utils/color";
 import { getMonitorState } from "../utils/monitorState";
 import type { Option } from "./OptionSelect";
@@ -38,6 +41,11 @@ export default function ReleaseGroupCard({
   initialWanted = false,
   onRemovedFromWanted,
 }: ReleaseGroupCardProps) {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const isAdmin =
+    user !== null && hasPermission(user.permissions, Permission.ADMIN);
+
   const [isFlipped, setIsFlipped] = useState(false);
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -134,6 +142,14 @@ export default function ReleaseGroupCard({
     isWanted
       ? { label: "Remove from wanted", onClick: handleRemoveFromWanted }
       : { label: "Add to wanted", onClick: () => addToWanted(albumMbid) },
+    ...(isAdmin
+      ? [
+          {
+            label: "Upload files",
+            onClick: () => navigate(`/library/upload?mbid=${albumMbid}`),
+          },
+        ]
+      : []),
   ];
 
   const [coverError, setCoverError] = useState(false);

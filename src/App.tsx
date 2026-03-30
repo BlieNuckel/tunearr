@@ -16,6 +16,7 @@ import NotificationsPage from "./pages/SettingsPage/notifications/NotificationsP
 import EmailNotificationsPage from "./pages/SettingsPage/notifications/EmailNotificationsPage";
 import WebhookNotificationsPage from "./pages/SettingsPage/notifications/WebhookNotificationsPage";
 import OnboardingPage from "./pages/OnboardingPage/OnboardingPage";
+import UploadPage from "./pages/LibraryPage/UploadPage";
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
           <Route element={<Layout />}>
             <Route path="/" element={<DiscoverPage />} />
             <Route path="/search" element={<SearchPage />} />
+            <Route path="/library/upload" element={<UploadPage />} />
             <Route path="/library" element={<LibraryPage />}>
               <Route
                 index
