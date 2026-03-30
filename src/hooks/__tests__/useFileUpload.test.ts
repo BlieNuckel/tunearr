@@ -95,7 +95,7 @@ describe("useFileUpload", () => {
     });
 
     await act(async () => {
-      await result.current.startUpload("mbid-1");
+      await result.current.startUpload("mbid-1", "OK Computer");
     });
 
     expect(uploadCallCount).toBe(2);
@@ -115,7 +115,7 @@ describe("useFileUpload", () => {
     });
 
     await act(async () => {
-      await result.current.startUpload("mbid-1");
+      await result.current.startUpload("mbid-1", "Test Album");
     });
 
     expect(result.current.step).toBe("error");
@@ -156,7 +156,7 @@ describe("useFileUpload", () => {
     const { result } = renderHook(() => useFileUpload());
 
     await act(async () => {
-      await result.current.startUpload("mbid-1");
+      await result.current.startUpload("mbid-1", "Test Album");
     });
 
     expect(result.current.step).toBe("error");

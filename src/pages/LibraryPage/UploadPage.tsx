@@ -156,7 +156,7 @@ export default function UploadPage() {
               </h3>
               <FileList files={files} onRemove={removeFile} />
               <button
-                onClick={() => startUpload(mbid)}
+                onClick={() => startUpload(mbid, info?.albumTitle ?? "upload")}
                 className="w-full bg-amber-400 hover:bg-amber-300 text-black font-bold py-3 px-4 rounded-xl border-2 border-black shadow-cartoon-md hover:translate-y-[-2px] hover:shadow-cartoon-lg active:translate-y-[1px] active:shadow-cartoon-pressed transition-all"
               >
                 Upload {files.length} file{files.length !== 1 ? "s" : ""}

@@ -28,6 +28,15 @@ type UploadState = {
 
 const MAX_CONCURRENT = 3;
 
+function makeUploadId(albumTitle: string): string {
+  const slug = albumTitle
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 50);
+  return `${slug}-${Date.now()}`;
+}
+
 const INITIAL_STATE: UploadState = {
   step: "idle",
   files: [],
@@ -122,76 +131,79 @@ export default function useFileUpload() {
     });
   }, []);
 
-  const startUpload = useCallback(async (albumMbid: string) => {
-    setState((s) => ({ ...s, step: "uploading", error: null }));
+  const startUpload = useCallback(
+    async (albumMbid: string, albumTitle: string) => {
+      setState((s) => ({ ...s, step: "uploading", error: null }));
 
-    const files = filesRef.current;
-    if (!files.length) {
-      setState((s) => ({ ...s, step: "error", error: "No files selected" }));
-      return;
-    }
-
-    const updateFileStatus = (
-      index: number,
-      status: FileStatus,
-      error?: string
-    ) => {
-      setState((s) => ({
-        ...s,
-        files: s.files.map((f, i) =>
-          i === index ? { ...f, status, error } : f
-        ),
-      }));
-    };
-
-    const currentUploadId = uploadIdRef.current || crypto.randomUUID();
-    uploadIdRef.current = currentUploadId;
-    setState((s) => ({ ...s, uploadId: currentUploadId }));
-
-    const queue = files.map((_, i) => i);
-    let hasError = false;
-
-    const processNext = async (): Promise<void> => {
-      while (queue.length > 0 && !hasError) {
-        const idx = queue.shift()!;
-        updateFileStatus(idx, "uploading");
-        try {
-          await uploadSingleFile(files[idx].file, albumMbid, currentUploadId);
-          updateFileStatus(idx, "done");
-        } catch (err) {
-          hasError = true;
-          const msg = err instanceof Error ? err.message : "Upload failed";
-          updateFileStatus(idx, "error", msg);
-          setState((s) => ({ ...s, step: "error", error: msg }));
-        }
+      const files = filesRef.current;
+      if (!files.length) {
+        setState((s) => ({ ...s, step: "error", error: "No files selected" }));
+        return;
       }
-    };
 
-    const workers = Array.from(
-      { length: Math.min(MAX_CONCURRENT, files.length) },
-      () => processNext()
-    );
-    await Promise.all(workers);
+      const updateFileStatus = (
+        index: number,
+        status: FileStatus,
+        error?: string
+      ) => {
+        setState((s) => ({
+          ...s,
+          files: s.files.map((f, i) =>
+            i === index ? { ...f, status, error } : f
+          ),
+        }));
+      };
 
-    if (hasError) return;
+      const currentUploadId = uploadIdRef.current || makeUploadId(albumTitle);
+      uploadIdRef.current = currentUploadId;
+      setState((s) => ({ ...s, uploadId: currentUploadId }));
 
-    setState((s) => ({ ...s, step: "scanning" }));
+      const queue = files.map((_, i) => i);
+      let hasError = false;
 
-    try {
-      const scanResult = await scanFiles(currentUploadId!, albumMbid);
-      setState((s) => ({
-        ...s,
-        step: "reviewing",
-        items: scanResult.items,
-      }));
-    } catch (err) {
-      setState((s) => ({
-        ...s,
-        step: "error",
-        error: err instanceof Error ? err.message : "Scan failed",
-      }));
-    }
-  }, []);
+      const processNext = async (): Promise<void> => {
+        while (queue.length > 0 && !hasError) {
+          const idx = queue.shift()!;
+          updateFileStatus(idx, "uploading");
+          try {
+            await uploadSingleFile(files[idx].file, albumMbid, currentUploadId);
+            updateFileStatus(idx, "done");
+          } catch (err) {
+            hasError = true;
+            const msg = err instanceof Error ? err.message : "Upload failed";
+            updateFileStatus(idx, "error", msg);
+            setState((s) => ({ ...s, step: "error", error: msg }));
+          }
+        }
+      };
+
+      const workers = Array.from(
+        { length: Math.min(MAX_CONCURRENT, files.length) },
+        () => processNext()
+      );
+      await Promise.all(workers);
+
+      if (hasError) return;
+
+      setState((s) => ({ ...s, step: "scanning" }));
+
+      try {
+        const scanResult = await scanFiles(currentUploadId!, albumMbid);
+        setState((s) => ({
+          ...s,
+          step: "reviewing",
+          items: scanResult.items,
+        }));
+      } catch (err) {
+        setState((s) => ({
+          ...s,
+          step: "error",
+          error: err instanceof Error ? err.message : "Scan failed",
+        }));
+      }
+    },
+    []
+  );
 
   const confirm = useCallback(async (items: ManualImportItem[]) => {
     setState((s) => ({ ...s, step: "importing", error: null }));
