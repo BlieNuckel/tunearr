@@ -203,5 +203,5 @@ function generateGuid(username: string, directory: string): string {
   for (let i = 0; i < input.length; i++) {
     hash = ((hash << 5) - hash + input.charCodeAt(i)) | 0;
   }
-  return Math.abs(hash).toString(36) + Date.now().toString(36);
+  return Math.abs(hash).toString(36);
 }

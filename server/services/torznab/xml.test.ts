@@ -65,6 +65,7 @@ describe("buildResultsXml", () => {
     expect(xml).toContain("Radiohead - OK Computer [FLAC]");
     expect(xml).toContain('value="3040"');
     expect(xml).toContain("http://localhost:3001/api/torznab/download/abc123");
+    expect(xml).toContain('<guid isPermaLink="false">abc123</guid>');
   });
 
   it("omits bitrate attr when bitRate is 0", () => {

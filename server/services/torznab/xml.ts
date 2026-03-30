@@ -55,6 +55,7 @@ function buildItemXml(result: GroupedSearchResult, baseUrl: string): string {
   return [
     "    <item>",
     `      <title>${title}</title>`,
+    `      <guid isPermaLink="false">${escapeXml(result.guid)}</guid>`,
     `      <enclosure url="${escapeXml(downloadUrl)}" length="${result.totalSize}" type="application/x-nzb" />`,
     `      <newznab:attr name="category" value="${result.category}" />`,
     `      <newznab:attr name="size" value="${result.totalSize}" />`,
