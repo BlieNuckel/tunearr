@@ -39,12 +39,12 @@ const INITIAL_STATE: UploadState = {
 async function uploadSingleFile(
   file: File,
   albumMbid: string,
-  uploadId: string | null
-): Promise<{ uploadId: string }> {
+  uploadId: string
+): Promise<void> {
   const formData = new FormData();
-  formData.append("file", file);
   formData.append("albumMbid", albumMbid);
-  if (uploadId) formData.append("uploadId", uploadId);
+  formData.append("uploadId", uploadId);
+  formData.append("file", file);
 
   const res = await fetch("/api/lidarr/import/upload-file", {
     method: "POST",
@@ -61,8 +61,6 @@ async function uploadSingleFile(
     }
     throw new Error(msg);
   }
-
-  return res.json();
 }
 
 async function scanFiles(
@@ -146,7 +144,10 @@ export default function useFileUpload() {
       }));
     };
 
-    let currentUploadId = uploadIdRef.current;
+    const currentUploadId = uploadIdRef.current || crypto.randomUUID();
+    uploadIdRef.current = currentUploadId;
+    setState((s) => ({ ...s, uploadId: currentUploadId }));
+
     const queue = files.map((_, i) => i);
     let hasError = false;
 
@@ -155,16 +156,7 @@ export default function useFileUpload() {
         const idx = queue.shift()!;
         updateFileStatus(idx, "uploading");
         try {
-          const result = await uploadSingleFile(
-            files[idx].file,
-            albumMbid,
-            currentUploadId
-          );
-          if (!currentUploadId) {
-            currentUploadId = result.uploadId;
-            uploadIdRef.current = result.uploadId;
-            setState((s) => ({ ...s, uploadId: result.uploadId }));
-          }
+          await uploadSingleFile(files[idx].file, albumMbid, currentUploadId);
           updateFileStatus(idx, "done");
         } catch (err) {
           hasError = true;

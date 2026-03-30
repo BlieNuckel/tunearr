@@ -214,13 +214,13 @@ describe("POST /import/upload-file", () => {
     expect(res.body.error).toContain("Import path not configured");
   });
 
-  it("returns uploadId on success", async () => {
+  it("returns ok on success", async () => {
     mockGetConfigValue.mockReturnValue("/imports");
     mockExistsSync.mockReturnValue(true);
 
     const res = await request(app).post("/import/upload-file").send({});
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ uploadId: "test-uuid-1234" });
+    expect(res.body).toEqual({ status: "ok" });
   });
 });
 

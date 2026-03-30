@@ -170,13 +170,8 @@ router.post(
   adminOnly,
   requireImportPath,
   singleUpload.single("file"),
-  async (req: Request, res: Response) => {
-    const uploadId = req.__uploadId;
-    if (!uploadId) {
-      return res.status(500).json({ error: "Upload failed" });
-    }
-
-    res.json({ uploadId });
+  async (_req: Request, res: Response) => {
+    res.json({ status: "ok" });
   }
 );
 
