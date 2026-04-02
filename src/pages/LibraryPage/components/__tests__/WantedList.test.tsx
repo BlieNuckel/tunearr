@@ -21,6 +21,14 @@ Object.defineProperty(window, "matchMedia", {
   }),
 });
 
+const mockIsAlbumInLibrary = vi.fn((_mbid: string) => false);
+
+vi.mock("@/hooks/useLibraryAlbums", () => ({
+  default: () => ({
+    isAlbumInLibrary: mockIsAlbumInLibrary,
+  }),
+}));
+
 vi.mock("@/hooks/useLidarr", () => ({
   default: () => ({
     state: "idle",
@@ -111,6 +119,25 @@ describe("WantedList", () => {
     );
 
     expect(screen.getByText("Your wanted list is empty")).toBeInTheDocument();
+  });
+
+  it("shows Monitored button when album is in library", () => {
+    mockIsAlbumInLibrary.mockImplementation(
+      (mbid: string) => mbid === "mbid-1"
+    );
+
+    render(
+      <WantedList
+        items={mockItems}
+        loading={false}
+        error={null}
+        onRemove={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText("Monitored")).toBeInTheDocument();
+
+    mockIsAlbumInLibrary.mockReturnValue(false);
   });
 
   it("renders ReleaseGroupCards for each wanted item", () => {

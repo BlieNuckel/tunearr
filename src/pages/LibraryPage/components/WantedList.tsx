@@ -1,5 +1,6 @@
 import Skeleton from "@/components/Skeleton";
 import ReleaseGroupCard from "@/components/ReleaseGroupCard";
+import useLibraryAlbums from "@/hooks/useLibraryAlbums";
 import type { WantedItem, ReleaseGroup } from "@/types";
 
 interface WantedListProps {
@@ -28,6 +29,7 @@ export default function WantedList({
   error,
   onRemove,
 }: WantedListProps) {
+  const { isAlbumInLibrary } = useLibraryAlbums();
   if (loading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-3 sm:gap-4">
@@ -65,6 +67,7 @@ export default function WantedList({
         <ReleaseGroupCard
           key={item.albumMbid}
           releaseGroup={toReleaseGroup(item)}
+          inLibrary={isAlbumInLibrary(item.albumMbid)}
           initialWanted
           onRemovedFromWanted={onRemove}
         />
