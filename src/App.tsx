@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import Layout from "./components/Layout";
 import RequireAuth from "./components/RequireAuth";
 import RequireOnboarding from "./components/RequireOnboarding";
@@ -17,6 +17,7 @@ import EmailNotificationsPage from "./pages/SettingsPage/notifications/EmailNoti
 import WebhookNotificationsPage from "./pages/SettingsPage/notifications/WebhookNotificationsPage";
 import OnboardingPage from "./pages/OnboardingPage/OnboardingPage";
 import UploadPage from "./pages/LibraryPage/UploadPage";
+import ConditionalRedirect from "./components/ConditionalRedirect";
 
 function App() {
   return (
@@ -32,7 +33,7 @@ function App() {
             <Route path="/library" element={<LibraryPage />}>
               <Route
                 index
-                element={<Navigate to="/library/wanted" replace />}
+                element={<ConditionalRedirect to="/library/wanted" />}
               />
               <Route path="wanted" element={null} />
               <Route path="requests" element={null} />
@@ -40,7 +41,7 @@ function App() {
             <Route path="/settings" element={<SettingsLayout />}>
               <Route
                 index
-                element={<Navigate to="/settings/general" replace />}
+                element={<ConditionalRedirect to="/settings/general" />}
               />
               <Route path="general" element={<GeneralSettingsPage />} />
               <Route
@@ -57,7 +58,7 @@ function App() {
                 <Route
                   index
                   element={
-                    <Navigate to="/settings/notifications/email" replace />
+                    <ConditionalRedirect to="/settings/notifications/email" />
                   }
                 />
                 <Route path="email" element={<EmailNotificationsPage />} />

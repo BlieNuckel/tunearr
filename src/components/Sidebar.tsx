@@ -18,7 +18,7 @@ type NavItem = {
 const links: NavItem[] = [
   { to: "/", label: "Discover", icon: DiscoverIcon },
   { to: "/search", label: "Search", icon: SearchIcon },
-  { to: "/library/wanted", label: "Library", icon: LibraryIcon },
+  { to: "/library", label: "Library", icon: LibraryIcon },
 ];
 
 const mobileLinks: NavItem[] = [

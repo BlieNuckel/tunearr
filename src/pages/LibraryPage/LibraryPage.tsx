@@ -102,38 +102,42 @@ export default function LibraryPage() {
         Library
       </h1>
 
-      <SettingsTabs settingsRoutes={libraryTabs} />
-
-      {isWantedTab && (
-        <WantedList
-          items={wantedItems}
-          loading={wantedLoading}
-          error={wantedError}
-          onRemove={removeWantedItem}
-        />
-      )}
-
-      {isRequestsTab && (
+      <SettingsTabs settingsRoutes={libraryTabs} parentRoute="/library">
         <>
-          <RequestFilter values={filters} onChange={handleFilterChange} />
+          {isWantedTab && (
+            <WantedList
+              items={wantedItems}
+              loading={wantedLoading}
+              error={wantedError}
+              onRemove={removeWantedItem}
+            />
+          )}
 
-          <RequestList
-            requests={requests}
-            loading={loading}
-            error={error}
-            emptyMessage={
-              showMine ? "You haven't made any requests yet" : "No requests yet"
-            }
-            showUser={effectiveShowAll}
-            showActions={canManageRequests && effectiveShowAll}
-            showAdminDetails={isAdmin}
-            onApprove={approveRequest}
-            onDecline={declineRequest}
-            onSearch={handleSearch}
-            onUnmonitor={handleUnmonitor}
-          />
+          {isRequestsTab && (
+            <>
+              <RequestFilter values={filters} onChange={handleFilterChange} />
+
+              <RequestList
+                requests={requests}
+                loading={loading}
+                error={error}
+                emptyMessage={
+                  showMine
+                    ? "You haven't made any requests yet"
+                    : "No requests yet"
+                }
+                showUser={effectiveShowAll}
+                showActions={canManageRequests && effectiveShowAll}
+                showAdminDetails={isAdmin}
+                onApprove={approveRequest}
+                onDecline={declineRequest}
+                onSearch={handleSearch}
+                onUnmonitor={handleUnmonitor}
+              />
+            </>
+          )}
         </>
-      )}
+      </SettingsTabs>
     </div>
   );
 }

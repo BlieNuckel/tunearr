@@ -24,7 +24,7 @@ export default function SettingsLayout() {
     },
     {
       text: "Notifications",
-      route: "/settings/notifications/email",
+      route: "/settings/notifications",
       regex: /^\/settings\/notifications/,
       requiredPermission: Permission.ADMIN,
     },
@@ -50,11 +50,9 @@ export default function SettingsLayout() {
         </h1>
       </div>
 
-      <SettingsTabs settingsRoutes={settingsRoutes} />
-
-      <div className="mt-6">
+      <SettingsTabs settingsRoutes={settingsRoutes} parentRoute="/settings">
         <Outlet />
-      </div>
+      </SettingsTabs>
     </div>
   );
 }

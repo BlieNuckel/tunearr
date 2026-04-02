@@ -55,8 +55,13 @@ export default function NotificationsLayout({
           Configure and enable notification agents.
         </p>
       </div>
-      <SettingsTabs tabType="button" settingsRoutes={settingsRoutes} />
-      <div className="mt-6">{children}</div>
+      <SettingsTabs
+        tabType="button"
+        settingsRoutes={settingsRoutes}
+        parentRoute="/settings/notifications"
+      >
+        {children}
+      </SettingsTabs>
     </>
   );
 }
