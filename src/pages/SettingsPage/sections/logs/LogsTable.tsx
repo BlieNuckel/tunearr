@@ -123,7 +123,7 @@ export default function LogsTable({ logs }: LogsTableProps) {
       <Modal
         isOpen={selectedLog !== null}
         onClose={() => setSelectedLog(null)}
-        panelClassName="md:max-w-2xl"
+        panelClassName="max-w-2xl"
       >
         {selectedLog && (
           <div className="space-y-4">
