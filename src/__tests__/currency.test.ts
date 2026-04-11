@@ -3,6 +3,7 @@ import {
   toMinorUnits,
   toMajorUnits,
   formatCurrency,
+  getSpotifyMonthlyMinor,
 } from "@shared/currency";
 
 describe("getMinorUnitExponent", () => {
@@ -55,5 +56,23 @@ describe("formatCurrency", () => {
 
   it("formats zero", () => {
     expect(formatCurrency(0, "USD")).toBe("$0.00");
+  });
+});
+
+describe("getSpotifyMonthlyMinor", () => {
+  it("returns minor units for USD", () => {
+    expect(getSpotifyMonthlyMinor("USD")).toBe(1199);
+  });
+
+  it("returns minor units for JPY (zero-decimal)", () => {
+    expect(getSpotifyMonthlyMinor("JPY")).toBe(980);
+  });
+
+  it("returns minor units for SEK", () => {
+    expect(getSpotifyMonthlyMinor("SEK")).toBe(11900);
+  });
+
+  it("returns null for unsupported currency", () => {
+    expect(getSpotifyMonthlyMinor("XYZ")).toBeNull();
   });
 });

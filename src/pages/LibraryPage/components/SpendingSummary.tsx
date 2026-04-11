@@ -1,4 +1,9 @@
-import { formatCurrency, toMinorUnits, toMajorUnits } from "@shared/currency";
+import {
+  formatCurrency,
+  toMajorUnits,
+  getSpotifyMonthlyMinor,
+  SPOTIFY_MONTHLY_PRICE,
+} from "@shared/currency";
 import type { SpendingSummary as SpendingSummaryType } from "@/types";
 
 interface SpendingSummaryProps {
@@ -7,29 +12,15 @@ interface SpendingSummaryProps {
   monthlyLimit: number | null;
 }
 
-interface StreamingService {
-  name: string;
-  monthlyPriceMajor: number;
-}
-
-const STREAMING_SERVICES: StreamingService[] = [
-  { name: "Spotify", monthlyPriceMajor: 11.99 },
-  { name: "Apple Music", monthlyPriceMajor: 10.99 },
-  { name: "Tidal", monthlyPriceMajor: 10.99 },
-];
-
 function getStreamingComparison(
   allTimeMinor: number,
   currency: string
-): { name: string; months: number } | null {
-  const spotify = STREAMING_SERVICES[0];
+): { months: number } | null {
+  const spotifyMinor = getSpotifyMonthlyMinor(currency);
+  if (spotifyMinor === null || allTimeMinor <= 0) return null;
+  const spotifyMajor = SPOTIFY_MONTHLY_PRICE[currency]!;
   const allTimeMajor = toMajorUnits(allTimeMinor, currency);
-  const spotifyMinor = toMinorUnits(spotify.monthlyPriceMajor, currency);
-  if (allTimeMinor < spotifyMinor) return null;
-  return {
-    name: spotify.name,
-    months: Math.floor(allTimeMajor / spotify.monthlyPriceMajor),
-  };
+  return { months: Math.floor(allTimeMajor / spotifyMajor) };
 }
 
 function LimitBar({
@@ -75,16 +66,15 @@ function LimitBar({
   );
 }
 
-function StreamingBadge({ name, months }: { name: string; months: number }) {
+function StreamingBadge({ months }: { months: number }) {
+  const text =
+    months < 1
+      ? "Still less than 1 month of Spotify"
+      : `Equivalent to ${months} ${months === 1 ? "month" : "months"} of Spotify`;
+
   return (
     <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg px-3 py-2">
-      <span className="text-sm text-gray-500 dark:text-gray-400">
-        Equivalent to{" "}
-        <span className="font-bold text-gray-900 dark:text-gray-100">
-          {months}
-        </span>{" "}
-        {months === 1 ? "month" : "months"} of {name}
-      </span>
+      <span className="text-sm text-gray-500 dark:text-gray-400">{text}</span>
     </div>
   );
 }
@@ -133,9 +123,7 @@ export default function SpendingSummary({
               {summary.albumCount === 1 ? "album" : "albums"} purchased
             </span>
           </div>
-          {streaming && (
-            <StreamingBadge name={streaming.name} months={streaming.months} />
-          )}
+          {streaming && <StreamingBadge months={streaming.months} />}
         </div>
       </div>
     </div>

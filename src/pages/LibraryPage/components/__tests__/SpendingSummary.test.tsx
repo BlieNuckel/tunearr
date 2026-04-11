@@ -101,7 +101,7 @@ describe("SpendingSummary", () => {
     expect(screen.getByText(/Spotify/)).toBeInTheDocument();
   });
 
-  it("hides streaming comparison for small spend", () => {
+  it("shows 'less than 1 month' for small spend", () => {
     render(
       <SpendingSummary
         summary={{ month: 0, allTime: 500, albumCount: 1 }}
@@ -110,6 +110,20 @@ describe("SpendingSummary", () => {
       />
     );
 
-    expect(screen.queryByText(/Equivalent to/)).not.toBeInTheDocument();
+    expect(
+      screen.getByText("Still less than 1 month of Spotify")
+    ).toBeInTheDocument();
+  });
+
+  it("hides streaming comparison when allTime is zero", () => {
+    render(
+      <SpendingSummary
+        summary={{ month: 0, allTime: 0, albumCount: 0 }}
+        currency="USD"
+        monthlyLimit={null}
+      />
+    );
+
+    expect(screen.queryByText(/Spotify/)).not.toBeInTheDocument();
   });
 });

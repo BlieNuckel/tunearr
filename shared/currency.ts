@@ -47,3 +47,35 @@ export const COMMON_CURRENCIES = [
 ] as const;
 
 export type CurrencyCode = (typeof COMMON_CURRENCIES)[number]["code"];
+
+/**
+ * Spotify Individual plan prices in major units by currency.
+ * Source: spotify.com/premium regional pricing pages (as of early 2025).
+ * Used for "equivalent to X months of Spotify" comparison.
+ */
+export const SPOTIFY_MONTHLY_PRICE: Partial<Record<string, number>> = {
+  USD: 11.99,
+  EUR: 10.99,
+  GBP: 10.99,
+  JPY: 980,
+  CAD: 11.99,
+  AUD: 13.99,
+  CHF: 14.99,
+  SEK: 119,
+  NOK: 119,
+  DKK: 79,
+  PLN: 23.99,
+  CZK: 169,
+  NZD: 16.99,
+  BRL: 21.9,
+  MXN: 149,
+  KRW: 10900,
+  INR: 119,
+  ZAR: 79.99,
+};
+
+export function getSpotifyMonthlyMinor(currency: string): number | null {
+  const price = SPOTIFY_MONTHLY_PRICE[currency];
+  if (price === undefined) return null;
+  return toMinorUnits(price, currency);
+}
