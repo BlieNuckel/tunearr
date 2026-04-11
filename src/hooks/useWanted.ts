@@ -56,5 +56,10 @@ export default function useWanted(initialWanted = false) {
     }
   }, []);
 
-  return { state, errorMsg, addToWanted, removeFromWanted };
+  const reset = useCallback(() => {
+    setState("idle");
+    setErrorMsg(null);
+  }, []);
+
+  return { state, errorMsg, addToWanted, removeFromWanted, reset };
 }

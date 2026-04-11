@@ -9,8 +9,12 @@ const mockFetchTracks = vi.fn();
 const mockResetTracks = vi.fn();
 const mockStop = vi.fn();
 const mockToggle = vi.fn();
+const mockAddToWanted = vi.fn();
+const mockRemoveFromWanted = vi.fn();
+const mockResetWanted = vi.fn();
 let mockLidarrState = "idle";
 let mockLidarrError: string | null = null;
+let mockWantedState = "idle";
 
 vi.mock("@/hooks/useLidarr", () => ({
   default: () => ({
@@ -28,6 +32,16 @@ vi.mock("@/hooks/useReleaseTracks", () => ({
     error: null,
     fetchTracks: mockFetchTracks,
     reset: mockResetTracks,
+  }),
+}));
+
+vi.mock("@/hooks/useWanted", () => ({
+  default: () => ({
+    state: mockWantedState,
+    errorMsg: null,
+    addToWanted: mockAddToWanted,
+    removeFromWanted: mockRemoveFromWanted,
+    reset: mockResetWanted,
   }),
 }));
 
@@ -64,6 +78,22 @@ vi.mock("@/components/MonitorButton", () => ({
     <button data-testid="monitor-button" data-state={state} onClick={onClick}>
       {state === "already_monitored" ? "Already Monitored" : "Request"}
     </button>
+  ),
+}));
+
+vi.mock("@/components/OptionSelect", () => ({
+  default: ({
+    options,
+  }: {
+    options: { label: string; onClick: () => void }[];
+  }) => (
+    <div data-testid="option-select">
+      {options.map((opt) => (
+        <button key={opt.label} onClick={opt.onClick}>
+          {opt.label}
+        </button>
+      ))}
+    </div>
   ),
 }));
 
@@ -132,6 +162,7 @@ function renderWithRouter(ui: React.ReactElement) {
 beforeEach(() => {
   mockLidarrState = "idle";
   mockLidarrError = null;
+  mockWantedState = "idle";
   vi.clearAllMocks();
 });
 
@@ -363,6 +394,70 @@ describe("PromotedAlbum", () => {
     expect(screen.getByTestId("trace-modal")).toBeInTheDocument();
     fireEvent.click(screen.getByText("Close Trace"));
     expect(screen.queryByTestId("trace-modal")).not.toBeInTheDocument();
+  });
+
+  describe("wanted", () => {
+    it("shows 'Add to wanted' option when not wanted", () => {
+      renderWithRouter(
+        <PromotedAlbum
+          data={albumData}
+          loading={false}
+          onRefresh={mockRefresh}
+        />
+      );
+      expect(screen.getByText("Add to wanted")).toBeInTheDocument();
+    });
+
+    it("shows 'Remove from wanted' option when wanted", () => {
+      mockWantedState = "wanted";
+      renderWithRouter(
+        <PromotedAlbum
+          data={albumData}
+          loading={false}
+          onRefresh={mockRefresh}
+        />
+      );
+      expect(screen.getByText("Remove from wanted")).toBeInTheDocument();
+    });
+
+    it("calls addToWanted with album mbid", () => {
+      renderWithRouter(
+        <PromotedAlbum
+          data={albumData}
+          loading={false}
+          onRefresh={mockRefresh}
+        />
+      );
+      fireEvent.click(screen.getByText("Add to wanted"));
+      expect(mockAddToWanted).toHaveBeenCalledWith("alb-1");
+    });
+
+    it("calls removeFromWanted with album mbid", () => {
+      mockWantedState = "wanted";
+      renderWithRouter(
+        <PromotedAlbum
+          data={albumData}
+          loading={false}
+          onRefresh={mockRefresh}
+        />
+      );
+      fireEvent.click(screen.getByText("Remove from wanted"));
+      expect(mockRemoveFromWanted).toHaveBeenCalledWith("alb-1");
+    });
+
+    it("resets wanted state on shuffle", () => {
+      vi.useFakeTimers();
+      renderWithRouter(
+        <PromotedAlbum
+          data={albumData}
+          loading={false}
+          onRefresh={mockRefresh}
+        />
+      );
+      fireEvent.click(screen.getByLabelText("Shuffle recommendation"));
+      expect(mockResetWanted).toHaveBeenCalled();
+      vi.useRealTimers();
+    });
   });
 
   describe("track preview", () => {

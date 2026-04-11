@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import type { PromotedAlbumData } from "@/hooks/usePromotedAlbum";
 import MonitorButton from "@/components/MonitorButton";
+import OptionSelect from "@/components/OptionSelect";
 import PurchaseLinksModal from "@/components/PurchaseLinksModal";
 import RecommendationTraceModal from "./RecommendationTraceModal";
 import {
@@ -10,6 +11,7 @@ import {
   MusicalNoteIcon,
 } from "@/components/icons";
 import useLidarr from "@/hooks/useLidarr";
+import useWanted from "@/hooks/useWanted";
 import useReleaseTracks from "@/hooks/useReleaseTracks";
 import useAudioPreview from "@/hooks/useAudioPreview";
 import ImageWithShimmer from "@/components/ImageWithShimmer";
@@ -17,6 +19,7 @@ import Skeleton from "@/components/Skeleton";
 import TrackList from "@/components/TrackList";
 import { pastelColorFromId } from "@/utils/color";
 import { getMonitorState } from "@/utils/monitorState";
+import type { Option } from "@/components/OptionSelect";
 
 interface PromotedAlbumProps {
   data: PromotedAlbumData | null;
@@ -39,6 +42,12 @@ export default function PromotedAlbum({
   const expandContentRef = useRef<HTMLDivElement>(null);
 
   const { state, errorMsg, requestAlbum, reset: resetLidarr } = useLidarr();
+  const {
+    state: wantedState,
+    addToWanted,
+    removeFromWanted,
+    reset: resetWanted,
+  } = useWanted();
   const {
     media,
     loading: tracksLoading,
@@ -63,6 +72,19 @@ export default function PromotedAlbum({
     return () => observer.disconnect();
   }, []);
 
+  const isWanted = wantedState === "wanted";
+  const wantedOptions: Option[] = [
+    isWanted
+      ? {
+          label: "Remove from wanted",
+          onClick: () => album && removeFromWanted(album.mbid),
+        }
+      : {
+          label: "Add to wanted",
+          onClick: () => album && addToWanted(album.mbid),
+        },
+  ];
+
   const effectiveState = getMonitorState(state, inLibrary);
 
   const handleMonitorClick = () => {
@@ -80,6 +102,7 @@ export default function PromotedAlbum({
     if (loading) return;
     setIsAnimating(true);
     resetLidarr();
+    resetWanted();
     setIsTracksOpen(false);
     setFetchedMbid(null);
     resetTracks();
@@ -202,11 +225,17 @@ export default function PromotedAlbum({
                         }`}
                       />
                     </button>
-                    <MonitorButton
-                      state={effectiveState}
-                      onClick={handleMonitorClick}
-                      errorMsg={errorMsg ?? undefined}
-                    />
+                    <div className="flex items-center gap-1.5">
+                      <OptionSelect
+                        options={wantedOptions}
+                        title={album?.name}
+                      />
+                      <MonitorButton
+                        state={effectiveState}
+                        onClick={handleMonitorClick}
+                        errorMsg={errorMsg ?? undefined}
+                      />
+                    </div>
                   </div>
                 </>
               ) : null}
