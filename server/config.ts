@@ -19,6 +19,11 @@ export type PurchaseDecisionConfig = {
   oldReleaseThresholdYears: number;
 };
 
+export type SpendingConfig = {
+  currency: string;
+  monthlyLimit: number | null;
+};
+
 export type PromotedAlbumConfig = {
   cacheDurationMinutes: number;
   topArtistsCount: number;
@@ -44,20 +49,27 @@ export type IConfig = {
   slskdDownloadPath: string;
   promotedAlbum: PromotedAlbumConfig;
   purchaseDecision: PurchaseDecisionConfig;
+  spending: SpendingConfig;
 };
 
 /** Input type for setConfig — nested objects are optional since defaults are deep-merged */
 export type IConfigInput = Omit<
   IConfig,
-  "promotedAlbum" | "purchaseDecision"
+  "promotedAlbum" | "purchaseDecision" | "spending"
 > & {
   promotedAlbum?: Partial<PromotedAlbumConfig>;
   purchaseDecision?: Partial<PurchaseDecisionConfig>;
+  spending?: Partial<SpendingConfig>;
 };
 
 export const DEFAULT_PURCHASE_DECISION: PurchaseDecisionConfig = {
   labelBlocklist: [],
   oldReleaseThresholdYears: 50,
+};
+
+export const DEFAULT_SPENDING: SpendingConfig = {
+  currency: "USD",
+  monthlyLimit: null,
 };
 
 export const DEFAULT_PROMOTED_ALBUM: PromotedAlbumConfig = {
@@ -98,6 +110,7 @@ const DEFAULT_CONFIG: IConfig = {
   slskdDownloadPath: "",
   promotedAlbum: DEFAULT_PROMOTED_ALBUM,
   purchaseDecision: DEFAULT_PURCHASE_DECISION,
+  spending: DEFAULT_SPENDING,
 };
 
 type RawStatement = {
@@ -127,6 +140,10 @@ function mergeWithDefaults(saved: Record<string, unknown>): IConfig {
       ...DEFAULT_PURCHASE_DECISION,
       ...((saved.purchaseDecision as Record<string, unknown>) ?? {}),
     },
+    spending: {
+      ...DEFAULT_SPENDING,
+      ...((saved.spending as Record<string, unknown>) ?? {}),
+    },
   } as IConfig;
 }
 
@@ -141,6 +158,7 @@ export const getConfig = (): IConfig => {
       ...DEFAULT_CONFIG,
       promotedAlbum: { ...DEFAULT_PROMOTED_ALBUM },
       purchaseDecision: { ...DEFAULT_PURCHASE_DECISION },
+      spending: { ...DEFAULT_SPENDING },
     };
   }
 
@@ -207,6 +225,20 @@ function validatePurchaseDecisionConfig(config: PurchaseDecisionConfig) {
   }
 }
 
+function validateSpendingConfig(config: SpendingConfig) {
+  if (typeof config.currency !== "string" || config.currency.length !== 3) {
+    throw new Error("currency must be a 3-letter ISO 4217 code");
+  }
+  if (
+    config.monthlyLimit !== null &&
+    (typeof config.monthlyLimit !== "number" ||
+      !Number.isInteger(config.monthlyLimit) ||
+      config.monthlyLimit < 0)
+  ) {
+    throw new Error("monthlyLimit must be a non-negative integer or null");
+  }
+}
+
 function validateConfig(mergedConfig: IConfig) {
   if (typeof mergedConfig.lidarrUrl !== "string") {
     throw new Error("lidarrUrl must be a string");
@@ -256,6 +288,10 @@ export const setConfig = (newConfig: Partial<IConfigInput>) => {
       ...currentConfig.purchaseDecision,
       ...(newConfig.purchaseDecision ?? {}),
     },
+    spending: {
+      ...currentConfig.spending,
+      ...(newConfig.spending ?? {}),
+    },
   };
 
   validateConfig(mergedConfig);
@@ -266,6 +302,10 @@ export const setConfig = (newConfig: Partial<IConfigInput>) => {
 
   if (newConfig.purchaseDecision !== undefined) {
     validatePurchaseDecisionConfig(mergedConfig.purchaseDecision);
+  }
+
+  if (newConfig.spending !== undefined) {
+    validateSpendingConfig(mergedConfig.spending);
   }
 
   const db = getRawDb();
@@ -296,6 +336,7 @@ export const initializeConfig = () => {
     ...DEFAULT_CONFIG,
     promotedAlbum: { ...DEFAULT_PROMOTED_ALBUM },
     purchaseDecision: { ...DEFAULT_PURCHASE_DECISION },
+    spending: { ...DEFAULT_SPENDING },
   };
 
   const configJsonPath = getConfigJsonPath();

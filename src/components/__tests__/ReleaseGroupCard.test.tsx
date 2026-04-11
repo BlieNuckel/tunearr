@@ -44,6 +44,16 @@ vi.mock("../../hooks/useWanted", () => ({
   }),
 }));
 
+vi.mock("../../hooks/usePurchase", () => ({
+  default: () => ({
+    state: "idle",
+    errorMsg: null,
+    record: vi.fn(),
+    remove: vi.fn(),
+    reset: vi.fn(),
+  }),
+}));
+
 vi.mock("../../hooks/useReleaseTracks", () => ({
   default: () => ({
     media: [],
@@ -74,6 +84,11 @@ vi.mock("../PurchaseLinksModal", () => ({
         <button onClick={onAddToLibrary}>Add to Library</button>
       </div>
     ) : null,
+}));
+
+vi.mock("../PurchasePriceModal", () => ({
+  default: ({ isOpen }: { isOpen: boolean }) =>
+    isOpen ? <div data-testid="purchase-price-modal" /> : null,
 }));
 
 vi.mock("../TrackList", () => ({

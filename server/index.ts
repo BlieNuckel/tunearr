@@ -19,6 +19,7 @@ import sabnzbdRoutes from "./routes/sabnzbd";
 import settingsRoutes from "./routes/settings";
 import torznabRoutes from "./routes/torznab";
 import usersRoutes from "./routes/users";
+import purchasesRoutes from "./routes/purchases";
 import wantedRoutes from "./routes/wanted";
 
 const log = createLogger("Server");
@@ -46,6 +47,7 @@ app.use("/api/lastfm", requireAuth, lastfmRoutes);
 app.use("/api/plex", requireAuth, plexRoutes);
 app.use("/api/promoted-album", requireAuth, promotedAlbumRoutes);
 app.use("/api/requests", requestsRoutes);
+app.use("/api/purchases", purchasesRoutes);
 app.use("/api/wanted", wantedRoutes);
 
 if (process.env.NODE_ENV === "production") {

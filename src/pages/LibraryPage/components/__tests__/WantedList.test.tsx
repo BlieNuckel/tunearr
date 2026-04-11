@@ -46,6 +46,16 @@ vi.mock("@/hooks/useWanted", () => ({
   }),
 }));
 
+vi.mock("@/hooks/usePurchase", () => ({
+  default: () => ({
+    state: "idle",
+    errorMsg: null,
+    record: vi.fn(),
+    remove: vi.fn(),
+    reset: vi.fn(),
+  }),
+}));
+
 vi.mock("@/hooks/useReleaseTracks", () => ({
   default: () => ({
     media: [],
@@ -64,6 +74,10 @@ vi.mock("@/hooks/useAudioPreview", () => ({
 }));
 
 vi.mock("@/components/PurchaseLinksModal", () => ({
+  default: () => null,
+}));
+
+vi.mock("@/components/PurchasePriceModal", () => ({
   default: () => null,
 }));
 

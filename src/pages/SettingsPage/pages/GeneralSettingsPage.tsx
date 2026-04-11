@@ -2,6 +2,7 @@ import { useSettings } from "@/context/useSettings";
 import { useAutoSave } from "@/hooks/useAutoSave";
 import AccountSection from "../sections/general/AccountSection";
 import ImportSection from "../sections/general/ImportSection";
+import SpendingSection from "../sections/general/SpendingSection";
 import ThemeToggle from "@/components/ThemeToggle";
 import Skeleton from "@/components/Skeleton";
 import SaveStatusIndicator from "../shared/SaveStatusIndicator";
@@ -48,6 +49,11 @@ export default function GeneralSettingsPage() {
       <ImportSection
         importPath={fields.importPath}
         onImportPathChange={(v) => updateField("importPath", v)}
+      />
+
+      <SpendingSection
+        spending={fields.spending}
+        onSpendingChange={(v) => updateField("spending", v)}
       />
     </div>
   );
