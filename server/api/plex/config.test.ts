@@ -3,6 +3,7 @@ import { getPlexConfig } from "./config";
 import {
   DEFAULT_PROMOTED_ALBUM,
   DEFAULT_PURCHASE_DECISION,
+  DEFAULT_SPENDING,
 } from "../../config";
 
 vi.mock("../../config", async (importOriginal) => {
@@ -29,6 +30,7 @@ const fullConfig = {
   theme: "system" as const,
   promotedAlbum: DEFAULT_PROMOTED_ALBUM,
   purchaseDecision: DEFAULT_PURCHASE_DECISION,
+  spending: DEFAULT_SPENDING,
 };
 
 beforeEach(() => {

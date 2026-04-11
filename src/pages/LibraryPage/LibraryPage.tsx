@@ -5,11 +5,13 @@ import { hasPermission } from "@shared/permissions";
 import { Permission } from "@shared/permissions";
 import { useRequests } from "@/hooks/useRequests";
 import useWantedList from "@/hooks/useWantedList";
+import usePurchaseList from "@/hooks/usePurchaseList";
 import useIsMobile from "@/hooks/useIsMobile";
 import SettingsTabs, { type SettingsRoute } from "@/components/SettingsTabs";
 import RequestFilter from "./components/RequestFilter";
 import RequestList from "./components/RequestList";
 import WantedList from "./components/WantedList";
+import PurchaseList from "./components/PurchaseList";
 
 const libraryTabs: SettingsRoute[] = [
   {
@@ -21,6 +23,11 @@ const libraryTabs: SettingsRoute[] = [
     text: "Requests",
     route: "/library/requests",
     regex: /^\/library\/requests/,
+  },
+  {
+    text: "Purchases",
+    route: "/library/purchases",
+    regex: /^\/library\/purchases/,
   },
 ];
 
@@ -34,7 +41,8 @@ export default function LibraryPage() {
   });
 
   const isRequestsTab = /^\/library\/requests/.test(location.pathname);
-  const isWantedTab = !isRequestsTab;
+  const isPurchasesTab = /^\/library\/purchases/.test(location.pathname);
+  const isWantedTab = !isRequestsTab && !isPurchasesTab;
 
   const canViewAll =
     user !== null &&
@@ -65,6 +73,13 @@ export default function LibraryPage() {
     error: wantedError,
     removeItem: removeWantedItem,
   } = useWantedList();
+  const {
+    items: purchaseItems,
+    summary: purchaseSummary,
+    loading: purchasesLoading,
+    error: purchasesError,
+    removeItem: removePurchaseItem,
+  } = usePurchaseList();
 
   const handleFilterChange = useCallback((key: string, values: string[]) => {
     setFilters((prev) => ({ ...prev, [key]: values }));
@@ -122,6 +137,16 @@ export default function LibraryPage() {
               loading={wantedLoading}
               error={wantedError}
               onRemove={removeWantedItem}
+            />
+          )}
+
+          {isPurchasesTab && (
+            <PurchaseList
+              items={purchaseItems}
+              summary={purchaseSummary}
+              loading={purchasesLoading}
+              error={purchasesError}
+              onRemove={removePurchaseItem}
             />
           )}
 

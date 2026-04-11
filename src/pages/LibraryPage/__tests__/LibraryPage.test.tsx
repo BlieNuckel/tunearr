@@ -34,6 +34,28 @@ vi.mock("@/components/PurchaseLinksModal", () => ({
   default: () => null,
 }));
 
+vi.mock("@/components/PurchasePriceModal", () => ({
+  default: () => null,
+}));
+
+vi.mock("@/hooks/usePurchase", () => ({
+  default: () => ({
+    state: "idle",
+    errorMsg: null,
+    record: vi.fn(),
+    remove: vi.fn(),
+    reset: vi.fn(),
+  }),
+}));
+
+vi.mock("@/context/useSettings", () => ({
+  useSettings: () => ({
+    settings: {
+      spending: { currency: "USD", monthlyLimit: null },
+    },
+  }),
+}));
+
 vi.mock("@/components/TrackList", () => ({
   default: () => <div data-testid="track-list" />,
 }));

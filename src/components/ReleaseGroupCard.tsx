@@ -3,12 +3,14 @@ import { useNavigate } from "react-router-dom";
 import MonitorButton from "./MonitorButton";
 import TrackList from "./TrackList";
 import PurchaseLinksModal from "./PurchaseLinksModal";
+import PurchasePriceModal from "./PurchasePriceModal";
 import Spinner from "./Spinner";
 import { CheckIcon, PlusIcon } from "@/components/icons";
 import ImageWithShimmer from "./ImageWithShimmer";
 import OptionSelect from "./OptionSelect";
 import useLidarr from "../hooks/useLidarr";
 import useWanted from "../hooks/useWanted";
+import usePurchase from "../hooks/usePurchase";
 import useReleaseTracks from "../hooks/useReleaseTracks";
 import useAudioPreview from "../hooks/useAudioPreview";
 import { useAuth } from "../context/useAuth";
@@ -49,6 +51,7 @@ export default function ReleaseGroupCard({
   const [isFlipped, setIsFlipped] = useState(false);
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
 
   const artistName =
     releaseGroup["artist-credit"]?.[0]?.artist?.name || "Unknown Artist";
@@ -64,6 +67,7 @@ export default function ReleaseGroupCard({
     addToWanted,
     removeFromWanted,
   } = useWanted(initialWanted);
+  const { state: purchaseState, record: recordPurchase } = usePurchase();
   const {
     media,
     loading: tracksLoading,
@@ -141,10 +145,19 @@ export default function ReleaseGroupCard({
       await removeFromWanted(albumMbid);
     }
   };
-  const wantedOptions: Option[] = [
+  const isPurchased = purchaseState === "purchased";
+  const cardOptions: Option[] = [
     isWanted
       ? { label: "Remove from wanted", onClick: handleRemoveFromWanted }
       : { label: "Add to wanted", onClick: () => addToWanted(albumMbid) },
+    ...(isPurchased
+      ? []
+      : [
+          {
+            label: "Mark as purchased",
+            onClick: () => setIsPurchaseModalOpen(true),
+          },
+        ]),
     ...(isAdmin
       ? [
           {
@@ -154,6 +167,10 @@ export default function ReleaseGroupCard({
         ]
       : []),
   ];
+
+  const handleRecordPurchase = (price: number, currency: string) => {
+    recordPurchase(albumMbid, price, currency);
+  };
 
   const [coverError, setCoverError] = useState(false);
 
@@ -208,7 +225,7 @@ export default function ReleaseGroupCard({
           </div>
           <div className="flex items-center gap-1.5 flex-shrink-0 mr-3">
             <div onClick={(e) => e.stopPropagation()}>
-              <OptionSelect options={wantedOptions} title={albumTitle} />
+              <OptionSelect options={cardOptions} title={albumTitle} />
             </div>
             <button
               onClick={(e) => {
@@ -306,7 +323,7 @@ export default function ReleaseGroupCard({
             </div>
 
             <div className="flex-shrink-0 mt-2 flex items-center justify-end gap-1.5">
-              <OptionSelect options={wantedOptions} title={albumTitle} />
+              <OptionSelect options={cardOptions} title={albumTitle} />
               <MonitorButton
                 state={effectiveState}
                 onClick={handleMonitorClick}
@@ -324,6 +341,15 @@ export default function ReleaseGroupCard({
         albumTitle={albumTitle}
         albumMbid={albumMbid}
         onAddToLibrary={handleAddToLibrary}
+      />
+
+      <PurchasePriceModal
+        isOpen={isPurchaseModalOpen}
+        onClose={() => setIsPurchaseModalOpen(false)}
+        artistName={artistName}
+        albumTitle={albumTitle}
+        onConfirm={handleRecordPurchase}
+        saving={purchaseState === "recording"}
       />
     </>
   );

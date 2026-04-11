@@ -65,6 +65,23 @@ export interface WantedItem {
   createdAt: string;
 }
 
+export interface PurchaseItem {
+  id: number;
+  albumMbid: string;
+  artistName: string;
+  albumTitle: string;
+  price: number;
+  currency: string;
+  purchasedAt: string;
+}
+
+export interface SpendingSummary {
+  week: number;
+  month: number;
+  year: number;
+  allTime: number;
+}
+
 export type MonitorState =
   | "idle"
   | "adding"

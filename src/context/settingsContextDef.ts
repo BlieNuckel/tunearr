@@ -21,6 +21,11 @@ export interface PurchaseDecisionSettings {
   oldReleaseThresholdYears: number;
 }
 
+export interface SpendingSettings {
+  currency: string;
+  monthlyLimit: number | null;
+}
+
 export interface AppSettings {
   lidarrUrl: string;
   lidarrApiKey: string;
@@ -35,6 +40,7 @@ export interface AppSettings {
   slskdDownloadPath: string;
   promotedAlbum?: PromotedAlbumSettings;
   purchaseDecision?: PurchaseDecisionSettings;
+  spending?: SpendingSettings;
 }
 
 export type LidarrOptions = {
