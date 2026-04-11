@@ -157,7 +157,7 @@ describe("getPurchases", () => {
 });
 
 describe("getSpendingSummary", () => {
-  it("returns spending totals for all timeframes", async () => {
+  it("returns month, allTime totals and album count", async () => {
     const mockQb = {
       select: vi.fn().mockReturnThis(),
       where: vi.fn().mockReturnThis(),
@@ -167,19 +167,17 @@ describe("getSpendingSummary", () => {
 
     mockCreateQueryBuilder.mockReturnValue(mockQb);
     mockQb.getRawOne
-      .mockResolvedValueOnce({ total: 500 })
       .mockResolvedValueOnce({ total: 2000 })
-      .mockResolvedValueOnce({ total: 10000 })
-      .mockResolvedValueOnce({ total: 50000 });
+      .mockResolvedValueOnce({ total: 50000 })
+      .mockResolvedValueOnce({ count: 12 });
 
     const result = await getSpendingSummary(1);
     expect(result).toEqual({
-      week: 500,
       month: 2000,
-      year: 10000,
       allTime: 50000,
+      albumCount: 12,
     });
-    expect(mockCreateQueryBuilder).toHaveBeenCalledTimes(4);
+    expect(mockCreateQueryBuilder).toHaveBeenCalledTimes(3);
   });
 
   it("returns zeros when no purchases exist", async () => {
@@ -187,12 +185,12 @@ describe("getSpendingSummary", () => {
       select: vi.fn().mockReturnThis(),
       where: vi.fn().mockReturnThis(),
       andWhere: vi.fn().mockReturnThis(),
-      getRawOne: vi.fn().mockResolvedValue({ total: null }),
+      getRawOne: vi.fn().mockResolvedValue({ total: null, count: null }),
     };
 
     mockCreateQueryBuilder.mockReturnValue(mockQb);
 
     const result = await getSpendingSummary(1);
-    expect(result).toEqual({ week: 0, month: 0, year: 0, allTime: 0 });
+    expect(result).toEqual({ month: 0, allTime: 0, albumCount: 0 });
   });
 });

@@ -29,9 +29,9 @@ export default function PurchaseList({
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {[...Array(4)].map((_, i) => (
-            <Skeleton key={i} className="h-20 rounded-xl" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          {[...Array(2)].map((_, i) => (
+            <Skeleton key={i} className="h-36 rounded-xl" />
           ))}
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-3 sm:gap-4">

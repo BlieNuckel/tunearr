@@ -30,7 +30,7 @@ const mockItems = [
   },
 ];
 
-const mockSummary = { week: 999, month: 2499, year: 2499, allTime: 2499 };
+const mockSummary = { month: 2499, allTime: 2499, albumCount: 2 };
 
 describe("usePurchaseList", () => {
   it("fetches purchases and summary on mount", async () => {
@@ -145,10 +145,9 @@ describe("usePurchaseList", () => {
     vi.mocked(fetch)
       .mockResolvedValueOnce(new Response(JSON.stringify([]), { status: 200 }))
       .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({ week: 0, month: 0, year: 0, allTime: 0 }),
-          { status: 200 }
-        )
+        new Response(JSON.stringify({ month: 0, allTime: 0, albumCount: 0 }), {
+          status: 200,
+        })
       );
 
     const { result } = renderHook(() => usePurchaseList());

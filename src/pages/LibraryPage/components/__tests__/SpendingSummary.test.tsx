@@ -1,10 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import SpendingSummary from "../SpendingSummary";
 
-const baseSummary = { week: 999, month: 2499, year: 10000, allTime: 50000 };
+const baseSummary = { month: 2499, allTime: 50000, albumCount: 12 };
 
 describe("SpendingSummary", () => {
-  it("renders all four stat cards with formatted amounts", () => {
+  it("renders monthly and all-time amounts", () => {
     render(
       <SpendingSummary
         summary={baseSummary}
@@ -13,17 +13,40 @@ describe("SpendingSummary", () => {
       />
     );
 
-    expect(screen.getByText("This week")).toBeInTheDocument();
-    expect(screen.getByText("$9.99")).toBeInTheDocument();
-    expect(screen.getByText("This month")).toBeInTheDocument();
     expect(screen.getByText("$24.99")).toBeInTheDocument();
-    expect(screen.getByText("This year")).toBeInTheDocument();
-    expect(screen.getByText("$100.00")).toBeInTheDocument();
-    expect(screen.getByText("All time")).toBeInTheDocument();
     expect(screen.getByText("$500.00")).toBeInTheDocument();
+    expect(
+      screen.getByText("Supporting artists this month")
+    ).toBeInTheDocument();
+    expect(screen.getByText("All-time artist support")).toBeInTheDocument();
   });
 
-  it("shows no warning when under limit", () => {
+  it("shows album count", () => {
+    render(
+      <SpendingSummary
+        summary={baseSummary}
+        currency="USD"
+        monthlyLimit={null}
+      />
+    );
+
+    expect(screen.getByText("12")).toBeInTheDocument();
+    expect(screen.getByText(/albums purchased/)).toBeInTheDocument();
+  });
+
+  it("shows singular 'album' for count of 1", () => {
+    render(
+      <SpendingSummary
+        summary={{ month: 999, allTime: 999, albumCount: 1 }}
+        currency="USD"
+        monthlyLimit={null}
+      />
+    );
+
+    expect(screen.getByText(/album purchased/)).toBeInTheDocument();
+  });
+
+  it("shows limit progress bar when limit is set", () => {
     render(
       <SpendingSummary
         summary={baseSummary}
@@ -32,12 +55,11 @@ describe("SpendingSummary", () => {
       />
     );
 
-    expect(
-      screen.queryByText(/has reached your limit/)
-    ).not.toBeInTheDocument();
+    expect(screen.getByText(/of \$50\.00/)).toBeInTheDocument();
+    expect(screen.getByText("50%")).toBeInTheDocument();
   });
 
-  it("shows warning when monthly spending reaches limit", () => {
+  it("shows warning when over limit", () => {
     render(
       <SpendingSummary
         summary={baseSummary}
@@ -46,32 +68,48 @@ describe("SpendingSummary", () => {
       />
     );
 
-    expect(screen.getByText(/has reached your limit/)).toBeInTheDocument();
+    expect(
+      screen.getByText("You've reached your monthly budget!")
+    ).toBeInTheDocument();
   });
 
-  it("shows no warning when limit is null", () => {
+  it("shows no limit bar when limit is null", () => {
     render(
       <SpendingSummary
-        summary={{ ...baseSummary, month: 99999 }}
+        summary={baseSummary}
         currency="USD"
         monthlyLimit={null}
       />
     );
 
     expect(
-      screen.queryByText(/has reached your limit/)
+      screen.queryByText("You've reached your monthly budget!")
     ).not.toBeInTheDocument();
+    expect(screen.queryByText(/%/)).not.toBeInTheDocument();
   });
 
-  it("formats zero-decimal currencies correctly", () => {
+  it("shows streaming comparison for large spend", () => {
     render(
       <SpendingSummary
-        summary={{ week: 1000, month: 2000, year: 5000, allTime: 10000 }}
-        currency="JPY"
+        summary={{ month: 0, allTime: 5997, albumCount: 5 }}
+        currency="USD"
         monthlyLimit={null}
       />
     );
 
-    expect(screen.getByText(/¥1,000/)).toBeInTheDocument();
+    expect(screen.getByText(/Equivalent to/)).toBeInTheDocument();
+    expect(screen.getByText(/Spotify/)).toBeInTheDocument();
+  });
+
+  it("hides streaming comparison for small spend", () => {
+    render(
+      <SpendingSummary
+        summary={{ month: 0, allTime: 500, albumCount: 1 }}
+        currency="USD"
+        monthlyLimit={null}
+      />
+    );
+
+    expect(screen.queryByText(/Equivalent to/)).not.toBeInTheDocument();
   });
 });

@@ -76,10 +76,9 @@ export interface PurchaseItem {
 }
 
 export interface SpendingSummary {
-  week: number;
   month: number;
-  year: number;
   allTime: number;
+  albumCount: number;
 }
 
 export type MonitorState =

@@ -51,10 +51,9 @@ const mockItems: PurchaseItem[] = [
 ];
 
 const mockSummary: SpendingSummary = {
-  week: 999,
   month: 2499,
-  year: 2499,
   allTime: 2499,
+  albumCount: 2,
 };
 
 describe("PurchaseList", () => {
@@ -146,7 +145,9 @@ describe("PurchaseList", () => {
       />
     );
 
-    expect(screen.getByText("This week")).toBeInTheDocument();
-    expect(screen.getByText("This month")).toBeInTheDocument();
+    expect(
+      screen.getByText("Supporting artists this month")
+    ).toBeInTheDocument();
+    expect(screen.getByText("All-time artist support")).toBeInTheDocument();
   });
 });

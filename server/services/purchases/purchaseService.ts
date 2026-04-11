@@ -10,10 +10,9 @@ type RecordPurchaseResult =
 type RemovePurchaseResult = { status: "removed" } | { status: "not_found" };
 
 export type SpendingSummary = {
-  week: number;
   month: number;
-  year: number;
   allTime: number;
+  albumCount: number;
 };
 
 const log = createLogger("purchases");
@@ -125,25 +124,23 @@ export async function getSpendingSummary(
 ): Promise<SpendingSummary> {
   const { currency } = getConfig().spending;
   const now = new Date();
-
-  const weekStart = new Date(now);
-  weekStart.setDate(now.getDate() - ((now.getDay() + 6) % 7));
-  weekStart.setHours(0, 0, 0, 0);
-
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const yearStart = new Date(now.getFullYear(), 0, 1);
 
-  const [week, month, year, allTime] = await Promise.all([
-    sumForBoundary(userId, currency, weekStart.toISOString()),
+  const repo = getPurchaseRepo();
+  const [month, allTime, countResult] = await Promise.all([
     sumForBoundary(userId, currency, monthStart.toISOString()),
-    sumForBoundary(userId, currency, yearStart.toISOString()),
     sumForBoundary(userId, currency, null),
+    repo
+      .createQueryBuilder("p")
+      .select("COUNT(*)", "count")
+      .where("p.user_id = :userId", { userId })
+      .andWhere("p.currency = :currency", { currency })
+      .getRawOne() as Promise<{ count: number | null }>,
   ]);
 
   return {
-    week: week.total ?? 0,
     month: month.total ?? 0,
-    year: year.total ?? 0,
     allTime: allTime.total ?? 0,
+    albumCount: Number(countResult.count) || 0,
   };
 }
