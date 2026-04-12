@@ -21,12 +21,12 @@ export default function PurchaseLinks({
     {
       platform: "Bandcamp",
       url: `https://bandcamp.com/search?q=${query}`,
-      icon: "bandcamp.png",
+      icon: "/bandcamp.png",
     },
     {
       platform: "Qobuz",
       url: `https://www.qobuz.com/us-en/search?q=${query}`,
-      icon: "qobuz.png",
+      icon: "/qobuz.png",
     },
   ];
 
