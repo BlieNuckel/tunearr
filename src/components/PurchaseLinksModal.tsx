@@ -50,7 +50,8 @@ export default function PurchaseLinksModal({
   albumMbid,
   onAddToLibrary,
 }: PurchaseLinksModalProps) {
-  const { context, loading, fetchContext, reset } = usePurchaseContext();
+  const { context, loading, progress, fetchContext, reset } =
+    usePurchaseContext();
 
   useEffect(() => {
     if (isOpen && albumMbid) {
@@ -83,7 +84,11 @@ export default function PurchaseLinksModal({
           )}
         </div>
 
-        <PurchaseDecisionBanner context={context} loading={loading} />
+        <PurchaseDecisionBanner
+          context={context}
+          loading={loading}
+          progress={progress}
+        />
 
         <PurchaseLinks artistName={artistName} albumTitle={albumTitle} />
 

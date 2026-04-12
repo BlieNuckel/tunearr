@@ -62,27 +62,56 @@ router.get(
   }
 );
 
+function sendSSE(res: Response, event: string, data: unknown) {
+  res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+}
+
 router.get(
   "/purchase-context/:releaseGroupId",
   rateLimiter,
   async (req: Request, res: Response) => {
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders();
+
     try {
       const { releaseGroupId } = req.params;
+
+      sendSSE(res, "progress", { step: "Looking up album details" });
       const [label, firstReleaseDate] = await Promise.all([
         getReleaseGroupLabel(releaseGroupId as string),
         getReleaseGroupDate(releaseGroupId as string),
       ]);
-      const labelAncestors = label ? await getLabelAncestors(label.mbid) : [];
-      const config = getConfigValue("purchaseDecision");
 
-      res.json(
-        evaluatePurchaseDecision(
-          { label, labelAncestors, firstReleaseDate },
-          config
-        )
+      let labelAncestors: { name: string; mbid: string }[] = [];
+      if (label) {
+        sendSSE(res, "progress", {
+          step: "Resolving label ownership",
+          detail: label.name,
+        });
+        labelAncestors = await getLabelAncestors(label.mbid, (ancestor) => {
+          sendSSE(res, "progress", {
+            step: "Resolving label ownership",
+            detail: ancestor.name,
+          });
+        });
+      }
+
+      const config = getConfigValue("purchaseDecision");
+      const result = evaluatePurchaseDecision(
+        { label, labelAncestors, firstReleaseDate },
+        config
       );
+      sendSSE(res, "result", result);
     } catch {
-      res.json({ recommendation: "neutral", signals: [], label: null });
+      sendSSE(res, "result", {
+        recommendation: "neutral",
+        signals: [],
+        label: null,
+      });
+    } finally {
+      res.end();
     }
   }
 );

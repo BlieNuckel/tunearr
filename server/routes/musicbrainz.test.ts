@@ -151,8 +151,25 @@ describe("GET /tracks/:releaseGroupId", () => {
   });
 });
 
+function parseSSEEvents(text: string): { event: string; data: unknown }[] {
+  const events: { event: string; data: unknown }[] = [];
+  for (const block of text.split("\n\n")) {
+    if (!block.trim()) continue;
+    let eventType = "";
+    let data = "";
+    for (const line of block.split("\n")) {
+      if (line.startsWith("event: ")) eventType = line.slice(7);
+      else if (line.startsWith("data: ")) data = line.slice(6);
+    }
+    if (eventType && data) {
+      events.push({ event: eventType, data: JSON.parse(data) });
+    }
+  }
+  return events;
+}
+
 describe("GET /purchase-context/:releaseGroupId", () => {
-  it("passes label, ancestors, date, and config to pipeline", async () => {
+  it("streams progress and result via SSE", async () => {
     const label = { name: "Warp Records", mbid: "label-warp" };
     const ancestors = [{ name: "Some Parent", mbid: "label-parent" }];
     const config = {
@@ -173,15 +190,37 @@ describe("GET /purchase-context/:releaseGroupId", () => {
     mockGetConfigValue.mockReturnValue(config);
     mockEvaluatePurchaseDecision.mockReturnValue(pipelineResult);
 
-    const res = await request(app).get("/purchase-context/rg-123");
+    const res = await request(app)
+      .get("/purchase-context/rg-123")
+      .buffer(true)
+      .parse((res, cb) => {
+        let data = "";
+        res.on("data", (chunk: Buffer) => {
+          data += chunk.toString();
+        });
+        res.on("end", () => cb(null, data));
+      });
 
     expect(res.status).toBe(200);
-    expect(mockGetLabelAncestors).toHaveBeenCalledWith("label-warp");
+    const events = parseSSEEvents(res.body as string);
+
+    const progressEvents = events.filter((e) => e.event === "progress");
+    expect(progressEvents.length).toBeGreaterThanOrEqual(1);
+    expect(progressEvents[0].data).toEqual({
+      step: "Looking up album details",
+    });
+
+    const resultEvent = events.find((e) => e.event === "result");
+    expect(resultEvent?.data).toEqual(pipelineResult);
+
+    expect(mockGetLabelAncestors).toHaveBeenCalledWith(
+      "label-warp",
+      expect.any(Function)
+    );
     expect(mockEvaluatePurchaseDecision).toHaveBeenCalledWith(
       { label, labelAncestors: ancestors, firstReleaseDate: "2025-06-01" },
       config
     );
-    expect(res.body).toEqual(pipelineResult);
   });
 
   it("skips ancestor fetch when no label found", async () => {
@@ -199,23 +238,47 @@ describe("GET /purchase-context/:releaseGroupId", () => {
     });
     mockEvaluatePurchaseDecision.mockReturnValue(pipelineResult);
 
-    const res = await request(app).get("/purchase-context/rg-456");
+    const res = await request(app)
+      .get("/purchase-context/rg-456")
+      .buffer(true)
+      .parse((res, cb) => {
+        let data = "";
+        res.on("data", (chunk: Buffer) => {
+          data += chunk.toString();
+        });
+        res.on("end", () => cb(null, data));
+      });
+
+    const events = parseSSEEvents(res.body as string);
+    const resultEvent = events.find((e) => e.event === "result");
+    expect(resultEvent?.data).toEqual(pipelineResult);
 
     expect(mockGetLabelAncestors).not.toHaveBeenCalled();
     expect(mockEvaluatePurchaseDecision).toHaveBeenCalledWith(
       { label: null, labelAncestors: [], firstReleaseDate: null },
       { labelBlocklist: [], oldReleaseThresholdYears: 50 }
     );
-    expect(res.body).toEqual(pipelineResult);
   });
 
-  it("returns neutral fallback on unexpected error", async () => {
+  it("returns neutral fallback via SSE on unexpected error", async () => {
     mockGetReleaseGroupLabel.mockRejectedValue(new Error("network fail"));
     mockGetReleaseGroupDate.mockRejectedValue(new Error("network fail"));
 
-    const res = await request(app).get("/purchase-context/rg-error");
+    const res = await request(app)
+      .get("/purchase-context/rg-error")
+      .buffer(true)
+      .parse((res, cb) => {
+        let data = "";
+        res.on("data", (chunk: Buffer) => {
+          data += chunk.toString();
+        });
+        res.on("end", () => cb(null, data));
+      });
+
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({
+    const events = parseSSEEvents(res.body as string);
+    const resultEvent = events.find((e) => e.event === "result");
+    expect(resultEvent?.data).toEqual({
       recommendation: "neutral",
       signals: [],
       label: null,

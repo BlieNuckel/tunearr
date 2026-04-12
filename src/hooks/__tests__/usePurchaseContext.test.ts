@@ -21,16 +21,42 @@ const buyResponse = {
   label: { name: "Warp Records", mbid: "label-warp" },
 };
 
+function sseResponse(events: { event: string; data: unknown }[]) {
+  const text =
+    events
+      .map((e) => `event: ${e.event}\ndata: ${JSON.stringify(e.data)}`)
+      .join("\n\n") + "\n\n";
+
+  const encoder = new TextEncoder();
+  const encoded = encoder.encode(text);
+
+  const stream = new ReadableStream({
+    start(controller) {
+      controller.enqueue(encoded);
+      controller.close();
+    },
+  });
+
+  return new Response(stream, {
+    status: 200,
+    headers: { "Content-Type": "text/event-stream" },
+  });
+}
+
 describe("usePurchaseContext", () => {
   it("has correct initial state", () => {
     const { result } = renderHook(() => usePurchaseContext());
     expect(result.current.context).toBeNull();
     expect(result.current.loading).toBe(false);
+    expect(result.current.progress).toBeNull();
   });
 
-  it("fetches purchase context successfully", async () => {
+  it("fetches purchase context from SSE stream", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(
-      new Response(JSON.stringify(buyResponse), { status: 200 })
+      sseResponse([
+        { event: "progress", data: { step: "Looking up album details" } },
+        { event: "result", data: buyResponse },
+      ])
     );
 
     const { result } = renderHook(() => usePurchaseContext());
@@ -41,6 +67,7 @@ describe("usePurchaseContext", () => {
     );
     expect(result.current.context).toEqual(buyResponse);
     expect(result.current.loading).toBe(false);
+    expect(result.current.progress).toBeNull();
   });
 
   it("sets context to null on non-ok response", async () => {
@@ -63,9 +90,9 @@ describe("usePurchaseContext", () => {
     expect(result.current.context).toBeNull();
   });
 
-  it("reset clears context", async () => {
+  it("reset clears context and progress", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(
-      new Response(JSON.stringify(buyResponse), { status: 200 })
+      sseResponse([{ event: "result", data: buyResponse }])
     );
 
     const { result } = renderHook(() => usePurchaseContext());
@@ -74,5 +101,6 @@ describe("usePurchaseContext", () => {
 
     act(() => result.current.reset());
     expect(result.current.context).toBeNull();
+    expect(result.current.progress).toBeNull();
   });
 });

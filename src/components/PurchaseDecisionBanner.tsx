@@ -1,19 +1,35 @@
 import type { PurchaseContext } from "@/hooks/usePurchaseContext";
 import { InformationCircleIcon, HeartIcon } from "@/components/icons";
+import Spinner from "@/components/Spinner";
+
+type ProgressEvent = {
+  step: string;
+  detail?: string;
+};
 
 interface PurchaseDecisionBannerProps {
   context: PurchaseContext | null;
   loading: boolean;
+  progress: ProgressEvent | null;
 }
 
-function BannerSkeleton() {
+function BannerLoading({ progress }: { progress: ProgressEvent | null }) {
   return (
-    <div className="animate-pulse rounded-xl border-2 border-gray-200 dark:border-gray-700 p-3">
-      <div className="flex items-start gap-2">
-        <div className="w-5 h-5 rounded-full bg-gray-200 dark:bg-gray-700 shrink-0 mt-0.5" />
-        <div className="flex-1 space-y-2">
-          <div className="h-3 w-32 bg-gray-200 dark:bg-gray-700 rounded" />
-          <div className="h-3 w-48 bg-gray-200 dark:bg-gray-700 rounded" />
+    <div
+      data-testid="purchase-banner-loading"
+      className="rounded-xl border-2 border-gray-200 dark:border-gray-700 p-3"
+    >
+      <div className="flex items-center gap-2">
+        <Spinner className="w-4 h-4 text-gray-400 dark:text-gray-500 shrink-0" />
+        <div className="min-w-0">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            {progress?.step ?? "Loading…"}
+          </p>
+          {progress?.detail && (
+            <p className="text-xs text-gray-400 dark:text-gray-500 truncate">
+              {progress.detail}
+            </p>
+          )}
         </div>
       </div>
     </div>
@@ -40,9 +56,10 @@ const BANNER_STYLES = {
 export default function PurchaseDecisionBanner({
   context,
   loading,
+  progress,
 }: PurchaseDecisionBannerProps) {
   if (loading) {
-    return <BannerSkeleton />;
+    return <BannerLoading progress={progress} />;
   }
 
   if (!context || context.recommendation === "neutral") {

@@ -10,6 +10,7 @@ const mockPurchaseContext = {
     label: { name: string; mbid: string } | null;
   } | null,
   loading: false,
+  progress: null as { step: string; detail?: string } | null,
   fetchContext: mockFetchContext,
   reset: mockReset,
 };
@@ -30,6 +31,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockPurchaseContext.context = null;
   mockPurchaseContext.loading = false;
+  mockPurchaseContext.progress = null;
 });
 
 describe("PurchaseLinksModal", () => {

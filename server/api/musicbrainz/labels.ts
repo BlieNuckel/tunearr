@@ -5,13 +5,15 @@ type LabelInfo = { name: string; mbid: string };
 
 const MAX_ANCESTOR_DEPTH = 5;
 
-function extractParent(data: MusicBrainzLabelWithRels): LabelInfo | null {
-  const ownerRel = data.relations?.find(
-    (r) =>
-      r.type === "label ownership" && r.direction === "backward" && !r.ended
+function extractParents(data: MusicBrainzLabelWithRels): LabelInfo[] {
+  return (
+    data.relations
+      ?.filter(
+        (r) =>
+          r.type === "label ownership" && r.direction === "backward" && !r.ended
+      )
+      .map((r) => ({ name: r.label.name, mbid: r.label.id })) ?? []
   );
-  if (!ownerRel) return null;
-  return { name: ownerRel.label.name, mbid: ownerRel.label.id };
 }
 
 async function fetchLabelWithRels(
@@ -23,24 +25,32 @@ async function fetchLabelWithRels(
   return response.json();
 }
 
-/** Walk the ownership chain upward, returning ancestors from nearest to farthest */
+/** BFS walk up ownership chains, returning all ancestors nearest-first */
 export async function getLabelAncestors(
-  labelMbid: string
+  labelMbid: string,
+  onAncestorFound?: (label: LabelInfo) => void
 ): Promise<LabelInfo[]> {
   const ancestors: LabelInfo[] = [];
   const visited = new Set<string>([labelMbid]);
-  let currentMbid = labelMbid;
+  let queue = [labelMbid];
 
-  for (let depth = 0; depth < MAX_ANCESTOR_DEPTH; depth++) {
-    const data = await fetchLabelWithRels(currentMbid);
-    if (!data) break;
+  for (let depth = 0; depth < MAX_ANCESTOR_DEPTH && queue.length > 0; depth++) {
+    const nextQueue: string[] = [];
 
-    const parent = extractParent(data);
-    if (!parent || visited.has(parent.mbid)) break;
+    for (const mbid of queue) {
+      const data = await fetchLabelWithRels(mbid);
+      if (!data) continue;
 
-    ancestors.push(parent);
-    visited.add(parent.mbid);
-    currentMbid = parent.mbid;
+      for (const parent of extractParents(data)) {
+        if (visited.has(parent.mbid)) continue;
+        visited.add(parent.mbid);
+        ancestors.push(parent);
+        onAncestorFound?.(parent);
+        nextQueue.push(parent.mbid);
+      }
+    }
+
+    queue = nextQueue;
   }
 
   return ancestors;

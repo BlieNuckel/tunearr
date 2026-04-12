@@ -156,4 +156,79 @@ describe("getLabelAncestors", () => {
     expect(result).toEqual([{ name: "Label B", mbid: "l-2" }]);
     expect(mockFetch).toHaveBeenCalledTimes(2);
   });
+
+  it("collects all active parents when a label has multiple owners", async () => {
+    mockFetch.mockResolvedValueOnce(
+      okResponse({
+        id: "l-1",
+        name: "Atlantic",
+        relations: [
+          {
+            type: "label ownership",
+            direction: "backward",
+            ended: false,
+            label: { id: "l-2", name: "Warner Bros.-Seven Arts Records" },
+          },
+          {
+            type: "label ownership",
+            direction: "backward",
+            ended: false,
+            label: { id: "l-3", name: "Warner Music Group" },
+          },
+        ],
+      })
+    );
+    mockFetch.mockResolvedValueOnce(
+      okResponse(labelWithoutParent("l-2", "Warner Bros.-Seven Arts Records"))
+    );
+    mockFetch.mockResolvedValueOnce(
+      okResponse(labelWithoutParent("l-3", "Warner Music Group"))
+    );
+
+    const result = await getLabelAncestors("l-1");
+    expect(result).toEqual([
+      { name: "Warner Bros.-Seven Arts Records", mbid: "l-2" },
+      { name: "Warner Music Group", mbid: "l-3" },
+    ]);
+  });
+
+  it("deduplicates shared ancestors across branches", async () => {
+    mockFetch.mockResolvedValueOnce(
+      okResponse({
+        id: "l-1",
+        name: "Sub Label",
+        relations: [
+          {
+            type: "label ownership",
+            direction: "backward",
+            ended: false,
+            label: { id: "l-2", name: "Branch A" },
+          },
+          {
+            type: "label ownership",
+            direction: "backward",
+            ended: false,
+            label: { id: "l-3", name: "Branch B" },
+          },
+        ],
+      })
+    );
+    mockFetch.mockResolvedValueOnce(
+      okResponse(labelWithParent("l-2", "Branch A", "l-4", "Top Corp"))
+    );
+    mockFetch.mockResolvedValueOnce(
+      okResponse(labelWithParent("l-3", "Branch B", "l-4", "Top Corp"))
+    );
+    mockFetch.mockResolvedValueOnce(
+      okResponse(labelWithoutParent("l-4", "Top Corp"))
+    );
+
+    const result = await getLabelAncestors("l-1");
+    expect(result).toEqual([
+      { name: "Branch A", mbid: "l-2" },
+      { name: "Branch B", mbid: "l-3" },
+      { name: "Top Corp", mbid: "l-4" },
+    ]);
+    expect(mockFetch).toHaveBeenCalledTimes(4);
+  });
 });
