@@ -148,7 +148,7 @@ export default function LibraryPage() {
             )}
 
             {isRequestsTab && (
-              <>
+              <div className="space-y-4">
                 <RequestFilter values={filters} onChange={handleFilterChange} />
 
                 <RequestList
@@ -168,7 +168,7 @@ export default function LibraryPage() {
                   onSearch={handleSearch}
                   onUnmonitor={handleUnmonitor}
                 />
-              </>
+              </div>
             )}
           </>
         </SettingsTabs>
