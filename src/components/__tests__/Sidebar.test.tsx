@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { AuthContext, type AuthContextValue } from "@/context/authContextDef";
 import Sidebar from "../Sidebar";
@@ -106,5 +106,36 @@ describe("Sidebar", () => {
     const searchLinks = screen.getAllByRole("link", { name: /Search/ });
     expect(searchLinks[0]).toHaveClass("hover:bg-amber-50");
     expect(searchLinks[0]).not.toHaveClass("bg-amber-300");
+  });
+
+  it("dispatches search:reset and prevents navigation when clicking Search while on /search", () => {
+    const handler = vi.fn();
+    window.addEventListener("search:reset", handler);
+    try {
+      renderSidebar("/search");
+      const searchLinks = screen.getAllByRole("link", { name: /Search/ });
+      const event = new MouseEvent("click", {
+        bubbles: true,
+        cancelable: true,
+      });
+      const wasDefaultPrevented = !searchLinks[0].dispatchEvent(event);
+      expect(wasDefaultPrevented).toBe(true);
+      expect(handler).toHaveBeenCalledTimes(1);
+    } finally {
+      window.removeEventListener("search:reset", handler);
+    }
+  });
+
+  it("does not dispatch search:reset when clicking Search from another page", () => {
+    const handler = vi.fn();
+    window.addEventListener("search:reset", handler);
+    try {
+      renderSidebar("/");
+      const searchLinks = screen.getAllByRole("link", { name: /Search/ });
+      fireEvent.click(searchLinks[0]);
+      expect(handler).not.toHaveBeenCalled();
+    } finally {
+      window.removeEventListener("search:reset", handler);
+    }
   });
 });

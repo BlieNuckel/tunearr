@@ -1,4 +1,4 @@
-import { useState, SubmitEvent } from "react";
+import { useEffect, useState, SubmitEvent, RefObject } from "react";
 import Dropdown from "@/components/Dropdown";
 import { SearchIcon } from "@/components/icons";
 import useHaptics from "@/hooks/useHaptics";
@@ -7,16 +7,22 @@ interface SearchBarProps {
   onSearch: (query: string, searchType: string) => void;
   initialQuery?: string;
   initialSearchType?: string;
+  inputRef?: RefObject<HTMLInputElement | null>;
 }
 
 export default function SearchBar({
   onSearch,
   initialQuery = "",
   initialSearchType = "album",
+  inputRef,
 }: SearchBarProps) {
   const [query, setQuery] = useState(initialQuery);
   const [searchType, setSearchType] = useState(initialSearchType);
   const haptics = useHaptics();
+
+  useEffect(() => {
+    setQuery(initialQuery);
+  }, [initialQuery]);
 
   const handleSubmit = (e: SubmitEvent) => {
     e.preventDefault();
@@ -48,6 +54,7 @@ export default function SearchBar({
 
       <div className="flex gap-2">
         <input
+          ref={inputRef}
           data-testid="search-input"
           type="text"
           value={query}

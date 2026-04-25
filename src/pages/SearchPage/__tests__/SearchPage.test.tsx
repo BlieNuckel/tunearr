@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import SearchPage from "../SearchPage";
 
@@ -40,6 +40,19 @@ describe("SearchPage", () => {
   it("shows empty state when no query", () => {
     renderSearchPage();
     expect(screen.getByText("Search for music")).toBeInTheDocument();
+  });
+
+  it("clears input and focuses it on search:reset event", () => {
+    renderSearchPage("Radiohead");
+    const input = screen.getByTestId("search-input") as HTMLInputElement;
+    expect(input.value).toBe("Radiohead");
+
+    act(() => {
+      window.dispatchEvent(new CustomEvent("search:reset"));
+    });
+
+    expect(input.value).toBe("");
+    expect(document.activeElement).toBe(input);
   });
 });
 

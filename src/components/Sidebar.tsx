@@ -26,6 +26,23 @@ const mobileLinks: NavItem[] = [
   { to: "/settings", label: "Account", icon: UserCircleIcon },
 ];
 
+function isOnSearchPath(pathname: string): boolean {
+  return pathname === "/search" || pathname.startsWith("/search/");
+}
+
+function makeSearchClickHandler(
+  to: string,
+  pathname: string
+): ((e: React.MouseEvent<HTMLAnchorElement>) => void) | undefined {
+  if (to !== "/search") return undefined;
+  return (e) => {
+    if (isOnSearchPath(pathname)) {
+      e.preventDefault();
+      window.dispatchEvent(new CustomEvent("search:reset"));
+    }
+  };
+}
+
 function MobileNav() {
   const { user } = useAuth();
   const { pathname } = useLocation();
@@ -91,6 +108,7 @@ function MobileNav() {
               <NavLink
                 to={link.to}
                 end={link.to === "/"}
+                onClick={makeSearchClickHandler(link.to, pathname)}
                 className={({ isActive }) =>
                   `relative flex flex-col items-center justify-center gap-1 py-3 text-xs font-bold transition-colors ${
                     isActive
@@ -127,6 +145,7 @@ function DesktopNavLink({ link }: { link: NavItem }) {
   return (
     <NavLink
       to={link.to}
+      onClick={makeSearchClickHandler(link.to, pathname)}
       className={`flex items-center gap-3 px-4 py-3 rounded-lg text-base font-bold transition-all border-2 ${
         isActive
           ? "bg-amber-300 text-black border-black shadow-cartoon-sm dark:text-black"

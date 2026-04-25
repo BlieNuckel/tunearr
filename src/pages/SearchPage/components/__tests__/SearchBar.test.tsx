@@ -1,3 +1,4 @@
+import { createRef } from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import SearchBar from "../SearchBar";
 
@@ -44,5 +45,22 @@ describe("SearchBar", () => {
     fireEvent.submit(screen.getByTestId("search-form"));
 
     expect(onSearch).toHaveBeenCalledWith("Bjork", "artist");
+  });
+
+  it("syncs input value when initialQuery prop changes", () => {
+    const { rerender } = render(
+      <SearchBar onSearch={vi.fn()} initialQuery="Radiohead" />
+    );
+    const input = screen.getByTestId("search-input") as HTMLInputElement;
+    expect(input.value).toBe("Radiohead");
+
+    rerender(<SearchBar onSearch={vi.fn()} initialQuery="" />);
+    expect(input.value).toBe("");
+  });
+
+  it("forwards inputRef to the underlying input element", () => {
+    const ref = createRef<HTMLInputElement>();
+    render(<SearchBar onSearch={vi.fn()} inputRef={ref} />);
+    expect(ref.current).toBe(screen.getByTestId("search-input"));
   });
 });

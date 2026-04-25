@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import SearchBar from "./components/SearchBar";
 import ReleaseGroupCard from "@/components/ReleaseGroupCard";
@@ -12,6 +12,7 @@ export default function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { results, loading, error, search } = useSearch();
   const { isAlbumInLibrary } = useLibraryAlbums();
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const query = searchParams.get("q") ?? "";
   const searchType = searchParams.get("searchType") ?? "album";
@@ -21,6 +22,15 @@ export default function SearchPage() {
       search(query, searchType);
     }
   }, [query, searchType, search]);
+
+  useEffect(() => {
+    const handleReset = () => {
+      setSearchParams({});
+      inputRef.current?.focus();
+    };
+    window.addEventListener("search:reset", handleReset);
+    return () => window.removeEventListener("search:reset", handleReset);
+  }, [setSearchParams]);
 
   const handleSearch = useCallback(
     (newQuery: string, newSearchType: string) => {
@@ -37,6 +47,7 @@ export default function SearchPage() {
         onSearch={handleSearch}
         initialQuery={query}
         initialSearchType={searchType}
+        inputRef={inputRef}
       />
 
       {loading && (
