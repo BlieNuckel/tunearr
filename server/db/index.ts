@@ -48,3 +48,6 @@ export { Request } from "./entity/Request";
 export { WantedItem } from "./entity/WantedItem";
 export { Purchase } from "./entity/Purchase";
 export { Config } from "./entity/Config";
+export { FollowedArtist } from "./entity/FollowedArtist";
+export type { ReleaseSource } from "./entity/SeenRelease";
+export { SeenRelease } from "./entity/SeenRelease";

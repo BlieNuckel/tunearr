@@ -7,10 +7,14 @@ import { Request } from "./entity/Request";
 import { WantedItem } from "./entity/WantedItem";
 import { Purchase } from "./entity/Purchase";
 import { Config } from "./entity/Config";
+import { FollowedArtist } from "./entity/FollowedArtist";
+import { SeenRelease } from "./entity/SeenRelease";
 import { InitialSchema1709000000000 } from "./migration/1_InitialSchema";
 import { ConfigTable1710000000000 } from "./migration/2_ConfigTable";
 import { WantedItems1711000000000 } from "./migration/3_WantedItems";
 import { Purchases1712000000000 } from "./migration/4_Purchases";
+import { FollowedArtists1713000000000 } from "./migration/5_FollowedArtists";
+import { FollowedLastViewedAt1714000000000 } from "./migration/6_FollowedLastViewedAt";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -27,12 +31,23 @@ export function createDataSource(dbPath?: string): DataSource {
   return new DataSource({
     type: "better-sqlite3",
     database: resolvedPath,
-    entities: [User, Session, Request, WantedItem, Purchase, Config],
+    entities: [
+      User,
+      Session,
+      Request,
+      WantedItem,
+      Purchase,
+      Config,
+      FollowedArtist,
+      SeenRelease,
+    ],
     migrations: [
       InitialSchema1709000000000,
       ConfigTable1710000000000,
       WantedItems1711000000000,
       Purchases1712000000000,
+      FollowedArtists1713000000000,
+      FollowedLastViewedAt1714000000000,
     ],
     synchronize: false,
     migrationsRun: true,

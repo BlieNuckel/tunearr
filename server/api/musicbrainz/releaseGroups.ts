@@ -32,7 +32,7 @@ export async function searchReleaseGroups(
 }
 
 /** Fetch all release groups (albums/EPs/singles) for a single artist MBID */
-async function fetchReleaseGroupsForArtist(
+export async function fetchReleaseGroupsForArtist(
   artistId: string
 ): Promise<MusicBrainzReleaseGroup[]> {
   const url = `${MB_BASE}/release-group?artist=${artistId}&type=album|ep|single&limit=100&inc=artist-credits&fmt=json`;

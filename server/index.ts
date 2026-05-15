@@ -21,6 +21,9 @@ import torznabRoutes from "./routes/torznab";
 import usersRoutes from "./routes/users";
 import purchasesRoutes from "./routes/purchases";
 import wantedRoutes from "./routes/wanted";
+import followedRoutes from "./routes/followed";
+import { startFollowedArtistPoller } from "./services/followed/poller";
+import { getConfig } from "./config";
 
 const log = createLogger("Server");
 
@@ -49,6 +52,7 @@ app.use("/api/promoted-album", requireAuth, promotedAlbumRoutes);
 app.use("/api/requests", requestsRoutes);
 app.use("/api/purchases", purchasesRoutes);
 app.use("/api/wanted", wantedRoutes);
+app.use("/api/followed", followedRoutes);
 
 if (process.env.NODE_ENV === "production") {
   app.use(express.static(path.join(__dirname, "..", "build")));
@@ -61,6 +65,10 @@ app.use(errorHandler);
 
 await initializeDatabase();
 initializeConfig();
+
+const followedPollIntervalMs =
+  getConfig().followedArtistPollIntervalMs ?? 6 * 60 * 60 * 1000;
+startFollowedArtistPoller(followedPollIntervalMs);
 
 app.listen(PORT, () => {
   log.info(`Listening on port ${PORT}`);

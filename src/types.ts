@@ -87,3 +87,26 @@ export type MonitorState =
   | "success"
   | "already_monitored"
   | "error";
+
+export type ReleaseNotificationSource = "musicbrainz" | "deezer" | "apple";
+
+export interface FollowedArtistItem {
+  id: number;
+  artistMbid: string;
+  artistName: string;
+  lastCheckedAt: string | null;
+  createdAt: string;
+}
+
+export interface SeenReleaseItem {
+  id: number;
+  followedArtistId: number;
+  artistMbid: string;
+  artistName: string;
+  releaseKey: string;
+  source: ReleaseNotificationSource;
+  albumTitle: string;
+  releaseDate: string | null;
+  externalId: string | null;
+  notifiedAt: string;
+}

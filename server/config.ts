@@ -50,6 +50,7 @@ export type IConfig = {
   promotedAlbum: PromotedAlbumConfig;
   purchaseDecision: PurchaseDecisionConfig;
   spending: SpendingConfig;
+  followedArtistPollIntervalMs: number;
 };
 
 /** Input type for setConfig — nested objects are optional since defaults are deep-merged */
@@ -71,6 +72,8 @@ export const DEFAULT_SPENDING: SpendingConfig = {
   currency: "USD",
   monthlyLimit: null,
 };
+
+export const DEFAULT_FOLLOWED_POLL_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
 export const DEFAULT_PROMOTED_ALBUM: PromotedAlbumConfig = {
   cacheDurationMinutes: 30,
@@ -111,6 +114,7 @@ const DEFAULT_CONFIG: IConfig = {
   promotedAlbum: DEFAULT_PROMOTED_ALBUM,
   purchaseDecision: DEFAULT_PURCHASE_DECISION,
   spending: DEFAULT_SPENDING,
+  followedArtistPollIntervalMs: DEFAULT_FOLLOWED_POLL_INTERVAL_MS,
 };
 
 type RawStatement = {
@@ -272,6 +276,14 @@ function validateConfig(mergedConfig: IConfig) {
   }
   if (typeof mergedConfig.slskdDownloadPath !== "string") {
     throw new Error("slskdDownloadPath must be a string");
+  }
+  if (
+    typeof mergedConfig.followedArtistPollIntervalMs !== "number" ||
+    mergedConfig.followedArtistPollIntervalMs < 60_000
+  ) {
+    throw new Error(
+      "followedArtistPollIntervalMs must be a number >= 60000 (1 minute)"
+    );
   }
 }
 

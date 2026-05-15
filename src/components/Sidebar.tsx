@@ -7,6 +7,8 @@ import {
   UserCircleIcon,
 } from "@/components/icons";
 import UserAvatar from "@/components/UserAvatar";
+import NotificationBadge from "@/components/NotificationBadge";
+import useUnseenReleaseCount from "@/hooks/useUnseenReleaseCount";
 import { useAuth } from "@/context/useAuth";
 
 type NavItem = {
@@ -46,6 +48,7 @@ function makeSearchClickHandler(
 function MobileNav() {
   const { user } = useAuth();
   const { pathname } = useLocation();
+  const { count: unseenCount } = useUnseenReleaseCount();
   const navRef = useRef<HTMLUListElement>(null);
   const pillRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLLIElement | null)[]>([]);
@@ -117,15 +120,23 @@ function MobileNav() {
                   }`
                 }
               >
-                {link.to === "/settings" && user?.thumb ? (
-                  <UserAvatar
-                    thumb={user.thumb}
-                    username={user.username}
-                    className="w-6 h-6"
-                  />
-                ) : (
-                  <link.icon className="w-6 h-6" />
-                )}
+                <div className="relative">
+                  {link.to === "/settings" && user?.thumb ? (
+                    <UserAvatar
+                      thumb={user.thumb}
+                      username={user.username}
+                      className="w-6 h-6"
+                    />
+                  ) : (
+                    <link.icon className="w-6 h-6" />
+                  )}
+                  {link.to === "/library" && (
+                    <NotificationBadge
+                      count={unseenCount}
+                      className="absolute -top-1.5 -right-2"
+                    />
+                  )}
+                </div>
                 <span>{link.label}</span>
               </NavLink>
             </li>
@@ -138,6 +149,7 @@ function MobileNav() {
 
 function DesktopNavLink({ link }: { link: NavItem }) {
   const { pathname } = useLocation();
+  const { count: unseenCount } = useUnseenReleaseCount();
   const base = link.to.split("/").slice(0, 2).join("/");
   const isActive =
     link.to === "/" ? pathname === "/" : pathname.startsWith(base);
@@ -153,7 +165,8 @@ function DesktopNavLink({ link }: { link: NavItem }) {
       }`}
     >
       <link.icon className="w-5 h-5" />
-      <span>{link.label}</span>
+      <span className="flex-1">{link.label}</span>
+      {link.to === "/library" && <NotificationBadge count={unseenCount} />}
     </NavLink>
   );
 }

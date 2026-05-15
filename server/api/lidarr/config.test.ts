@@ -4,6 +4,7 @@ import {
   DEFAULT_PROMOTED_ALBUM,
   DEFAULT_PURCHASE_DECISION,
   DEFAULT_SPENDING,
+  DEFAULT_FOLLOWED_POLL_INTERVAL_MS,
 } from "../../config";
 
 vi.mock("../../config", async (importOriginal) => {
@@ -31,6 +32,7 @@ const baseConfig = {
   promotedAlbum: DEFAULT_PROMOTED_ALBUM,
   purchaseDecision: DEFAULT_PURCHASE_DECISION,
   spending: DEFAULT_SPENDING,
+  followedArtistPollIntervalMs: DEFAULT_FOLLOWED_POLL_INTERVAL_MS,
 };
 
 beforeEach(() => {

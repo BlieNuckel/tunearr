@@ -57,6 +57,7 @@ export default function ArtistResultsList({
                 <ArtistCard
                   key={`${artist.name}-${artist.rank}`}
                   name={artist.name}
+                  mbid={artist.mbid}
                   imageUrl={artist.imageUrl}
                   match={artist.match}
                   inLibrary={isInLibrary(artist.name, artist.mbid)}
@@ -78,6 +79,7 @@ export default function ArtistResultsList({
         <ArtistCard
           key={`${artist.name}-${artist.match ?? artist.rank}`}
           name={artist.name}
+          mbid={artist.mbid}
           imageUrl={artist.imageUrl}
           match={artist.match}
           inLibrary={isInLibrary(artist.name, artist.mbid)}

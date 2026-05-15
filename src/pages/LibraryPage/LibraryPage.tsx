@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/useAuth";
 import { hasPermission } from "@shared/permissions";
@@ -10,30 +10,46 @@ import useIsMobile from "@/hooks/useIsMobile";
 import { useSettings } from "@/context/useSettings";
 import { DEFAULT_SPENDING } from "@/context/spendingDefaults";
 import SettingsTabs, { type SettingsRoute } from "@/components/SettingsTabs";
+import NotificationBadge from "@/components/NotificationBadge";
+import useUnseenReleaseCount from "@/hooks/useUnseenReleaseCount";
 import RequestFilter from "./components/RequestFilter";
 import RequestList from "./components/RequestList";
 import WantedList from "./components/WantedList";
 import PurchaseList from "./components/PurchaseList";
 import SpendingSummary from "./components/SpendingSummary";
+import FollowingList from "./components/FollowingList";
 import Skeleton from "@/components/Skeleton";
 
-const libraryTabs: SettingsRoute[] = [
-  {
-    text: "Purchases",
-    route: "/library/purchases",
-    regex: /^\/library\/purchases/,
-  },
-  {
-    text: "Wanted",
-    route: "/library/wanted",
-    regex: /^\/library\/wanted/,
-  },
-  {
-    text: "Requests",
-    route: "/library/requests",
-    regex: /^\/library\/requests/,
-  },
-];
+function buildLibraryTabs(unseenCount: number): SettingsRoute[] {
+  return [
+    {
+      text: "Purchases",
+      route: "/library/purchases",
+      regex: /^\/library\/purchases/,
+    },
+    {
+      text: "Wanted",
+      route: "/library/wanted",
+      regex: /^\/library\/wanted/,
+    },
+    {
+      text: "Following",
+      content: (
+        <span className="flex items-center gap-2">
+          Following
+          <NotificationBadge count={unseenCount} />
+        </span>
+      ),
+      route: "/library/following",
+      regex: /^\/library\/following/,
+    },
+    {
+      text: "Requests",
+      route: "/library/requests",
+      regex: /^\/library\/requests/,
+    },
+  ];
+}
 
 export default function LibraryPage() {
   const { user } = useAuth();
@@ -41,6 +57,7 @@ export default function LibraryPage() {
   const isMobile = useIsMobile();
   const { settings } = useSettings();
   const spending = settings.spending ?? DEFAULT_SPENDING;
+  const { count: unseenCount, markViewed } = useUnseenReleaseCount();
   const [filters, setFilters] = useState<Record<string, string[]>>({
     requester: [],
     status: [],
@@ -49,7 +66,20 @@ export default function LibraryPage() {
   const isRequestsTab = /^\/library\/requests/.test(location.pathname);
   const isPurchasesTab = /^\/library\/purchases/.test(location.pathname);
   const isWantedTab = /^\/library\/wanted/.test(location.pathname);
-  const isSubTab = isRequestsTab || isWantedTab || isPurchasesTab;
+  const isFollowingTab = /^\/library\/following/.test(location.pathname);
+  const isSubTab =
+    isRequestsTab || isWantedTab || isPurchasesTab || isFollowingTab;
+
+  useEffect(() => {
+    if (isFollowingTab && unseenCount > 0) {
+      void markViewed();
+    }
+  }, [isFollowingTab, unseenCount, markViewed]);
+
+  const libraryTabs = useMemo(
+    () => buildLibraryTabs(unseenCount),
+    [unseenCount]
+  );
 
   const canViewAll =
     user !== null &&
@@ -147,6 +177,8 @@ export default function LibraryPage() {
               />
             )}
 
+            {isFollowingTab && <FollowingList />}
+
             {isRequestsTab && (
               <div className="flex flex-col gap-6">
                 <RequestFilter values={filters} onChange={handleFilterChange} />
@@ -222,6 +254,8 @@ export default function LibraryPage() {
               onRemove={removeWantedItem}
             />
           )}
+
+          {isFollowingTab && <FollowingList />}
 
           {isRequestsTab && (
             <div className="flex flex-col gap-6">

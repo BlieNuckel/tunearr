@@ -5,6 +5,7 @@ import ReleaseGroupCard from "@/components/ReleaseGroupCard";
 import { ChevronDownIcon, MusicalNoteIcon } from "@/components/icons";
 import ImageWithShimmer from "@/components/ImageWithShimmer";
 import Skeleton from "@/components/Skeleton";
+import FollowArtistButton from "@/components/FollowArtistButton";
 import type { ReleaseGroup } from "@/types";
 
 const DEAL_ROTATIONS = [-4, 3.5, -3, 4.5, -3.5, 3];
@@ -32,6 +33,7 @@ function splitAlbumsByCredit(
 
 interface ArtistCardProps {
   name: string;
+  mbid?: string;
   imageUrl?: string;
   /** 0-1 similarity score, shown as percentage */
   match?: number;
@@ -41,6 +43,7 @@ interface ArtistCardProps {
 
 export default function ArtistCard({
   name,
+  mbid,
   imageUrl,
   match,
   inLibrary,
@@ -137,6 +140,15 @@ export default function ArtistCard({
               </p>
             )}
           </div>
+          {mbid && (
+            <FollowArtistButton
+              artistMbid={mbid}
+              artistName={name}
+              size="sm"
+              showLabel={false}
+              className="flex-shrink-0"
+            />
+          )}
           <ChevronDownIcon
             className={`w-5 h-5 text-gray-400 transition-transform flex-shrink-0 ${expanded ? "rotate-180" : ""}`}
           />

@@ -42,6 +42,7 @@ describe("InitialSchema migration", () => {
       "plex_username",
       "plex_token",
       "user_type",
+      "followed_last_viewed_at",
     ]);
   });
 
@@ -146,5 +147,111 @@ describe("constraint enforcement", () => {
     expect(user.enabled).toBe(1);
     expect(user.created_at).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
     expect(user.updated_at).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
+  });
+});
+
+describe("FollowedArtists migration", () => {
+  it("creates followed_artists and seen_releases tables", async () => {
+    const db = await initTestDb();
+
+    const followedCols = (await db.query(
+      "PRAGMA table_info(followed_artists)"
+    )) as { name: string }[];
+    expect(followedCols.map((c) => c.name)).toEqual([
+      "id",
+      "user_id",
+      "artist_mbid",
+      "artist_name",
+      "last_checked_at",
+      "created_at",
+    ]);
+
+    const seenCols = (await db.query("PRAGMA table_info(seen_releases)")) as {
+      name: string;
+    }[];
+    expect(seenCols.map((c) => c.name)).toEqual([
+      "id",
+      "followed_artist_id",
+      "release_key",
+      "source",
+      "album_title",
+      "release_date",
+      "external_id",
+      "notified_at",
+    ]);
+  });
+
+  it("enforces unique (user_id, artist_mbid)", async () => {
+    const db = await initTestDb();
+    await db.query("INSERT INTO users (username) VALUES (?)", ["alice"]);
+    const [{ id: userId }] = (await db.query(
+      "SELECT id FROM users WHERE username = ?",
+      ["alice"]
+    )) as { id: number }[];
+
+    await db.query(
+      "INSERT INTO followed_artists (user_id, artist_mbid, artist_name) VALUES (?, ?, ?)",
+      [userId, "mbid-1", "Artist"]
+    );
+
+    await expect(
+      db.query(
+        "INSERT INTO followed_artists (user_id, artist_mbid, artist_name) VALUES (?, ?, ?)",
+        [userId, "mbid-1", "Artist"]
+      )
+    ).rejects.toThrow();
+  });
+
+  it("cascades seen_releases when followed_artist is deleted", async () => {
+    const db = await initTestDb();
+    await db.query("INSERT INTO users (username) VALUES (?)", ["bob"]);
+    const [{ id: userId }] = (await db.query(
+      "SELECT id FROM users WHERE username = ?",
+      ["bob"]
+    )) as { id: number }[];
+
+    await db.query(
+      "INSERT INTO followed_artists (user_id, artist_mbid, artist_name) VALUES (?, ?, ?)",
+      [userId, "mbid-1", "Artist"]
+    );
+    const [{ id: followedId }] = (await db.query(
+      "SELECT id FROM followed_artists WHERE artist_mbid = ?",
+      ["mbid-1"]
+    )) as { id: number }[];
+
+    await db.query(
+      "INSERT INTO seen_releases (followed_artist_id, release_key, source, album_title) VALUES (?, ?, ?, ?)",
+      [followedId, "key-1", "musicbrainz", "Album"]
+    );
+
+    await db.query("DELETE FROM followed_artists WHERE id = ?", [followedId]);
+
+    const rows = (await db.query(
+      "SELECT * FROM seen_releases WHERE followed_artist_id = ?",
+      [followedId]
+    )) as unknown[];
+    expect(rows).toHaveLength(0);
+  });
+
+  it("cascades followed_artists when user is deleted", async () => {
+    const db = await initTestDb();
+    await db.query("INSERT INTO users (username) VALUES (?)", ["carol"]);
+    const [{ id: userId }] = (await db.query(
+      "SELECT id FROM users WHERE username = ?",
+      ["carol"]
+    )) as { id: number }[];
+
+    await db.query(
+      "INSERT INTO followed_artists (user_id, artist_mbid, artist_name) VALUES (?, ?, ?)",
+      [userId, "mbid-2", "Artist 2"]
+    );
+
+    await db.query("DELETE FROM users WHERE id = ?", [userId]);
+
+    const rows = (await db.query(
+      "SELECT * FROM followed_artists WHERE user_id = ?",
+      [userId]
+    )) as unknown[];
+    expect(rows).toHaveLength(0);
   });
 });

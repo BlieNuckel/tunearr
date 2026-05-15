@@ -25,4 +25,6 @@ export {
   DocumentIcon,
   InformationCircleIcon,
   HeartIcon,
+  BellIcon,
+  BellSlashIcon,
 } from "@heroicons/react/20/solid";

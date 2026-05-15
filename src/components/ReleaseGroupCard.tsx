@@ -5,6 +5,7 @@ import TrackList from "./TrackList";
 import PurchaseLinksModal from "./PurchaseLinksModal";
 import PurchasePriceModal from "./PurchasePriceModal";
 import Spinner from "./Spinner";
+import FollowArtistButton from "./FollowArtistButton";
 import { CheckIcon, PlusIcon } from "@/components/icons";
 import ImageWithShimmer from "./ImageWithShimmer";
 import OptionSelect from "./OptionSelect";
@@ -54,8 +55,9 @@ export default function ReleaseGroupCard({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
 
-  const artistName =
-    releaseGroup["artist-credit"]?.[0]?.artist?.name || "Unknown Artist";
+  const artistCredit = releaseGroup["artist-credit"]?.[0]?.artist;
+  const artistName = artistCredit?.name || "Unknown Artist";
+  const artistMbid = artistCredit?.id;
   const albumTitle = releaseGroup.title || "";
   const albumMbid = releaseGroup.id;
   const pastelBg = useMemo(() => pastelColorFromId(albumMbid), [albumMbid]);
@@ -326,13 +328,25 @@ export default function ReleaseGroupCard({
               />
             </div>
 
-            <div className="flex-shrink-0 mt-2 flex items-center justify-end gap-1.5">
-              <OptionSelect options={cardOptions} title={albumTitle} />
-              <MonitorButton
-                state={effectiveState}
-                onClick={handleMonitorClick}
-                errorMsg={errorMsg ?? undefined}
-              />
+            <div className="flex-shrink-0 mt-2 flex items-center justify-between gap-1.5">
+              {artistMbid ? (
+                <FollowArtistButton
+                  artistMbid={artistMbid}
+                  artistName={artistName}
+                  size="sm"
+                  showLabel={false}
+                />
+              ) : (
+                <span />
+              )}
+              <div className="flex items-center gap-1.5">
+                <OptionSelect options={cardOptions} title={albumTitle} />
+                <MonitorButton
+                  state={effectiveState}
+                  onClick={handleMonitorClick}
+                  errorMsg={errorMsg ?? undefined}
+                />
+              </div>
             </div>
           </div>
         </div>
