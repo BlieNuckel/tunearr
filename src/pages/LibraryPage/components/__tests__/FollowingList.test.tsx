@@ -1,6 +1,11 @@
 import { render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import FollowingList from "../FollowingList";
 import { __resetFollowedArtistsForTests } from "@/hooks/useFollowedArtists";
+
+function renderWithRouter(ui: React.ReactElement) {
+  return render(<MemoryRouter>{ui}</MemoryRouter>);
+}
 
 beforeEach(() => {
   __resetFollowedArtistsForTests();
@@ -31,7 +36,7 @@ describe("FollowingList", () => {
       "/api/followed": [],
     });
 
-    render(<FollowingList />);
+    renderWithRouter(<FollowingList />);
 
     expect(
       await screen.findByText(/aren't following any artists yet/i)
@@ -52,7 +57,7 @@ describe("FollowingList", () => {
       ],
     });
 
-    render(<FollowingList />);
+    renderWithRouter(<FollowingList />);
     expect(await screen.findByText("Radiohead")).toBeInTheDocument();
     expect(screen.getByText(/Last checked/i)).toBeInTheDocument();
   });
@@ -76,12 +81,48 @@ describe("FollowingList", () => {
       "/api/followed": [],
     });
 
-    render(<FollowingList />);
+    renderWithRouter(<FollowingList />);
     await waitFor(() => {
       expect(screen.getByText("New EP")).toBeInTheDocument();
     });
     expect(screen.getByText(/Radiohead/)).toBeInTheDocument();
-    expect(screen.getByText("musicbrainz")).toBeInTheDocument();
+  });
+
+  it("renders a search link for each release", async () => {
+    vi.mocked(fetch).mockImplementation((input) => {
+      const url = typeof input === "string" ? input : (input as Request).url;
+      if (url.includes("/api/followed/releases")) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify([
+              {
+                id: 5,
+                followedArtistId: 1,
+                artistMbid: "mbid-1",
+                artistName: "Radiohead",
+                releaseKey: "k",
+                source: "musicbrainz",
+                albumTitle: "New EP",
+                releaseDate: "2025-05-01",
+                externalId: "rg-1",
+                notifiedAt: "2025-05-02",
+              },
+            ]),
+            { status: 200 }
+          )
+        );
+      }
+      return Promise.resolve(new Response(JSON.stringify([]), { status: 200 }));
+    });
+
+    renderWithRouter(<FollowingList />);
+
+    const link = (await screen.findByRole("link", {
+      name: /Search for New EP/i,
+    })) as HTMLAnchorElement;
+    expect(link.getAttribute("href")).toBe(
+      "/search?q=Radiohead+New+EP&searchType=album"
+    );
   });
 
   it("shows release feed error message on failure", async () => {
@@ -93,7 +134,7 @@ describe("FollowingList", () => {
       return Promise.resolve(new Response(JSON.stringify([]), { status: 200 }));
     });
 
-    render(<FollowingList />);
+    renderWithRouter(<FollowingList />);
     expect(
       await screen.findByText(/Failed to load recent releases/i)
     ).toBeInTheDocument();

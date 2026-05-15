@@ -1,8 +1,16 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import useFollowedArtists from "@/hooks/useFollowedArtists";
 import FollowArtistButton from "@/components/FollowArtistButton";
 import Skeleton from "@/components/Skeleton";
+import { SearchIcon } from "@/components/icons";
 import type { SeenReleaseItem } from "@/types";
+
+function buildSearchHref(release: SeenReleaseItem): string {
+  const query = `${release.artistName} ${release.albumTitle}`.trim();
+  const params = new URLSearchParams({ q: query, searchType: "album" });
+  return `/search?${params.toString()}`;
+}
 
 function formatChecked(iso: string | null): string {
   if (!iso) return "Never checked";
@@ -78,9 +86,14 @@ function ReleaseFeed() {
               {release.releaseDate ? ` · ${release.releaseDate}` : ""}
             </p>
           </div>
-          <span className="text-[10px] uppercase tracking-wide font-bold rounded-full bg-amber-200 text-black border-2 border-black px-2 py-0.5">
-            {release.source}
-          </span>
+          <Link
+            to={buildSearchHref(release)}
+            aria-label={`Search for ${release.albumTitle}`}
+            title={`Search for ${release.albumTitle}`}
+            className="inline-flex items-center justify-center w-8 h-8 rounded-full border-2 border-black bg-yellow-400 text-black shadow-cartoon-sm"
+          >
+            <SearchIcon className="w-4 h-4" />
+          </Link>
         </li>
       ))}
     </ul>
