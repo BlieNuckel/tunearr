@@ -2,6 +2,23 @@ import { act, render, screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import BottomSheet from "../BottomSheet";
 
+function getSheetEl() {
+  return document.querySelector(".rounded-t-2xl") as HTMLElement;
+}
+
+function dispatchTouch(
+  target: HTMLElement,
+  type: "touchstart" | "touchmove" | "touchend" | "touchcancel",
+  clientY: number
+) {
+  const event = new Event(type, { bubbles: true, cancelable: true });
+  Object.defineProperty(event, "touches", {
+    value: [{ clientY }],
+  });
+  target.dispatchEvent(event);
+  return event;
+}
+
 describe("BottomSheet", () => {
   it("renders nothing when closed", () => {
     render(
@@ -103,5 +120,60 @@ describe("BottomSheet", () => {
     await user.click(screen.getByText("inner button"));
 
     expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("calls onClose when swiped down past dismiss threshold", () => {
+    const onClose = vi.fn();
+
+    render(
+      <BottomSheet isOpen={true} onClose={onClose}>
+        content
+      </BottomSheet>
+    );
+
+    const sheet = getSheetEl();
+    act(() => {
+      dispatchTouch(sheet, "touchstart", 100);
+      dispatchTouch(sheet, "touchmove", 260);
+      dispatchTouch(sheet, "touchend", 260);
+    });
+
+    expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it("does not call onClose when swipe is below threshold", () => {
+    const onClose = vi.fn();
+
+    render(
+      <BottomSheet isOpen={true} onClose={onClose}>
+        content
+      </BottomSheet>
+    );
+
+    const sheet = getSheetEl();
+    act(() => {
+      dispatchTouch(sheet, "touchstart", 100);
+      dispatchTouch(sheet, "touchmove", 140);
+      dispatchTouch(sheet, "touchend", 140);
+    });
+
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("calls preventDefault on touchmove during a downward drag", () => {
+    render(
+      <BottomSheet isOpen={true} onClose={vi.fn()}>
+        content
+      </BottomSheet>
+    );
+
+    const sheet = getSheetEl();
+    let moveEvent!: Event;
+    act(() => {
+      dispatchTouch(sheet, "touchstart", 100);
+      moveEvent = dispatchTouch(sheet, "touchmove", 200);
+    });
+
+    expect(moveEvent.defaultPrevented).toBe(true);
   });
 });

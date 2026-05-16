@@ -36,7 +36,24 @@ export default function BottomSheet({
   const touchStartY = useRef(0);
   const isDragging = useRef(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
   const exitTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const phaseRef = useRef<SheetPhase>(phase);
+  const dragYRef = useRef(0);
+  const onCloseRef = useRef(onClose);
+  const hapticsRef = useRef(haptics);
+
+  useEffect(() => {
+    phaseRef.current = phase;
+  }, [phase]);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => {
+    hapticsRef.current = haptics;
+  }, [haptics]);
 
   if (isOpen !== prevIsOpen) {
     setPrevIsOpen(isOpen);
@@ -74,54 +91,80 @@ export default function BottomSheet({
     };
   }, [isVisible]);
 
+  useEffect(() => {
+    if (!isVisible) return;
+    const el = sheetRef.current;
+    if (!el) return;
+
+    const onTouchStart = (e: TouchEvent) => {
+      const current = phaseRef.current;
+      if (current === "exiting" || current === "closed") return;
+      const scrolledToTop =
+        !scrollRef.current || scrollRef.current.scrollTop <= 0;
+      if (!scrolledToTop) return;
+      touchStartY.current = e.touches[0].clientY;
+      isDragging.current = true;
+      setPhase("dragging");
+      hapticsRef.current.light();
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (!isDragging.current) return;
+      const delta = e.touches[0].clientY - touchStartY.current;
+      if (delta <= 0) {
+        dragYRef.current = 0;
+        setDragY(0);
+        return;
+      }
+      e.preventDefault();
+      dragYRef.current = delta;
+      setDragY(delta);
+    };
+
+    const onTouchEnd = () => {
+      if (!isDragging.current) return;
+      isDragging.current = false;
+
+      if (dragYRef.current > DISMISS_THRESHOLD) {
+        hapticsRef.current.medium();
+        setPhase("exiting");
+        clearTimeout(exitTimer.current);
+        exitTimer.current = setTimeout(() => {
+          setPhase("closed");
+          dragYRef.current = 0;
+          setDragY(0);
+        }, EXIT_DURATION);
+        onCloseRef.current();
+      } else {
+        setPhase("settling");
+        dragYRef.current = 0;
+        setDragY(0);
+        setTimeout(() => {
+          setPhase("open");
+        }, SETTLE_DURATION);
+      }
+    };
+
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    el.addEventListener("touchend", onTouchEnd);
+    el.addEventListener("touchcancel", onTouchEnd);
+
+    return () => {
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove", onTouchMove);
+      el.removeEventListener("touchend", onTouchEnd);
+      el.removeEventListener("touchcancel", onTouchEnd);
+    };
+  }, [isVisible]);
+
   if (phase === "closed") return null;
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (phase !== "open" && phase !== "dragging") return;
-    const scrolledToTop =
-      !scrollRef.current || scrollRef.current.scrollTop <= 0;
-    if (!scrolledToTop) return;
-    touchStartY.current = e.touches[0].clientY;
-    isDragging.current = true;
-    setPhase("dragging");
-    haptics.light();
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging.current) return;
-    const delta = e.touches[0].clientY - touchStartY.current;
-    if (delta <= 0) {
-      setDragY(0);
-      return;
-    }
-    e.preventDefault();
-    setDragY(delta);
-  };
-
-  const handleTouchEnd = () => {
-    if (!isDragging.current) return;
-    isDragging.current = false;
-
-    if (dragY > DISMISS_THRESHOLD) {
-      haptics.medium();
-      setPhase("exiting");
-      clearTimeout(exitTimer.current);
-      exitTimer.current = setTimeout(() => {
-        setPhase("closed");
-        setDragY(0);
-      }, EXIT_DURATION);
-      onClose();
-    } else {
-      setPhase("settling");
-      setDragY(0);
-      setTimeout(() => {
-        setPhase("open");
-      }, SETTLE_DURATION);
-    }
-  };
-
   const getSheetStyle = (): React.CSSProperties => {
-    const base: React.CSSProperties = { maxHeight: "92vh" };
+    const base: React.CSSProperties = {
+      maxHeight: "92vh",
+      touchAction: "pan-y",
+    };
 
     switch (phase) {
       case "dragging":
@@ -177,12 +220,10 @@ export default function BottomSheet({
         style={getBackdropStyle()}
       />
       <div
+        ref={sheetRef}
         className={`absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-t-2xl flex flex-col ${sheetAnimClass}`}
         style={getSheetStyle()}
         onClick={(e) => e.stopPropagation()}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
         onAnimationEnd={() => {
           if (phase === "entering") setPhase("open");
         }}
@@ -195,7 +236,10 @@ export default function BottomSheet({
             </h2>
           )}
         </div>
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 pb-6">
+        <div
+          ref={scrollRef}
+          className="flex-1 overflow-y-auto overscroll-contain px-4 pb-6"
+        >
           {children}
         </div>
       </div>
