@@ -4,7 +4,6 @@ import RequireAuth from "./components/RequireAuth";
 import RequireOnboarding from "./components/RequireOnboarding";
 import SearchPage from "./pages/SearchPage/SearchPage";
 import DiscoverPage from "./pages/DiscoverPage/DiscoverPage";
-import ExplorationPage from "./pages/ExplorationPage/ExplorationPage";
 import LibraryPage from "./pages/LibraryPage/LibraryPage";
 import SettingsLayout from "./pages/SettingsPage/SettingsLayout";
 import GeneralSettingsPage from "./pages/SettingsPage/pages/GeneralSettingsPage";
@@ -26,7 +25,6 @@ function App() {
       <Route element={<RequireAuth />}>
         <Route path="/onboarding" element={<OnboardingPage />} />
         <Route element={<RequireOnboarding />}>
-          <Route path="/explore" element={<ExplorationPage />} />
           <Route element={<Layout />}>
             <Route path="/" element={<DiscoverPage />} />
             <Route path="/search" element={<SearchPage />} />
