@@ -7,7 +7,6 @@ import { createLogger } from "./logger";
 import { errorHandler } from "./middleware/errorHandler";
 import { requireAuth } from "./middleware/requireAuth";
 import authRoutes from "./routes/auth";
-import explorationRoutes from "./routes/exploration";
 import lastfmRoutes from "./routes/lastfm";
 import lidarrRoutes from "./routes/lidarr";
 import logsRoutes from "./routes/logs";
@@ -40,7 +39,6 @@ app.use("/api/auth", authRoutes);
 app.use("/api/torznab", torznabRoutes);
 app.use("/api/sabnzbd", sabnzbdRoutes);
 app.use("/api/logs", logsRoutes);
-app.use("/api/exploration", explorationRoutes);
 
 app.use("/api/settings", settingsRoutes);
 app.use("/api/users", usersRoutes);
