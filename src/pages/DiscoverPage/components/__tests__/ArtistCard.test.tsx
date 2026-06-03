@@ -304,6 +304,15 @@ describe("ArtistCard", () => {
     expect(screen.queryByText("Test Album")).not.toBeInTheDocument();
   });
 
+  it("stacks the header above the album grid so the toggle stays clickable", () => {
+    render(
+      <ArtistCard name="Radiohead" isAlbumInLibrary={defaultIsAlbumInLibrary} />
+    );
+    const header = screen.getByRole("button").parentElement!;
+    expect(header.className).toContain("relative");
+    expect(header.className).toContain("z-10");
+  });
+
   it("applies cascade-deal-in class to album cards when expanding", () => {
     mockAlbums = [
       makeAlbum({
