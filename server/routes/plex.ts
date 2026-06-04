@@ -4,6 +4,14 @@ import { getTopArtists } from "../api/plex/topArtists";
 import { getPlexServers } from "../api/plex/servers";
 import { getPlexAccount } from "../api/plex/account";
 import { fetchPlexThumbnail } from "../services/plex";
+import type { TopArtistsRange } from "../api/plex/types";
+
+const VALID_RANGES = new Set<TopArtistsRange>([
+  "all",
+  "4weeks",
+  "6months",
+  "12months",
+]);
 
 const router = express.Router();
 
@@ -20,7 +28,12 @@ function getUserPlexToken(req: Request): string {
 router.get("/top-artists", async (req: Request, res: Response) => {
   const plexToken = getUserPlexToken(req);
   const limit = Number(req.query.limit) || 10;
-  const artists = await getTopArtists(plexToken, limit);
+  const rangeParam = req.query.range as string | undefined;
+  const range: TopArtistsRange =
+    rangeParam && VALID_RANGES.has(rangeParam as TopArtistsRange)
+      ? (rangeParam as TopArtistsRange)
+      : "all";
+  const artists = await getTopArtists(plexToken, limit, range);
   res.json({ artists });
 });
 

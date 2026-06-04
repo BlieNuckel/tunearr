@@ -16,6 +16,10 @@ export default function DiscoverPage() {
     libraryLoading,
     plexTopArtists,
     plexLoading,
+    plexConnected,
+    plexRefreshing,
+    topArtistsRange,
+    setTopArtistsRange,
     autoSelectedArtist,
     similarArtists,
     similarLoading,
@@ -88,11 +92,14 @@ export default function DiscoverPage() {
         />
       )}
 
-      {!plexLoading && (
+      {plexConnected && (
         <PlexTopArtists
           artists={plexTopArtists}
           selectedArtist={effectiveSelectedArtist}
           onSelect={handleArtistSelect}
+          range={topArtistsRange}
+          onRangeChange={setTopArtistsRange}
+          refreshing={plexRefreshing}
         />
       )}
 

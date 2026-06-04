@@ -52,6 +52,9 @@ export type PlexTopArtist = {
   genres: string[];
 };
 
+/** @typedef {"all" | "4weeks" | "6months" | "12months"} TopArtistsRange */
+export type TopArtistsRange = "all" | "4weeks" | "6months" | "12months";
+
 export default function useDiscover() {
   const [libraryArtists, setLibraryArtists] = useState<LibraryArtist[]>([]);
   const [libraryAlbums, setLibraryAlbums] = useState<LibraryAlbum[]>([]);
@@ -59,6 +62,11 @@ export default function useDiscover() {
 
   const [plexTopArtists, setPlexTopArtists] = useState<PlexTopArtist[]>([]);
   const [plexLoading, setPlexLoading] = useState(true);
+  const [plexConnected, setPlexConnected] = useState(false);
+  const [plexRefreshing, setPlexRefreshing] = useState(false);
+  const [topArtistsRange, setTopArtistsRange] =
+    useState<TopArtistsRange>("all");
+  const firstPlexLoad = useRef(true);
 
   const [similarArtists, setSimilarArtists] = useState<SimilarArtist[]>([]);
   const [similarLoading, setSimilarLoading] = useState(false);
@@ -112,9 +120,18 @@ export default function useDiscover() {
 
   useEffect(() => {
     const loadPlexTop = async () => {
+      if (firstPlexLoad.current) {
+        setPlexLoading(true);
+      } else {
+        setPlexRefreshing(true);
+      }
+
       try {
-        const res = await fetch("/api/plex/top-artists?limit=10");
+        const res = await fetch(
+          `/api/plex/top-artists?limit=10&range=${topArtistsRange}`
+        );
         if (res.ok) {
+          setPlexConnected(true);
           const data = await res.json();
           setPlexTopArtists(data.artists || []);
         }
@@ -122,10 +139,12 @@ export default function useDiscover() {
         // Plex may not be configured
       } finally {
         setPlexLoading(false);
+        setPlexRefreshing(false);
+        firstPlexLoad.current = false;
       }
     };
     loadPlexTop();
-  }, []);
+  }, [topArtistsRange]);
 
   const fetchSimilar = useCallback(async (artistName: string) => {
     setSimilarLoading(true);
@@ -217,6 +236,10 @@ export default function useDiscover() {
     libraryLoading,
     plexTopArtists,
     plexLoading,
+    plexConnected,
+    plexRefreshing,
+    topArtistsRange,
+    setTopArtistsRange,
     autoSelectedArtist,
     similarArtists,
     similarLoading,
