@@ -92,4 +92,95 @@ describe("getTopArtists", () => {
 
     await expect(getTopArtists("tok", 10)).rejects.toThrow("Plex returned 401");
   });
+
+  it("aggregates recent plays by artist for a time range", async () => {
+    mockFetch
+      .mockResolvedValueOnce(
+        okResponse({
+          MediaContainer: {
+            Directory: [{ key: "2", type: "artist", title: "Music" }],
+          },
+        })
+      )
+      .mockResolvedValueOnce(
+        okResponse({
+          MediaContainer: {
+            Metadata: [
+              {
+                grandparentTitle: "Boards of Canada",
+                grandparentThumb: "/library/metadata/9/thumb",
+                viewedAt: 1700000000,
+              },
+              {
+                grandparentTitle: "Aphex Twin",
+                grandparentThumb: "/library/metadata/8/thumb",
+                viewedAt: 1700000100,
+              },
+              {
+                grandparentTitle: "Boards of Canada",
+                viewedAt: 1700000200,
+              },
+              { viewedAt: 1700000300 },
+            ],
+          },
+        })
+      );
+
+    const result = await getTopArtists("tok", 10, "4weeks");
+
+    expect(result).toHaveLength(2);
+    expect(result[0]).toEqual({
+      name: "Boards of Canada",
+      viewCount: 2,
+      thumb: "/api/plex/thumb?path=%2Flibrary%2Fmetadata%2F9%2Fthumb",
+      genres: [],
+    });
+    expect(result[1].name).toBe("Aphex Twin");
+  });
+
+  it("queries the history endpoint with a viewedAt filter for ranges", async () => {
+    mockFetch
+      .mockResolvedValueOnce(
+        okResponse({
+          MediaContainer: {
+            Directory: [{ key: "2", type: "artist", title: "Music" }],
+          },
+        })
+      )
+      .mockResolvedValueOnce(okResponse({ MediaContainer: { Metadata: [] } }));
+
+    await getTopArtists("tok", 10, "6months");
+
+    const historyUrl = mockFetch.mock.calls[1][0] as string;
+    expect(historyUrl).toContain("/status/sessions/history/all");
+    expect(historyUrl).toContain("librarySectionID=2");
+    expect(historyUrl).toContain("viewedAt%3E=");
+  });
+
+  it("limits and sorts history results by play count", async () => {
+    const entries = [
+      { grandparentTitle: "A", viewedAt: 1 },
+      { grandparentTitle: "B", viewedAt: 2 },
+      { grandparentTitle: "B", viewedAt: 3 },
+      { grandparentTitle: "C", viewedAt: 4 },
+      { grandparentTitle: "C", viewedAt: 5 },
+      { grandparentTitle: "C", viewedAt: 6 },
+    ];
+    mockFetch
+      .mockResolvedValueOnce(
+        okResponse({
+          MediaContainer: {
+            Directory: [{ key: "2", type: "artist", title: "Music" }],
+          },
+        })
+      )
+      .mockResolvedValueOnce(
+        okResponse({ MediaContainer: { Metadata: entries } })
+      );
+
+    const result = await getTopArtists("tok", 2, "12months");
+
+    expect(result.map((a) => a.name)).toEqual(["C", "B"]);
+    expect(result[0].viewCount).toBe(3);
+  });
 });

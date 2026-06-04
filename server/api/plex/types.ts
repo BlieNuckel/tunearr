@@ -19,6 +19,18 @@ export type PlexArtistsResponse = {
   MediaContainer: { Metadata: PlexArtistMetadata[] };
 };
 
+export type PlexHistoryMetadata = {
+  grandparentTitle?: string;
+  grandparentThumb?: string;
+  viewedAt: number;
+};
+
+export type PlexHistoryResponse = {
+  MediaContainer: { Metadata?: PlexHistoryMetadata[] };
+};
+
+export type TopArtistsRange = "all" | "4weeks" | "6months" | "12months";
+
 export type PlexTopArtist = {
   name: string;
   viewCount: number;

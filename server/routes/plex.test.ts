@@ -65,14 +65,44 @@ describe("GET /top-artists", () => {
     const res = await request(app).get("/top-artists");
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ artists });
-    expect(mockGetTopArtists).toHaveBeenCalledWith("test-plex-token", 10);
+    expect(mockGetTopArtists).toHaveBeenCalledWith(
+      "test-plex-token",
+      10,
+      "all"
+    );
   });
 
   it("forwards custom limit", async () => {
     mockGetTopArtists.mockResolvedValue([]);
 
     await request(app).get("/top-artists?limit=25");
-    expect(mockGetTopArtists).toHaveBeenCalledWith("test-plex-token", 25);
+    expect(mockGetTopArtists).toHaveBeenCalledWith(
+      "test-plex-token",
+      25,
+      "all"
+    );
+  });
+
+  it("forwards a valid range", async () => {
+    mockGetTopArtists.mockResolvedValue([]);
+
+    await request(app).get("/top-artists?range=6months");
+    expect(mockGetTopArtists).toHaveBeenCalledWith(
+      "test-plex-token",
+      10,
+      "6months"
+    );
+  });
+
+  it("falls back to all for an invalid range", async () => {
+    mockGetTopArtists.mockResolvedValue([]);
+
+    await request(app).get("/top-artists?range=bogus");
+    expect(mockGetTopArtists).toHaveBeenCalledWith(
+      "test-plex-token",
+      10,
+      "all"
+    );
   });
 });
 

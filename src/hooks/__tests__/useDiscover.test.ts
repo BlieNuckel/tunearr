@@ -209,4 +209,46 @@ describe("useDiscover", () => {
     );
     expect(result.current.tagArtists).toEqual(tagArtists);
   });
+
+  it("requests all-time range on initial load and reports connection", async () => {
+    mockFetchResponses([
+      { url: "/api/lidarr/artists", data: [] },
+      { url: "/api/plex/top-artists", data: { artists: [] } },
+    ]);
+
+    const { result } = renderHook(() => useDiscover());
+    await waitFor(() => expect(result.current.plexLoading).toBe(false));
+
+    expect(result.current.plexConnected).toBe(true);
+    expect(result.current.topArtistsRange).toBe("all");
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/api/plex/top-artists?limit=10&range=all")
+    );
+  });
+
+  it("refetches top artists when the range changes", async () => {
+    const recent = [{ name: "Burial", viewCount: 12, thumb: "", genres: [] }];
+    vi.mocked(fetch).mockImplementation((input) => {
+      const url = typeof input === "string" ? input : (input as Request).url;
+      if (url.includes("range=4weeks")) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ artists: recent }), { status: 200 })
+        );
+      }
+      if (url.includes("/api/plex/top-artists")) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ artists: [] }), { status: 200 })
+        );
+      }
+      return Promise.resolve(new Response("[]", { status: 200 }));
+    });
+
+    const { result } = renderHook(() => useDiscover());
+    await waitFor(() => expect(result.current.plexLoading).toBe(false));
+
+    act(() => result.current.setTopArtistsRange("4weeks"));
+
+    await waitFor(() => expect(result.current.plexTopArtists).toEqual(recent));
+    expect(fetch).toHaveBeenCalledWith(expect.stringContaining("range=4weeks"));
+  });
 });
