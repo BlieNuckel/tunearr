@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import RecommendationTraceModal from "../RecommendationTraceModal";
-import type { RecommendationTrace } from "@/hooks/usePromotedAlbum";
+import type { WithinTasteTrace, ExploreTrace } from "@/hooks/usePromotedAlbum";
 
 vi.mock("@/components/Modal", () => ({
   default: ({
@@ -12,7 +12,8 @@ vi.mock("@/components/Modal", () => ({
   }) => (isOpen ? <div data-testid="modal">{children}</div> : null),
 }));
 
-const trace: RecommendationTrace = {
+const trace: WithinTasteTrace = {
+  kind: "within_taste",
   plexArtists: [
     {
       name: "Radiohead",
@@ -51,7 +52,35 @@ const trace: RecommendationTrace = {
   selectionReason: "preferred_non_library",
 };
 
-function renderModal(overrides?: Partial<RecommendationTrace>) {
+const exploreTrace: ExploreTrace = {
+  kind: "explore",
+  seedArtist: "Radiohead",
+  seedGenres: ["alternative", "rock"],
+  candidates: [
+    {
+      name: "Jazz Cat",
+      score: 5000,
+      genres: ["jazz", "bebop"],
+      genreOverlap: 0,
+      isDifferentGenre: true,
+      chosen: true,
+    },
+    {
+      name: "Rock Clone",
+      score: 9000,
+      genres: ["alternative", "rock"],
+      genreOverlap: 1,
+      isDifferentGenre: false,
+      chosen: false,
+    },
+  ],
+  chosenArtist: "Jazz Cat",
+  chosenGenres: ["jazz", "bebop"],
+  newGenres: ["jazz", "bebop"],
+  selectionReason: "preferred_non_library",
+};
+
+function renderModal(overrides?: Partial<WithinTasteTrace>) {
   return render(
     <RecommendationTraceModal
       isOpen={true}
@@ -59,6 +88,18 @@ function renderModal(overrides?: Partial<RecommendationTrace>) {
       trace={{ ...trace, ...overrides }}
       albumName="OK Computer"
       artistName="Radiohead"
+    />
+  );
+}
+
+function renderExploreModal(overrides?: Partial<ExploreTrace>) {
+  return render(
+    <RecommendationTraceModal
+      isOpen={true}
+      onClose={vi.fn()}
+      trace={{ ...exploreTrace, ...overrides }}
+      albumName="Blue Album"
+      artistName="Jazz Cat"
     />
   );
 }
@@ -132,5 +173,41 @@ describe("RecommendationTraceModal", () => {
       />
     );
     expect(screen.queryByTestId("modal")).not.toBeInTheDocument();
+  });
+
+  describe("explore trace", () => {
+    it("renders the explore flow stage cards", () => {
+      renderExploreModal();
+      const stageCards = screen.getAllByTestId("stage-card");
+      expect(stageCards).toHaveLength(4);
+    });
+
+    it("does not render within-taste stages", () => {
+      renderExploreModal();
+      expect(screen.queryByTestId("chosen-tag")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("page1-count")).not.toBeInTheDocument();
+    });
+
+    it("marks the chosen candidate", () => {
+      renderExploreModal();
+      const chosen = screen.getByTestId("chosen-candidate");
+      expect(chosen).toHaveTextContent("Jazz Cat");
+      expect(screen.getAllByTestId("candidate")).toHaveLength(1);
+    });
+
+    it("labels candidates as different vs same genre", () => {
+      renderExploreModal();
+      expect(screen.getByText("different genre")).toBeInTheDocument();
+      expect(screen.getByText("same genre")).toBeInTheDocument();
+    });
+
+    it("shows the seed artist and result", () => {
+      renderExploreModal();
+      expect(screen.getAllByText("Radiohead").length).toBeGreaterThan(0);
+      expect(screen.getByText("Blue Album")).toBeInTheDocument();
+      expect(screen.getByTestId("selection-reason")).toHaveTextContent(
+        "New discovery"
+      );
+    });
   });
 });

@@ -1,4 +1,10 @@
-import type { RecommendationTrace } from "@/hooks/usePromotedAlbum";
+import type {
+  RecommendationTrace,
+  WithinTasteTrace,
+  ExploreTrace,
+  TraceSelectionReason,
+  TraceSimilarArtist,
+} from "@/hooks/usePromotedAlbum";
 import Modal from "@/components/Modal";
 
 interface RecommendationTraceModalProps {
@@ -40,10 +46,40 @@ function StageCard({
   );
 }
 
+function GenreChips({
+  genres,
+  highlight,
+}: {
+  genres: string[];
+  highlight?: Set<string>;
+}) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {genres.map((g) => (
+        <span
+          key={g}
+          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs border ${
+            highlight?.has(g)
+              ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200 border-emerald-300 dark:border-emerald-700 font-bold"
+              : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-600"
+          }`}
+        >
+          {g}
+        </span>
+      ))}
+      {genres.length === 0 && (
+        <span className="text-[11px] text-gray-400 dark:text-gray-500 italic">
+          No genres
+        </span>
+      )}
+    </div>
+  );
+}
+
 function PlexArtistsStage({
   artists,
 }: {
-  artists: RecommendationTrace["plexArtists"];
+  artists: WithinTasteTrace["plexArtists"];
 }) {
   return (
     <StageCard title="Plex Listening History">
@@ -70,7 +106,7 @@ function PlexArtistsStage({
 function TagContributionsStage({
   artists,
 }: {
-  artists: RecommendationTrace["plexArtists"];
+  artists: WithinTasteTrace["plexArtists"];
 }) {
   const picked = artists.filter((a) => a.picked);
 
@@ -109,7 +145,7 @@ function TagPoolStage({
   tags,
   chosenTagName,
 }: {
-  tags: RecommendationTrace["weightedTags"];
+  tags: WithinTasteTrace["weightedTags"];
   chosenTagName: string;
 }) {
   return (
@@ -136,7 +172,7 @@ function TagPoolStage({
   );
 }
 
-function AlbumPoolStage({ pool }: { pool: RecommendationTrace["albumPool"] }) {
+function AlbumPoolStage({ pool }: { pool: WithinTasteTrace["albumPool"] }) {
   return (
     <StageCard title="Album Pool">
       <div className="grid grid-cols-2 gap-2 text-xs">
@@ -174,6 +210,68 @@ function AlbumPoolStage({ pool }: { pool: RecommendationTrace["albumPool"] }) {
   );
 }
 
+function SeedStage({ trace }: { trace: ExploreTrace }) {
+  return (
+    <StageCard title="Seed From Your Listening">
+      <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+        {trace.seedArtist}
+      </p>
+      <GenreChips genres={trace.seedGenres} />
+    </StageCard>
+  );
+}
+
+function SimilarArtistsStage({
+  candidates,
+}: {
+  candidates: TraceSimilarArtist[];
+}) {
+  return (
+    <StageCard title="Listeners Also Play (ListenBrainz)">
+      <div className="space-y-1.5">
+        {candidates.map((c) => (
+          <div
+            key={c.name}
+            data-testid={c.chosen ? "chosen-candidate" : "candidate"}
+            className={`flex items-center justify-between gap-2 px-2 py-1 rounded-lg border ${
+              c.chosen
+                ? "bg-violet-100 dark:bg-violet-900/30 border-violet-300 dark:border-violet-700"
+                : "bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600"
+            }`}
+          >
+            <span className="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">
+              {c.name}
+            </span>
+            <span className="flex items-center gap-1.5 shrink-0">
+              <span
+                className={`px-1.5 py-0.5 rounded-full text-[10px] font-medium border ${
+                  c.isDifferentGenre
+                    ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-700"
+                    : "bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-600"
+                }`}
+              >
+                {c.isDifferentGenre ? "different genre" : "same genre"}
+              </span>
+              <span className="text-[10px] text-gray-400 dark:text-gray-500">
+                {Math.round(c.genreOverlap * 100)}% overlap
+              </span>
+            </span>
+          </div>
+        ))}
+      </div>
+    </StageCard>
+  );
+}
+
+function GenreShiftStage({ trace }: { trace: ExploreTrace }) {
+  const newGenres = new Set(trace.newGenres);
+  return (
+    <StageCard title={`Genre Shift → ${trace.chosenArtist}`}>
+      <GenreChips genres={trace.chosenGenres} highlight={newGenres} />
+    </StageCard>
+  );
+}
+
 function ResultStage({
   albumName,
   artistName,
@@ -181,16 +279,15 @@ function ResultStage({
 }: {
   albumName: string;
   artistName: string;
-  selectionReason: RecommendationTrace["selectionReason"];
+  selectionReason: TraceSelectionReason;
 }) {
-  const reasonLabel =
-    selectionReason === "preferred_non_library"
-      ? "New discovery"
-      : "Already in library";
-  const reasonColor =
-    selectionReason === "preferred_non_library"
-      ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-700"
-      : "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-700";
+  const inLibrary =
+    selectionReason === "preferred_library" ||
+    selectionReason === "fallback_in_library";
+  const reasonLabel = inLibrary ? "Already in library" : "New discovery";
+  const reasonColor = inLibrary
+    ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-700"
+    : "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-700";
 
   return (
     <StageCard title="Result">
@@ -214,6 +311,63 @@ function ResultStage({
   );
 }
 
+function WithinTasteFlow({
+  trace,
+  albumName,
+  artistName,
+}: {
+  trace: WithinTasteTrace;
+  albumName: string;
+  artistName: string;
+}) {
+  return (
+    <div className="flex flex-col">
+      <PlexArtistsStage artists={trace.plexArtists} />
+      <FlowConnector />
+      <TagContributionsStage artists={trace.plexArtists} />
+      <FlowConnector />
+      <TagPoolStage
+        tags={trace.weightedTags}
+        chosenTagName={trace.chosenTag.name}
+      />
+      <FlowConnector />
+      <AlbumPoolStage pool={trace.albumPool} />
+      <FlowConnector />
+      <ResultStage
+        albumName={albumName}
+        artistName={artistName}
+        selectionReason={trace.selectionReason}
+      />
+    </div>
+  );
+}
+
+function ExploreFlow({
+  trace,
+  albumName,
+  artistName,
+}: {
+  trace: ExploreTrace;
+  albumName: string;
+  artistName: string;
+}) {
+  return (
+    <div className="flex flex-col">
+      <SeedStage trace={trace} />
+      <FlowConnector />
+      <SimilarArtistsStage candidates={trace.candidates} />
+      <FlowConnector />
+      <GenreShiftStage trace={trace} />
+      <FlowConnector />
+      <ResultStage
+        albumName={albumName}
+        artistName={artistName}
+        selectionReason={trace.selectionReason}
+      />
+    </div>
+  );
+}
+
 export default function RecommendationTraceModal({
   isOpen,
   onClose,
@@ -228,24 +382,19 @@ export default function RecommendationTraceModal({
           How this was recommended
         </h3>
 
-        <div className="flex flex-col">
-          <PlexArtistsStage artists={trace.plexArtists} />
-          <FlowConnector />
-          <TagContributionsStage artists={trace.plexArtists} />
-          <FlowConnector />
-          <TagPoolStage
-            tags={trace.weightedTags}
-            chosenTagName={trace.chosenTag.name}
-          />
-          <FlowConnector />
-          <AlbumPoolStage pool={trace.albumPool} />
-          <FlowConnector />
-          <ResultStage
+        {trace.kind === "within_taste" ? (
+          <WithinTasteFlow
+            trace={trace}
             albumName={albumName}
             artistName={artistName}
-            selectionReason={trace.selectionReason}
           />
-        </div>
+        ) : (
+          <ExploreFlow
+            trace={trace}
+            albumName={albumName}
+            artistName={artistName}
+          />
+        )}
 
         <button
           onClick={onClose}

@@ -125,6 +125,7 @@ vi.mock("@/components/TrackList", () => ({
 }));
 
 const albumData: PromotedAlbumData = {
+  mode: "within_taste",
   album: {
     name: "OK Computer",
     mbid: "alb-1",
@@ -136,6 +137,7 @@ const albumData: PromotedAlbumData = {
   tag: "alternative",
   inLibrary: false,
   trace: {
+    kind: "within_taste",
     plexArtists: [
       {
         name: "Radiohead",
@@ -163,6 +165,48 @@ const albumData: PromotedAlbumData = {
       deepPageCount: 50,
       totalAfterDedup: 95,
     },
+    selectionReason: "preferred_non_library",
+  },
+};
+
+const exploreData: PromotedAlbumData = {
+  mode: "explore",
+  album: {
+    name: "Blue Album",
+    mbid: "rg-jazz-1",
+    artistName: "Jazz Cat",
+    artistMbid: "mbid-jazz",
+    coverUrl: "https://coverartarchive.org/release-group/rg-jazz-1/front-500",
+    year: "1965",
+  },
+  seedArtist: "Radiohead",
+  newGenres: ["jazz", "bebop"],
+  inLibrary: false,
+  trace: {
+    kind: "explore",
+    seedArtist: "Radiohead",
+    seedGenres: ["alternative", "rock"],
+    candidates: [
+      {
+        name: "Jazz Cat",
+        score: 5000,
+        genres: ["jazz", "bebop"],
+        genreOverlap: 0,
+        isDifferentGenre: true,
+        chosen: true,
+      },
+      {
+        name: "Rock Clone",
+        score: 9000,
+        genres: ["alternative", "rock"],
+        genreOverlap: 1,
+        isDifferentGenre: false,
+        chosen: false,
+      },
+    ],
+    chosenArtist: "Jazz Cat",
+    chosenGenres: ["jazz", "bebop"],
+    newGenres: ["jazz", "bebop"],
     selectionReason: "preferred_non_library",
   },
 };
@@ -408,6 +452,47 @@ describe("PromotedAlbum", () => {
     expect(screen.getByTestId("trace-modal")).toBeInTheDocument();
     fireEvent.click(screen.getByText("Close Trace"));
     expect(screen.queryByTestId("trace-modal")).not.toBeInTheDocument();
+  });
+
+  describe("explore mode", () => {
+    it("shows the 'fans also love' chip instead of the tag chip", () => {
+      renderWithRouter(
+        <PromotedAlbum
+          data={exploreData}
+          loading={false}
+          onRefresh={mockRefresh}
+        />
+      );
+      expect(
+        screen.getByText("Fans of Radiohead also love this")
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText(/Because you listen to/)
+      ).not.toBeInTheDocument();
+    });
+
+    it("shows the new-genre badge", () => {
+      renderWithRouter(
+        <PromotedAlbum
+          data={exploreData}
+          loading={false}
+          onRefresh={mockRefresh}
+        />
+      );
+      expect(screen.getByText("New genre: jazz")).toBeInTheDocument();
+    });
+
+    it("clicking the explore chip opens the trace modal", () => {
+      renderWithRouter(
+        <PromotedAlbum
+          data={exploreData}
+          loading={false}
+          onRefresh={mockRefresh}
+        />
+      );
+      fireEvent.click(screen.getByText("Fans of Radiohead also love this"));
+      expect(screen.getByTestId("trace-modal")).toBeInTheDocument();
+    });
   });
 
   describe("wanted", () => {

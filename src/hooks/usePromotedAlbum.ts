@@ -28,9 +28,13 @@ export type TraceAlbumPoolInfo = {
 
 export type TraceSelectionReason =
   | "preferred_non_library"
-  | "fallback_in_library";
+  | "preferred_library"
+  | "fallback_in_library"
+  | "fallback_non_library"
+  | "no_preference";
 
-export type RecommendationTrace = {
+export type WithinTasteTrace = {
+  kind: "within_taste";
   plexArtists: TraceArtistEntry[];
   weightedTags: TraceWeightedTag[];
   chosenTag: { name: string; weight: number };
@@ -38,19 +42,49 @@ export type RecommendationTrace = {
   selectionReason: TraceSelectionReason;
 };
 
-export type PromotedAlbumData = {
-  album: {
-    name: string;
-    mbid: string;
-    artistName: string;
-    artistMbid: string;
-    coverUrl: string;
-    year: string;
-  };
-  tag: string;
-  inLibrary: boolean;
-  trace: RecommendationTrace;
+export type TraceSimilarArtist = {
+  name: string;
+  score: number;
+  genres: string[];
+  genreOverlap: number;
+  isDifferentGenre: boolean;
+  chosen: boolean;
 };
+
+export type ExploreTrace = {
+  kind: "explore";
+  seedArtist: string;
+  seedGenres: string[];
+  candidates: TraceSimilarArtist[];
+  chosenArtist: string;
+  chosenGenres: string[];
+  newGenres: string[];
+  selectionReason: TraceSelectionReason;
+};
+
+export type RecommendationTrace = WithinTasteTrace | ExploreTrace;
+
+export type PromotedAlbumInfo = {
+  name: string;
+  mbid: string;
+  artistName: string;
+  artistMbid: string;
+  coverUrl: string;
+  year: string;
+};
+
+export type PromotedAlbumData = {
+  album: PromotedAlbumInfo;
+  inLibrary: boolean;
+} & (
+  | { mode: "within_taste"; tag: string; trace: WithinTasteTrace }
+  | {
+      mode: "explore";
+      seedArtist: string;
+      newGenres: string[];
+      trace: ExploreTrace;
+    }
+);
 
 export default function usePromotedAlbum() {
   const [promotedAlbum, setPromotedAlbum] = useState<PromotedAlbumData | null>(

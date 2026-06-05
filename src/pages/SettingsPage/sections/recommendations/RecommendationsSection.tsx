@@ -21,6 +21,13 @@ interface NumberFieldProps {
   description?: string;
 }
 
+interface PercentFieldProps {
+  label: string;
+  value: number;
+  onChange: (value: number) => void;
+  description?: string;
+}
+
 const LIBRARY_PREFERENCE_OPTIONS: {
   value: LibraryPreference;
   label: string;
@@ -66,6 +73,40 @@ function NumberField({
         max={max}
         step={step}
         className="w-full sm:w-xs px-3 py-2 bg-white dark:bg-gray-800 border-2 border-black rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:border-amber-400 shadow-cartoon-md text-[16px]"
+      />
+      {description && (
+        <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">
+          {description}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function PercentField({
+  label,
+  value,
+  onChange,
+  description,
+}: PercentFieldProps) {
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <label className="block text-sm font-medium text-gray-600 dark:text-gray-400">
+          {label}
+        </label>
+        <span className="text-sm font-bold text-gray-900 dark:text-gray-100">
+          {Math.round(value * 100)}%
+        </span>
+      </div>
+      <input
+        type="range"
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        min={0}
+        max={1}
+        step={0.05}
+        className="w-full accent-amber-400"
       />
       {description && (
         <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">
@@ -222,6 +263,35 @@ export default function RecommendationsSection({
           Whether to prefer albums from new artists, artists already in your
           library, or no preference.
         </p>
+      </div>
+
+      <div className="pt-2 border-t-2 border-dashed border-gray-200 dark:border-gray-700 space-y-4">
+        <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300">
+          Exploration
+        </h3>
+
+        <PercentField
+          label="Exploration mix"
+          value={config.explorationRate}
+          onChange={(v) => update("explorationRate", v)}
+          description="How often a recommendation breaks out of your usual genres (similar vibe, different genre) instead of staying within your taste. 0% never explores; 100% always tries."
+        />
+
+        <PercentField
+          label="Genre difference threshold"
+          value={config.genreOverlapThreshold}
+          onChange={(v) => update("genreOverlapThreshold", v)}
+          description="Maximum genre overlap a similar artist may share with the seed to still count as 'different genre'. Lower means stricter — more distant genres only."
+        />
+
+        <NumberField
+          label="Candidates considered"
+          value={config.exploreCandidateCount}
+          onChange={(v) => update("exploreCandidateCount", v)}
+          min={1}
+          max={50}
+          description="How many similar artists to evaluate per exploration before picking the most genre-distant one."
+        />
       </div>
 
       <div>
