@@ -6,11 +6,14 @@ import type { LidarrAlbum, LidarrArtist } from "../api/lidarr/types";
 import { getReleaseGroupIdFromRelease } from "../api/musicbrainz/releaseGroups";
 import type { ReleaseGroupInfo } from "../api/musicbrainz/types";
 import { getConfigValue } from "../config";
-import type { LibraryPreference } from "../config";
+import type { LibraryPreference, PromotedAlbumConfig } from "../config";
 import { weightedRandomPick, shuffle } from "../utils/random";
+import { buildExploreResult } from "./explore";
 import type {
+  BuiltAlbum,
   PromotedAlbumResult,
-  RecommendationTrace,
+  WithinTasteResult,
+  WithinTasteTrace,
   TraceArtistEntry,
   TraceAlbumPoolInfo,
   TraceSelectionReason,
@@ -18,6 +21,14 @@ import type {
 } from "./types";
 
 export type { PromotedAlbumResult } from "./types";
+
+type BuildContext = {
+  plexArtists: { name: string; viewCount: number }[];
+  config: PromotedAlbumConfig;
+  recentlyShown: Set<string>;
+  artistInLibrary: (artistMbid: string) => boolean;
+  albumInLibrary: (rgMbid: string) => boolean;
+};
 
 type WeightedTag = { name: string; weight: number };
 
@@ -104,7 +115,7 @@ function buildTrace(
   selectionReason: TraceSelectionReason,
   genericTags: Set<string>,
   tagsPerArtist: number
-): RecommendationTrace {
+): WithinTasteTrace {
   const traceArtists: TraceArtistEntry[] = plexArtists.map((a) => {
     const picked = pickedArtistNames.has(a.name);
     const result = tagResults.find((r) => r.artist.name === a.name);
@@ -137,6 +148,7 @@ function buildTrace(
   });
 
   return {
+    kind: "within_taste",
     plexArtists: traceArtists,
     weightedTags: traceWeightedTags,
     chosenTag: { name: chosenTag.name, weight: chosenTag.weight },
@@ -279,55 +291,17 @@ function selectAlbum(
   }
 }
 
-export async function getPromotedAlbum(
-  plexToken: string,
-  forceRefresh = false
-): Promise<PromotedAlbumResult> {
-  const config = getConfigValue("promotedAlbum");
-  const cacheDurationMs = config.cacheDurationMinutes * 60 * 1000;
-
-  const cached = userCache.get(plexToken);
-  if (
-    !forceRefresh &&
-    cached &&
-    Date.now() - cached.cachedAt < cacheDurationMs
-  ) {
-    return cached.result;
-  }
-
+async function buildWithinTasteResult(
+  ctx: BuildContext
+): Promise<BuiltAlbum | null> {
+  const {
+    plexArtists,
+    config,
+    recentlyShown,
+    artistInLibrary,
+    albumInLibrary,
+  } = ctx;
   const genericTags = new Set(config.genericTags.map((t) => t.toLowerCase()));
-
-  let libraryArtistMbids = new Set<string>();
-  let libraryAlbumMbids = new Set<string>();
-  try {
-    const [artistResult, albumResult] = await Promise.all([
-      lidarrGet<LidarrArtist[]>("/artist"),
-      lidarrGet<LidarrAlbum[]>("/album"),
-    ]);
-    if (artistResult.ok) {
-      libraryArtistMbids = new Set(
-        artistResult.data.map((a) => a.foreignArtistId)
-      );
-    }
-    if (albumResult.ok) {
-      libraryAlbumMbids = new Set(
-        albumResult.data.map((a) => a.foreignAlbumId)
-      );
-    }
-  } catch {
-    // Lidarr unavailable — treat all as not in library
-  }
-
-  const artistInLibrary = (artistMbid: string) =>
-    libraryArtistMbids.has(artistMbid);
-  const albumInLibrary = (rgMbid: string) => libraryAlbumMbids.has(rgMbid);
-
-  const plexArtists = await getTopArtists(
-    plexToken,
-    config.topArtistsCount,
-    config.topArtistsRange
-  );
-  if (plexArtists.length === 0) return null;
 
   const pickedArtists = weightedRandomPick(
     plexArtists,
@@ -352,7 +326,6 @@ export async function getPromotedAlbum(
     genericTags,
     config.tagsPerArtist
   );
-
   if (weightedTags.length === 0) return null;
 
   const [chosenTag] = weightedRandomPick(weightedTags, (t) => t.weight, 1);
@@ -374,13 +347,10 @@ export async function getPromotedAlbum(
     seen.add(a.mbid);
     return true;
   });
-
   if (allAlbums.length === 0) return null;
 
-  const recentlyShown = new Set(recentlyShownByUser.get(plexToken) ?? []);
   const freshAlbums = allAlbums.filter((a) => !recentlyShown.has(a.mbid));
   const candidatePool = freshAlbums.length > 0 ? freshAlbums : allAlbums;
-
   const shuffled = shuffle(candidatePool);
 
   const picked = await selectAlbum(
@@ -390,8 +360,6 @@ export async function getPromotedAlbum(
     getReleaseGroupIdFromRelease
   );
   if (!picked) return null;
-
-  rememberShown(plexToken, picked.album.mbid);
 
   const albumPoolInfo: TraceAlbumPoolInfo = {
     page1Count: page1.albums.length,
@@ -412,7 +380,8 @@ export async function getPromotedAlbum(
     config.tagsPerArtist
   );
 
-  const result: PromotedAlbumResult = {
+  const result: WithinTasteResult = {
+    mode: "within_taste",
     album: {
       name: picked.album.name,
       mbid: picked.rgMbid,
@@ -426,7 +395,84 @@ export async function getPromotedAlbum(
     trace,
   };
 
-  userCache.set(plexToken, { result, cachedAt: Date.now() });
+  return { result, rememberKey: picked.album.mbid };
+}
 
-  return result;
+async function loadLibraryMbids(): Promise<{
+  artistInLibrary: (mbid: string) => boolean;
+  albumInLibrary: (mbid: string) => boolean;
+}> {
+  let libraryArtistMbids = new Set<string>();
+  let libraryAlbumMbids = new Set<string>();
+  try {
+    const [artistResult, albumResult] = await Promise.all([
+      lidarrGet<LidarrArtist[]>("/artist"),
+      lidarrGet<LidarrAlbum[]>("/album"),
+    ]);
+    if (artistResult.ok) {
+      libraryArtistMbids = new Set(
+        artistResult.data.map((a) => a.foreignArtistId)
+      );
+    }
+    if (albumResult.ok) {
+      libraryAlbumMbids = new Set(
+        albumResult.data.map((a) => a.foreignAlbumId)
+      );
+    }
+  } catch {
+    // Lidarr unavailable — treat all as not in library
+  }
+
+  return {
+    artistInLibrary: (mbid) => libraryArtistMbids.has(mbid),
+    albumInLibrary: (mbid) => libraryAlbumMbids.has(mbid),
+  };
+}
+
+export async function getPromotedAlbum(
+  plexToken: string,
+  forceRefresh = false
+): Promise<PromotedAlbumResult> {
+  const config = getConfigValue("promotedAlbum");
+  const cacheDurationMs = config.cacheDurationMinutes * 60 * 1000;
+
+  const cached = userCache.get(plexToken);
+  if (
+    !forceRefresh &&
+    cached &&
+    Date.now() - cached.cachedAt < cacheDurationMs
+  ) {
+    return cached.result;
+  }
+
+  const { artistInLibrary, albumInLibrary } = await loadLibraryMbids();
+
+  const plexArtists = await getTopArtists(
+    plexToken,
+    config.topArtistsCount,
+    config.topArtistsRange
+  );
+  if (plexArtists.length === 0) return null;
+
+  const ctx: BuildContext = {
+    plexArtists,
+    config,
+    recentlyShown: new Set(recentlyShownByUser.get(plexToken) ?? []),
+    artistInLibrary,
+    albumInLibrary,
+  };
+
+  let built: BuiltAlbum | null = null;
+  if (Math.random() < config.explorationRate) {
+    built = await buildExploreResult(ctx);
+  }
+  if (!built) {
+    built = await buildWithinTasteResult(ctx);
+  }
+  if (!built) return null;
+
+  rememberShown(plexToken, built.rememberKey);
+  userCache.set(plexToken, { result: built.result, cachedAt: Date.now() });
+
+  return built.result;
 }

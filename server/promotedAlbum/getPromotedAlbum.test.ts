@@ -6,7 +6,10 @@ const mockGetArtistTopTags = vi.fn();
 const mockGetTopAlbumsByTag = vi.fn();
 const mockLidarrGet = vi.fn();
 const mockGetReleaseGroupIdFromRelease = vi.fn();
+const mockFetchReleaseGroupsForArtist = vi.fn();
 const mockGetConfigValue = vi.fn();
+const mockGetSimilarArtists = vi.fn();
+const mockGetArtistMbidByName = vi.fn();
 
 vi.mock("../api/plex/topArtists", () => ({
   getTopArtists: (...args: unknown[]) => mockGetTopArtists(...args),
@@ -27,6 +30,16 @@ vi.mock("../api/lidarr/get", () => ({
 vi.mock("../api/musicbrainz/releaseGroups", () => ({
   getReleaseGroupIdFromRelease: (...args: unknown[]) =>
     mockGetReleaseGroupIdFromRelease(...args),
+  fetchReleaseGroupsForArtist: (...args: unknown[]) =>
+    mockFetchReleaseGroupsForArtist(...args),
+}));
+
+vi.mock("../api/listenbrainz/similarArtists", () => ({
+  getSimilarArtists: (...args: unknown[]) => mockGetSimilarArtists(...args),
+}));
+
+vi.mock("../api/musicbrainz/artists", () => ({
+  getArtistMbidByName: (...args: unknown[]) => mockGetArtistMbidByName(...args),
 }));
 
 vi.mock("../config", () => ({
@@ -34,11 +47,34 @@ vi.mock("../config", () => ({
 }));
 
 import { getPromotedAlbum, clearPromotedAlbumCache } from "./getPromotedAlbum";
+import type { WithinTasteResult, ExploreResult } from "./types";
+
+/** Narrows a result to within-taste; the suite forces this via explorationRate: 0. */
+function wt(
+  result: Awaited<ReturnType<typeof getPromotedAlbum>>
+): WithinTasteResult {
+  if (!result || result.mode !== "within_taste") {
+    throw new Error("expected a within_taste result");
+  }
+  return result;
+}
+
+function ex(
+  result: Awaited<ReturnType<typeof getPromotedAlbum>>
+): ExploreResult {
+  if (!result || result.mode !== "explore") {
+    throw new Error("expected an explore result");
+  }
+  return result;
+}
 
 const defaultPromotedAlbumConfig: PromotedAlbumConfig = {
   cacheDurationMinutes: 30,
   topArtistsRange: "6months",
   topArtistsCount: 10,
+  explorationRate: 0,
+  exploreCandidateCount: 12,
+  genreOverlapThreshold: 0.15,
   pickedArtistsCount: 3,
   tagsPerArtist: 5,
   deepPageMin: 2,
@@ -120,7 +156,7 @@ describe("getPromotedAlbum", () => {
       ),
       year: "1997",
     });
-    expect(result!.tag).toBe("alternative");
+    expect(wt(result).tag).toBe("alternative");
     expect(result!.inLibrary).toBe(false);
     expect(mockGetTopArtists).toHaveBeenCalledWith(
       "test-plex-token",
@@ -406,8 +442,8 @@ describe("getPromotedAlbum", () => {
       mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
 
       const result = await getPromotedAlbum("test-plex-token");
-      expect(result!.trace.plexArtists).toHaveLength(2);
-      expect(result!.trace.plexArtists.map((a) => a.name)).toEqual([
+      expect(wt(result).trace.plexArtists).toHaveLength(2);
+      expect(wt(result).trace.plexArtists.map((a) => a.name)).toEqual([
         "Radiohead",
         "Bjork",
       ]);
@@ -420,7 +456,7 @@ describe("getPromotedAlbum", () => {
       mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
 
       const result = await getPromotedAlbum("test-plex-token");
-      const picked = result!.trace.plexArtists.filter((a) => a.picked);
+      const picked = wt(result).trace.plexArtists.filter((a) => a.picked);
       expect(picked).toHaveLength(2);
     });
 
@@ -431,7 +467,7 @@ describe("getPromotedAlbum", () => {
       mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
 
       const result = await getPromotedAlbum("test-plex-token");
-      expect(result!.trace.chosenTag.name).toBe(result!.tag);
+      expect(wt(result).trace.chosenTag.name).toBe(wt(result).tag);
     });
 
     it("albumPool counts are accurate", async () => {
@@ -441,11 +477,12 @@ describe("getPromotedAlbum", () => {
       mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
 
       const result = await getPromotedAlbum("test-plex-token");
-      expect(result!.trace.albumPool.page1Count).toBe(2);
-      expect(result!.trace.albumPool.deepPageCount).toBe(2);
-      expect(result!.trace.albumPool.totalAfterDedup).toBe(2);
-      expect(result!.trace.albumPool.deepPage).toBeGreaterThanOrEqual(2);
-      expect(result!.trace.albumPool.deepPage).toBeLessThanOrEqual(10);
+      const { albumPool } = wt(result).trace;
+      expect(albumPool.page1Count).toBe(2);
+      expect(albumPool.deepPageCount).toBe(2);
+      expect(albumPool.totalAfterDedup).toBe(2);
+      expect(albumPool.deepPage).toBeGreaterThanOrEqual(2);
+      expect(albumPool.deepPage).toBeLessThanOrEqual(10);
     });
 
     it("selectionReason is preferred_non_library when artist not in library", async () => {
@@ -489,7 +526,7 @@ describe("getPromotedAlbum", () => {
       mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
 
       const result = await getPromotedAlbum("test-plex-token");
-      const altTag = result!.trace.weightedTags.find(
+      const altTag = wt(result).trace.weightedTags.find(
         (t) => t.name === "alternative"
       );
       expect(altTag).toBeDefined();
@@ -505,7 +542,7 @@ describe("getPromotedAlbum", () => {
       mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
 
       const result = await getPromotedAlbum("test-plex-token");
-      const radiohead = result!.trace.plexArtists.find(
+      const radiohead = wt(result).trace.plexArtists.find(
         (a) => a.name === "Radiohead"
       );
       expect(radiohead!.tagContributions).toHaveLength(2);
@@ -562,7 +599,7 @@ describe("getPromotedAlbum", () => {
 
       const result = await getPromotedAlbum("test-plex-token");
       if (result) {
-        expect(result.tag).toBe("rock");
+        expect(wt(result).tag).toBe("rock");
       }
     });
 
@@ -638,6 +675,152 @@ describe("getPromotedAlbum", () => {
       await getPromotedAlbum("test-plex-token");
       const calls = mockGetTopAlbumsByTag.mock.calls;
       expect(calls[1][1]).toBe("5");
+    });
+  });
+
+  describe("explore mode", () => {
+    const exploreConfig = { ...defaultPromotedAlbumConfig, explorationRate: 1 };
+
+    const similarArtists = [
+      {
+        artist_mbid: "mbid-rock",
+        name: "Rock Clone",
+        comment: "",
+        type: "Group",
+        gender: null,
+        score: 9000,
+        reference_mbid: "mbid-seed",
+      },
+      {
+        artist_mbid: "mbid-jazz",
+        name: "Jazz Cat",
+        comment: "",
+        type: "Group",
+        gender: null,
+        score: 5000,
+        reference_mbid: "mbid-seed",
+      },
+    ];
+
+    const genreByArtist: Record<string, { name: string; count: number }[]> = {
+      Radiohead: [
+        { name: "alternative", count: 100 },
+        { name: "rock", count: 80 },
+      ],
+      "Rock Clone": [
+        { name: "alternative", count: 100 },
+        { name: "rock", count: 80 },
+      ],
+      "Jazz Cat": [
+        { name: "jazz", count: 100 },
+        { name: "bebop", count: 50 },
+      ],
+    };
+
+    const jazzReleaseGroups = [
+      {
+        id: "rg-jazz-1",
+        score: 1,
+        title: "Blue Album",
+        "primary-type": "Album",
+        "first-release-date": "1965-03-01",
+        "artist-credit": [
+          { name: "Jazz Cat", artist: { id: "mbid-jazz", name: "Jazz Cat" } },
+        ],
+      },
+    ];
+
+    function setupExplore() {
+      mockGetConfigValue.mockReturnValue(exploreConfig);
+      mockGetTopArtists.mockResolvedValue(plexArtists);
+      mockGetArtistMbidByName.mockResolvedValue("mbid-seed");
+      mockGetSimilarArtists.mockResolvedValue(similarArtists);
+      mockGetArtistTopTags.mockImplementation((name: string) =>
+        Promise.resolve(genreByArtist[name] ?? [])
+      );
+      mockFetchReleaseGroupsForArtist.mockImplementation((mbid: string) =>
+        Promise.resolve(mbid === "mbid-jazz" ? jazzReleaseGroups : [])
+      );
+      mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
+    }
+
+    it("surfaces a genre-distant album from a similar artist", async () => {
+      setupExplore();
+
+      const result = await getPromotedAlbum("test-plex-token");
+      expect(ex(result).mode).toBe("explore");
+      expect(ex(result).seedArtist).toBe("Radiohead");
+      expect(ex(result).album.name).toBe("Blue Album");
+      expect(ex(result).album.artistName).toBe("Jazz Cat");
+      expect(ex(result).album.mbid).toBe("rg-jazz-1");
+      expect(ex(result).album.year).toBe("1965");
+    });
+
+    it("reports the new genres the seed does not share", async () => {
+      setupExplore();
+
+      const result = await getPromotedAlbum("test-plex-token");
+      expect(ex(result).newGenres).toEqual(["jazz", "bebop"]);
+    });
+
+    it("chooses the genre-distant candidate, not the same-genre one", async () => {
+      setupExplore();
+
+      const result = await getPromotedAlbum("test-plex-token");
+      const { candidates, chosenArtist } = ex(result).trace;
+      expect(chosenArtist).toBe("Jazz Cat");
+
+      const jazz = candidates.find((c) => c.name === "Jazz Cat");
+      const rock = candidates.find((c) => c.name === "Rock Clone");
+      expect(jazz!.isDifferentGenre).toBe(true);
+      expect(jazz!.chosen).toBe(true);
+      expect(rock!.isDifferentGenre).toBe(false);
+      expect(rock!.chosen).toBe(false);
+    });
+
+    it("falls back to within-taste when the seed has no MBID", async () => {
+      setupExplore();
+      mockGetArtistMbidByName.mockResolvedValue(null);
+      mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
+
+      const result = await getPromotedAlbum("test-plex-token");
+      expect(result!.mode).toBe("within_taste");
+    });
+
+    it("falls back to within-taste when ListenBrainz returns no similar artists", async () => {
+      setupExplore();
+      mockGetSimilarArtists.mockResolvedValue([]);
+      mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
+
+      const result = await getPromotedAlbum("test-plex-token");
+      expect(result!.mode).toBe("within_taste");
+    });
+
+    it("falls back to within-taste when no candidate is a different genre", async () => {
+      setupExplore();
+      mockGetArtistTopTags.mockResolvedValue(genreByArtist["Radiohead"]);
+      mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
+
+      const result = await getPromotedAlbum("test-plex-token");
+      expect(result!.mode).toBe("within_taste");
+    });
+
+    it("does not repeat the most recent album across refreshes", async () => {
+      setupExplore();
+      mockFetchReleaseGroupsForArtist.mockImplementation((mbid: string) =>
+        Promise.resolve(
+          mbid === "mbid-jazz"
+            ? [
+                jazzReleaseGroups[0],
+                { ...jazzReleaseGroups[0], id: "rg-jazz-2", title: "Green" },
+              ]
+            : []
+        )
+      );
+
+      const first = await getPromotedAlbum("test-plex-token");
+      const second = await getPromotedAlbum("test-plex-token", true);
+      expect(ex(first).album.mbid).not.toBe(ex(second).album.mbid);
     });
   });
 });

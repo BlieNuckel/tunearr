@@ -35,6 +35,9 @@ export type PromotedAlbumConfig = {
   deepPageMax: number;
   genericTags: string[];
   libraryPreference: LibraryPreference;
+  explorationRate: number;
+  exploreCandidateCount: number;
+  genreOverlapThreshold: number;
 };
 
 export type IConfig = {
@@ -100,6 +103,9 @@ export const DEFAULT_PROMOTED_ALBUM: PromotedAlbumConfig = {
     "all",
   ],
   libraryPreference: "prefer_new",
+  explorationRate: 0.5,
+  exploreCandidateCount: 12,
+  genreOverlapThreshold: 0.15,
 };
 
 const DEFAULT_CONFIG: IConfig = {
@@ -191,6 +197,12 @@ function validatePositiveInt(value: unknown, name: string) {
   }
 }
 
+function validateRatio(value: unknown, name: string) {
+  if (typeof value !== "number" || value < 0 || value > 1) {
+    throw new Error(`${name} must be a number between 0 and 1`);
+  }
+}
+
 function validatePromotedAlbumConfig(config: PromotedAlbumConfig) {
   if (
     typeof config.cacheDurationMinutes !== "number" ||
@@ -214,6 +226,9 @@ function validatePromotedAlbumConfig(config: PromotedAlbumConfig) {
   if (!Array.isArray(config.genericTags)) {
     throw new Error("genericTags must be an array");
   }
+  validateRatio(config.explorationRate, "explorationRate");
+  validatePositiveInt(config.exploreCandidateCount, "exploreCandidateCount");
+  validateRatio(config.genreOverlapThreshold, "genreOverlapThreshold");
   if (
     !VALID_LIBRARY_PREFERENCES.includes(
       config.libraryPreference as LibraryPreference

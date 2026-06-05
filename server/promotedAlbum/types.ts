@@ -31,7 +31,8 @@ export type TraceSelectionReason =
   | "fallback_non_library"
   | "no_preference";
 
-export type RecommendationTrace = {
+export type WithinTasteTrace = {
+  kind: "within_taste";
   plexArtists: TraceArtistEntry[];
   weightedTags: TraceWeightedTag[];
   chosenTag: { name: string; weight: number };
@@ -39,16 +40,58 @@ export type RecommendationTrace = {
   selectionReason: TraceSelectionReason;
 };
 
-export type PromotedAlbumResult = {
-  album: {
-    name: string;
-    mbid: string;
-    artistName: string;
-    artistMbid: string;
-    coverUrl: string;
-    year: string;
-  };
+export type TraceSimilarArtist = {
+  name: string;
+  score: number;
+  genres: string[];
+  genreOverlap: number;
+  isDifferentGenre: boolean;
+  chosen: boolean;
+};
+
+export type ExploreTrace = {
+  kind: "explore";
+  seedArtist: string;
+  seedGenres: string[];
+  candidates: TraceSimilarArtist[];
+  chosenArtist: string;
+  chosenGenres: string[];
+  newGenres: string[];
+  selectionReason: TraceSelectionReason;
+};
+
+export type RecommendationTrace = WithinTasteTrace | ExploreTrace;
+
+export type PromotedAlbumInfo = {
+  name: string;
+  mbid: string;
+  artistName: string;
+  artistMbid: string;
+  coverUrl: string;
+  year: string;
+};
+
+export type WithinTasteResult = {
+  mode: "within_taste";
+  album: PromotedAlbumInfo;
   tag: string;
   inLibrary: boolean;
-  trace: RecommendationTrace;
-} | null;
+  trace: WithinTasteTrace;
+};
+
+export type ExploreResult = {
+  mode: "explore";
+  album: PromotedAlbumInfo;
+  seedArtist: string;
+  newGenres: string[];
+  inLibrary: boolean;
+  trace: ExploreTrace;
+};
+
+/** A built recommendation plus the key used for cross-shuffle anti-repeat. */
+export type BuiltAlbum = {
+  result: WithinTasteResult | ExploreResult;
+  rememberKey: string;
+};
+
+export type PromotedAlbumResult = WithinTasteResult | ExploreResult | null;
