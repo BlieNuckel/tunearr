@@ -210,7 +210,7 @@ describe("useDiscover", () => {
     expect(result.current.tagArtists).toEqual(tagArtists);
   });
 
-  it("requests all-time range on initial load and reports connection", async () => {
+  it("requests the 4 weeks range on initial load and reports connection", async () => {
     mockFetchResponses([
       { url: "/api/lidarr/artists", data: [] },
       { url: "/api/plex/top-artists", data: { artists: [] } },
@@ -220,19 +220,19 @@ describe("useDiscover", () => {
     await waitFor(() => expect(result.current.plexLoading).toBe(false));
 
     expect(result.current.plexConnected).toBe(true);
-    expect(result.current.topArtistsRange).toBe("all");
+    expect(result.current.topArtistsRange).toBe("4weeks");
     expect(fetch).toHaveBeenCalledWith(
-      expect.stringContaining("/api/plex/top-artists?limit=10&range=all")
+      expect.stringContaining("/api/plex/top-artists?limit=10&range=4weeks")
     );
   });
 
   it("refetches top artists when the range changes", async () => {
-    const recent = [{ name: "Burial", viewCount: 12, thumb: "", genres: [] }];
+    const allTime = [{ name: "Burial", viewCount: 12, thumb: "", genres: [] }];
     vi.mocked(fetch).mockImplementation((input) => {
       const url = typeof input === "string" ? input : (input as Request).url;
-      if (url.includes("range=4weeks")) {
+      if (url.includes("range=all")) {
         return Promise.resolve(
-          new Response(JSON.stringify({ artists: recent }), { status: 200 })
+          new Response(JSON.stringify({ artists: allTime }), { status: 200 })
         );
       }
       if (url.includes("/api/plex/top-artists")) {
@@ -246,9 +246,9 @@ describe("useDiscover", () => {
     const { result } = renderHook(() => useDiscover());
     await waitFor(() => expect(result.current.plexLoading).toBe(false));
 
-    act(() => result.current.setTopArtistsRange("4weeks"));
+    act(() => result.current.setTopArtistsRange("all"));
 
-    await waitFor(() => expect(result.current.plexTopArtists).toEqual(recent));
-    expect(fetch).toHaveBeenCalledWith(expect.stringContaining("range=4weeks"));
+    await waitFor(() => expect(result.current.plexTopArtists).toEqual(allTime));
+    expect(fetch).toHaveBeenCalledWith(expect.stringContaining("range=all"));
   });
 });
