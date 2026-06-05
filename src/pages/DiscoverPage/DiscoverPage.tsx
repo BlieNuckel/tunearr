@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import useDiscover from "@/hooks/useDiscover";
 import useLibraryAlbums from "@/hooks/useLibraryAlbums";
 import usePromotedAlbum from "@/hooks/usePromotedAlbum";
@@ -44,8 +44,30 @@ export default function DiscoverPage() {
 
   const [selectedArtist, setSelectedArtist] = useState<string | null>(null);
   const [activeTags, setActiveTags] = useState<string[]>([]);
+  const selectFirstOnReload = useRef(false);
 
   const effectiveSelectedArtist = selectedArtist ?? autoSelectedArtist;
+
+  const handleArtistSelect = (name: string) => {
+    setSelectedArtist(name);
+    setActiveTags([]);
+    fetchSimilar(name);
+  };
+
+  const handleRangeChange = (range: typeof topArtistsRange) => {
+    selectFirstOnReload.current = true;
+    setTopArtistsRange(range);
+  };
+
+  useEffect(() => {
+    if (!selectFirstOnReload.current) return;
+    selectFirstOnReload.current = false;
+    const first = plexTopArtists[0]?.name;
+    if (first && first !== effectiveSelectedArtist) {
+      handleArtistSelect(first);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plexTopArtists]);
 
   const isInLibrary = (name: string, mbid?: string) => {
     if (mbid) {
@@ -54,12 +76,6 @@ export default function DiscoverPage() {
     return libraryArtists.some(
       (a) => a.name.toLowerCase() === name.toLowerCase()
     );
-  };
-
-  const handleArtistSelect = (name: string) => {
-    setSelectedArtist(name);
-    setActiveTags([]);
-    fetchSimilar(name);
   };
 
   const handleTagClick = (tag: string) => {
@@ -98,7 +114,7 @@ export default function DiscoverPage() {
           selectedArtist={effectiveSelectedArtist}
           onSelect={handleArtistSelect}
           range={topArtistsRange}
-          onRangeChange={setTopArtistsRange}
+          onRangeChange={handleRangeChange}
           refreshing={plexRefreshing}
         />
       )}
