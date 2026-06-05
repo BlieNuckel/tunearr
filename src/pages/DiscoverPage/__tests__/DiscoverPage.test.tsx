@@ -6,6 +6,13 @@ const mockFetchTagArtists = vi.fn();
 const mockRefreshPromotedAlbum = vi.fn();
 
 let mockPromotedAlbum: unknown = null;
+let mockPlexTopArtists: { name: string; viewCount: number; thumb: string }[] = [
+  { name: "Pink Floyd", viewCount: 80, thumb: "" },
+];
+let mockTopArtistsRange = "all";
+const mockSetTopArtistsRange = vi.fn((range: string) => {
+  mockTopArtistsRange = range;
+});
 
 vi.mock("@/hooks/usePromotedAlbum", () => ({
   default: () => ({
@@ -36,12 +43,12 @@ vi.mock("@/hooks/useDiscover", () => ({
     libraryArtists: [{ id: 1, name: "Radiohead", foreignArtistId: "a1" }],
     libraryAlbums: [{ id: 1, foreignAlbumId: "alb-1" }],
     libraryLoading: false,
-    plexTopArtists: [{ name: "Pink Floyd", viewCount: 80, thumb: "" }],
+    plexTopArtists: mockPlexTopArtists,
     plexLoading: false,
     plexConnected: true,
     plexRefreshing: false,
-    topArtistsRange: "all",
-    setTopArtistsRange: vi.fn(),
+    topArtistsRange: mockTopArtistsRange,
+    setTopArtistsRange: mockSetTopArtistsRange,
     autoSelectedArtist: "Pink Floyd",
     similarArtists: [{ name: "Muse", mbid: "m1", match: 0.8, imageUrl: "" }],
     similarLoading: false,
@@ -76,6 +83,8 @@ vi.mock("@/components/Dropdown", () => ({
 beforeEach(() => {
   vi.clearAllMocks();
   mockPromotedAlbum = null;
+  mockPlexTopArtists = [{ name: "Pink Floyd", viewCount: 80, thumb: "" }];
+  mockTopArtistsRange = "all";
 });
 
 describe("DiscoverPage", () => {
@@ -166,6 +175,18 @@ describe("DiscoverPage", () => {
     render(<DiscoverPage />);
     fireEvent.click(screen.getByText("Refresh"));
     expect(mockRefreshPromotedAlbum).toHaveBeenCalled();
+  });
+
+  it("selects the first artist of the new list when the range changes", () => {
+    const { rerender } = render(<DiscoverPage />);
+
+    fireEvent.click(screen.getByText("6 months"));
+    expect(mockSetTopArtistsRange).toHaveBeenCalledWith("6months");
+
+    mockPlexTopArtists = [{ name: "Aphex Twin", viewCount: 42, thumb: "" }];
+    rerender(<DiscoverPage />);
+
+    expect(mockFetchSimilar).toHaveBeenCalledWith("Aphex Twin");
   });
 
   it("toggles tags on and off when clicked multiple times", () => {

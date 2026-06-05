@@ -65,7 +65,7 @@ export default function useDiscover() {
   const [plexConnected, setPlexConnected] = useState(false);
   const [plexRefreshing, setPlexRefreshing] = useState(false);
   const [topArtistsRange, setTopArtistsRange] =
-    useState<TopArtistsRange>("all");
+    useState<TopArtistsRange>("4weeks");
   const firstPlexLoad = useRef(true);
 
   const [similarArtists, setSimilarArtists] = useState<SimilarArtist[]>([]);
