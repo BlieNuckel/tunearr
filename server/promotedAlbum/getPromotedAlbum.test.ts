@@ -37,6 +37,7 @@ import { getPromotedAlbum, clearPromotedAlbumCache } from "./getPromotedAlbum";
 
 const defaultPromotedAlbumConfig: PromotedAlbumConfig = {
   cacheDurationMinutes: 30,
+  topArtistsRange: "6months",
   topArtistsCount: 10,
   pickedArtistsCount: 3,
   tagsPerArtist: 5,
@@ -121,7 +122,11 @@ describe("getPromotedAlbum", () => {
     });
     expect(result!.tag).toBe("alternative");
     expect(result!.inLibrary).toBe(false);
-    expect(mockGetTopArtists).toHaveBeenCalledWith("test-plex-token", 10);
+    expect(mockGetTopArtists).toHaveBeenCalledWith(
+      "test-plex-token",
+      10,
+      "6months"
+    );
   });
 
   it("fetches both page 1 and a deep page of tag albums", async () => {
@@ -246,7 +251,11 @@ describe("getPromotedAlbum", () => {
     mockGetTopArtists.mockClear();
 
     await getPromotedAlbum("user-b-token");
-    expect(mockGetTopArtists).toHaveBeenCalledWith("user-b-token", 10);
+    expect(mockGetTopArtists).toHaveBeenCalledWith(
+      "user-b-token",
+      10,
+      "6months"
+    );
   });
 
   it("busts cache when forceRefresh is true", async () => {
@@ -355,6 +364,38 @@ describe("getPromotedAlbum", () => {
 
     const result = await getPromotedAlbum("test-plex-token");
     expect(result).toBeNull();
+  });
+
+  describe("anti-repeat", () => {
+    it("avoids re-showing the most recent album on refresh", async () => {
+      mockGetTopArtists.mockResolvedValue(plexArtists);
+      mockGetArtistTopTags.mockResolvedValue(tags);
+      mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
+      mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
+
+      const first = await getPromotedAlbum("test-plex-token");
+      const second = await getPromotedAlbum("test-plex-token", true);
+
+      expect(first).not.toBeNull();
+      expect(second).not.toBeNull();
+      expect(second!.album.mbid).not.toBe(first!.album.mbid);
+    });
+
+    it("falls back to the full pool when every album was recently shown", async () => {
+      mockGetTopArtists.mockResolvedValue(plexArtists);
+      mockGetArtistTopTags.mockResolvedValue(tags);
+      mockGetTopAlbumsByTag.mockResolvedValue({
+        albums: [albumsPage.albums[0]],
+        pagination: { page: 1, totalPages: 1 },
+      });
+      mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
+
+      const first = await getPromotedAlbum("test-plex-token");
+      const second = await getPromotedAlbum("test-plex-token", true);
+
+      expect(first).not.toBeNull();
+      expect(second!.album.mbid).toBe(first!.album.mbid);
+    });
   });
 
   describe("trace", () => {
@@ -484,7 +525,29 @@ describe("getPromotedAlbum", () => {
       mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
 
       await getPromotedAlbum("test-plex-token");
-      expect(mockGetTopArtists).toHaveBeenCalledWith("test-plex-token", 5);
+      expect(mockGetTopArtists).toHaveBeenCalledWith(
+        "test-plex-token",
+        5,
+        "6months"
+      );
+    });
+
+    it("uses topArtistsRange from config", async () => {
+      mockGetConfigValue.mockReturnValue({
+        ...defaultPromotedAlbumConfig,
+        topArtistsRange: "4weeks",
+      });
+      mockGetTopArtists.mockResolvedValue(plexArtists);
+      mockGetArtistTopTags.mockResolvedValue(tags);
+      mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
+      mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
+
+      await getPromotedAlbum("test-plex-token");
+      expect(mockGetTopArtists).toHaveBeenCalledWith(
+        "test-plex-token",
+        10,
+        "4weeks"
+      );
     });
 
     it("uses custom genericTags from config", async () => {

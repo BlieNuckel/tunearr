@@ -1,6 +1,7 @@
 import type {
   PromotedAlbumSettings,
   LibraryPreference,
+  TopArtistsRange,
 } from "@/context/settingsContextDef";
 import { DEFAULT_PROMOTED_ALBUM } from "@/context/promotedAlbumDefaults";
 import TagListEditor from "./TagListEditor";
@@ -27,6 +28,16 @@ const LIBRARY_PREFERENCE_OPTIONS: {
   { value: "prefer_new", label: "Prefer New" },
   { value: "prefer_library", label: "Prefer Library" },
   { value: "no_preference", label: "No Preference" },
+];
+
+const TOP_ARTISTS_RANGE_OPTIONS: {
+  value: TopArtistsRange;
+  label: string;
+}[] = [
+  { value: "4weeks", label: "4 Weeks" },
+  { value: "6months", label: "6 Months" },
+  { value: "12months", label: "12 Months" },
+  { value: "all", label: "All Time" },
 ];
 
 function NumberField({
@@ -104,6 +115,33 @@ export default function RecommendationsSection({
         step={5}
         description="How long to cache a promoted album before picking a new one. Set to 0 to disable caching."
       />
+
+      <div>
+        <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+          Listening Window
+        </label>
+        <div className="flex rounded-lg border-2 border-black overflow-hidden shadow-cartoon-sm">
+          {TOP_ARTISTS_RANGE_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => update("topArtistsRange", opt.value)}
+              className={`flex-1 px-3 py-2 text-sm font-bold transition-colors ${
+                config.topArtistsRange === opt.value
+                  ? "bg-amber-300 text-black"
+                  : "bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-amber-50 dark:hover:bg-gray-700"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">
+          How far back to look at your Plex listening when seeding
+          recommendations. Shorter windows track your current taste; longer
+          windows draw from a wider pool.
+        </p>
+      </div>
 
       <NumberField
         label="Top Artists Count"

@@ -5,8 +5,11 @@ export type LibraryPreference =
   | "prefer_library"
   | "no_preference";
 
+export type TopArtistsRange = "all" | "4weeks" | "6months" | "12months";
+
 export interface PromotedAlbumSettings {
   cacheDurationMinutes: number;
+  topArtistsRange: TopArtistsRange;
   topArtistsCount: number;
   pickedArtistsCount: number;
   tagsPerArtist: number;

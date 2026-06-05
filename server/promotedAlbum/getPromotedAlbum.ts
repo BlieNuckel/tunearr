@@ -32,8 +32,21 @@ type CacheEntry = { result: PromotedAlbumResult; cachedAt: number };
 
 const userCache = new Map<string, CacheEntry>();
 
+const RECENT_SHOWN_LIMIT = 10;
+const recentlyShownByUser = new Map<string, string[]>();
+
 export function clearPromotedAlbumCache() {
   userCache.clear();
+  recentlyShownByUser.clear();
+}
+
+function rememberShown(plexToken: string, mbid: string) {
+  const previous = recentlyShownByUser.get(plexToken) ?? [];
+  const next = [mbid, ...previous.filter((m) => m !== mbid)].slice(
+    0,
+    RECENT_SHOWN_LIMIT
+  );
+  recentlyShownByUser.set(plexToken, next);
 }
 
 function mergeTagsFromResults(
@@ -309,7 +322,11 @@ export async function getPromotedAlbum(
     libraryArtistMbids.has(artistMbid);
   const albumInLibrary = (rgMbid: string) => libraryAlbumMbids.has(rgMbid);
 
-  const plexArtists = await getTopArtists(plexToken, config.topArtistsCount);
+  const plexArtists = await getTopArtists(
+    plexToken,
+    config.topArtistsCount,
+    config.topArtistsRange
+  );
   if (plexArtists.length === 0) return null;
 
   const pickedArtists = weightedRandomPick(
@@ -360,7 +377,11 @@ export async function getPromotedAlbum(
 
   if (allAlbums.length === 0) return null;
 
-  const shuffled = shuffle(allAlbums);
+  const recentlyShown = new Set(recentlyShownByUser.get(plexToken) ?? []);
+  const freshAlbums = allAlbums.filter((a) => !recentlyShown.has(a.mbid));
+  const candidatePool = freshAlbums.length > 0 ? freshAlbums : allAlbums;
+
+  const shuffled = shuffle(candidatePool);
 
   const picked = await selectAlbum(
     shuffled,
@@ -369,6 +390,8 @@ export async function getPromotedAlbum(
     getReleaseGroupIdFromRelease
   );
   if (!picked) return null;
+
+  rememberShown(plexToken, picked.album.mbid);
 
   const albumPoolInfo: TraceAlbumPoolInfo = {
     page1Count: page1.albums.length,
