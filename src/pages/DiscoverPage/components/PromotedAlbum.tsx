@@ -60,7 +60,6 @@ export default function PromotedAlbum({
   const { toggle, stop, isTrackPlaying } = useAudioPreview();
 
   const album = data?.album;
-  const tag = data?.tag;
   const inLibrary = data?.inLibrary ?? false;
   const pastelBg = album ? pastelColorFromId(album.mbid) : "hsl(200, 70%, 85%)";
 
@@ -202,13 +201,23 @@ export default function PromotedAlbum({
                         <span className="ml-1.5">· {album.year}</span>
                       )}
                     </p>
-                    {tag && (
-                      <button
-                        onClick={() => setIsTraceOpen(true)}
-                        className="inline-block mt-2 px-2 py-0.5 bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 text-xs font-medium rounded-full border border-violet-200 dark:border-violet-700 hover:bg-violet-200 dark:hover:bg-violet-900/50 transition-colors cursor-pointer"
-                      >
-                        Because you listen to {tag}
-                      </button>
+                    {data && (
+                      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                        <button
+                          onClick={() => setIsTraceOpen(true)}
+                          className="inline-block px-2 py-0.5 bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 text-xs font-medium rounded-full border border-violet-200 dark:border-violet-700 hover:bg-violet-200 dark:hover:bg-violet-900/50 transition-colors cursor-pointer"
+                        >
+                          {data.mode === "within_taste"
+                            ? `Because you listen to ${data.tag}`
+                            : `Fans of ${data.seedArtist} also love this`}
+                        </button>
+                        {data.mode === "explore" &&
+                          data.newGenres.length > 0 && (
+                            <span className="inline-block px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 text-xs font-medium rounded-full border border-emerald-200 dark:border-emerald-700">
+                              New genre: {data.newGenres[0]}
+                            </span>
+                          )}
+                      </div>
                     )}
                   </div>
 

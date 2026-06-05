@@ -17,6 +17,9 @@ export interface PromotedAlbumSettings {
   deepPageMax: number;
   genericTags: string[];
   libraryPreference: LibraryPreference;
+  explorationRate: number;
+  exploreCandidateCount: number;
+  genreOverlapThreshold: number;
 }
 
 export interface PurchaseDecisionSettings {

@@ -23,4 +23,7 @@ export const DEFAULT_PROMOTED_ALBUM: PromotedAlbumSettings = {
     "all",
   ],
   libraryPreference: "prefer_new",
+  explorationRate: 0.5,
+  exploreCandidateCount: 12,
+  genreOverlapThreshold: 0.15,
 };
