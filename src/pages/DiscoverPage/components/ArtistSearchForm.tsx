@@ -16,7 +16,7 @@ export default function ArtistSearchForm({ onSearch }: ArtistSearchFormProps) {
   };
 
   return (
-    <div className="lg:col-span-2">
+    <div>
       <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
         Search any artist
       </h2>

@@ -99,11 +99,6 @@ describe("DiscoverPage", () => {
     expect(screen.getByText("Pink Floyd")).toBeInTheDocument();
   });
 
-  it("renders LibraryPicker section", () => {
-    render(<DiscoverPage />);
-    expect(screen.getByText("Your Library")).toBeInTheDocument();
-  });
-
   it("renders ArtistSearchForm", () => {
     render(<DiscoverPage />);
     expect(

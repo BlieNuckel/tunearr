@@ -4,7 +4,6 @@ import useLibraryAlbums from "@/hooks/useLibraryAlbums";
 import usePromotedAlbum from "@/hooks/usePromotedAlbum";
 import PromotedAlbum from "./components/PromotedAlbum";
 import PlexTopArtists from "./components/PlexTopArtists";
-import LibraryPicker from "./components/LibraryPicker";
 import ArtistSearchForm from "./components/ArtistSearchForm";
 import TagList from "./components/TagList";
 import ArtistResultsList from "./components/ArtistResultsList";
@@ -13,7 +12,6 @@ import Skeleton from "@/components/Skeleton";
 export default function DiscoverPage() {
   const {
     libraryArtists,
-    libraryLoading,
     plexTopArtists,
     plexLoading,
     plexConnected,
@@ -119,13 +117,7 @@ export default function DiscoverPage() {
         />
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <LibraryPicker
-          artists={libraryArtists}
-          loading={libraryLoading}
-          selectedArtist={effectiveSelectedArtist}
-          onSelect={handleArtistSelect}
-        />
+      <div className="mb-6">
         <ArtistSearchForm onSearch={handleArtistSelect} />
       </div>
 
