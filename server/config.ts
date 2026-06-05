@@ -3,6 +3,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { getDataSource } from "./db/index";
 import { createLogger } from "./logger";
+import type { TopArtistsRange } from "./api/plex/types";
 
 const log = createLogger("Config");
 
@@ -26,6 +27,7 @@ export type SpendingConfig = {
 
 export type PromotedAlbumConfig = {
   cacheDurationMinutes: number;
+  topArtistsRange: TopArtistsRange;
   topArtistsCount: number;
   pickedArtistsCount: number;
   tagsPerArtist: number;
@@ -77,6 +79,7 @@ export const DEFAULT_FOLLOWED_POLL_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
 export const DEFAULT_PROMOTED_ALBUM: PromotedAlbumConfig = {
   cacheDurationMinutes: 30,
+  topArtistsRange: "6months",
   topArtistsCount: 10,
   pickedArtistsCount: 3,
   tagsPerArtist: 5,
@@ -175,6 +178,13 @@ const VALID_LIBRARY_PREFERENCES: LibraryPreference[] = [
   "no_preference",
 ];
 
+const VALID_TOP_ARTISTS_RANGES: TopArtistsRange[] = [
+  "all",
+  "4weeks",
+  "6months",
+  "12months",
+];
+
 function validatePositiveInt(value: unknown, name: string) {
   if (typeof value !== "number" || !Number.isInteger(value) || value < 1) {
     throw new Error(`${name} must be a positive integer`);
@@ -187,6 +197,11 @@ function validatePromotedAlbumConfig(config: PromotedAlbumConfig) {
     config.cacheDurationMinutes < 0
   ) {
     throw new Error("cacheDurationMinutes must be a non-negative number");
+  }
+  if (!VALID_TOP_ARTISTS_RANGES.includes(config.topArtistsRange)) {
+    throw new Error(
+      `topArtistsRange must be one of: ${VALID_TOP_ARTISTS_RANGES.join(", ")}`
+    );
   }
   validatePositiveInt(config.topArtistsCount, "topArtistsCount");
   validatePositiveInt(config.pickedArtistsCount, "pickedArtistsCount");
