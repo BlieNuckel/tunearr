@@ -3,6 +3,7 @@ import express from "express";
 import fs from "fs";
 import { getConfig, setConfig } from "../config";
 import { clearPromotedAlbumCache } from "../promotedAlbum/getPromotedAlbum";
+import { clearPromotedArtistsCache } from "../promotedArtists/getPromotedArtists";
 import { testLidarrConnection } from "../services/settings";
 import { requireAuth } from "../middleware/requireAuth";
 import { requirePermission } from "../middleware/requirePermission";
@@ -36,6 +37,7 @@ router.put("/", (req: Request, res: Response) => {
 
   if (partialConfig.promotedAlbum) {
     clearPromotedAlbumCache();
+    clearPromotedArtistsCache();
   }
 
   res.json({ success: true });

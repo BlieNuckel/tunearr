@@ -12,6 +12,8 @@ interface ArtistCardProps {
   /** 0-1 similarity score, shown as percentage */
   match?: number;
   inLibrary?: boolean;
+  /** "list" (default) is a horizontal row; "grid" is a vertical card for grids */
+  variant?: "list" | "grid";
 }
 
 export default function ArtistCard({
@@ -20,6 +22,7 @@ export default function ArtistCard({
   imageUrl,
   match,
   inLibrary,
+  variant = "list",
 }: ArtistCardProps) {
   const haptics = useHaptics();
   const { go } = useNavigateToArtist();
@@ -30,13 +33,65 @@ export default function ArtistCard({
     void go({ mbid, name });
   };
 
+  const showImage = imageUrl && !imageError;
+
+  if (variant === "grid") {
+    return (
+      <div className="relative bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-md overflow-hidden hover:translate-y-[-2px] hover:shadow-cartoon-lg transition-all">
+        <button
+          onClick={handleClick}
+          className="w-full flex flex-col text-left hover:bg-amber-50 dark:hover:bg-gray-700 transition-colors"
+        >
+          <div className="w-full aspect-square overflow-hidden border-b-2 border-black">
+            {showImage ? (
+              <ImageWithShimmer
+                src={imageUrl}
+                alt={name}
+                className="w-full h-full object-cover"
+                onError={() => setImageError(true)}
+              />
+            ) : (
+              <div className="w-full h-full bg-amber-100 dark:bg-gray-700 flex items-center justify-center">
+                <MusicalNoteIcon className="w-10 h-10 text-amber-400 dark:text-amber-500" />
+              </div>
+            )}
+          </div>
+          <div className="p-2.5 min-w-0">
+            <h3 className="text-gray-900 dark:text-gray-100 font-medium text-sm truncate">
+              {name}
+            </h3>
+            {match !== undefined && (
+              <p className="text-gray-400 text-xs">
+                {Math.round(match * 100)}% match
+              </p>
+            )}
+            {inLibrary && (
+              <span className="mt-1 inline-block text-xs bg-amber-300 text-black px-1.5 py-0.5 rounded-full border-2 border-black font-bold shadow-cartoon-sm">
+                In Library
+              </span>
+            )}
+          </div>
+        </button>
+        {mbid && (
+          <FollowArtistButton
+            artistMbid={mbid}
+            artistName={name}
+            size="sm"
+            showLabel={false}
+            className="absolute top-2 right-2"
+          />
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-md overflow-hidden hover:translate-y-[-2px] hover:shadow-cartoon-lg transition-all">
       <button
         onClick={handleClick}
         className="w-full flex items-center gap-3 p-3 text-left hover:bg-amber-50 dark:hover:bg-gray-700 transition-colors"
       >
-        {imageUrl && !imageError ? (
+        {showImage ? (
           <ImageWithShimmer
             src={imageUrl}
             alt={name}
