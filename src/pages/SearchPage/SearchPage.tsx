@@ -2,6 +2,7 @@ import { useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import SearchBar from "./components/SearchBar";
 import ReleaseGroupCard from "@/components/ReleaseGroupCard";
+import ArtistCard from "@/pages/DiscoverPage/components/ArtistCard";
 import Skeleton from "@/components/Skeleton";
 import useSearch from "@/hooks/useSearch";
 import useLibraryAlbums from "@/hooks/useLibraryAlbums";
@@ -10,7 +11,7 @@ const DEAL_ROTATIONS = [-4, 3.5, -3, 4.5, -3.5, 3];
 
 export default function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { results, loading, error, search } = useSearch();
+  const { albums, artists, kind, loading, error, search } = useSearch();
   const { isAlbumInLibrary } = useLibraryAlbums();
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -39,9 +40,14 @@ export default function SearchPage() {
     [setSearchParams]
   );
 
+  const isArtist = kind === "artist";
+  const hasResults = isArtist ? artists.length > 0 : albums.length > 0;
+
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Search Albums</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">
+        {searchType === "artist" ? "Search Artists" : "Search Albums"}
+      </h1>
 
       <SearchBar
         onSearch={handleSearch}
@@ -50,38 +56,64 @@ export default function SearchPage() {
         inputRef={inputRef}
       />
 
-      {loading && (
-        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-3 sm:gap-4">
-          {[...Array(6)].map((_, i) => (
-            <div key={i}>
-              <div className="sm:hidden bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-sm overflow-hidden">
-                <div className="flex items-center">
-                  <Skeleton className="w-24 aspect-square flex-shrink-0 rounded-none" />
-                  <div className="flex-1 min-w-0 px-4 py-3 space-y-2">
+      {loading &&
+        (searchType === "artist" ? (
+          <div className="mt-6 space-y-2">
+            {[...Array(6)].map((_, i) => (
+              <div
+                key={i}
+                className="bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-sm flex items-center gap-3 p-3"
+              >
+                <Skeleton className="w-12 h-12 rounded-lg flex-shrink-0" />
+                <Skeleton className="h-4 w-1/3" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-3 sm:gap-4">
+            {[...Array(6)].map((_, i) => (
+              <div key={i}>
+                <div className="sm:hidden bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-sm overflow-hidden">
+                  <div className="flex items-center">
+                    <Skeleton className="w-24 aspect-square flex-shrink-0 rounded-none" />
+                    <div className="flex-1 min-w-0 px-4 py-3 space-y-2">
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-3 w-1/2" />
+                      <Skeleton className="h-3 w-1/3" />
+                    </div>
+                  </div>
+                </div>
+                <div className="hidden sm:block bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-sm overflow-hidden">
+                  <Skeleton className="aspect-square rounded-none" />
+                  <div className="p-3 border-t-2 border-black space-y-2">
                     <Skeleton className="h-4 w-3/4" />
                     <Skeleton className="h-3 w-1/2" />
                     <Skeleton className="h-3 w-1/3" />
                   </div>
                 </div>
               </div>
-              <div className="hidden sm:block bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-sm overflow-hidden">
-                <Skeleton className="aspect-square rounded-none" />
-                <div className="p-3 border-t-2 border-black space-y-2">
-                  <Skeleton className="h-4 w-3/4" />
-                  <Skeleton className="h-3 w-1/2" />
-                  <Skeleton className="h-3 w-1/3" />
-                </div>
-              </div>
-            </div>
+            ))}
+          </div>
+        ))}
+
+      {error && <p className="text-rose-500 mt-4">Error: {error}</p>}
+
+      {!loading && isArtist && artists.length > 0 && (
+        <div className="mt-6 space-y-2">
+          {artists.map((artist) => (
+            <ArtistCard
+              key={artist.mbid}
+              name={artist.name}
+              mbid={artist.mbid}
+              imageUrl={artist.imageUrl}
+            />
           ))}
         </div>
       )}
 
-      {error && <p className="text-rose-500 mt-4">Error: {error}</p>}
-
-      {results.length > 0 && (
+      {!loading && !isArtist && albums.length > 0 && (
         <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-3 sm:gap-4">
-          {results.map((rg, index) => (
+          {albums.map((rg, index) => (
             <div
               key={rg.id}
               className="cascade-deal-in"
@@ -101,7 +133,7 @@ export default function SearchPage() {
         </div>
       )}
 
-      {!loading && !error && results.length === 0 && (
+      {!loading && !error && !hasResults && (
         <div className="mt-16 flex flex-col items-center text-gray-400 animate-fade-in">
           <svg
             className="w-16 h-16 mb-4"

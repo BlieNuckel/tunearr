@@ -3,7 +3,6 @@ import { MB_BASE, MB_HEADERS, rateLimitedMbFetch } from "./config";
 import type {
   MusicBrainzReleaseGroup,
   MusicBrainzSearchResponse,
-  MusicBrainzArtistSearchResponse,
   ReleaseGroupSearchResult,
   MusicBrainzRelease,
   ReleaseGroupInfo,
@@ -40,55 +39,6 @@ export async function fetchReleaseGroupsForArtist(
   if (!response.ok) return [];
   const data: MusicBrainzSearchResponse = await response.json();
   return data["release-groups"];
-}
-
-/** Look up an artist by name and return all their albums and EPs */
-export async function searchArtistReleaseGroups(
-  artistName: string
-): Promise<ReleaseGroupSearchResult> {
-  const artistUrl = `${MB_BASE}/artist/?query=${encodeURIComponent(artistName)}&limit=3&fmt=json`;
-  const artistResponse = await resilientFetch(artistUrl, {
-    headers: MB_HEADERS,
-  });
-
-  if (!artistResponse.ok) {
-    throw new Error(`MusicBrainz returned ${artistResponse.status}`);
-  }
-
-  const artistData: MusicBrainzArtistSearchResponse =
-    await artistResponse.json();
-
-  if (!artistData.artists || artistData.artists.length === 0) {
-    return { "release-groups": [], count: 0, offset: 0 };
-  }
-
-  const allReleaseGroups: MusicBrainzReleaseGroup[] = [];
-  for (const artist of artistData.artists) {
-    const groups = await fetchReleaseGroupsForArtist(artist.id);
-    allReleaseGroups.push(...groups);
-  }
-
-  const seen = new Set<string>();
-  const unique = allReleaseGroups.filter((rg) => {
-    if (seen.has(rg.id)) return false;
-    seen.add(rg.id);
-    return true;
-  });
-
-  const sorted = unique.sort((a, b) => {
-    const dateA = a["first-release-date"] || "";
-    const dateB = b["first-release-date"] || "";
-    if (dateA && dateB) return dateB.localeCompare(dateA);
-    if (dateA) return -1;
-    if (dateB) return 1;
-    return b.score - a.score;
-  });
-
-  return {
-    "release-groups": sorted,
-    count: sorted.length,
-    offset: 0,
-  };
 }
 
 /** Look up a release group by its MBID, returning title and artist credit */

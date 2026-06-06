@@ -1,5 +1,11 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render as rtlRender, screen, fireEvent } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import DiscoverPage from "../DiscoverPage";
+
+const render = (ui: React.ReactElement) =>
+  rtlRender(ui, {
+    wrapper: ({ children }) => <MemoryRouter>{children}</MemoryRouter>,
+  });
 
 const mockFetchSimilar = vi.fn();
 const mockFetchTagArtists = vi.fn();

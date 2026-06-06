@@ -1,7 +1,23 @@
+import { resilientFetch } from "../resilientFetch";
 import { MB_BASE, MB_HEADERS, rateLimitedMbFetch } from "./config";
-import type { MusicBrainzArtistSearchResponse } from "./types";
+import type {
+  ArtistInfo,
+  MusicBrainzArtist,
+  MusicBrainzArtistSearchResponse,
+} from "./types";
 
 const mbidCache = new Map<string, string | null>();
+
+/** @param artist Raw MusicBrainz artist entity */
+function toArtistInfo(artist: MusicBrainzArtist): ArtistInfo {
+  return {
+    mbid: artist.id,
+    name: artist.name,
+    disambiguation: artist.disambiguation || undefined,
+    type: artist.type || undefined,
+    country: artist.country || undefined,
+  };
+}
 
 export function clearArtistMbidCache() {
   mbidCache.clear();
@@ -31,4 +47,27 @@ export async function getArtistMbidByName(
   } catch {
     return null;
   }
+}
+
+/** Look up a single artist by MBID. Returns null on a failed lookup. */
+export async function getArtistById(mbid: string): Promise<ArtistInfo | null> {
+  const url = `${MB_BASE}/artist/${mbid}?fmt=json`;
+  const response = await rateLimitedMbFetch(url, { headers: MB_HEADERS });
+  if (!response.ok) return null;
+
+  const data: MusicBrainzArtist = await response.json();
+  if (!data.id) return null;
+  return toArtistInfo(data);
+}
+
+/** Search for artists by name, returning lightweight artist entities. */
+export async function searchArtists(query: string): Promise<ArtistInfo[]> {
+  const url = `${MB_BASE}/artist/?query=${encodeURIComponent(query)}&limit=25&fmt=json`;
+  const response = await resilientFetch(url, { headers: MB_HEADERS });
+  if (!response.ok) {
+    throw new Error(`MusicBrainz returned ${response.status}`);
+  }
+
+  const data: MusicBrainzArtistSearchResponse = await response.json();
+  return (data.artists ?? []).map(toArtistInfo);
 }

@@ -11,6 +11,24 @@ export interface ReleaseGroup {
   "secondary-types"?: string[];
 }
 
+export interface ArtistDetails {
+  mbid: string;
+  name: string;
+  disambiguation?: string;
+  type?: string;
+  country?: string;
+  imageUrl?: string;
+}
+
+export interface ArtistSearchResult {
+  mbid: string;
+  name: string;
+  disambiguation?: string;
+  type?: string;
+  country?: string;
+  imageUrl?: string;
+}
+
 export interface Track {
   position: number;
   title: string;
