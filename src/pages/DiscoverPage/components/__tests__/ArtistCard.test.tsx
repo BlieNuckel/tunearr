@@ -90,3 +90,43 @@ describe("ArtistCard", () => {
     expect(screen.queryByTestId(/follow-/)).not.toBeInTheDocument();
   });
 });
+
+describe("ArtistCard grid variant", () => {
+  it("renders name, match, and library badge", () => {
+    renderCard({
+      name: "Boards of Canada",
+      match: 0.72,
+      inLibrary: true,
+      variant: "grid",
+    });
+    expect(screen.getByText("Boards of Canada")).toBeInTheDocument();
+    expect(screen.getByText("72% match")).toBeInTheDocument();
+    expect(screen.getByText("In Library")).toBeInTheDocument();
+  });
+
+  it("renders the image when provided", () => {
+    renderCard({
+      name: "Boards of Canada",
+      imageUrl: "https://example.com/boc.jpg",
+      variant: "grid",
+    });
+    expect(screen.getByAltText("Boards of Canada")).toHaveAttribute(
+      "src",
+      "https://example.com/boc.jpg"
+    );
+  });
+
+  it("navigates to the artist page on click", () => {
+    renderCard({ name: "Boards of Canada", mbid: "boc1", variant: "grid" });
+    fireEvent.click(screen.getByRole("button", { name: /Boards of Canada/ }));
+    expect(mockGo).toHaveBeenCalledWith({
+      mbid: "boc1",
+      name: "Boards of Canada",
+    });
+  });
+
+  it("renders a follow button when an mbid is present", () => {
+    renderCard({ name: "Boards of Canada", mbid: "boc1", variant: "grid" });
+    expect(screen.getByTestId("follow-boc1")).toBeInTheDocument();
+  });
+});
