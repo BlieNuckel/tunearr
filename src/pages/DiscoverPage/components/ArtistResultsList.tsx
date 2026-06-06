@@ -19,7 +19,6 @@ interface ArtistResultsListProps {
   artists: Artist[];
   sections?: Section[];
   isInLibrary: (name: string, mbid?: string) => boolean;
-  isAlbumInLibrary: (albumMbid: string) => boolean;
   pagination?: {
     page: number;
     totalPages: number;
@@ -41,7 +40,6 @@ export default function ArtistResultsList({
   artists,
   sections,
   isInLibrary,
-  isAlbumInLibrary,
   pagination,
 }: ArtistResultsListProps) {
   if (sections && sections.length > 0) {
@@ -61,7 +59,6 @@ export default function ArtistResultsList({
                   imageUrl={artist.imageUrl}
                   match={artist.match}
                   inLibrary={isInLibrary(artist.name, artist.mbid)}
-                  isAlbumInLibrary={isAlbumInLibrary}
                 />
               ))}
             </div>
@@ -83,7 +80,6 @@ export default function ArtistResultsList({
           imageUrl={artist.imageUrl}
           match={artist.match}
           inLibrary={isInLibrary(artist.name, artist.mbid)}
-          isAlbumInLibrary={isAlbumInLibrary}
         />
       ))}
       {pagination && (

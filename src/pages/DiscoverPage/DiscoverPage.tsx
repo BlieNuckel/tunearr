@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import useDiscover from "@/hooks/useDiscover";
-import useLibraryAlbums from "@/hooks/useLibraryAlbums";
 import usePromotedAlbum from "@/hooks/usePromotedAlbum";
 import PromotedAlbum from "./components/PromotedAlbum";
 import PlexTopArtists from "./components/PlexTopArtists";
@@ -37,8 +36,6 @@ export default function DiscoverPage() {
     loading: promotedLoading,
     refresh: refreshPromotedAlbum,
   } = usePromotedAlbum();
-
-  const { isAlbumInLibrary } = useLibraryAlbums();
 
   const [selectedArtist, setSelectedArtist] = useState<string | null>(null);
   const [activeTags, setActiveTags] = useState<string[]>([]);
@@ -159,7 +156,6 @@ export default function DiscoverPage() {
           artists={tagArtists}
           sections={tagArtistSections}
           isInLibrary={isInLibrary}
-          isAlbumInLibrary={isAlbumInLibrary}
           pagination={{
             page: tagPagination.page,
             totalPages: tagPagination.totalPages,
@@ -167,11 +163,7 @@ export default function DiscoverPage() {
           }}
         />
       ) : (
-        <ArtistResultsList
-          artists={similarArtists}
-          isInLibrary={isInLibrary}
-          isAlbumInLibrary={isAlbumInLibrary}
-        />
+        <ArtistResultsList artists={similarArtists} isInLibrary={isInLibrary} />
       )}
 
       {!effectiveSelectedArtist && !similarLoading && (

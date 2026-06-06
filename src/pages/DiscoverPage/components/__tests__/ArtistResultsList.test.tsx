@@ -30,15 +30,10 @@ vi.mock("../ArtistCard", () => ({
 
 describe("ArtistResultsList", () => {
   const isInLibrary = (name: string) => name === "Radiohead";
-  const isAlbumInLibrary = () => false;
 
   it("returns null for empty artists", () => {
     const { container } = render(
-      <ArtistResultsList
-        artists={[]}
-        isInLibrary={isInLibrary}
-        isAlbumInLibrary={isAlbumInLibrary}
-      />
+      <ArtistResultsList artists={[]} isInLibrary={isInLibrary} />
     );
     expect(container.innerHTML).toBe("");
   });
@@ -49,13 +44,7 @@ describe("ArtistResultsList", () => {
       { name: "Muse", match: 0.8 },
     ];
 
-    render(
-      <ArtistResultsList
-        artists={artists}
-        isInLibrary={isInLibrary}
-        isAlbumInLibrary={isAlbumInLibrary}
-      />
-    );
+    render(<ArtistResultsList artists={artists} isInLibrary={isInLibrary} />);
 
     expect(screen.getByText("Radiohead (in library)")).toBeInTheDocument();
     expect(screen.getByText("Muse")).toBeInTheDocument();
@@ -69,7 +58,6 @@ describe("ArtistResultsList", () => {
       <ArtistResultsList
         artists={artists}
         isInLibrary={() => false}
-        isAlbumInLibrary={isAlbumInLibrary}
         pagination={{ page: 1, totalPages: 5, onPageChange }}
       />
     );
@@ -84,7 +72,6 @@ describe("ArtistResultsList", () => {
       <ArtistResultsList
         artists={[{ name: "Muse", match: 0.5 }]}
         isInLibrary={() => false}
-        isAlbumInLibrary={isAlbumInLibrary}
       />
     );
 

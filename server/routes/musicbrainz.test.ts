@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockSearchReleaseGroups = vi.fn();
-const mockSearchArtistReleaseGroups = vi.fn();
+const mockFetchReleaseGroupsForArtist = vi.fn();
 const mockGetReleaseTracks = vi.fn();
 const mockEnrichTracksWithPreviews = vi.fn();
 const mockGetReleaseGroupLabel = vi.fn();
@@ -9,14 +9,30 @@ const mockGetReleaseGroupDate = vi.fn();
 const mockGetLabelAncestors = vi.fn();
 const mockGetConfigValue = vi.fn();
 const mockEvaluatePurchaseDecision = vi.fn();
+const mockGetArtistById = vi.fn();
+const mockSearchArtists = vi.fn();
+const mockGetArtistMbidByName = vi.fn();
+const mockGetArtistImage = vi.fn();
+const mockGetArtistsImages = vi.fn();
 
 vi.mock("../api/musicbrainz/releaseGroups", () => ({
   searchReleaseGroups: (...args: unknown[]) => mockSearchReleaseGroups(...args),
-  searchArtistReleaseGroups: (...args: unknown[]) =>
-    mockSearchArtistReleaseGroups(...args),
+  fetchReleaseGroupsForArtist: (...args: unknown[]) =>
+    mockFetchReleaseGroupsForArtist(...args),
   getReleaseGroupLabel: (...args: unknown[]) =>
     mockGetReleaseGroupLabel(...args),
   getReleaseGroupDate: (...args: unknown[]) => mockGetReleaseGroupDate(...args),
+}));
+
+vi.mock("../api/musicbrainz/artists", () => ({
+  getArtistById: (...args: unknown[]) => mockGetArtistById(...args),
+  searchArtists: (...args: unknown[]) => mockSearchArtists(...args),
+  getArtistMbidByName: (...args: unknown[]) => mockGetArtistMbidByName(...args),
+}));
+
+vi.mock("../api/deezer/artists", () => ({
+  getArtistImage: (...args: unknown[]) => mockGetArtistImage(...args),
+  getArtistsImages: (...args: unknown[]) => mockGetArtistsImages(...args),
 }));
 
 vi.mock("../config", () => ({
@@ -63,18 +79,7 @@ describe("GET /search", () => {
     expect(res.body.error).toContain("q is required");
   });
 
-  it("calls searchArtistReleaseGroups when searchType is artist", async () => {
-    const data = [{ id: "rg-1", title: "OK Computer" }];
-    mockSearchArtistReleaseGroups.mockResolvedValue(data);
-
-    const res = await request(app).get("/search?q=Radiohead&searchType=artist");
-    expect(res.status).toBe(200);
-    expect(res.body).toEqual(data);
-    expect(mockSearchArtistReleaseGroups).toHaveBeenCalledWith("Radiohead");
-    expect(mockSearchReleaseGroups).not.toHaveBeenCalled();
-  });
-
-  it("calls searchReleaseGroups for other search types", async () => {
+  it("searches release groups by query", async () => {
     const data = [{ id: "rg-2", title: "Kid A" }];
     mockSearchReleaseGroups.mockResolvedValue(data);
 
@@ -82,7 +87,87 @@ describe("GET /search", () => {
     expect(res.status).toBe(200);
     expect(res.body).toEqual(data);
     expect(mockSearchReleaseGroups).toHaveBeenCalledWith("Kid A");
-    expect(mockSearchArtistReleaseGroups).not.toHaveBeenCalled();
+  });
+});
+
+describe("GET /artist/search", () => {
+  it("returns 400 when q param is missing", async () => {
+    const res = await request(app).get("/artist/search");
+    expect(res.status).toBe(400);
+  });
+
+  it("returns artists enriched with images", async () => {
+    mockSearchArtists.mockResolvedValue([
+      { mbid: "a1", name: "Radiohead" },
+      { mbid: "a2", name: "Radio Dept." },
+    ]);
+    mockGetArtistsImages.mockResolvedValue(
+      new Map([["radiohead", "https://img/rh.jpg"]])
+    );
+
+    const res = await request(app).get("/artist/search?q=radio");
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      artists: [
+        { mbid: "a1", name: "Radiohead", imageUrl: "https://img/rh.jpg" },
+        { mbid: "a2", name: "Radio Dept." },
+      ],
+    });
+    expect(mockSearchArtists).toHaveBeenCalledWith("radio");
+  });
+});
+
+describe("GET /artist/id", () => {
+  it("returns 400 when name is missing", async () => {
+    const res = await request(app).get("/artist/id");
+    expect(res.status).toBe(400);
+  });
+
+  it("resolves a name to an MBID", async () => {
+    mockGetArtistMbidByName.mockResolvedValue("mbid-1");
+
+    const res = await request(app).get("/artist/id?name=Radiohead");
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ mbid: "mbid-1" });
+    expect(mockGetArtistMbidByName).toHaveBeenCalledWith("Radiohead");
+  });
+});
+
+describe("GET /artist/:mbid", () => {
+  it("returns 404 when the artist is not found", async () => {
+    mockGetArtistById.mockResolvedValue(null);
+
+    const res = await request(app).get("/artist/missing");
+    expect(res.status).toBe(404);
+    expect(mockFetchReleaseGroupsForArtist).not.toHaveBeenCalled();
+  });
+
+  it("composes artist details, image and release groups", async () => {
+    const artist = { mbid: "a1", name: "Radiohead", type: "Group" };
+    const releaseGroups = [{ id: "rg-1", title: "OK Computer" }];
+    mockGetArtistById.mockResolvedValue(artist);
+    mockFetchReleaseGroupsForArtist.mockResolvedValue(releaseGroups);
+    mockGetArtistImage.mockResolvedValue("https://img/rh.jpg");
+
+    const res = await request(app).get("/artist/a1");
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      artist: { ...artist, imageUrl: "https://img/rh.jpg" },
+      releaseGroups,
+    });
+    expect(mockGetArtistById).toHaveBeenCalledWith("a1");
+    expect(mockFetchReleaseGroupsForArtist).toHaveBeenCalledWith("a1");
+    expect(mockGetArtistImage).toHaveBeenCalledWith("Radiohead");
+  });
+
+  it("omits imageUrl when no image is found", async () => {
+    mockGetArtistById.mockResolvedValue({ mbid: "a1", name: "Radiohead" });
+    mockFetchReleaseGroupsForArtist.mockResolvedValue([]);
+    mockGetArtistImage.mockResolvedValue("");
+
+    const res = await request(app).get("/artist/a1");
+    expect(res.status).toBe(200);
+    expect(res.body.artist.imageUrl).toBeUndefined();
   });
 });
 

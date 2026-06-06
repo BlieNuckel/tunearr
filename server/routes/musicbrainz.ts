@@ -3,11 +3,17 @@ import express from "express";
 import rateLimiter from "../middleware/rateLimiter";
 import {
   searchReleaseGroups,
-  searchArtistReleaseGroups,
+  fetchReleaseGroupsForArtist,
   getReleaseGroupById,
   getReleaseGroupLabel,
   getReleaseGroupDate,
 } from "../api/musicbrainz/releaseGroups";
+import {
+  getArtistById,
+  searchArtists,
+  getArtistMbidByName,
+} from "../api/musicbrainz/artists";
+import { getArtistImage, getArtistsImages } from "../api/deezer/artists";
 import { getLabelAncestors } from "../api/musicbrainz/labels";
 import { getReleaseTracks } from "../api/musicbrainz/tracks";
 import { enrichTracksWithPreviews } from "../services/musicbrainz";
@@ -17,18 +23,65 @@ import { evaluatePurchaseDecision } from "../services/purchaseDecision/evaluateP
 const router = express.Router();
 
 router.get("/search", rateLimiter, async (req: Request, res: Response) => {
-  const { q, searchType } = req.query;
+  const { q } = req.query;
   if (typeof q !== "string") {
     return res.status(400).json({ error: "Query parameter q is required" });
   }
 
-  const data =
-    searchType === "artist"
-      ? await searchArtistReleaseGroups(q)
-      : await searchReleaseGroups(q);
-
-  res.json(data);
+  res.json(await searchReleaseGroups(q));
 });
+
+router.get(
+  "/artist/search",
+  rateLimiter,
+  async (req: Request, res: Response) => {
+    const { q } = req.query;
+    if (typeof q !== "string") {
+      return res.status(400).json({ error: "Query parameter q is required" });
+    }
+
+    const artists = await searchArtists(q);
+    const images = await getArtistsImages(artists.map((a) => a.name));
+    const enriched = artists.map((a) => ({
+      ...a,
+      imageUrl: images.get(a.name.toLowerCase()) || undefined,
+    }));
+
+    res.json({ artists: enriched });
+  }
+);
+
+router.get("/artist/id", rateLimiter, async (req: Request, res: Response) => {
+  const { name } = req.query;
+  if (typeof name !== "string" || !name.trim()) {
+    return res.status(400).json({ error: "Query parameter name is required" });
+  }
+
+  res.json({ mbid: await getArtistMbidByName(name) });
+});
+
+router.get(
+  "/artist/:mbid",
+  rateLimiter,
+  async (req: Request, res: Response) => {
+    const { mbid } = req.params;
+    const artist = await getArtistById(mbid as string);
+
+    if (!artist) {
+      return res.status(404).json({ error: "Artist not found" });
+    }
+
+    const [releaseGroups, imageUrl] = await Promise.all([
+      fetchReleaseGroupsForArtist(mbid as string),
+      getArtistImage(artist.name),
+    ]);
+
+    res.json({
+      artist: { ...artist, imageUrl: imageUrl || undefined },
+      releaseGroups,
+    });
+  }
+);
 
 router.get(
   "/tracks/:releaseGroupId",

@@ -20,8 +20,24 @@ export type MusicBrainzSearchResponse = {
   offset: number;
 };
 
+export type MusicBrainzArtist = {
+  id: string;
+  name: string;
+  disambiguation?: string;
+  type?: string;
+  country?: string;
+};
+
 export type MusicBrainzArtistSearchResponse = {
-  artists: { id: string; name: string }[];
+  artists: MusicBrainzArtist[];
+};
+
+export type ArtistInfo = {
+  mbid: string;
+  name: string;
+  disambiguation?: string;
+  type?: string;
+  country?: string;
 };
 
 export type MusicBrainzTrack = {
