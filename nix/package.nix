@@ -63,7 +63,7 @@ stdenv.mkDerivation (finalAttrs: {
     cp -r build server shared node_modules package.json $out/libexec/tunearr/
 
     makeWrapper ${nodejs}/bin/node $out/bin/tunearr \
-      --add-flags "$out/libexec/tunearr/node_modules/.bin/tsx" \
+      --add-flags "$out/libexec/tunearr/node_modules/tsx/dist/cli.mjs" \
       --add-flags "--tsconfig $out/libexec/tunearr/server/tsconfig.json" \
       --add-flags "$out/libexec/tunearr/server/index.ts" \
       --set NODE_ENV production \
