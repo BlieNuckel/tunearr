@@ -33,6 +33,10 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Honor X-Forwarded-Proto from a reverse proxy so req.secure reflects the
+// client-facing protocol, which decides whether the session cookie is Secure.
+app.set("trust proxy", true);
+
 app.use(express.json());
 
 app.use("/api/auth", authRoutes);
