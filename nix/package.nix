@@ -39,7 +39,7 @@ stdenv.mkDerivation (finalAttrs: {
   # rebuild, and copy the correct hash from the error message.
   pnpmDeps = pnpm_10.fetchDeps {
     inherit (finalAttrs) pname version src;
-    fetcherVersion = 1;
+    fetcherVersion = 3;
     hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
   };
 
