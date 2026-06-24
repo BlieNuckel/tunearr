@@ -22,14 +22,15 @@
         tunearr = prev.callPackage ./nix/package.nix { };
       };
 
-      # Importing this module also registers the overlay, so the module's
-      # `services.tunearr.package` default (pkgs.tunearr) resolves without any
-      # extra wiring on the consumer side.
+      # Default the service package to the one built with THIS flake's nixpkgs,
+      # so consumers on a different channel (e.g. a stable nixos release) don't
+      # rebuild it against their nixpkgs — which would miss the pnpm/node
+      # versions the build needs. mkDefault keeps it overridable.
       nixosModules.tunearr =
-        { ... }:
+        { pkgs, lib, ... }:
         {
           imports = [ ./nix/module.nix ];
-          nixpkgs.overlays = [ self.overlays.default ];
+          services.tunearr.package = lib.mkDefault self.packages.${pkgs.stdenv.hostPlatform.system}.default;
         };
       nixosModules.default = self.nixosModules.tunearr;
 
