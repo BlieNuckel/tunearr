@@ -2,6 +2,7 @@
   lib,
   stdenv,
   nodejs,
+  pnpm,
   fetchPnpmDeps,
   pnpmConfigHook,
   python3,
@@ -31,6 +32,7 @@ stdenv.mkDerivation (finalAttrs: {
 
   nativeBuildInputs = [
     nodejs
+    pnpm
     pnpmConfigHook
     python3 # node-gyp toolchain for better-sqlite3
     makeWrapper
