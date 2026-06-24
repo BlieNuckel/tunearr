@@ -2,7 +2,7 @@
   "name": "tunearr",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "pnpm@10.30.3",
+  "packageManager": "pnpm@11.9.0",
   "type": "module",
   "dependencies": {
     "@floating-ui/react-dom": "^2.1.8",
@@ -79,19 +79,7 @@
     "vitest": "^4.0.18"
   },
   "engines": {
-    "node": "^22.13.0",
-    "pnpm": "^10.0.0"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "better-sqlite3"
-    ],
-    "overrides": {
-      "rollup@>=4.0.0 <4.59.0": "4.59.0",
-      "minimatch@<3.1.4": "3.1.4",
-      "ajv@<6.14.0": "6.14.0",
-      "minimatch@>=9.0.0 <9.0.6": ">=9.0.6",
-      "minimatch@>=9.0.0 <9.0.7": ">=9.0.7"
-    }
+    "node": ">=22.13.0",
+    "pnpm": ">=10.0.0"
   }
 }

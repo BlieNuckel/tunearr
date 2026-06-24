@@ -1,7 +1,7 @@
 {
   lib,
   stdenv,
-  nodejs_22,
+  nodejs,
   fetchPnpmDeps,
   pnpmConfigHook,
   python3,
@@ -30,7 +30,7 @@ stdenv.mkDerivation (finalAttrs: {
   };
 
   nativeBuildInputs = [
-    nodejs_22
+    nodejs
     pnpmConfigHook
     python3 # node-gyp toolchain for better-sqlite3
     makeWrapper
@@ -60,7 +60,7 @@ stdenv.mkDerivation (finalAttrs: {
     mkdir -p $out/libexec/tunearr
     cp -r build server shared node_modules package.json $out/libexec/tunearr/
 
-    makeWrapper ${nodejs_22}/bin/node $out/bin/tunearr \
+    makeWrapper ${nodejs}/bin/node $out/bin/tunearr \
       --add-flags "$out/libexec/tunearr/node_modules/.bin/tsx" \
       --add-flags "--tsconfig $out/libexec/tunearr/server/tsconfig.json" \
       --add-flags "$out/libexec/tunearr/server/index.ts" \
