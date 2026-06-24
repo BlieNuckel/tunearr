@@ -2,7 +2,8 @@
   lib,
   stdenv,
   nodejs_22,
-  pnpm_10,
+  fetchPnpmDeps,
+  pnpmConfigHook,
   python3,
   makeWrapper,
 }:
@@ -30,14 +31,14 @@ stdenv.mkDerivation (finalAttrs: {
 
   nativeBuildInputs = [
     nodejs_22
-    pnpm_10.configHook
+    pnpmConfigHook
     python3 # node-gyp toolchain for better-sqlite3
     makeWrapper
   ];
 
   # Offline pnpm store. After changing dependencies, set `hash = lib.fakeHash;`,
   # rebuild, and copy the correct hash from the error message.
-  pnpmDeps = pnpm_10.fetchDeps {
+  pnpmDeps = fetchPnpmDeps {
     inherit (finalAttrs) pname version src;
     fetcherVersion = 3;
     hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
