@@ -46,6 +46,16 @@ stdenv.mkDerivation (finalAttrs: {
     hash = "sha256-uWjlVVehPhN2BoywjbSX/UvIZM4zYQNPVWfoK+Is6H8=";
   };
 
+  # pnpmConfigHook installs with --ignore-scripts, so native modules are not
+  # compiled. Rebuild better-sqlite3 against this build's node headers
+  # (npm_config_nodedir), forcing a from-source compile so prebuild-install
+  # never reaches for the network.
+  preBuild = ''
+    export npm_config_nodedir=${nodejs}
+    export npm_config_build_from_source=true
+    pnpm rebuild better-sqlite3
+  '';
+
   buildPhase = ''
     runHook preBuild
     pnpm run build
