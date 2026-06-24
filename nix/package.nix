@@ -5,6 +5,7 @@
   pnpm,
   fetchPnpmDeps,
   pnpmConfigHook,
+  node-gyp,
   python3,
   makeWrapper,
 }:
@@ -34,7 +35,8 @@ stdenv.mkDerivation (finalAttrs: {
     nodejs
     pnpm
     pnpmConfigHook
-    python3 # node-gyp toolchain for better-sqlite3
+    node-gyp # not on PATH under pnpm (unlike npm); needed to compile better-sqlite3
+    python3 # node-gyp toolchain
     makeWrapper
   ];
 
@@ -47,12 +49,17 @@ stdenv.mkDerivation (finalAttrs: {
   };
 
   # pnpmConfigHook installs with --ignore-scripts, so native modules are not
-  # compiled. Rebuild better-sqlite3 against this build's node headers
-  # (npm_config_nodedir), forcing a from-source compile so prebuild-install
-  # never reaches for the network.
+  # compiled. Rebuild better-sqlite3 from source against this build's node
+  # headers. The env keeps node-gyp fully offline inside the sandbox:
+  #   - npm_config_nodedir + NIX_NODEJS_BUILDNPMPACKAGE: use local headers,
+  #     don't download them;
+  #   - npm_config_build_from_source: skip the prebuild-install network fetch;
+  #   - HOME: give node-gyp a writable cache dir (~/.cache is unwritable here).
   preBuild = ''
+    export HOME=$TMPDIR
     export npm_config_nodedir=${nodejs}
     export npm_config_build_from_source=true
+    export NIX_NODEJS_BUILDNPMPACKAGE=1
     pnpm rebuild better-sqlite3
   '';
 
