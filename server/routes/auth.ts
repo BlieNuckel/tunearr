@@ -27,14 +27,13 @@ const router = express.Router();
 
 const VALID_THEMES = ["light", "dark", "system"] as const;
 
-function setSessionCookie(res: Response, token: string) {
+function setSessionCookie(req: Request, res: Response, token: string) {
   const maxAge = 30 * 24 * 60 * 60 * 1000;
-  const isProduction = process.env.NODE_ENV === "production";
 
   res.cookie(SESSION_COOKIE_NAME, token, {
     httpOnly: true,
     sameSite: "lax",
-    secure: isProduction,
+    secure: req.secure,
     maxAge,
     path: "/",
   });
@@ -99,7 +98,7 @@ router.post(
 
       const user = await createAdminUser(username, password);
       const token = await createSession(user.id);
-      setSessionCookie(res, token);
+      setSessionCookie(req, res, token);
 
       res.status(201).json({ user: userResponse(user) });
     } catch (err) {
@@ -144,7 +143,7 @@ router.post(
       );
 
       const token = await createSession(user.id);
-      setSessionCookie(res, token);
+      setSessionCookie(req, res, token);
 
       res.status(201).json({ user: userResponse(user) });
     } catch (err) {
@@ -177,7 +176,7 @@ router.post(
       }
 
       const token = await createSession(user.id);
-      setSessionCookie(res, token);
+      setSessionCookie(req, res, token);
 
       res.json({ user: userResponse(user) });
     } catch (err) {
@@ -222,7 +221,7 @@ router.post(
       }
 
       const token = await createSession(user.id);
-      setSessionCookie(res, token);
+      setSessionCookie(req, res, token);
 
       res.json({ user: userResponse(user) });
     } catch (err) {

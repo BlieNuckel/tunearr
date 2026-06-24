@@ -72,6 +72,29 @@ describe("POST /auth/setup", () => {
     expect(res.body.error).toBe("Setup already completed");
   });
 
+  it("does not set the Secure flag when the request is plain HTTP", async () => {
+    const res = await request(app)
+      .post("/auth/setup")
+      .send({ username: "admin", password: "password123" });
+
+    expect(res.headers["set-cookie"][0]).not.toContain("Secure");
+  });
+
+  it("sets the Secure flag when forwarded protocol is https", async () => {
+    const httpsApp = express();
+    httpsApp.set("trust proxy", true);
+    httpsApp.use(express.json());
+    httpsApp.use("/auth", authRouter);
+    httpsApp.use(errorHandler);
+
+    const res = await request(httpsApp)
+      .post("/auth/setup")
+      .set("X-Forwarded-Proto", "https")
+      .send({ username: "admin", password: "password123" });
+
+    expect(res.headers["set-cookie"][0]).toContain("Secure");
+  });
+
   it("validates username length", async () => {
     const res = await request(app)
       .post("/auth/setup")
