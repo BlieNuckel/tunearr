@@ -48,19 +48,16 @@ stdenv.mkDerivation (finalAttrs: {
     hash = "sha256-uWjlVVehPhN2BoywjbSX/UvIZM4zYQNPVWfoK+Is6H8=";
   };
 
-  # pnpmConfigHook installs with --ignore-scripts, so native modules are not
-  # compiled. Rebuild better-sqlite3 from source against this build's node
-  # headers. The env keeps node-gyp fully offline inside the sandbox:
-  #   - npm_config_nodedir + NIX_NODEJS_BUILDNPMPACKAGE: use local headers,
-  #     don't download them;
-  #   - npm_config_build_from_source: skip the prebuild-install network fetch;
-  #   - HOME: give node-gyp a writable cache dir (~/.cache is unwritable here).
+  # pnpmConfigHook installs with --ignore-scripts, so the native better-sqlite3
+  # addon is never compiled. Run node-gyp directly (rather than via pnpm, which
+  # would attempt the prebuild-install network fetch and swallow build output)
+  # against this build's node headers, fully offline.
   preBuild = ''
     export HOME=$TMPDIR
-    export npm_config_nodedir=${nodejs}
-    export npm_config_build_from_source=true
-    export NIX_NODEJS_BUILDNPMPACKAGE=1
-    pnpm rebuild better-sqlite3
+    export PYTHON=${python3}/bin/python3
+    pushd node_modules/.pnpm/better-sqlite3@*/node_modules/better-sqlite3
+    node-gyp rebuild --release --nodedir=${nodejs}
+    popd
   '';
 
   buildPhase = ''
