@@ -38,13 +38,13 @@ async function loadConfigStatus(
 async function loadSettings(
   setSettings: (s: AppSettings) => void,
   setIsLoading: (v: boolean) => void
-) {
+): Promise<AppSettings | null> {
   setIsLoading(true);
   try {
     const res = await fetch("/api/settings");
     if (res.ok) {
       const data = await res.json();
-      setSettings({
+      const loaded: AppSettings = {
         lidarrUrl: data.lidarrUrl || "",
         lidarrApiKey: data.lidarrApiKey || "",
         lidarrQualityProfileId: data.lidarrQualityProfileId || 1,
@@ -68,13 +68,16 @@ async function loadSettings(
           ...DEFAULT_SPENDING,
           ...(data.spending ?? {}),
         },
-      });
+      };
+      setSettings(loaded);
+      return loaded;
     }
   } catch (error) {
     console.error("Failed to load settings:", error);
   } finally {
     setIsLoading(false);
   }
+  return null;
 }
 
 async function loadLidarrOptionValues(
@@ -143,11 +146,39 @@ export const SettingsContextProvider = ({
     user != null &&
     hasPermission(user.permissions, Permission.ADMIN);
 
+  const testConnection = async (testSettings: AppSettings) => {
+    const res = await fetch("/api/settings/test", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(testSettings),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      setIsConnected(false);
+      return { success: false, error: data.error || "Connection failed" };
+    }
+
+    setIsConnected(true);
+    return {
+      success: true,
+      version: data.version,
+      qualityProfiles: data.qualityProfiles,
+      metadataProfiles: data.metadataProfiles,
+      rootFolderPaths: data.rootFolderPaths,
+    };
+  };
+
   useEffect(() => {
     if (!isAuthenticated) return;
 
     if (isAdmin) {
-      loadSettings(setSettings, setIsLoading);
+      loadSettings(setSettings, setIsLoading).then((loaded) => {
+        if (loaded?.lidarrUrl && loaded?.lidarrApiKey) {
+          testConnection(loaded).catch(() => setIsConnected(false));
+        }
+      });
     } else {
       loadConfigStatus(setSettings, setIsLoading);
     }
@@ -173,7 +204,6 @@ export const SettingsContextProvider = ({
 
     if (lidarrFieldsChanged && merged.lidarrUrl && merged.lidarrApiKey) {
       const testResult = await testConnection(merged);
-      setIsConnected(testResult.success);
       if (testResult.success) {
         await loadLidarrOptionValues(options, setOptions);
       }
@@ -182,28 +212,6 @@ export const SettingsContextProvider = ({
 
   const saveSettings = async (newSettings: AppSettings) => {
     await savePartialSettings(newSettings);
-  };
-
-  const testConnection = async (testSettings: AppSettings) => {
-    const res = await fetch("/api/settings/test", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(testSettings),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      return { success: false, error: data.error || "Connection failed" };
-    }
-
-    return {
-      success: true,
-      version: data.version,
-      qualityProfiles: data.qualityProfiles,
-      metadataProfiles: data.metadataProfiles,
-      rootFolderPaths: data.rootFolderPaths,
-    };
   };
 
   const value: SettingsContextValue = {

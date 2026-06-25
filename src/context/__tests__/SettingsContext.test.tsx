@@ -104,15 +104,19 @@ describe("SettingsContextProvider", () => {
   });
 
   it("loads settings on mount", async () => {
-    vi.mocked(fetch).mockResolvedValueOnce(
-      new Response(
-        JSON.stringify({
-          lidarrUrl: "http://lidarr:8686",
-          lidarrApiKey: "key1",
-        }),
-        { status: 200 }
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            lidarrUrl: "http://lidarr:8686",
+            lidarrApiKey: "key1",
+          }),
+          { status: 200 }
+        )
       )
-    );
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ version: "1.0" }), { status: 200 })
+      );
 
     renderWithAuth();
 
@@ -122,15 +126,60 @@ describe("SettingsContextProvider", () => {
     expect(screen.getByTestId("url")).toHaveTextContent("http://lidarr:8686");
   });
 
-  it("does not test connection on load", async () => {
-    vi.mocked(fetch).mockResolvedValueOnce(
-      new Response(
-        JSON.stringify({
-          lidarrUrl: "http://lidarr:8686",
-          lidarrApiKey: "key1",
-        }),
-        { status: 200 }
+  it("tests the Lidarr connection on load when credentials are present", async () => {
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            lidarrUrl: "http://lidarr:8686",
+            lidarrApiKey: "key1",
+          }),
+          { status: 200 }
+        )
       )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ version: "1.0" }), { status: 200 })
+      );
+
+    renderWithAuth();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("connected")).toHaveTextContent("true");
+    });
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/settings/test",
+      expect.objectContaining({ method: "POST" })
+    );
+  });
+
+  it("marks the connection failed when the load-time test fails", async () => {
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            lidarrUrl: "http://lidarr:8686",
+            lidarrApiKey: "key1",
+          }),
+          { status: 200 }
+        )
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ error: "unreachable" }), { status: 502 })
+      );
+
+    renderWithAuth();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("loading")).toHaveTextContent("false");
+    });
+    expect(screen.getByTestId("connected")).toHaveTextContent("false");
+  });
+
+  it("does not test connection on load when credentials are missing", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify({ lidarrUrl: "", lidarrApiKey: "" }), {
+        status: 200,
+      })
     );
 
     renderWithAuth();
