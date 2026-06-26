@@ -191,6 +191,18 @@ describe("GET /", () => {
       userId: undefined,
     });
   });
+
+  it("passes lifecycle status params through to the service", async () => {
+    mockGetRequests.mockResolvedValue([]);
+    mockEnrichRequestsWithLidarr.mockResolvedValue([]);
+    await request(app).get(
+      "/?status=downloading&status=imported&status=failed"
+    );
+    expect(mockGetRequests).toHaveBeenCalledWith({
+      status: ["downloading", "imported", "failed"],
+      userId: undefined,
+    });
+  });
 });
 
 describe("POST /:id/approve", () => {
@@ -206,6 +218,13 @@ describe("POST /:id/approve", () => {
     expect(res.status).toBe(200);
     expect(res.body.status).toBe("approved");
     expect(mockApproveRequest).toHaveBeenCalledWith(1, 1);
+  });
+
+  it("returns 200 with failed status when fulfillment fails", async () => {
+    mockApproveRequest.mockResolvedValue({ status: "failed" });
+    const res = await request(app).post("/1/approve");
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe("failed");
   });
 });
 

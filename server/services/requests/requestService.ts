@@ -1,4 +1,4 @@
-import { In } from "typeorm";
+import { Brackets } from "typeorm";
 import { getDataSource, Request } from "../../db/index";
 import { hasPermission, Permission } from "../../../shared/permissions";
 import { getAlbumByMbid } from "../lidarr/helpers";
@@ -9,13 +9,17 @@ type CreateRequestResult =
   | { status: "approved"; requestId: number }
   | { status: "pending"; requestId: number }
   | { status: "already_monitored"; requestId: number }
-  | { status: "duplicate_pending"; requestId: number };
+  | { status: "duplicate_pending"; requestId: number }
+  | { status: "failed"; requestId: number };
 
 type ApproveRequestResult =
   | { status: "approved" }
   | { status: "already_monitored" }
   | { status: "not_found" }
-  | { status: "already_resolved" };
+  | { status: "already_resolved" }
+  | { status: "failed" };
+
+const APPROVAL_STATUSES = new Set(["pending", "approved", "declined"]);
 
 type DeclineRequestResult =
   | { status: "declined" }
@@ -87,12 +91,12 @@ async function processApproval(
 ): Promise<CreateRequestResult> {
   const repo = getRequestRepo();
 
+  request.status = "approved";
+  request.approved_by = approvedBy;
+  request.approved_at = new Date().toISOString();
+
   try {
     const result = await fulfillRequest(request.album_mbid);
-
-    request.status = "approved";
-    request.approved_by = approvedBy;
-    request.approved_at = new Date().toISOString();
     await repo.save(request);
 
     log.info(`Request #${request.id} auto-approved and fulfilled`);
@@ -103,8 +107,10 @@ async function processApproval(
 
     return { status: "approved", requestId: request.id };
   } catch (err) {
+    request.lidarr_status = "failed";
+    await repo.save(request);
     log.error(`Failed to fulfill request #${request.id}: ${err}`);
-    throw err;
+    return { status: "failed", requestId: request.id };
   }
 }
 
@@ -124,20 +130,27 @@ export async function approveRequest(
     return { status: "already_resolved" };
   }
 
-  const result = await fulfillRequest(request.album_mbid);
-
   request.status = "approved";
   request.approved_by = approvedBy;
   request.approved_at = new Date().toISOString();
-  await repo.save(request);
 
-  log.info(`Request #${requestId} approved by user ${approvedBy}`);
+  try {
+    const result = await fulfillRequest(request.album_mbid);
+    await repo.save(request);
 
-  if (result.status === "already_monitored") {
-    return { status: "already_monitored" };
+    log.info(`Request #${requestId} approved by user ${approvedBy}`);
+
+    if (result.status === "already_monitored") {
+      return { status: "already_monitored" };
+    }
+
+    return { status: "approved" };
+  } catch (err) {
+    request.lidarr_status = "failed";
+    await repo.save(request);
+    log.error(`Failed to fulfill request #${requestId}: ${err}`);
+    return { status: "failed" };
   }
-
-  return { status: "approved" };
 }
 
 export async function declineRequest(
@@ -169,16 +182,33 @@ export async function getRequests(filters?: {
 }) {
   const repo = getRequestRepo();
 
-  const where: Record<string, unknown> = {};
-  if (filters?.status && filters.status.length > 0) {
-    where.status =
-      filters.status.length === 1 ? filters.status[0] : In(filters.status);
-  }
-  if (filters?.userId) where.user_id = filters.userId;
+  const qb = repo
+    .createQueryBuilder("request")
+    .leftJoinAndSelect("request.user", "user")
+    .orderBy("request.created_at", "DESC");
 
-  return repo.find({
-    where,
-    order: { created_at: "DESC" },
-    relations: ["user"],
-  });
+  if (filters?.userId) {
+    qb.andWhere("request.user_id = :userId", { userId: filters.userId });
+  }
+
+  const statuses = filters?.status ?? [];
+  if (statuses.length > 0) {
+    const approvals = statuses.filter((s) => APPROVAL_STATUSES.has(s));
+    const lifecycles = statuses.filter((s) => !APPROVAL_STATUSES.has(s));
+
+    qb.andWhere(
+      new Brackets((b) => {
+        if (approvals.length > 0) {
+          b.orWhere("request.status IN (:...approvals)", { approvals });
+        }
+        if (lifecycles.length > 0) {
+          b.orWhere("request.lidarr_status IN (:...lifecycles)", {
+            lifecycles,
+          });
+        }
+      })
+    );
+  }
+
+  return qb.getMany();
 }
