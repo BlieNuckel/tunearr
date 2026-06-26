@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useParams } from "react-router-dom";
 import useArtistDetails from "@/hooks/useArtistDetails";
 import useLibraryAlbums from "@/hooks/useLibraryAlbums";
+import useWantedAlbums from "@/hooks/useWantedAlbums";
 import { groupArtistReleases } from "@/utils/groupArtistReleases";
 import ArtistHeader from "./components/ArtistHeader";
 import ReleaseSectionGrid from "./components/ReleaseSectionGrid";
@@ -11,6 +12,7 @@ export default function ArtistPage() {
   const { mbid } = useParams<{ mbid: string }>();
   const { artist, releaseGroups, loading, error } = useArtistDetails(mbid);
   const { isAlbumInLibrary } = useLibraryAlbums();
+  const { isAlbumWanted } = useWantedAlbums();
 
   const sections = useMemo(
     () => (mbid ? groupArtistReleases(releaseGroups, mbid) : []),
@@ -52,6 +54,7 @@ export default function ArtistPage() {
             title={section.title}
             items={section.items}
             isAlbumInLibrary={isAlbumInLibrary}
+            isAlbumWanted={isAlbumWanted}
           />
         ))
       )}

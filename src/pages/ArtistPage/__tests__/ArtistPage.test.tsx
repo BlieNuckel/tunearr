@@ -20,15 +20,27 @@ vi.mock("@/hooks/useLibraryAlbums", () => ({
   }),
 }));
 
+vi.mock("@/hooks/useWantedAlbums", () => ({
+  default: () => ({
+    isAlbumWanted: (id: string) => id === "wanted",
+  }),
+}));
+
 vi.mock("@/components/ReleaseGroupCard", () => ({
   default: ({
     releaseGroup,
     inLibrary,
+    initialWanted,
   }: {
     releaseGroup: ReleaseGroup;
     inLibrary?: boolean;
+    initialWanted?: boolean;
   }) => (
-    <div data-testid={`rg-${releaseGroup.id}`} data-in-library={inLibrary}>
+    <div
+      data-testid={`rg-${releaseGroup.id}`}
+      data-in-library={inLibrary}
+      data-wanted={initialWanted}
+    >
       {releaseGroup.title}
     </div>
   ),
@@ -116,6 +128,24 @@ describe("ArtistPage", () => {
       "false"
     );
     expect(screen.getByText("In Library")).toBeInTheDocument();
+  });
+
+  it("passes wanted status through to release cards", () => {
+    mockState.artist = { mbid: "a1", name: "Radiohead" };
+    mockState.releaseGroups = [
+      makeRg({ id: "wanted", title: "On Wanted" }),
+      makeRg({ id: "not-wanted", title: "Not Wanted" }),
+    ];
+    renderPage();
+
+    expect(screen.getByTestId("rg-wanted")).toHaveAttribute(
+      "data-wanted",
+      "true"
+    );
+    expect(screen.getByTestId("rg-not-wanted")).toHaveAttribute(
+      "data-wanted",
+      "false"
+    );
   });
 
   it("shows an empty message when the artist has no releases", () => {

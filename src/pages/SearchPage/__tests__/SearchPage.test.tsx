@@ -22,13 +22,27 @@ vi.mock("@/hooks/useLibraryAlbums", () => ({
   }),
 }));
 
+vi.mock("@/hooks/useWantedAlbums", () => ({
+  default: () => ({
+    isAlbumWanted: (id: string) => id === "rg-wanted",
+  }),
+}));
+
 vi.mock("@/hooks/useNavigateToArtist", () => ({
   default: () => ({ go: vi.fn(), resolving: false }),
 }));
 
 vi.mock("@/components/ReleaseGroupCard", () => ({
-  default: ({ releaseGroup }: { releaseGroup: { title: string } }) => (
-    <div data-testid="release-card">{releaseGroup.title}</div>
+  default: ({
+    releaseGroup,
+    initialWanted,
+  }: {
+    releaseGroup: { title: string };
+    initialWanted?: boolean;
+  }) => (
+    <div data-testid="release-card" data-wanted={initialWanted}>
+      {releaseGroup.title}
+    </div>
   ),
 }));
 
@@ -96,6 +110,40 @@ describe("SearchPage", () => {
     ];
     renderSearchPage("OK", "album");
     expect(screen.getByText("OK Computer")).toBeInTheDocument();
+  });
+
+  it("seeds initialWanted from the wanted list for matching albums", () => {
+    mockSearchState.albums = [
+      {
+        id: "rg-wanted",
+        title: "In Rainbows",
+        score: 100,
+        "primary-type": "Album",
+        "first-release-date": "2007-10-10",
+        "artist-credit": [
+          { name: "Radiohead", artist: { id: "a1", name: "Radiohead" } },
+        ],
+      },
+      {
+        id: "rg-other",
+        title: "Amnesiac",
+        score: 90,
+        "primary-type": "Album",
+        "first-release-date": "2001-06-05",
+        "artist-credit": [
+          { name: "Radiohead", artist: { id: "a1", name: "Radiohead" } },
+        ],
+      },
+    ];
+    renderSearchPage("Radiohead", "album");
+    expect(screen.getByText("In Rainbows")).toHaveAttribute(
+      "data-wanted",
+      "true"
+    );
+    expect(screen.getByText("Amnesiac")).toHaveAttribute(
+      "data-wanted",
+      "false"
+    );
   });
 
   it("renders artist cards in artist mode", () => {
