@@ -70,6 +70,12 @@ export interface SettingsContextValue {
     metadataProfiles?: { id: number; name: string }[];
     rootFolderPaths?: { id: number; path: string }[];
   }>;
+  testSlskdConnection: (testSettings: AppSettings) => Promise<{
+    success: boolean;
+    version?: string | null;
+    soulseekConnected?: boolean;
+    error?: string;
+  }>;
   loadLidarrOptionValues: () => Promise<void>;
 }
 

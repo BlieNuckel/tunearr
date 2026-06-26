@@ -17,6 +17,28 @@ type TestResult = {
   error?: string;
 };
 
+type SlskdTestResult = {
+  success: boolean;
+  version?: string | null;
+  soulseekConnected?: boolean;
+  error?: string;
+};
+
+function slskdBannerClass(result: SlskdTestResult): string {
+  if (!result.success) return "bg-rose-400 text-white";
+  if (!result.soulseekConnected) return "bg-amber-300 text-black";
+  return "bg-emerald-400 text-black";
+}
+
+function slskdBannerText(result: SlskdTestResult): string {
+  if (!result.success) return `Connection failed: ${result.error}`;
+  const version = result.version ? ` v${result.version}` : "";
+  if (!result.soulseekConnected) {
+    return `Reached slskd${version}, but it is not logged into the Soulseek network`;
+  }
+  return `Connected! slskd${version} is logged into Soulseek`;
+}
+
 export default function IntegrationsSettingsPage() {
   const {
     options,
@@ -25,6 +47,7 @@ export default function IntegrationsSettingsPage() {
     isConnected,
     savePartialSettings,
     testConnection,
+    testSlskdConnection,
     loadLidarrOptionValues,
   } = useSettings();
 
@@ -39,6 +62,9 @@ export default function IntegrationsSettingsPage() {
 
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<TestResult | null>(null);
+  const [slskdTesting, setSlskdTesting] = useState(false);
+  const [slskdTestResult, setSlskdTestResult] =
+    useState<SlskdTestResult | null>(null);
   const [autoSetupModalOpen, setAutoSetupModalOpen] = useState(false);
 
   useEffect(() => {
@@ -72,6 +98,27 @@ export default function IntegrationsSettingsPage() {
       }
     },
     [fields, testConnection, loadLidarrOptionValues]
+  );
+
+  const handleTestSlskd = useCallback(
+    async (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      setSlskdTesting(true);
+      setSlskdTestResult(null);
+
+      try {
+        const result = await testSlskdConnection(fields);
+        setSlskdTestResult(result);
+      } catch (err) {
+        setSlskdTestResult({
+          success: false,
+          error: err instanceof Error ? err.message : "Test failed",
+        });
+      } finally {
+        setSlskdTesting(false);
+      }
+    },
+    [fields, testSlskdConnection]
   );
 
   const handlePlexLoginComplete = useCallback(
@@ -151,9 +198,11 @@ export default function IntegrationsSettingsPage() {
         url={fields.slskdUrl}
         apiKey={fields.slskdApiKey}
         downloadPath={fields.slskdDownloadPath}
+        testing={slskdTesting}
         onUrlChange={(v) => updateField("slskdUrl", v)}
         onApiKeyChange={(v) => updateField("slskdApiKey", v)}
         onDownloadPathChange={(v) => updateField("slskdDownloadPath", v)}
+        onTest={handleTestSlskd}
         isConnected={isConnected}
         autoSetupStatus={autoSetupStatus}
         autoSetupLoading={autoSetupLoading}
@@ -171,6 +220,16 @@ export default function IntegrationsSettingsPage() {
           {testResult.success
             ? `Connected! Lidarr v${testResult.version}`
             : `Connection failed: ${testResult.error}`}
+        </div>
+      )}
+
+      {slskdTestResult && (
+        <div
+          className={`mt-4 p-3 rounded-xl text-sm font-medium border-2 border-black shadow-cartoon-sm animate-slide-up ${slskdBannerClass(
+            slskdTestResult
+          )}`}
+        >
+          {slskdBannerText(slskdTestResult)}
         </div>
       )}
 

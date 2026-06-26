@@ -7,9 +7,11 @@ interface SlskdSectionProps {
   url: string;
   apiKey: string;
   downloadPath: string;
+  testing: boolean;
   onUrlChange: (url: string) => void;
   onApiKeyChange: (apiKey: string) => void;
   onDownloadPathChange: (path: string) => void;
+  onTest: (e: React.MouseEvent<HTMLButtonElement>) => void;
   isConnected: boolean;
   autoSetupStatus: AutoSetupStatus;
   autoSetupLoading: boolean;
@@ -32,9 +34,11 @@ export default function SlskdSection({
   url,
   apiKey,
   downloadPath,
+  testing,
   onUrlChange,
   onApiKeyChange,
   onDownloadPathChange,
+  onTest,
   isConnected,
   autoSetupStatus,
   autoSetupLoading,
@@ -91,7 +95,17 @@ export default function SlskdSection({
           volume mount)
         </p>
       </div>
-      <AutoSetupButton state={buttonState} onClick={onAutoSetup} />
+      <div className="flex flex-wrap gap-3 pt-2">
+        <button
+          type="button"
+          onClick={onTest}
+          disabled={testing || !url || !apiKey}
+          className="px-4 py-2 bg-amber-300 hover:bg-amber-200 disabled:opacity-50 text-black font-bold rounded-lg text-sm border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all"
+        >
+          {testing ? "Testing..." : "Test Connection"}
+        </button>
+        <AutoSetupButton state={buttonState} onClick={onAutoSetup} />
+      </div>
     </div>
   );
 }

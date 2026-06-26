@@ -56,6 +56,18 @@ export type SlskdTransferGroup = {
   }[];
 };
 
+// --- Application state (GET /api/v0/application) ---
+
+export type SlskdApplicationState = {
+  version?: { full?: string; current?: string } | string;
+  server?: {
+    address?: string;
+    isConnected?: boolean;
+    isLoggedIn?: boolean;
+    state?: string;
+  };
+};
+
 // --- Grouped search result (our internal representation) ---
 
 export type GroupedSearchResult = {

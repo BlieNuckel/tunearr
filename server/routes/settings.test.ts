@@ -5,6 +5,7 @@ const mockSetConfig = vi.fn();
 const mockExistsSync = vi.fn();
 const mockClearPromotedAlbumCache = vi.fn();
 const mockTestLidarrConnection = vi.fn();
+const mockTestSlskdConnection = vi.fn();
 
 vi.mock("../config", () => ({
   getConfig: (...args: unknown[]) => mockGetConfig(...args),
@@ -24,6 +25,10 @@ vi.mock("../promotedAlbum/getPromotedAlbum", () => ({
 vi.mock("../services/settings", () => ({
   testLidarrConnection: (...args: unknown[]) =>
     mockTestLidarrConnection(...args),
+}));
+
+vi.mock("../api/slskd/testConnection", () => ({
+  testSlskdConnection: (...args: unknown[]) => mockTestSlskdConnection(...args),
 }));
 
 vi.mock("../middleware/requireAuth", () => ({
@@ -188,6 +193,50 @@ describe("POST /settings/test", () => {
     });
     expect(mockTestLidarrConnection).toHaveBeenCalledWith(
       "http://lidarr:8686",
+      "goodkey"
+    );
+  });
+});
+
+describe("POST /settings/test-slskd", () => {
+  it("returns 400 without required fields", async () => {
+    const res = await request(app).post("/settings/test-slskd").send({});
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("URL and API key are required");
+  });
+
+  it("returns error on failed slskd connection", async () => {
+    mockTestSlskdConnection.mockResolvedValue({
+      error: "slskd returned 401",
+      status: 401,
+    });
+
+    const res = await request(app)
+      .post("/settings/test-slskd")
+      .send({ slskdUrl: "http://slskd:5030", slskdApiKey: "badkey" });
+    expect(res.status).toBe(401);
+    expect(res.body.error).toBe("slskd returned 401");
+  });
+
+  it("returns success with version and soulseek state", async () => {
+    mockTestSlskdConnection.mockResolvedValue({
+      success: true,
+      version: "0.21.0",
+      soulseekConnected: true,
+    });
+
+    const res = await request(app)
+      .post("/settings/test-slskd")
+      .send({ slskdUrl: "http://slskd:5030", slskdApiKey: "goodkey" });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      success: true,
+      version: "0.21.0",
+      soulseekConnected: true,
+    });
+    expect(mockTestSlskdConnection).toHaveBeenCalledWith(
+      "http://slskd:5030",
       "goodkey"
     );
   });
