@@ -16,6 +16,53 @@ describe("useWanted", () => {
     expect(result.current.errorMsg).toBeNull();
   });
 
+  it("seeds state from initialWanted", () => {
+    const { result } = renderHook(() => useWanted(true));
+    expect(result.current.state).toBe("wanted");
+  });
+
+  it("reconciles to initialWanted when it resolves after mount", () => {
+    const { result, rerender } = renderHook(({ wanted }) => useWanted(wanted), {
+      initialProps: { wanted: false },
+    });
+    expect(result.current.state).toBe("idle");
+
+    rerender({ wanted: true });
+    expect(result.current.state).toBe("wanted");
+  });
+
+  it("does not clobber a pending transition when initialWanted changes", async () => {
+    let resolveFetch: (value: Response) => void = () => {};
+    vi.mocked(fetch).mockReturnValueOnce(
+      new Promise<Response>((resolve) => {
+        resolveFetch = resolve;
+      })
+    );
+
+    const { result, rerender } = renderHook(({ wanted }) => useWanted(wanted), {
+      initialProps: { wanted: false },
+    });
+
+    let addPromise: Promise<void>;
+    act(() => {
+      addPromise = result.current.addToWanted("mbid-1");
+    });
+    expect(result.current.state).toBe("adding");
+
+    rerender({ wanted: false });
+    expect(result.current.state).toBe("adding");
+
+    await act(async () => {
+      resolveFetch(
+        new Response(JSON.stringify({ status: "added", id: 1 }), {
+          status: 200,
+        })
+      );
+      await addPromise;
+    });
+    expect(result.current.state).toBe("wanted");
+  });
+
   it("transitions to wanted on successful add", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(
       new Response(JSON.stringify({ status: "added", id: 1 }), { status: 200 })

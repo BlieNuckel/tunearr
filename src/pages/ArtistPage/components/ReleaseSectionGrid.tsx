@@ -7,12 +7,14 @@ interface ReleaseSectionGridProps {
   title: string;
   items: ReleaseGroup[];
   isAlbumInLibrary: (albumMbid: string) => boolean;
+  isAlbumWanted: (albumMbid: string) => boolean;
 }
 
 export default function ReleaseSectionGrid({
   title,
   items,
   isAlbumInLibrary,
+  isAlbumWanted,
 }: ReleaseSectionGridProps) {
   return (
     <section className="mb-8">
@@ -34,6 +36,7 @@ export default function ReleaseSectionGrid({
             <ReleaseGroupCard
               releaseGroup={rg}
               inLibrary={isAlbumInLibrary(rg.id)}
+              initialWanted={isAlbumWanted(rg.id)}
             />
           </div>
         ))}

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 type WantedState = "idle" | "adding" | "removing" | "wanted" | "error";
 
@@ -7,6 +7,16 @@ export default function useWanted(initialWanted = false) {
     initialWanted ? "wanted" : "idle"
   );
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    setState((prev) =>
+      prev === "idle" || prev === "wanted"
+        ? initialWanted
+          ? "wanted"
+          : "idle"
+        : prev
+    );
+  }, [initialWanted]);
 
   const addToWanted = useCallback(async (albumMbid: string) => {
     setState("adding");
