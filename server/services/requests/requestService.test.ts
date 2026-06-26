@@ -1,22 +1,51 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { In } from "typeorm";
+import { Brackets } from "typeorm";
 import { Permission } from "../../../shared/permissions";
 
 const mockFulfillRequest = vi.fn();
 const mockGetAlbumByMbid = vi.fn();
 
-const mockFind = vi.fn();
 const mockFindOne = vi.fn();
 const mockCreate = vi.fn();
 const mockSave = vi.fn();
+const mockGetMany = vi.fn();
+
+/** Records calls made on the query builder so tests can assert filter SQL. */
+const qbCalls = {
+  andWhere: [] as { sql: unknown; params?: unknown }[],
+  orWhere: [] as { sql: unknown; params?: unknown }[],
+};
+
+const subBuilder = {
+  orWhere: (sql: unknown, params?: unknown) => {
+    qbCalls.orWhere.push({ sql, params });
+    return subBuilder;
+  },
+};
+
+const queryBuilder = {
+  leftJoinAndSelect: () => queryBuilder,
+  orderBy: () => queryBuilder,
+  andWhere: (sql: unknown, params?: unknown) => {
+    if (sql instanceof Brackets) {
+      (sql as unknown as { whereFactory: (b: unknown) => void }).whereFactory(
+        subBuilder
+      );
+    } else {
+      qbCalls.andWhere.push({ sql, params });
+    }
+    return queryBuilder;
+  },
+  getMany: (...args: unknown[]) => mockGetMany(...args),
+};
 
 vi.mock("../../db/index", () => ({
   getDataSource: () => ({
     getRepository: () => ({
-      find: (...args: unknown[]) => mockFind(...args),
       findOne: (...args: unknown[]) => mockFindOne(...args),
       create: (...args: unknown[]) => mockCreate(...args),
       save: (...args: unknown[]) => mockSave(...args),
+      createQueryBuilder: () => queryBuilder,
     }),
   }),
   Request: "Request",
@@ -47,6 +76,8 @@ import {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  qbCalls.andWhere = [];
+  qbCalls.orWhere = [];
   mockGetAlbumByMbid.mockResolvedValue({
     title: "Test Album",
     artist: { artistName: "Test Artist" },
@@ -166,6 +197,25 @@ describe("createRequest", () => {
     const result = await createRequest(1, Permission.ADMIN, "mbid-1");
     expect(result).toEqual({ status: "already_monitored", requestId: 10 });
   });
+
+  it("marks lidarr_status failed when auto-approve fulfillment throws", async () => {
+    mockFindOne.mockResolvedValue(null);
+    const savedRequest = {
+      id: 10,
+      user_id: 1,
+      album_mbid: "mbid-1",
+      status: "pending",
+    } as Record<string, unknown>;
+    mockCreate.mockReturnValue(savedRequest);
+    mockSave.mockResolvedValue(savedRequest);
+    mockFulfillRequest.mockRejectedValue(new Error("lidarr boom"));
+
+    const result = await createRequest(1, Permission.ADMIN, "mbid-1");
+
+    expect(result).toEqual({ status: "failed", requestId: 10 });
+    expect(savedRequest.status).toBe("approved");
+    expect(savedRequest.lidarr_status).toBe("failed");
+  });
 });
 
 describe("approveRequest", () => {
@@ -196,6 +246,23 @@ describe("approveRequest", () => {
     expect(req.status).toBe("approved");
     expect(mockFulfillRequest).toHaveBeenCalledWith("mbid-1");
   });
+
+  it("marks lidarr_status failed when fulfillment throws", async () => {
+    const req = {
+      id: 1,
+      status: "pending",
+      album_mbid: "mbid-1",
+    } as Record<string, unknown>;
+    mockFindOne.mockResolvedValue(req);
+    mockSave.mockResolvedValue(req);
+    mockFulfillRequest.mockRejectedValue(new Error("lidarr boom"));
+
+    const result = await approveRequest(1, 2);
+
+    expect(result).toEqual({ status: "failed" });
+    expect(req.status).toBe("approved");
+    expect(req.lidarr_status).toBe("failed");
+  });
 });
 
 describe("declineRequest", () => {
@@ -223,48 +290,65 @@ describe("declineRequest", () => {
 });
 
 describe("getRequests", () => {
-  it("returns requests with user info", async () => {
-    mockFind.mockResolvedValue([]);
+  it("returns requests with no filters applied", async () => {
+    mockGetMany.mockResolvedValue([]);
     const result = await getRequests();
     expect(result).toEqual([]);
-    expect(mockFind).toHaveBeenCalledWith({
-      where: {},
-      order: { created_at: "DESC" },
-      relations: ["user"],
-    });
+    expect(qbCalls.andWhere).toHaveLength(0);
+    expect(qbCalls.orWhere).toHaveLength(0);
   });
 
-  it("filters by single status", async () => {
-    mockFind.mockResolvedValue([]);
-    await getRequests({ status: ["pending"] });
-    expect(mockFind).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { status: "pending" } })
-    );
-  });
-
-  it("filters by multiple statuses using In()", async () => {
-    mockFind.mockResolvedValue([]);
+  it("filters approval statuses on the status column", async () => {
+    mockGetMany.mockResolvedValue([]);
     await getRequests({ status: ["pending", "approved"] });
-    expect(mockFind).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { status: In(["pending", "approved"]) },
-      })
-    );
+
+    expect(qbCalls.orWhere).toEqual([
+      {
+        sql: "request.status IN (:...approvals)",
+        params: { approvals: ["pending", "approved"] },
+      },
+    ]);
   });
 
-  it("does not filter status when array is empty", async () => {
-    mockFind.mockResolvedValue([]);
+  it("filters lifecycle statuses on the lidarr_status column", async () => {
+    mockGetMany.mockResolvedValue([]);
+    await getRequests({ status: ["downloading", "imported"] });
+
+    expect(qbCalls.orWhere).toEqual([
+      {
+        sql: "request.lidarr_status IN (:...lifecycles)",
+        params: { lifecycles: ["downloading", "imported"] },
+      },
+    ]);
+  });
+
+  it("ORs approval and lifecycle statuses across both columns", async () => {
+    mockGetMany.mockResolvedValue([]);
+    await getRequests({ status: ["approved", "failed", "wanted"] });
+
+    expect(qbCalls.orWhere).toEqual([
+      {
+        sql: "request.status IN (:...approvals)",
+        params: { approvals: ["approved"] },
+      },
+      {
+        sql: "request.lidarr_status IN (:...lifecycles)",
+        params: { lifecycles: ["failed", "wanted"] },
+      },
+    ]);
+  });
+
+  it("does not add a status filter when the array is empty", async () => {
+    mockGetMany.mockResolvedValue([]);
     await getRequests({ status: [] });
-    expect(mockFind).toHaveBeenCalledWith(
-      expect.objectContaining({ where: {} })
-    );
+    expect(qbCalls.orWhere).toHaveLength(0);
   });
 
   it("filters by userId", async () => {
-    mockFind.mockResolvedValue([]);
+    mockGetMany.mockResolvedValue([]);
     await getRequests({ userId: 5 });
-    expect(mockFind).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { user_id: 5 } })
-    );
+    expect(qbCalls.andWhere).toEqual([
+      { sql: "request.user_id = :userId", params: { userId: 5 } },
+    ]);
   });
 });

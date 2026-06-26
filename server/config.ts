@@ -56,6 +56,7 @@ export type IConfig = {
   purchaseDecision: PurchaseDecisionConfig;
   spending: SpendingConfig;
   followedArtistPollIntervalMs: number;
+  requestStatusPollIntervalMs: number;
 };
 
 /** Input type for setConfig — nested objects are optional since defaults are deep-merged */
@@ -79,6 +80,7 @@ export const DEFAULT_SPENDING: SpendingConfig = {
 };
 
 export const DEFAULT_FOLLOWED_POLL_INTERVAL_MS = 6 * 60 * 60 * 1000;
+export const DEFAULT_REQUEST_STATUS_POLL_INTERVAL_MS = 2 * 60 * 1000;
 
 export const DEFAULT_PROMOTED_ALBUM: PromotedAlbumConfig = {
   cacheDurationMinutes: 30,
@@ -124,6 +126,7 @@ const DEFAULT_CONFIG: IConfig = {
   purchaseDecision: DEFAULT_PURCHASE_DECISION,
   spending: DEFAULT_SPENDING,
   followedArtistPollIntervalMs: DEFAULT_FOLLOWED_POLL_INTERVAL_MS,
+  requestStatusPollIntervalMs: DEFAULT_REQUEST_STATUS_POLL_INTERVAL_MS,
 };
 
 type RawStatement = {
@@ -313,6 +316,14 @@ function validateConfig(mergedConfig: IConfig) {
   ) {
     throw new Error(
       "followedArtistPollIntervalMs must be a number >= 60000 (1 minute)"
+    );
+  }
+  if (
+    typeof mergedConfig.requestStatusPollIntervalMs !== "number" ||
+    mergedConfig.requestStatusPollIntervalMs < 60_000
+  ) {
+    throw new Error(
+      "requestStatusPollIntervalMs must be a number >= 60000 (1 minute)"
     );
   }
 }

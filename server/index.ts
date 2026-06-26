@@ -23,6 +23,7 @@ import purchasesRoutes from "./routes/purchases";
 import wantedRoutes from "./routes/wanted";
 import followedRoutes from "./routes/followed";
 import { startFollowedArtistPoller } from "./services/followed/poller";
+import { startRequestStatusPoller } from "./services/requests/statusPoller";
 import { getConfig } from "./config";
 
 const log = createLogger("Server");
@@ -73,6 +74,10 @@ initializeConfig();
 const followedPollIntervalMs =
   getConfig().followedArtistPollIntervalMs ?? 6 * 60 * 60 * 1000;
 startFollowedArtistPoller(followedPollIntervalMs);
+
+const requestStatusPollIntervalMs =
+  getConfig().requestStatusPollIntervalMs ?? 2 * 60 * 1000;
+startRequestStatusPoller(requestStatusPollIntervalMs);
 
 app.listen(PORT, () => {
   log.info(`Listening on port ${PORT}`);

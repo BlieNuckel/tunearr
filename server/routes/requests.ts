@@ -9,8 +9,16 @@ import {
   getRequests,
 } from "../services/requests/requestService";
 import { enrichRequestsWithLidarr } from "../services/requests/lidarrEnrichment";
+import { runStatusSyncOnce } from "../services/requests/statusPoller";
 
 const router = express.Router();
+
+const FULFILLED_STATUSES = new Set(["approved", "already_monitored"]);
+
+/** Refreshes persisted lifecycle statuses out-of-band after a fulfillment. */
+function triggerStatusSync(): void {
+  void runStatusSyncOnce().catch(() => {});
+}
 
 router.use(requireAuth);
 
@@ -29,6 +37,8 @@ router.post(
       req.user!.permissions,
       albumMbid
     );
+
+    if (FULFILLED_STATUSES.has(result.status)) triggerStatusSync();
 
     res.json(result);
   }
@@ -68,7 +78,7 @@ router.get("/", async (req: Request, res: Response) => {
           thumb: r.user.plex_thumb,
         }
       : null,
-    lidarr: lifecycles[i] ?? null,
+    lidarr: r.status === "approved" ? (lifecycles[i] ?? null) : null,
   }));
 
   res.json(sanitized);
@@ -84,6 +94,8 @@ router.post(
     if (result.status === "not_found") {
       return res.status(404).json({ error: "Request not found" });
     }
+
+    if (FULFILLED_STATUSES.has(result.status)) triggerStatusSync();
 
     res.json(result);
   }

@@ -139,7 +139,7 @@ export function classifyRequest(
   };
 }
 
-async function fetchLidarrData() {
+export async function fetchLidarrData() {
   const historyBaseQuery = {
     pageSize: 200,
     sortKey: "date",

@@ -15,6 +15,7 @@ import { WantedItems1711000000000 } from "./migration/3_WantedItems";
 import { Purchases1712000000000 } from "./migration/4_Purchases";
 import { FollowedArtists1713000000000 } from "./migration/5_FollowedArtists";
 import { FollowedLastViewedAt1714000000000 } from "./migration/6_FollowedLastViewedAt";
+import { RequestLidarrStatus1715000000000 } from "./migration/7_RequestLidarrStatus";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -48,6 +49,7 @@ export function createDataSource(dbPath?: string): DataSource {
       Purchases1712000000000,
       FollowedArtists1713000000000,
       FollowedLastViewedAt1714000000000,
+      RequestLidarrStatus1715000000000,
     ],
     synchronize: false,
     migrationsRun: true,
