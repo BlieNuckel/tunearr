@@ -27,6 +27,17 @@ describe("StatusBadge", () => {
     );
   });
 
+  it("applies a distinct color class for failed rather than the default", () => {
+    const { rerender } = render(<StatusBadge status="failed" />);
+    const failedClass = screen.getByTestId("status-badge").className;
+    expect(failedClass).toContain("bg-rose-400");
+
+    rerender(<StatusBadge status="something-unknown" />);
+    expect(screen.getByTestId("status-badge").className).not.toContain(
+      "bg-rose-400"
+    );
+  });
+
   it("sets data-status for unknown status", () => {
     render(<StatusBadge status="something-unknown" />);
     expect(screen.getByTestId("status-badge")).toHaveAttribute(

@@ -20,6 +20,10 @@ const REQUEST_FILTERS = [
       { value: "pending", label: "Pending" },
       { value: "approved", label: "Approved" },
       { value: "declined", label: "Declined" },
+      { value: "wanted", label: "Wanted" },
+      { value: "downloading", label: "Downloading" },
+      { value: "imported", label: "Imported" },
+      { value: "failed", label: "Failed" },
     ],
   },
 ];

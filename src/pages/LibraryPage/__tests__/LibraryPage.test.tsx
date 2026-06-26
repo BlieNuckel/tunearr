@@ -164,6 +164,14 @@ describe("LibraryPage", () => {
     expect(
       screen.getByRole("option", { name: "Declined" })
     ).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Wanted" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: "Downloading" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("option", { name: "Imported" })
+    ).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Failed" })).toBeInTheDocument();
   });
 
   it("defaults to showing all requests with no filters active", async () => {
@@ -217,6 +225,19 @@ describe("LibraryPage", () => {
     await waitFor(() => {
       expect(vi.mocked(fetch)).toHaveBeenCalledWith(
         "/api/requests?status=pending"
+      );
+    });
+  });
+
+  it("fetches filtered requests when selecting a lifecycle status", async () => {
+    renderWithAuth(Permission.ADMIN);
+    const user = userEvent.setup();
+
+    await toggleFilterChip(user, "Status", "Downloading");
+
+    await waitFor(() => {
+      expect(vi.mocked(fetch)).toHaveBeenCalledWith(
+        "/api/requests?status=downloading"
       );
     });
   });

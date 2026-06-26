@@ -51,7 +51,11 @@ export interface RequestUser {
   thumb: string | null;
 }
 
-export type LidarrLifecycleStatus = "downloading" | "wanted" | "imported";
+export type LidarrLifecycleStatus =
+  | "downloading"
+  | "wanted"
+  | "imported"
+  | "failed";
 
 export interface LidarrLifecycle {
   status: LidarrLifecycleStatus | null;
