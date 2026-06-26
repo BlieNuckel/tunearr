@@ -5,6 +5,7 @@ import {
   DEFAULT_PURCHASE_DECISION,
   DEFAULT_SPENDING,
   DEFAULT_FOLLOWED_POLL_INTERVAL_MS,
+  DEFAULT_REQUEST_STATUS_POLL_INTERVAL_MS,
 } from "../../config";
 
 vi.mock("../../config", async (importOriginal) => {
@@ -33,6 +34,7 @@ const fullConfig = {
   purchaseDecision: DEFAULT_PURCHASE_DECISION,
   spending: DEFAULT_SPENDING,
   followedArtistPollIntervalMs: DEFAULT_FOLLOWED_POLL_INTERVAL_MS,
+  requestStatusPollIntervalMs: DEFAULT_REQUEST_STATUS_POLL_INTERVAL_MS,
 };
 
 beforeEach(() => {
