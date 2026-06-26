@@ -10,21 +10,73 @@ import useWantedAlbums from "@/hooks/useWantedAlbums";
 
 const DEAL_ROTATIONS = [-4, 3.5, -3, 4.5, -3.5, 3];
 
+const SECTION_HEADING_CLASS =
+  "text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-3";
+const ALBUM_GRID_CLASS =
+  "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-3 sm:gap-4";
+
+function AlbumSkeletonCard() {
+  return (
+    <div>
+      <div className="sm:hidden bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-sm overflow-hidden">
+        <div className="flex items-center">
+          <Skeleton className="w-24 aspect-square flex-shrink-0 rounded-none" />
+          <div className="flex-1 min-w-0 px-4 py-3 space-y-2">
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-3 w-1/2" />
+            <Skeleton className="h-3 w-1/3" />
+          </div>
+        </div>
+      </div>
+      <div className="hidden sm:block bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-sm overflow-hidden">
+        <Skeleton className="aspect-square rounded-none" />
+        <div className="p-3 border-t-2 border-black space-y-2">
+          <Skeleton className="h-4 w-3/4" />
+          <Skeleton className="h-3 w-1/2" />
+          <Skeleton className="h-3 w-1/3" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SearchSkeletons() {
+  return (
+    <div className="mt-6 space-y-8">
+      <div className="space-y-2">
+        {[...Array(3)].map((_, i) => (
+          <div
+            key={i}
+            className="bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-sm flex items-center gap-3 p-3"
+          >
+            <Skeleton className="w-12 h-12 rounded-lg flex-shrink-0" />
+            <Skeleton className="h-4 w-1/3" />
+          </div>
+        ))}
+      </div>
+      <div className={ALBUM_GRID_CLASS}>
+        {[...Array(6)].map((_, i) => (
+          <AlbumSkeletonCard key={i} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { albums, artists, kind, loading, error, search } = useSearch();
+  const { albums, artists, loading, error, search } = useSearch();
   const { isAlbumInLibrary } = useLibraryAlbums();
   const { isAlbumWanted } = useWantedAlbums();
   const inputRef = useRef<HTMLInputElement>(null);
 
   const query = searchParams.get("q") ?? "";
-  const searchType = searchParams.get("searchType") ?? "album";
 
   useEffect(() => {
     if (query) {
-      search(query, searchType);
+      search(query);
     }
-  }, [query, searchType, search]);
+  }, [query, search]);
 
   useEffect(() => {
     const handleReset = () => {
@@ -36,103 +88,71 @@ export default function SearchPage() {
   }, [setSearchParams]);
 
   const handleSearch = useCallback(
-    (newQuery: string, newSearchType: string) => {
-      setSearchParams({ q: newQuery, searchType: newSearchType });
+    (newQuery: string) => {
+      setSearchParams({ q: newQuery });
     },
     [setSearchParams]
   );
 
-  const isArtist = kind === "artist";
-  const hasResults = isArtist ? artists.length > 0 : albums.length > 0;
+  const hasResults = artists.length > 0 || albums.length > 0;
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">
-        {searchType === "artist" ? "Search Artists" : "Search Albums"}
-      </h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">Search</h1>
 
       <SearchBar
         onSearch={handleSearch}
         initialQuery={query}
-        initialSearchType={searchType}
         inputRef={inputRef}
       />
 
-      {loading &&
-        (searchType === "artist" ? (
-          <div className="mt-6 space-y-2">
-            {[...Array(6)].map((_, i) => (
-              <div
-                key={i}
-                className="bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-sm flex items-center gap-3 p-3"
-              >
-                <Skeleton className="w-12 h-12 rounded-lg flex-shrink-0" />
-                <Skeleton className="h-4 w-1/3" />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-3 sm:gap-4">
-            {[...Array(6)].map((_, i) => (
-              <div key={i}>
-                <div className="sm:hidden bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-sm overflow-hidden">
-                  <div className="flex items-center">
-                    <Skeleton className="w-24 aspect-square flex-shrink-0 rounded-none" />
-                    <div className="flex-1 min-w-0 px-4 py-3 space-y-2">
-                      <Skeleton className="h-4 w-3/4" />
-                      <Skeleton className="h-3 w-1/2" />
-                      <Skeleton className="h-3 w-1/3" />
-                    </div>
-                  </div>
-                </div>
-                <div className="hidden sm:block bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-sm overflow-hidden">
-                  <Skeleton className="aspect-square rounded-none" />
-                  <div className="p-3 border-t-2 border-black space-y-2">
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-3 w-1/2" />
-                    <Skeleton className="h-3 w-1/3" />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ))}
+      {loading && <SearchSkeletons />}
 
       {error && <p className="text-rose-500 mt-4">Error: {error}</p>}
 
-      {!loading && isArtist && artists.length > 0 && (
-        <div className="mt-6 space-y-2">
-          {artists.map((artist) => (
-            <ArtistCard
-              key={artist.mbid}
-              name={artist.name}
-              mbid={artist.mbid}
-              imageUrl={artist.imageUrl}
-            />
-          ))}
-        </div>
-      )}
+      {!loading && !error && hasResults && (
+        <div className="mt-6 space-y-8">
+          {artists.length > 0 && (
+            <section>
+              <h2 className={SECTION_HEADING_CLASS}>Artists</h2>
+              <div className="space-y-2">
+                {artists.map((artist) => (
+                  <ArtistCard
+                    key={artist.mbid}
+                    name={artist.name}
+                    mbid={artist.mbid}
+                    imageUrl={artist.imageUrl}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
 
-      {!loading && !isArtist && albums.length > 0 && (
-        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-3 sm:gap-4">
-          {albums.map((rg, index) => (
-            <div
-              key={rg.id}
-              className="cascade-deal-in"
-              style={
-                {
-                  "--deal-index": index,
-                  "--deal-rotate": `${DEAL_ROTATIONS[index % DEAL_ROTATIONS.length]}deg`,
-                } as React.CSSProperties
-              }
-            >
-              <ReleaseGroupCard
-                releaseGroup={rg}
-                inLibrary={isAlbumInLibrary(rg.id)}
-                initialWanted={isAlbumWanted(rg.id)}
-              />
-            </div>
-          ))}
+          {albums.length > 0 && (
+            <section>
+              <h2 className={SECTION_HEADING_CLASS}>Albums</h2>
+              <div className={ALBUM_GRID_CLASS}>
+                {albums.map((rg, index) => (
+                  <div
+                    key={rg.id}
+                    className="cascade-deal-in"
+                    style={
+                      {
+                        "--deal-index": index,
+                        "--deal-rotate": `${DEAL_ROTATIONS[index % DEAL_ROTATIONS.length]}deg`,
+                      } as React.CSSProperties
+                    }
+                  >
+                    <ReleaseGroupCard
+                      releaseGroup={rg}
+                      inLibrary={isAlbumInLibrary(rg.id)}
+                      initialWanted={isAlbumWanted(rg.id)}
+                    />
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
         </div>
       )}
 
@@ -156,9 +176,7 @@ export default function SearchPage() {
               <p className="text-lg font-medium text-gray-500">
                 No results found
               </p>
-              <p className="mt-1 text-center">
-                Try a different search term or change the search type.
-              </p>
+              <p className="mt-1 text-center">Try a different search term.</p>
             </>
           ) : (
             <>

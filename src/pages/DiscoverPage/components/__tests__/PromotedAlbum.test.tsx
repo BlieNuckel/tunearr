@@ -258,10 +258,7 @@ describe("PromotedAlbum", () => {
       <PromotedAlbum data={albumData} loading={false} onRefresh={mockRefresh} />
     );
     const artistLink = screen.getByText("Radiohead").closest("a");
-    expect(artistLink).toHaveAttribute(
-      "href",
-      "/search?q=Radiohead&searchType=artist"
-    );
+    expect(artistLink).toHaveAttribute("href", "/search?q=Radiohead");
   });
 
   it("renders cover image", () => {

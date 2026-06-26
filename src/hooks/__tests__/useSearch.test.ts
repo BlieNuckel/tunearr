@@ -14,51 +14,47 @@ describe("useSearch", () => {
     const { result } = renderHook(() => useSearch());
     expect(result.current.albums).toEqual([]);
     expect(result.current.artists).toEqual([]);
-    expect(result.current.kind).toBe("album");
     expect(result.current.loading).toBe(false);
     expect(result.current.error).toBeNull();
   });
 
   it("skips empty query", async () => {
     const { result } = renderHook(() => useSearch());
-    await act(() => result.current.search("  ", "album"));
+    await act(() => result.current.search("  "));
     expect(fetch).not.toHaveBeenCalled();
   });
 
-  it("sets albums on a successful album search", async () => {
+  it("sets both albums and artists from the combined endpoint", async () => {
     const releaseGroups = [{ id: "1", title: "OK Computer" }];
+    const artists = [{ mbid: "a1", name: "Radiohead" }];
     vi.mocked(fetch).mockResolvedValueOnce(
-      new Response(JSON.stringify({ "release-groups": releaseGroups }), {
-        status: 200,
-      })
+      new Response(
+        JSON.stringify({ "release-groups": releaseGroups, artists }),
+        { status: 200 }
+      )
     );
 
     const { result } = renderHook(() => useSearch());
-    await act(() => result.current.search("radiohead", "album"));
+    await act(() => result.current.search("radiohead"));
 
     expect(result.current.albums).toEqual(releaseGroups);
-    expect(result.current.kind).toBe("album");
+    expect(result.current.artists).toEqual(artists);
     expect(result.current.error).toBeNull();
     expect(vi.mocked(fetch).mock.calls[0][0]).toContain(
-      "/api/musicbrainz/search?"
+      "/api/musicbrainz/search/all?"
     );
   });
 
-  it("sets artists on a successful artist search", async () => {
-    const artists = [{ mbid: "a1", name: "Radiohead" }];
+  it("defaults missing arrays to empty", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(
-      new Response(JSON.stringify({ artists }), { status: 200 })
+      new Response(JSON.stringify({}), { status: 200 })
     );
 
     const { result } = renderHook(() => useSearch());
-    await act(() => result.current.search("radiohead", "artist"));
+    await act(() => result.current.search("radiohead"));
 
-    expect(result.current.artists).toEqual(artists);
     expect(result.current.albums).toEqual([]);
-    expect(result.current.kind).toBe("artist");
-    expect(vi.mocked(fetch).mock.calls[0][0]).toContain(
-      "/api/musicbrainz/artist/search?"
-    );
+    expect(result.current.artists).toEqual([]);
   });
 
   it("sets error on a failed search", async () => {
@@ -67,9 +63,10 @@ describe("useSearch", () => {
     );
 
     const { result } = renderHook(() => useSearch());
-    await act(() => result.current.search("test", "album"));
+    await act(() => result.current.search("test"));
 
     expect(result.current.albums).toEqual([]);
+    expect(result.current.artists).toEqual([]);
     expect(result.current.error).toBe("Rate limited");
   });
 
@@ -77,7 +74,7 @@ describe("useSearch", () => {
     vi.mocked(fetch).mockRejectedValueOnce(new Error("Network failure"));
 
     const { result } = renderHook(() => useSearch());
-    await act(() => result.current.search("test", "album"));
+    await act(() => result.current.search("test"));
 
     expect(result.current.error).toBe("Network failure");
     expect(result.current.albums).toEqual([]);
