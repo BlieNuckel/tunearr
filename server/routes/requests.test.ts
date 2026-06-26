@@ -5,6 +5,11 @@ const mockApproveRequest = vi.fn();
 const mockDeclineRequest = vi.fn();
 const mockGetRequests = vi.fn();
 const mockEnrichRequestsWithLidarr = vi.fn();
+const mockRunStatusSyncOnce = vi.fn();
+
+vi.mock("../services/requests/statusPoller", () => ({
+  runStatusSyncOnce: (...args: unknown[]) => mockRunStatusSyncOnce(...args),
+}));
 
 vi.mock("../services/requests/requestService", () => ({
   createRequest: (...args: unknown[]) => mockCreateRequest(...args),
@@ -62,6 +67,7 @@ app.use(
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockRunStatusSyncOnce.mockResolvedValue(undefined);
 });
 
 describe("POST /", () => {
@@ -81,6 +87,7 @@ describe("POST /", () => {
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ status: "pending", requestId: 10 });
     expect(mockCreateRequest).toHaveBeenCalledWith(1, 9, "mbid-1");
+    expect(mockRunStatusSyncOnce).not.toHaveBeenCalled();
   });
 
   it("returns approved when auto-approved", async () => {
@@ -92,6 +99,14 @@ describe("POST /", () => {
     const res = await request(app).post("/").send({ albumMbid: "mbid-1" });
     expect(res.status).toBe(200);
     expect(res.body.status).toBe("approved");
+  });
+
+  it("triggers a status sync after an auto-approved request", async () => {
+    mockCreateRequest.mockResolvedValue({ status: "approved", requestId: 10 });
+
+    await request(app).post("/").send({ albumMbid: "mbid-1" });
+
+    expect(mockRunStatusSyncOnce).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -212,12 +227,13 @@ describe("POST /:id/approve", () => {
     expect(res.status).toBe(404);
   });
 
-  it("returns approved on success", async () => {
+  it("returns approved on success and triggers a status sync", async () => {
     mockApproveRequest.mockResolvedValue({ status: "approved" });
     const res = await request(app).post("/1/approve");
     expect(res.status).toBe(200);
     expect(res.body.status).toBe("approved");
     expect(mockApproveRequest).toHaveBeenCalledWith(1, 1);
+    expect(mockRunStatusSyncOnce).toHaveBeenCalledTimes(1);
   });
 
   it("returns 200 with failed status when fulfillment fails", async () => {
@@ -225,6 +241,13 @@ describe("POST /:id/approve", () => {
     const res = await request(app).post("/1/approve");
     expect(res.status).toBe(200);
     expect(res.body.status).toBe("failed");
+    expect(mockRunStatusSyncOnce).not.toHaveBeenCalled();
+  });
+
+  it("does not trigger a status sync when the request is not found", async () => {
+    mockApproveRequest.mockResolvedValue({ status: "not_found" });
+    await request(app).post("/1/approve");
+    expect(mockRunStatusSyncOnce).not.toHaveBeenCalled();
   });
 });
 
