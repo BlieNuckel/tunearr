@@ -78,6 +78,31 @@ describe("InitialSchema migration", () => {
   });
 });
 
+describe("RequestLidarrStatus migration", () => {
+  it("adds nullable lidarr_status column to requests", async () => {
+    const db = await initTestDb();
+
+    const columns = (await db.query("PRAGMA table_info(requests)")) as {
+      name: string;
+      notnull: number;
+    }[];
+    const lidarrStatus = columns.find((c) => c.name === "lidarr_status");
+
+    expect(lidarrStatus).toBeDefined();
+    expect(lidarrStatus?.notnull).toBe(0);
+  });
+
+  it("creates the lidarr_status index", async () => {
+    const db = await initTestDb();
+
+    const indexes = (await db.query(
+      "SELECT name FROM sqlite_master WHERE type='index' AND name = 'idx_requests_lidarr_status'"
+    )) as { name: string }[];
+
+    expect(indexes.map((i) => i.name)).toContain("idx_requests_lidarr_status");
+  });
+});
+
 describe("constraint enforcement", () => {
   it("enforces enabled CHECK constraint", async () => {
     const db = await initTestDb();

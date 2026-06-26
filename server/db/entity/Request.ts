@@ -12,6 +12,12 @@ import { User } from "./User";
 
 export type RequestStatus = "pending" | "approved" | "declined";
 
+export type LidarrLifecycleStatus =
+  | "wanted"
+  | "downloading"
+  | "imported"
+  | "failed";
+
 @Entity("requests")
 export class Request {
   @PrimaryGeneratedColumn()
@@ -38,6 +44,10 @@ export class Request {
   @Index("idx_requests_status")
   @Column({ type: "text", default: "pending" })
   status!: RequestStatus;
+
+  @Index("idx_requests_lidarr_status")
+  @Column({ type: "text", nullable: true })
+  lidarr_status!: LidarrLifecycleStatus | null;
 
   @Column({ type: "integer", nullable: true })
   approved_by!: number | null;
