@@ -118,7 +118,7 @@ describe("GET /", () => {
         album_mbid: "mbid-1",
         artist_name: "Artist",
         album_title: "Album",
-        status: "pending",
+        status: "approved",
         created_at: "2024-01-01",
         updated_at: "2024-01-01",
         approved_at: null,
@@ -149,7 +149,7 @@ describe("GET /", () => {
       albumMbid: "mbid-1",
       artistName: "Artist",
       albumTitle: "Album",
-      status: "pending",
+      status: "approved",
       createdAt: "2024-01-01",
       updatedAt: "2024-01-01",
       approvedAt: null,
@@ -184,6 +184,37 @@ describe("GET /", () => {
 
     const res = await request(app).get("/");
     expect(res.status).toBe(200);
+    expect(res.body[0].lidarr).toBeNull();
+  });
+
+  it("does not attach a lidarr lifecycle to non-approved requests", async () => {
+    mockGetRequests.mockResolvedValue([
+      {
+        id: 1,
+        album_mbid: "mbid-1",
+        artist_name: "Artist",
+        album_title: "Album",
+        status: "declined",
+        created_at: "2024-01-01",
+        updated_at: "2024-01-01",
+        approved_at: null,
+        user: null,
+      },
+    ]);
+    mockEnrichRequestsWithLidarr.mockResolvedValue([
+      {
+        status: "imported",
+        downloadProgress: null,
+        quality: null,
+        sourceIndexer: null,
+        lastEvent: null,
+        lidarrAlbumId: null,
+      },
+    ]);
+
+    const res = await request(app).get("/");
+    expect(res.status).toBe(200);
+    expect(res.body[0].status).toBe("declined");
     expect(res.body[0].lidarr).toBeNull();
   });
 

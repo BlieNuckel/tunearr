@@ -78,7 +78,7 @@ router.get("/", async (req: Request, res: Response) => {
           thumb: r.user.plex_thumb,
         }
       : null,
-    lidarr: lifecycles[i] ?? null,
+    lidarr: r.status === "approved" ? (lifecycles[i] ?? null) : null,
   }));
 
   res.json(sanitized);
