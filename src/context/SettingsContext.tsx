@@ -206,6 +206,26 @@ export const SettingsContextProvider = ({
     };
   };
 
+  const testSlskdConnection = async (testSettings: AppSettings) => {
+    const res = await fetch("/api/settings/test-slskd", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(testSettings),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      return { success: false, error: data.error || "Connection failed" };
+    }
+
+    return {
+      success: true,
+      version: data.version,
+      soulseekConnected: data.soulseekConnected,
+    };
+  };
+
   const value: SettingsContextValue = {
     options,
     settings,
@@ -214,6 +234,7 @@ export const SettingsContextProvider = ({
     saveSettings,
     savePartialSettings,
     testConnection,
+    testSlskdConnection,
     loadLidarrOptionValues: () => loadLidarrOptionValues(options, setOptions),
   };
 
