@@ -8,7 +8,7 @@ import type { SeenReleaseItem } from "@/types";
 
 function buildSearchHref(release: SeenReleaseItem): string {
   const query = `${release.artistName} ${release.albumTitle}`.trim();
-  const params = new URLSearchParams({ q: query, searchType: "album" });
+  const params = new URLSearchParams({ q: query });
   return `/search?${params.toString()}`;
 }
 

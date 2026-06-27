@@ -90,6 +90,71 @@ describe("GET /search", () => {
   });
 });
 
+describe("GET /search/all", () => {
+  it("returns 400 when q param is missing", async () => {
+    const res = await request(app).get("/search/all");
+    expect(res.status).toBe(400);
+    expect(res.body.error).toContain("q is required");
+  });
+
+  it("merges release groups with top-ranked enriched artists", async () => {
+    mockSearchReleaseGroups.mockResolvedValue({
+      "release-groups": [{ id: "rg-1", title: "OK Computer" }],
+      count: 1,
+      offset: 0,
+    });
+    mockSearchArtists.mockResolvedValue([
+      { mbid: "a1", name: "Radiohead", score: 100 },
+      { mbid: "a2", name: "Radio Dept.", score: 90 },
+      { mbid: "a3", name: "Radio Noise", score: 50 },
+    ]);
+    mockGetArtistsImages.mockResolvedValue(
+      new Map([["radiohead", "https://img/rh.jpg"]])
+    );
+
+    const res = await request(app).get("/search/all?q=radio");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      "release-groups": [{ id: "rg-1", title: "OK Computer" }],
+      count: 1,
+      artists: [
+        {
+          mbid: "a1",
+          name: "Radiohead",
+          score: 100,
+          imageUrl: "https://img/rh.jpg",
+        },
+        { mbid: "a2", name: "Radio Dept.", score: 90 },
+      ],
+    });
+    expect(mockSearchReleaseGroups).toHaveBeenCalledWith("radio");
+    expect(mockSearchArtists).toHaveBeenCalledWith("radio");
+    expect(mockGetArtistsImages).toHaveBeenCalledWith([
+      "Radiohead",
+      "Radio Dept.",
+    ]);
+  });
+
+  it("caps low-scoring artists out of the results", async () => {
+    mockSearchReleaseGroups.mockResolvedValue({
+      "release-groups": [],
+      count: 0,
+      offset: 0,
+    });
+    mockSearchArtists.mockResolvedValue([
+      { mbid: "a1", name: "Weak Match", score: 60 },
+    ]);
+    mockGetArtistsImages.mockResolvedValue(new Map());
+
+    const res = await request(app).get("/search/all?q=weak");
+
+    expect(res.status).toBe(200);
+    expect(res.body.artists).toEqual([]);
+    expect(mockGetArtistsImages).toHaveBeenCalledWith([]);
+  });
+});
+
 describe("GET /artist/search", () => {
   it("returns 400 when q param is missing", async () => {
     const res = await request(app).get("/artist/search");

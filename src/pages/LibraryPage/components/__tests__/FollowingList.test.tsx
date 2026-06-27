@@ -120,9 +120,7 @@ describe("FollowingList", () => {
     const link = (await screen.findByRole("link", {
       name: /Search for New EP/i,
     })) as HTMLAnchorElement;
-    expect(link.getAttribute("href")).toBe(
-      "/search?q=Radiohead+New+EP&searchType=album"
-    );
+    expect(link.getAttribute("href")).toBe("/search?q=Radiohead+New+EP");
   });
 
   it("shows release feed error message on failure", async () => {

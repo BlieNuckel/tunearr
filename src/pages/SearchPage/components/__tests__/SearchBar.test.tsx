@@ -3,12 +3,14 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import SearchBar from "../SearchBar";
 
 describe("SearchBar", () => {
-  it("defaults to album search type", () => {
+  it("renders a single search input without a type selector", () => {
     render(<SearchBar onSearch={vi.fn()} />);
-    expect(screen.getByText("Album")).toBeInTheDocument();
+    expect(screen.getByTestId("search-input")).toBeInTheDocument();
+    expect(screen.queryByText("Album")).not.toBeInTheDocument();
+    expect(screen.queryByText("Artist")).not.toBeInTheDocument();
   });
 
-  it("calls onSearch with query and search type on submit", () => {
+  it("calls onSearch with the query on submit", () => {
     const onSearch = vi.fn();
     render(<SearchBar onSearch={onSearch} />);
 
@@ -17,7 +19,7 @@ describe("SearchBar", () => {
     });
     fireEvent.submit(screen.getByTestId("search-form"));
 
-    expect(onSearch).toHaveBeenCalledWith("Radiohead", "album");
+    expect(onSearch).toHaveBeenCalledWith("Radiohead");
   });
 
   it("does not call onSearch for whitespace-only query", () => {
@@ -30,21 +32,6 @@ describe("SearchBar", () => {
     fireEvent.submit(screen.getByTestId("search-form"));
 
     expect(onSearch).not.toHaveBeenCalled();
-  });
-
-  it("allows changing search type", () => {
-    const onSearch = vi.fn();
-    render(<SearchBar onSearch={onSearch} />);
-
-    fireEvent.click(screen.getByText("Album"));
-    fireEvent.click(screen.getByText("Artist"));
-
-    fireEvent.change(screen.getByTestId("search-input"), {
-      target: { value: "Bjork" },
-    });
-    fireEvent.submit(screen.getByTestId("search-form"));
-
-    expect(onSearch).toHaveBeenCalledWith("Bjork", "artist");
   });
 
   it("syncs input value when initialQuery prop changes", () => {

@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import SearchPage from "../SearchPage";
 import type { ArtistSearchResult, ReleaseGroup } from "@/types";
@@ -6,7 +6,6 @@ import type { ArtistSearchResult, ReleaseGroup } from "@/types";
 let mockSearchState: {
   albums: ReleaseGroup[];
   artists: ArtistSearchResult[];
-  kind: "album" | "artist";
   loading: boolean;
   error: string | null;
   search: ReturnType<typeof vi.fn>;
@@ -52,10 +51,21 @@ vi.mock("@/pages/DiscoverPage/components/ArtistCard", () => ({
   ),
 }));
 
-function renderSearchPage(query = "", searchType = "album") {
-  const path = query
-    ? `/search?q=${query}&searchType=${searchType}`
-    : "/search";
+function makeAlbum(id: string, title: string, score = 100): ReleaseGroup {
+  return {
+    id,
+    title,
+    score,
+    "primary-type": "Album",
+    "first-release-date": "1997-06-16",
+    "artist-credit": [
+      { name: "Radiohead", artist: { id: "a1", name: "Radiohead" } },
+    ],
+  };
+}
+
+function renderSearchPage(query = "") {
+  const path = query ? `/search?q=${query}` : "/search";
   return render(
     <MemoryRouter initialEntries={[path]}>
       <SearchPage />
@@ -67,7 +77,6 @@ beforeEach(() => {
   mockSearchState = {
     albums: [],
     artists: [],
-    kind: "album",
     loading: false,
     error: null,
     search: vi.fn(),
@@ -75,14 +84,11 @@ beforeEach(() => {
 });
 
 describe("SearchPage", () => {
-  it("renders the album heading by default", () => {
+  it("renders a single Search heading", () => {
     renderSearchPage();
-    expect(screen.getByText("Search Albums")).toBeInTheDocument();
-  });
-
-  it("renders the artist heading in artist mode", () => {
-    renderSearchPage("Radiohead", "artist");
-    expect(screen.getByText("Search Artists")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { level: 1, name: "Search" })
+    ).toBeInTheDocument();
   });
 
   it("renders the search bar", () => {
@@ -95,47 +101,44 @@ describe("SearchPage", () => {
     expect(screen.getByText("Search for music")).toBeInTheDocument();
   });
 
-  it("renders album cards in album mode", () => {
-    mockSearchState.albums = [
-      {
-        id: "rg-1",
-        title: "OK Computer",
-        score: 100,
-        "primary-type": "Album",
-        "first-release-date": "1997-06-16",
-        "artist-credit": [
-          { name: "Radiohead", artist: { id: "a1", name: "Radiohead" } },
-        ],
-      },
-    ];
-    renderSearchPage("OK", "album");
+  it("renders both artist and album sections together", () => {
+    mockSearchState.artists = [{ mbid: "a1", name: "Radiohead" }];
+    mockSearchState.albums = [makeAlbum("rg-1", "OK Computer")];
+
+    renderSearchPage("Radiohead");
+
+    expect(screen.getByText("Artists")).toBeInTheDocument();
+    expect(screen.getByText("Albums")).toBeInTheDocument();
+    expect(screen.getByText("Radiohead")).toBeInTheDocument();
     expect(screen.getByText("OK Computer")).toBeInTheDocument();
+  });
+
+  it("orders the artist section before the album section", () => {
+    mockSearchState.artists = [{ mbid: "a1", name: "Radiohead" }];
+    mockSearchState.albums = [makeAlbum("rg-1", "OK Computer")];
+
+    const { container } = renderSearchPage("Radiohead");
+    const headings = within(container).getAllByRole("heading", { level: 2 });
+    expect(headings.map((h) => h.textContent)).toEqual(["Artists", "Albums"]);
+  });
+
+  it("omits the artists section when there are no artist results", () => {
+    mockSearchState.albums = [makeAlbum("rg-1", "OK Computer")];
+
+    renderSearchPage("OK");
+
+    expect(screen.queryByText("Artists")).not.toBeInTheDocument();
+    expect(screen.getByText("Albums")).toBeInTheDocument();
   });
 
   it("seeds initialWanted from the wanted list for matching albums", () => {
     mockSearchState.albums = [
-      {
-        id: "rg-wanted",
-        title: "In Rainbows",
-        score: 100,
-        "primary-type": "Album",
-        "first-release-date": "2007-10-10",
-        "artist-credit": [
-          { name: "Radiohead", artist: { id: "a1", name: "Radiohead" } },
-        ],
-      },
-      {
-        id: "rg-other",
-        title: "Amnesiac",
-        score: 90,
-        "primary-type": "Album",
-        "first-release-date": "2001-06-05",
-        "artist-credit": [
-          { name: "Radiohead", artist: { id: "a1", name: "Radiohead" } },
-        ],
-      },
+      makeAlbum("rg-wanted", "In Rainbows"),
+      makeAlbum("rg-other", "Amnesiac", 90),
     ];
-    renderSearchPage("Radiohead", "album");
+
+    renderSearchPage("Radiohead");
+
     expect(screen.getByText("In Rainbows")).toHaveAttribute(
       "data-wanted",
       "true"
@@ -146,15 +149,9 @@ describe("SearchPage", () => {
     );
   });
 
-  it("renders artist cards in artist mode", () => {
-    mockSearchState.kind = "artist";
-    mockSearchState.artists = [
-      { mbid: "a1", name: "Radiohead" },
-      { mbid: "a2", name: "Radio Dept." },
-    ];
-    renderSearchPage("Radio", "artist");
-    expect(screen.getByText("Radiohead")).toBeInTheDocument();
-    expect(screen.getByText("Radio Dept.")).toBeInTheDocument();
+  it("shows the no-results state when a query returns nothing", () => {
+    renderSearchPage("nonexistent");
+    expect(screen.getByText("No results found")).toBeInTheDocument();
   });
 
   it("clears input and focuses it on search:reset event", () => {

@@ -13,6 +13,7 @@ function toArtistInfo(artist: MusicBrainzArtist): ArtistInfo {
   return {
     mbid: artist.id,
     name: artist.name,
+    score: artist.score,
     disambiguation: artist.disambiguation || undefined,
     type: artist.type || undefined,
     country: artist.country || undefined,

@@ -192,7 +192,7 @@ export default function PromotedAlbum({
                     </h3>
                     <p className="text-gray-500 dark:text-gray-400 text-sm truncate">
                       <Link
-                        to={`/search?q=${encodeURIComponent(album.artistName)}&searchType=artist`}
+                        to={`/search?q=${encodeURIComponent(album.artistName)}`}
                         className="hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
                       >
                         {album.artistName}

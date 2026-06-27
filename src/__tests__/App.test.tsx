@@ -107,7 +107,7 @@ describe("App", () => {
   it("renders search page at /search", () => {
     renderApp("/search");
     expect(
-      screen.getByRole("heading", { level: 1, name: "Search Albums" })
+      screen.getByRole("heading", { level: 1, name: "Search" })
     ).toBeInTheDocument();
   });
 

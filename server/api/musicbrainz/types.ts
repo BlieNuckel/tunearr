@@ -23,6 +23,7 @@ export type MusicBrainzSearchResponse = {
 export type MusicBrainzArtist = {
   id: string;
   name: string;
+  score?: number;
   disambiguation?: string;
   type?: string;
   country?: string;
@@ -35,6 +36,7 @@ export type MusicBrainzArtistSearchResponse = {
 export type ArtistInfo = {
   mbid: string;
   name: string;
+  score?: number;
   disambiguation?: string;
   type?: string;
   country?: string;
