@@ -7,9 +7,14 @@ vi.mock("react-router-dom", () => ({
   useNavigate: () => vi.fn(),
 }));
 
+let mockUser: { id: number; permissions: number } | null = {
+  id: 1,
+  permissions: Permission.IMPORT,
+};
+
 vi.mock("../../context/useAuth", () => ({
   useAuth: () => ({
-    user: { id: 1, permissions: Permission.ADMIN },
+    user: mockUser,
   }),
 }));
 
@@ -128,6 +133,7 @@ describe("ReleaseGroupCard", () => {
   afterEach(() => {
     vi.clearAllMocks();
     mockIsFollowing.mockReturnValue(false);
+    mockUser = { id: 1, permissions: Permission.IMPORT };
   });
 
   it("renders album title, artist name, and year", () => {
@@ -396,6 +402,26 @@ describe("ReleaseGroupCard", () => {
 
       expect(screen.queryByText("Follow artist")).not.toBeInTheDocument();
       expect(screen.queryByText("Unfollow artist")).not.toBeInTheDocument();
+    });
+
+    it("shows 'Upload files' option for a user with IMPORT permission", () => {
+      mockUser = { id: 2, permissions: Permission.IMPORT };
+      render(<ReleaseGroupCard releaseGroup={makeReleaseGroup()} />);
+
+      const moreButtons = screen.getAllByLabelText("More options");
+      fireEvent.click(moreButtons[0]);
+
+      expect(screen.getByText("Upload files")).toBeInTheDocument();
+    });
+
+    it("hides 'Upload files' option for a user without IMPORT permission", () => {
+      mockUser = { id: 3, permissions: Permission.REQUEST };
+      render(<ReleaseGroupCard releaseGroup={makeReleaseGroup()} />);
+
+      const moreButtons = screen.getAllByLabelText("More options");
+      fireEvent.click(moreButtons[0]);
+
+      expect(screen.queryByText("Upload files")).not.toBeInTheDocument();
     });
   });
 });

@@ -13,6 +13,7 @@ export const ASSIGNABLE_PERMISSIONS = [
   Permission.REQUEST,
   Permission.AUTO_APPROVE,
   Permission.REQUEST_VIEW,
+  Permission.IMPORT,
 ] as const;
 
 export const INITIAL_FORM: CreateFormState = {

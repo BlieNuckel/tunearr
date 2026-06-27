@@ -50,12 +50,12 @@ export default function UploadPage() {
   const { user } = useAuth();
   const mbid = searchParams.get("mbid");
 
-  const isAdmin =
-    user !== null && hasPermission(user.permissions, Permission.ADMIN);
+  const canImport =
+    user !== null && hasPermission(user.permissions, Permission.IMPORT);
 
   useEffect(() => {
-    if (!isAdmin) navigate("/library/wanted", { replace: true });
-  }, [isAdmin, navigate]);
+    if (!canImport) navigate("/library/wanted", { replace: true });
+  }, [canImport, navigate]);
 
   const { info, loading: infoLoading } = useReleaseGroupInfo(mbid);
   const {
@@ -95,7 +95,7 @@ export default function UploadPage() {
     );
   }
 
-  if (!isAdmin) return null;
+  if (!canImport) return null;
 
   const hasFiles = files.length > 0;
   const isUploading = step === "uploading";

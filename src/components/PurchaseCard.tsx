@@ -25,8 +25,8 @@ function formatDate(iso: string): string {
 export default function PurchaseCard({ item, onRemove }: PurchaseCardProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const isAdmin =
-    user !== null && hasPermission(user.permissions, Permission.ADMIN);
+  const canImport =
+    user !== null && hasPermission(user.permissions, Permission.IMPORT);
 
   const [coverError, setCoverError] = useState(false);
   const pastelBg = useMemo(
@@ -39,7 +39,7 @@ export default function PurchaseCard({ item, onRemove }: PurchaseCardProps) {
 
   const options: Option[] = [
     { label: "Remove purchase", onClick: () => onRemove(item.albumMbid) },
-    ...(isAdmin
+    ...(canImport
       ? [
           {
             label: "Upload files",

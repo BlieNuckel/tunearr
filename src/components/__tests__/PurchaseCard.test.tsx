@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import PurchaseCard from "../PurchaseCard";
 import { Permission } from "@shared/permissions";
 import type { PurchaseItem } from "@/types";
@@ -7,9 +7,14 @@ vi.mock("react-router-dom", () => ({
   useNavigate: () => vi.fn(),
 }));
 
+let mockUser: { id: number; permissions: number } | null = {
+  id: 1,
+  permissions: Permission.IMPORT,
+};
+
 vi.mock("@/context/useAuth", () => ({
   useAuth: () => ({
-    user: { id: 1, permissions: Permission.ADMIN },
+    user: mockUser,
   }),
 }));
 
@@ -32,6 +37,10 @@ const mockItem: PurchaseItem = {
 };
 
 describe("PurchaseCard", () => {
+  afterEach(() => {
+    mockUser = { id: 1, permissions: Permission.IMPORT };
+  });
+
   it("renders album title and artist name", () => {
     render(<PurchaseCard item={mockItem} onRemove={vi.fn()} />);
 
@@ -64,10 +73,21 @@ describe("PurchaseCard", () => {
     expect(screen.getAllByText(/¥1,500/).length).toBeGreaterThanOrEqual(1);
   });
 
-  it("shows upload option for admin users", () => {
+  it("shows 'Upload files' option for a user with IMPORT permission", () => {
+    mockUser = { id: 2, permissions: Permission.IMPORT };
     render(<PurchaseCard item={mockItem} onRemove={vi.fn()} />);
 
-    const optionButtons = screen.getAllByLabelText("More options");
-    expect(optionButtons.length).toBeGreaterThan(0);
+    fireEvent.click(screen.getAllByLabelText("More options")[0]);
+
+    expect(screen.getByText("Upload files")).toBeInTheDocument();
+  });
+
+  it("hides 'Upload files' option for a user without IMPORT permission", () => {
+    mockUser = { id: 3, permissions: Permission.REQUEST };
+    render(<PurchaseCard item={mockItem} onRemove={vi.fn()} />);
+
+    fireEvent.click(screen.getAllByLabelText("More options")[0]);
+
+    expect(screen.queryByText("Upload files")).not.toBeInTheDocument();
   });
 });

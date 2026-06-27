@@ -103,7 +103,7 @@ const singleUpload = multer({
 });
 
 const router = express.Router();
-const adminOnly = requirePermission(Permission.ADMIN);
+const requireImport = requirePermission(Permission.IMPORT);
 
 const requireImportPath = (_req: Request, res: Response, next: () => void) => {
   const importPath = getConfigValue("importPath");
@@ -122,7 +122,7 @@ const requireImportPath = (_req: Request, res: Response, next: () => void) => {
 
 router.post(
   "/import/upload",
-  adminOnly,
+  requireImport,
   requireImportPath,
   upload.array("files"),
   async (req: Request, res: Response) => {
@@ -167,7 +167,7 @@ router.post(
 
 router.post(
   "/import/upload-file",
-  adminOnly,
+  requireImport,
   requireImportPath,
   singleUpload.single("file"),
   async (_req: Request, res: Response) => {
@@ -177,7 +177,7 @@ router.post(
 
 router.post(
   "/import/scan",
-  adminOnly,
+  requireImport,
   requireImportPath,
   async (req: Request, res: Response) => {
     const { uploadId, albumMbid } = req.body;
@@ -225,7 +225,7 @@ router.post(
 
 router.post(
   "/import/confirm",
-  adminOnly,
+  requireImport,
   async (req: Request, res: Response) => {
     const { items }: { items: LidarrManualImportItem[] } = req.body;
     if (!items?.length) {
@@ -250,7 +250,7 @@ router.post(
 
 router.delete(
   "/import/:uploadId",
-  adminOnly,
+  requireImport,
   async (req: Request<{ uploadId: string }>, res: Response) => {
     const importPath = getConfigValue("importPath");
     if (!importPath) {

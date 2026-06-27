@@ -6,6 +6,7 @@ export enum Permission {
   REQUEST = 8,
   AUTO_APPROVE = 16,
   REQUEST_VIEW = 32,
+  IMPORT = 64,
 }
 
 type HasPermissionOptions = {
@@ -40,6 +41,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   [Permission.REQUEST]: "Request",
   [Permission.AUTO_APPROVE]: "Auto Approve",
   [Permission.REQUEST_VIEW]: "View Requests",
+  [Permission.IMPORT]: "Import",
 };
 
 type ActivePermission = {
@@ -54,6 +56,7 @@ const DISPLAYABLE_PERMISSIONS = [
   Permission.REQUEST,
   Permission.AUTO_APPROVE,
   Permission.REQUEST_VIEW,
+  Permission.IMPORT,
 ] as const;
 
 export function getActivePermissions(
