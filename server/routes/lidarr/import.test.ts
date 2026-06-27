@@ -27,9 +27,15 @@ vi.mock("../../services/lidarr/helpers", () => ({
   getOrAddAlbum: vi.fn(),
 }));
 
+const { recordedPermissions } = vi.hoisted(() => ({
+  recordedPermissions: [] as unknown[],
+}));
+
 vi.mock("../../middleware/requirePermission", () => ({
-  requirePermission: () => (_req: unknown, _res: unknown, next: () => void) =>
-    next(),
+  requirePermission: (required: unknown) => {
+    recordedPermissions.push(required);
+    return (_req: unknown, _res: unknown, next: () => void) => next();
+  },
 }));
 
 vi.mock("fs", () => ({
@@ -75,6 +81,7 @@ vi.mock("multer", () => {
 import express from "express";
 import request from "supertest";
 import importRouter from "./import";
+import { Permission } from "../../../shared/permissions";
 
 const app = express();
 app.use(express.json());
@@ -95,6 +102,14 @@ beforeEach(() => {
   mockMkdirSync = vi.fn();
   mockRmSync = vi.fn();
   vi.clearAllMocks();
+});
+
+describe("import route permissions", () => {
+  it("guards endpoints with IMPORT permission, not ADMIN", () => {
+    expect(recordedPermissions.length).toBeGreaterThan(0);
+    expect(recordedPermissions).toContain(Permission.IMPORT);
+    expect(recordedPermissions).not.toContain(Permission.ADMIN);
+  });
 });
 
 describe("POST /import/upload", () => {

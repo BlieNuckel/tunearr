@@ -4,6 +4,11 @@ import { Permission } from "@shared/permissions";
 
 const mockNavigate = vi.fn();
 
+let mockUser: { id: number; permissions: number } | null = {
+  id: 1,
+  permissions: Permission.IMPORT,
+};
+
 vi.mock("react-router-dom", () => ({
   useSearchParams: () => [new URLSearchParams("mbid=test-mbid-123")],
   useNavigate: () => mockNavigate,
@@ -23,7 +28,7 @@ vi.mock("react-router-dom", () => ({
 
 vi.mock("@/context/useAuth", () => ({
   useAuth: () => ({
-    user: { id: 1, permissions: Permission.ADMIN },
+    user: mockUser,
   }),
 }));
 
@@ -48,6 +53,7 @@ vi.mock("@/components/ImageWithShimmer", () => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockUser = { id: 1, permissions: Permission.IMPORT };
   vi.spyOn(globalThis, "fetch").mockResolvedValue(
     new Response(
       JSON.stringify({
@@ -101,5 +107,22 @@ describe("UploadPage", () => {
     expect(globalThis.fetch).toHaveBeenCalledWith(
       "/api/musicbrainz/release-group/test-mbid-123"
     );
+  });
+
+  it("renders upload UI for a non-admin user with IMPORT permission", () => {
+    mockUser = { id: 2, permissions: Permission.IMPORT };
+    render(<UploadPage />);
+    expect(
+      screen.getByText("Drop audio files or a folder here, or click to browse")
+    ).toBeInTheDocument();
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it("redirects users without IMPORT permission", () => {
+    mockUser = { id: 3, permissions: Permission.REQUEST };
+    render(<UploadPage />);
+    expect(mockNavigate).toHaveBeenCalledWith("/library/wanted", {
+      replace: true,
+    });
   });
 });

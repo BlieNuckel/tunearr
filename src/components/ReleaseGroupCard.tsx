@@ -47,8 +47,8 @@ export default function ReleaseGroupCard({
 }: ReleaseGroupCardProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const isAdmin =
-    user !== null && hasPermission(user.permissions, Permission.ADMIN);
+  const canImport =
+    user !== null && hasPermission(user.permissions, Permission.IMPORT);
 
   const [isFlipped, setIsFlipped] = useState(false);
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
@@ -166,7 +166,7 @@ export default function ReleaseGroupCard({
             onClick: () => setIsPurchaseModalOpen(true),
           },
         ]),
-    ...(isAdmin
+    ...(canImport
       ? [
           {
             label: "Upload files",
