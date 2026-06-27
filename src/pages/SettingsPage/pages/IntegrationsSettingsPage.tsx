@@ -7,6 +7,7 @@ import LidarrOptionsSection from "../sections/integrations/LidarrOptionsSection"
 import LastfmSection from "../sections/integrations/LastfmSection";
 import PlexSection from "../sections/integrations/PlexSection";
 import SlskdSection from "../sections/integrations/SlskdSection";
+import ImportSection from "../sections/integrations/ImportSection";
 import AutoSetupModal from "../shared/AutoSetupModal";
 import Skeleton from "@/components/Skeleton";
 import SaveStatusIndicator from "../shared/SaveStatusIndicator";
@@ -158,6 +159,11 @@ export default function IntegrationsSettingsPage() {
         autoSetupStatus={autoSetupStatus}
         autoSetupLoading={autoSetupLoading}
         onAutoSetup={() => setAutoSetupModalOpen(true)}
+      />
+
+      <ImportSection
+        importPath={fields.importPath}
+        onImportPathChange={(v) => updateField("importPath", v)}
       />
 
       {testResult && (

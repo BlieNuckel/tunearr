@@ -60,7 +60,7 @@ export const SECTION_META: Record<SettingsSection, SectionMeta> = {
   },
   import: {
     label: "Manual Import",
-    tab: "general",
+    tab: "integrations",
     keywords: ["import", "path", "upload", "file", "manual"],
     permission: Permission.ADMIN,
   },

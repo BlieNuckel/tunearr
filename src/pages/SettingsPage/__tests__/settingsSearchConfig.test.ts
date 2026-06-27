@@ -53,8 +53,12 @@ describe("SECTION_META", () => {
     expect(SECTION_META.theme.tab).toBe("general");
   });
 
-  it("assigns import to general tab", () => {
-    expect(SECTION_META.import.tab).toBe("general");
+  it("assigns import to integrations tab", () => {
+    expect(SECTION_META.import.tab).toBe("integrations");
+  });
+
+  it("restricts import to admins", () => {
+    expect(SECTION_META.import.permission).toBe(Permission.ADMIN);
   });
 
   it("assigns lidarrConnection to integrations tab", () => {
