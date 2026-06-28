@@ -1,7 +1,7 @@
 import { resilientFetch } from "../resilientFetch";
 import { getPlexConfig } from "./config";
+import { getMusicSectionKey } from "./sections";
 import type {
-  PlexSectionsResponse,
   PlexArtistsResponse,
   PlexHistoryResponse,
   PlexTopArtist,
@@ -19,20 +19,6 @@ const SECONDS_PER_DAY = 86400;
 
 const buildThumbUrl = (thumb?: string): string =>
   thumb ? `/api/plex/thumb?path=${encodeURIComponent(thumb)}` : "";
-
-const getMusicSectionKey = async (
-  baseUrl: string,
-  headers: Record<string, string>
-): Promise<string> => {
-  const res = await resilientFetch(`${baseUrl}/library/sections`, { headers });
-  if (!res.ok) throw new Error(`Plex returned ${res.status}`);
-
-  const data: PlexSectionsResponse = await res.json();
-  const sections = data.MediaContainer?.Directory || [];
-  const musicSection = sections.find((s) => s.type === "artist");
-  if (!musicSection) throw new Error("No music library found in Plex");
-  return musicSection.key;
-};
 
 async function getTopArtistsAllTime(
   baseUrl: string,
