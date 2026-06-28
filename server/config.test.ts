@@ -215,6 +215,12 @@ describe("promotedAlbum config", () => {
     ).toThrow("cacheDurationMinutes must be a non-negative number");
   });
 
+  it("validates profileTtlMinutes is non-negative", () => {
+    expect(() =>
+      setConfig({ promotedAlbum: { profileTtlMinutes: -1 } as never })
+    ).toThrow("profileTtlMinutes must be a non-negative number");
+  });
+
   it("validates libraryPreference enum", () => {
     expect(() =>
       setConfig({ promotedAlbum: { libraryPreference: "invalid" } as never })

@@ -55,7 +55,7 @@ describe("GET /", () => {
     const res = await request(app).get("/");
     expect(res.status).toBe(200);
     expect(res.body).toEqual(data);
-    expect(mockGetPromotedAlbum).toHaveBeenCalledWith("plex-token-123", false);
+    expect(mockGetPromotedAlbum).toHaveBeenCalledWith(1, false);
   });
 
   it("returns null when no album found", async () => {
@@ -78,12 +78,11 @@ describe("GET /", () => {
     mockGetPromotedAlbum.mockResolvedValue(null);
 
     await request(app).get("/?refresh=true");
-    expect(mockGetPromotedAlbum).toHaveBeenCalledWith("plex-token-123", true);
+    expect(mockGetPromotedAlbum).toHaveBeenCalledWith(1, true);
   });
 
-  it("returns null without calling service when user has no plex token", async () => {
+  it("returns null without calling service when there is no authenticated user", async () => {
     const app = express();
-    app.use(withUser());
     app.use("/", promotedAlbumRouter);
 
     const res = await request(app).get("/");

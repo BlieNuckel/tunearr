@@ -2,6 +2,7 @@ import type { PromotedAlbumSettings } from "./settingsContextDef";
 
 export const DEFAULT_PROMOTED_ALBUM: PromotedAlbumSettings = {
   cacheDurationMinutes: 30,
+  profileTtlMinutes: 1440,
   topArtistsRange: "6months",
   topArtistsCount: 10,
   pickedArtistsCount: 3,

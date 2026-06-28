@@ -9,6 +9,7 @@ export type TopArtistsRange = "all" | "4weeks" | "6months" | "12months";
 
 export interface PromotedAlbumSettings {
   cacheDurationMinutes: number;
+  profileTtlMinutes: number;
   topArtistsRange: TopArtistsRange;
   topArtistsCount: number;
   pickedArtistsCount: number;

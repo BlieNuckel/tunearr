@@ -15,10 +15,20 @@ export type ProfileConfigInputs = {
   pickedArtistsCount: number;
 };
 
+/** A partial patch of the anti-repeat exploration memory; only provided fields are replaced. */
+export type ExplorationHistoryPatch = {
+  albums?: string[];
+  artists?: string[];
+};
+
 const EMPTY_DERIVED_PROFILE: DerivedProfile = {
   genreVector: [],
+  artistTags: [],
   explorationHistory: { albums: [], artists: [] },
 };
+
+/** Far-past timestamp so a profile row created only to hold exploration memory reads as stale. */
+const STALE_GENERATED_AT = "1970-01-01T00:00:00.000Z";
 
 export function serializeDerivedProfile(profile: DerivedProfile): string {
   return JSON.stringify(profile);
@@ -33,6 +43,7 @@ export function parseDerivedProfile(json: string): DerivedProfile {
     const parsed = JSON.parse(json) as Partial<DerivedProfile>;
     return {
       genreVector: parsed.genreVector ?? [],
+      artistTags: parsed.artistTags ?? [],
       explorationHistory: {
         albums: parsed.explorationHistory?.albums ?? [],
         artists: parsed.explorationHistory?.artists ?? [],
@@ -93,6 +104,52 @@ export async function touchProfileUsed(userId: number): Promise<void> {
     { user_id: userId },
     { last_used_at: new Date().toISOString() }
   );
+}
+
+/**
+ * Merge a patch into the persisted exploration (anti-repeat) memory without touching
+ * the derived vector or its provenance. When no profile row exists yet, a placeholder
+ * row is created stamped stale so the next recommendation regenerates the vector.
+ */
+export async function updateExplorationHistory(
+  userId: number,
+  patch: ExplorationHistoryPatch
+): Promise<void> {
+  const repo = getDataSource().getRepository(UserProfile);
+  const existing = await repo.findOne({ where: { user_id: userId } });
+
+  if (existing) {
+    const profile = parseDerivedProfile(existing.profile_json);
+    const next: DerivedProfile = {
+      ...profile,
+      explorationHistory: {
+        albums: patch.albums ?? profile.explorationHistory.albums,
+        artists: patch.artists ?? profile.explorationHistory.artists,
+      },
+    };
+    await repo.update(
+      { user_id: userId },
+      { profile_json: serializeDerivedProfile(next) }
+    );
+    return;
+  }
+
+  const placeholder: DerivedProfile = {
+    ...EMPTY_DERIVED_PROFILE,
+    explorationHistory: {
+      albums: patch.albums ?? [],
+      artists: patch.artists ?? [],
+    },
+  };
+  const entity = repo.create({
+    user_id: userId,
+    profile_json: serializeDerivedProfile(placeholder),
+    schema_version: DERIVED_PROFILE_SCHEMA_VERSION,
+    config_hash: "",
+    generated_at: STALE_GENERATED_AT,
+    last_used_at: new Date().toISOString(),
+  });
+  await repo.save(entity);
 }
 
 export async function appendSignalEvent(

@@ -5,6 +5,12 @@ import { lidarrGet } from "../api/lidarr/get";
 import type { LidarrArtist } from "../api/lidarr/types";
 import { getConfigValue } from "../config";
 import { weightedRandomPick, shuffle } from "../utils/random";
+import { findUserById } from "../auth/users";
+import {
+  getUserProfile,
+  updateExplorationHistory,
+  parseDerivedProfile,
+} from "../db/userProfile";
 import type { PromotedArtist, PromotedArtistsResult } from "./types";
 
 export type { PromotedArtistsResult } from "./types";
@@ -23,19 +29,17 @@ type LibraryLookup = (name: string, mbid: string) => boolean;
 const RESULT_COUNT = 6;
 const RECENT_SHOWN_LIMIT = 18;
 
-const userCache = new Map<string, CacheEntry>();
-const recentlyShownByUser = new Map<string, string[]>();
+const resultCache = new Map<number, CacheEntry>();
 
 export function clearPromotedArtistsCache() {
-  userCache.clear();
-  recentlyShownByUser.clear();
+  resultCache.clear();
 }
 
-function rememberShown(plexToken: string, names: string[]) {
-  const previous = recentlyShownByUser.get(plexToken) ?? [];
-  const merged = [...names, ...previous];
-  const deduped = Array.from(new Set(merged)).slice(0, RECENT_SHOWN_LIMIT);
-  recentlyShownByUser.set(plexToken, deduped);
+function mergeRecentArtists(names: string[], previous: string[]): string[] {
+  return Array.from(new Set([...names, ...previous])).slice(
+    0,
+    RECENT_SHOWN_LIMIT
+  );
 }
 
 async function safeSimilar(name: string): Promise<SimilarArtist[]> {
@@ -93,13 +97,13 @@ function pickArtists(
 }
 
 export async function getPromotedArtists(
-  plexToken: string,
+  userId: number,
   forceRefresh = false
 ): Promise<PromotedArtistsResult> {
   const config = getConfigValue("promotedAlbum");
   const cacheDurationMs = config.cacheDurationMinutes * 60 * 1000;
 
-  const cached = userCache.get(plexToken);
+  const cached = resultCache.get(userId);
   if (
     !forceRefresh &&
     cached &&
@@ -107,6 +111,10 @@ export async function getPromotedArtists(
   ) {
     return cached.result;
   }
+
+  const user = await findUserById(userId);
+  const plexToken = user?.plexToken;
+  if (!plexToken) return null;
 
   const topArtists = await getTopArtists(
     plexToken,
@@ -130,8 +138,11 @@ export async function getPromotedArtists(
   const merged = mergeSimilar(similarLists, topNames);
   if (merged.length === 0) return null;
 
-  const recentlyShown = new Set(recentlyShownByUser.get(plexToken) ?? []);
-  const chosen = pickArtists(merged, recentlyShown);
+  const profileRow = await getUserProfile(userId);
+  const recentArtists = profileRow
+    ? parseDerivedProfile(profileRow.profile_json).explorationHistory.artists
+    : [];
+  const chosen = pickArtists(merged, new Set(recentArtists));
 
   const enriched = await enrichArtistsWithImages(chosen);
   const inLibrary = await loadLibraryLookup();
@@ -149,11 +160,12 @@ export async function getPromotedArtists(
     seedArtists: seeds.map((s) => s.name),
   };
 
-  rememberShown(
-    plexToken,
-    artists.map((a) => a.name.toLowerCase())
+  const nextArtists = mergeRecentArtists(
+    artists.map((a) => a.name.toLowerCase()),
+    recentArtists
   );
-  userCache.set(plexToken, { result, cachedAt: Date.now() });
+  await updateExplorationHistory(userId, { artists: nextArtists });
+  resultCache.set(userId, { result, cachedAt: Date.now() });
 
   return result;
 }

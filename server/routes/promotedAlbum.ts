@@ -5,13 +5,13 @@ import { getPromotedAlbum } from "../promotedAlbum/getPromotedAlbum";
 const router = express.Router();
 
 router.get("/", async (req: Request, res: Response) => {
-  const plexToken = req.user?.plexToken;
-  if (!plexToken) {
+  const userId = req.user?.id;
+  if (!userId) {
     res.json(null);
     return;
   }
   const forceRefresh = req.query.refresh === "true";
-  const result = await getPromotedAlbum(plexToken, forceRefresh);
+  const result = await getPromotedAlbum(userId, forceRefresh);
   res.json(result);
 });
 

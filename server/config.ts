@@ -27,6 +27,7 @@ export type SpendingConfig = {
 
 export type PromotedAlbumConfig = {
   cacheDurationMinutes: number;
+  profileTtlMinutes: number;
   topArtistsRange: TopArtistsRange;
   topArtistsCount: number;
   pickedArtistsCount: number;
@@ -84,6 +85,7 @@ export const DEFAULT_REQUEST_STATUS_POLL_INTERVAL_MS = 2 * 60 * 1000;
 
 export const DEFAULT_PROMOTED_ALBUM: PromotedAlbumConfig = {
   cacheDurationMinutes: 30,
+  profileTtlMinutes: 1440,
   topArtistsRange: "6months",
   topArtistsCount: 10,
   pickedArtistsCount: 3,
@@ -212,6 +214,12 @@ function validatePromotedAlbumConfig(config: PromotedAlbumConfig) {
     config.cacheDurationMinutes < 0
   ) {
     throw new Error("cacheDurationMinutes must be a non-negative number");
+  }
+  if (
+    typeof config.profileTtlMinutes !== "number" ||
+    config.profileTtlMinutes < 0
+  ) {
+    throw new Error("profileTtlMinutes must be a non-negative number");
   }
   if (!VALID_TOP_ARTISTS_RANGES.includes(config.topArtistsRange)) {
     throw new Error(

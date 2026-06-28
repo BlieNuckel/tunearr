@@ -32,6 +32,7 @@ import {
   getPromotedArtists,
   clearPromotedArtistsCache,
 } from "./getPromotedArtists";
+import { initializeDatabase, closeDatabase, getDataSource } from "../db";
 
 type SimilarArtist = {
   name: string;
@@ -40,8 +41,21 @@ type SimilarArtist = {
   imageUrl: string;
 };
 
+async function createUserWithToken(token: string): Promise<number> {
+  const ds = getDataSource();
+  await ds.query(
+    "INSERT INTO users (plex_token, user_type, enabled) VALUES (?, 'plex', 1)",
+    [token]
+  );
+  const rows = (await ds.query("SELECT id FROM users WHERE plex_token = ?", [
+    token,
+  ])) as { id: number }[];
+  return rows[rows.length - 1].id;
+}
+
 const baseConfig: PromotedAlbumConfig = {
   cacheDurationMinutes: 30,
+  profileTtlMinutes: 1440,
   topArtistsRange: "6months",
   topArtistsCount: 10,
   pickedArtistsCount: 2,
@@ -72,7 +86,9 @@ const SIMILAR: Record<string, SimilarArtist[]> = {
   ],
 };
 
-beforeEach(() => {
+let userId: number;
+
+beforeEach(async () => {
   vi.clearAllMocks();
   clearPromotedArtistsCache();
   vi.spyOn(Math, "random").mockReturnValue(0);
@@ -89,25 +105,37 @@ beforeEach(() => {
     ok: true,
     data: [{ artistName: "Tycho", foreignArtistId: "ty" }],
   });
+
+  await initializeDatabase(":memory:");
+  userId = await createUserWithToken("token");
 });
 
-afterEach(() => {
+afterEach(async () => {
+  await closeDatabase();
   vi.restoreAllMocks();
 });
 
 describe("getPromotedArtists", () => {
+  it("returns null when the user has no stored Plex token", async () => {
+    const rows = (await getDataSource().query(
+      "INSERT INTO users (user_type, enabled) VALUES ('local', 1) RETURNING id"
+    )) as { id: number }[];
+    expect(await getPromotedArtists(rows[0].id)).toBeNull();
+    expect(mockGetTopArtists).not.toHaveBeenCalled();
+  });
+
   it("returns null when the user has no top artists", async () => {
     mockGetTopArtists.mockResolvedValue([]);
-    expect(await getPromotedArtists("token")).toBeNull();
+    expect(await getPromotedArtists(userId)).toBeNull();
   });
 
   it("uses the listening window config to fetch top artists", async () => {
-    await getPromotedArtists("token");
+    await getPromotedArtists(userId);
     expect(mockGetTopArtists).toHaveBeenCalledWith("token", 10, "6months");
   });
 
   it("returns similar artists seeded from the top artists", async () => {
-    const result = await getPromotedArtists("token");
+    const result = await getPromotedArtists(userId);
     expect(result).not.toBeNull();
     expect(result!.seedArtists).toEqual(["Aphex Twin", "Plaid"]);
     const names = result!.artists.map((a) => a.name).sort();
@@ -115,19 +143,19 @@ describe("getPromotedArtists", () => {
   });
 
   it("excludes artists already in the user's top list", async () => {
-    const result = await getPromotedArtists("token");
+    const result = await getPromotedArtists(userId);
     const names = result!.artists.map((a) => a.name);
     expect(names).not.toContain("Plaid");
   });
 
   it("dedupes by name and keeps the highest match", async () => {
-    const result = await getPromotedArtists("token");
+    const result = await getPromotedArtists(userId);
     const boc = result!.artists.find((a) => a.name === "Boards of Canada");
     expect(boc?.match).toBe(0.95);
   });
 
   it("marks artists in the library", async () => {
-    const result = await getPromotedArtists("token");
+    const result = await getPromotedArtists(userId);
     const tycho = result!.artists.find((a) => a.name === "Tycho");
     const boc = result!.artists.find((a) => a.name === "Boards of Canada");
     expect(tycho?.inLibrary).toBe(true);
@@ -138,21 +166,37 @@ describe("getPromotedArtists", () => {
     mockGetSimilarArtists.mockResolvedValue([
       { name: "Aphex Twin", mbid: "at", match: 0.9, imageUrl: "" },
     ]);
-    expect(await getPromotedArtists("token")).toBeNull();
+    expect(await getPromotedArtists(userId)).toBeNull();
   });
 
   it("caches results per user and recomputes on refresh", async () => {
-    await getPromotedArtists("token");
-    await getPromotedArtists("token");
+    await getPromotedArtists(userId);
+    await getPromotedArtists(userId);
     expect(mockGetTopArtists).toHaveBeenCalledTimes(1);
 
-    await getPromotedArtists("token", true);
+    await getPromotedArtists(userId, true);
     expect(mockGetTopArtists).toHaveBeenCalledTimes(2);
+  });
+
+  it("persists anti-repeat memory so a refresh avoids re-showing artists", async () => {
+    const first = await getPromotedArtists(userId);
+    const firstNames = new Set(first!.artists.map((a) => a.name.toLowerCase()));
+
+    const row = await getDataSource().query(
+      "SELECT profile_json FROM user_profiles WHERE user_id = ?",
+      [userId]
+    );
+    const stored = JSON.parse(row[0].profile_json) as {
+      explorationHistory: { artists: string[] };
+    };
+    for (const name of firstNames) {
+      expect(stored.explorationHistory.artists).toContain(name);
+    }
   });
 
   it("survives Lidarr being unavailable", async () => {
     mockLidarrGet.mockRejectedValue(new Error("down"));
-    const result = await getPromotedArtists("token");
+    const result = await getPromotedArtists(userId);
     expect(result).not.toBeNull();
     expect(result!.artists.every((a) => a.inLibrary === false)).toBe(true);
   });

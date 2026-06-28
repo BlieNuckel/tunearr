@@ -18,6 +18,13 @@ const SAMPLE_PROFILE: DerivedProfile = {
     { tag: "shoegaze", weight: 42, fromArtists: ["Slowdive", "Ride"] },
     { tag: "dream pop", weight: 17, fromArtists: ["Beach House"] },
   ],
+  artistTags: [
+    {
+      name: "Slowdive",
+      viewCount: 30,
+      tags: [{ name: "shoegaze", count: 100 }],
+    },
+  ],
   explorationHistory: {
     albums: ["mbid-album-1", "mbid-album-2"],
     artists: ["mbid-artist-1"],
@@ -59,6 +66,7 @@ describe("serializeDerivedProfile / parseDerivedProfile", () => {
   it("returns an empty profile for invalid JSON", () => {
     expect(parseDerivedProfile("not json")).toEqual({
       genreVector: [],
+      artistTags: [],
       explorationHistory: { albums: [], artists: [] },
     });
   });
@@ -66,6 +74,7 @@ describe("serializeDerivedProfile / parseDerivedProfile", () => {
   it("fills missing fields with empty defaults", () => {
     expect(parseDerivedProfile(JSON.stringify({ genreVector: [] }))).toEqual({
       genreVector: [],
+      artistTags: [],
       explorationHistory: { albums: [], artists: [] },
     });
   });
@@ -123,6 +132,7 @@ describe("upsertUserProfile / getUserProfile", () => {
 
     const updated: DerivedProfile = {
       genreVector: [{ tag: "techno", weight: 9, fromArtists: ["Aphex Twin"] }],
+      artistTags: [],
       explorationHistory: { albums: [], artists: [] },
     };
     await upsertUserProfile(userId, updated, "hash-2");

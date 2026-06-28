@@ -157,6 +157,16 @@ export default function RecommendationsSection({
         description="How long to cache a promoted album before picking a new one. Set to 0 to disable caching."
       />
 
+      <NumberField
+        label="Taste Profile Lifetime (minutes)"
+        value={config.profileTtlMinutes}
+        onChange={(v) => update("profileTtlMinutes", v)}
+        min={0}
+        max={10080}
+        step={60}
+        description="How long your derived taste profile (genre vector) is reused before the expensive Plex + Last.fm rebuild runs again. Longer is cheaper; shorter tracks taste changes faster."
+      />
+
       <div>
         <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
           Listening Window

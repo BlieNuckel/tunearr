@@ -15,6 +15,11 @@ import { User } from "./User";
  */
 export type DerivedProfile = {
   genreVector: { tag: string; weight: number; fromArtists: string[] }[];
+  artistTags: {
+    name: string;
+    viewCount: number;
+    tags: { name: string; count: number }[];
+  }[];
   explorationHistory: { albums: string[]; artists: string[] };
 };
 
