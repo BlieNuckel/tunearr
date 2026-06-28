@@ -30,4 +30,5 @@ export const DEFAULT_PROMOTED_ALBUM: PromotedAlbumSettings = {
   backgroundRegenEnabled: true,
   backgroundRegenIntervalMinutes: 60,
   backgroundRegenActiveWithinMinutes: 10080,
+  ratingsBackupEnabled: true,
 };

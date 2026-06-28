@@ -197,6 +197,32 @@ export async function getProfileRegenCandidates(): Promise<
   }));
 }
 
+/** A user eligible for signal ingestion: enabled and holding a Plex token. */
+export type SignalIngestionUser = {
+  userId: number;
+  plexToken: string;
+};
+
+/**
+ * Every enabled user with a stored Plex token — the daily signal-ingestion sweep
+ * runs for all of them, not just users who have a derived profile. Home servers
+ * have few users, so a full sweep is cheap.
+ */
+export async function getSignalIngestionUsers(): Promise<
+  SignalIngestionUser[]
+> {
+  const rows = (await getDataSource().query(
+    `SELECT id AS user_id, plex_token
+     FROM users
+     WHERE plex_token IS NOT NULL AND enabled = 1`
+  )) as { user_id: number; plex_token: string }[];
+
+  return rows.map((row) => ({
+    userId: row.user_id,
+    plexToken: row.plex_token,
+  }));
+}
+
 export async function getSignalEvents(
   userId: number,
   kind?: string

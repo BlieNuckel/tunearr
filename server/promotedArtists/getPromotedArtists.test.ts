@@ -70,6 +70,7 @@ const baseConfig: PromotedAlbumConfig = {
   backgroundRegenEnabled: false,
   backgroundRegenIntervalMinutes: 60,
   backgroundRegenActiveWithinMinutes: 10080,
+  ratingsBackupEnabled: true,
 };
 
 const TOP_ARTISTS = [
