@@ -233,6 +233,12 @@ describe("promotedAlbum config", () => {
     ).toThrow("genericTags must be an array");
   });
 
+  it("validates ratingsBackupEnabled is a boolean", () => {
+    expect(() =>
+      setConfig({ promotedAlbum: { ratingsBackupEnabled: "yes" } as never })
+    ).toThrow("ratingsBackupEnabled must be a boolean");
+  });
+
   it("allows valid promotedAlbum config", () => {
     setConfig({
       promotedAlbum: {

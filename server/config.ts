@@ -42,6 +42,7 @@ export type PromotedAlbumConfig = {
   backgroundRegenEnabled: boolean;
   backgroundRegenIntervalMinutes: number;
   backgroundRegenActiveWithinMinutes: number;
+  ratingsBackupEnabled: boolean;
 };
 
 export type IConfig = {
@@ -116,6 +117,7 @@ export const DEFAULT_PROMOTED_ALBUM: PromotedAlbumConfig = {
   backgroundRegenEnabled: true,
   backgroundRegenIntervalMinutes: 60,
   backgroundRegenActiveWithinMinutes: 10080,
+  ratingsBackupEnabled: true,
 };
 
 const DEFAULT_CONFIG: IConfig = {
@@ -257,6 +259,9 @@ function validatePromotedAlbumConfig(config: PromotedAlbumConfig) {
     config.backgroundRegenActiveWithinMinutes,
     "backgroundRegenActiveWithinMinutes"
   );
+  if (typeof config.ratingsBackupEnabled !== "boolean") {
+    throw new Error("ratingsBackupEnabled must be a boolean");
+  }
   if (
     !VALID_LIBRARY_PREFERENCES.includes(
       config.libraryPreference as LibraryPreference

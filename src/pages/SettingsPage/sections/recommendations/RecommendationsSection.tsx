@@ -210,6 +210,27 @@ export default function RecommendationsSection({
         </>
       )}
 
+      <div className="flex items-center gap-3">
+        <input
+          type="checkbox"
+          id="ratings-backup-enabled"
+          checked={config.ratingsBackupEnabled}
+          onChange={(e) => update("ratingsBackupEnabled", e.target.checked)}
+          className="h-4 w-4 rounded border-2 border-black"
+        />
+        <label
+          htmlFor="ratings-backup-enabled"
+          className="text-sm font-medium text-gray-900 dark:text-gray-100"
+        >
+          Back up Plex ratings &amp; play counts daily
+        </label>
+      </div>
+      <p className="text-gray-400 dark:text-gray-500 text-xs -mt-2">
+        Once a day, tunearr records each user's Plex star ratings and per-artist
+        play counts into its own database, so your taste data survives a Plex
+        history clear, re-import, or server migration. Single-instance only.
+      </p>
+
       <div>
         <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
           Listening Window

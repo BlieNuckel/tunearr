@@ -43,6 +43,7 @@ const baseConfig: PromotedAlbumConfig = {
   backgroundRegenEnabled: true,
   backgroundRegenIntervalMinutes: 60,
   backgroundRegenActiveWithinMinutes: 10080,
+  ratingsBackupEnabled: true,
 };
 
 const plexArtists = [

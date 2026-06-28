@@ -1,8 +1,9 @@
 # RFC: Stabilising user profiles
 
-Status: Step 1 implemented — discussing next steps
+Status: Step 1 implemented — Step 2 scoped, ratings reader prototyped
 Tracking issue: [#144](https://github.com/BlieNuckel/tunearr/issues/144)
 Step 1 issues: [#166](https://github.com/BlieNuckel/tunearr/issues/166) (#167 entities, #168 recommender, #169 scheduler)
+Step 2 issue: [#172](https://github.com/BlieNuckel/tunearr/issues/172)
 Related: #137 (explore mode), #145 (explore-vs-Plex boundary), #136 (listening window + anti-repeat)
 
 ## Implementation status
@@ -49,8 +50,10 @@ Deferred, as planned:
 - **`similarGraph`** is still not stored, so **explore mode still fans out per request**
   (ListenBrainz + Last.fm). It needs no migration to add later — just a field in
   `DerivedProfile`.
-- **Ratings ingestion + snapshots (`UserSignalEvent` writes)** — Step 2. The table exists
-  and the regen poller is the intended home for the snapshot cadence.
+- **Ratings ingestion + snapshots (`UserSignalEvent` writes)** — Step 2 ([#172](https://github.com/BlieNuckel/tunearr/issues/172)).
+  The table exists and the regen poller is the intended home for the snapshot cadence. The
+  Plex ratings **reader** is prototyped (`server/api/plex/ratings.ts`, with `getMusicSectionKey`
+  extracted to `sections.ts`); the `UserSignalEvent` **writes** and cadence are still to do.
 - **Taste page** (Step 3) and **export/restore** (Step 4).
 
 ## Problem
@@ -263,12 +266,14 @@ existing integration.
   their own token, which is exactly the case Plex supports. We never have one user read
   another's data.
 - **Read endpoint + perf (the volume half of the question).** Use a server-side filter for
-  rated items only — e.g. `GET /library/sections/{sectionKey}/all?type=10&userRating>>=1`
-  (the `>>=` operator is Plex's "greater-or-equal"; confirm exact encoding in impl). This
+  rated items only — `GET /library/sections/{sectionKey}/all?type=10&userRating>=1`. This
   means we **never scan the whole library** — one paginated, filtered query returns just the
   (small) rated set. Container pagination (`X-Plex-Container-Size`) is already wired up in
   `topArtists.ts`. Single-item reads via `GET /library/metadata/{ratingKey}` also carry
-  `userRating`.
+  `userRating`. **Prototype note (June 2026):** `server/api/plex/ratings.ts` implements this
+  with `userRating%3E=1` (i.e. `userRating>=1`, matching the proven `viewedAt>=` filter in
+  `topArtists.ts`) rather than the `>>=` operator originally sketched here. The exact encoding
+  a live PMS accepts is the one item still to confirm against a real server.
 - **Field semantics.** Music ratings exist at artist (`type=8`), album (`type=9`) and track
   (`type=10`); recommend ingesting albums + tracks. `userRating` is **absent** when an item
   is unrated — treat missing as "no rating", not 0. Scale is 0–10 (half-star = 1 unit),
@@ -299,12 +304,13 @@ Two caveats to handle during Step 2, neither blocking:
 Step 1 (persist the derived profile) is implemented — see **Implementation status** above.
 Discussion now moves to what comes after, in roughly dependency order:
 
-- **Step 2 — ratings ingestion + snapshots.** **Unblocked** — open question 3 resolved
-  (Plex exposes `userRating` via the per-user token path; see "Resolved: ratings ingestion"
-  above). Read rated items with a server-side `userRating>>=1` filter on the existing token
-  path, then write `UserSignalEvent` rows (`kind = "snapshot"` / `"plex_rating"`); the regen
-  poller already exists as the cadence home. This is the first feature that makes
-  `UserSignalEvent` earn its place.
+- **Step 2 — ratings ingestion + snapshots ([#172](https://github.com/BlieNuckel/tunearr/issues/172)).**
+  **Unblocked** — open question 3 resolved (Plex exposes `userRating` via the per-user token
+  path; see "Resolved: ratings ingestion" above) and the reader is prototyped
+  (`server/api/plex/ratings.ts`, server-side `userRating>=1` filter, paginated, albums + tracks).
+  Remaining: write `UserSignalEvent` rows (`kind = "snapshot"` / `"plex_rating"`) and wire the
+  cadence into the regen poller, which already exists as the cadence home. This is the first
+  feature that makes `UserSignalEvent` earn its place.
 - **Feed new signals into the vector.** The contributor-registry seam from #166 lets a
   rating / behaviour signal add weight to the _same_ `genreVector` without restructuring the
   recommender. Worth deciding the weighting model before Step 2 lands data.

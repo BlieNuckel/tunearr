@@ -37,3 +37,30 @@ export type PlexTopArtist = {
   thumb: string;
   genres: string[];
 };
+
+/** Plex `type` ids for the rateable music entities tunearr ingests. */
+export type PlexRatingType = 9 | 10; // 9 = album, 10 = track
+
+export type PlexRatedItemMetadata = {
+  ratingKey: string;
+  title: string;
+  userRating?: number;
+  parentTitle?: string;
+  grandparentTitle?: string;
+};
+
+export type PlexRatedItemsResponse = {
+  MediaContainer: {
+    totalSize?: number;
+    Metadata?: PlexRatedItemMetadata[];
+  };
+};
+
+export type PlexRatedItem = {
+  ratingKey: string;
+  kind: "album" | "track";
+  title: string;
+  artist: string;
+  /** Plex scale 0–10 (half-star = 1 unit). */
+  rating: number;
+};
