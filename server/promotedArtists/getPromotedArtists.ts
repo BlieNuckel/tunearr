@@ -1,4 +1,4 @@
-import { getTopArtists } from "../api/plex/topArtists";
+import { loadArtistWeights } from "../promotedAlbum/artistWeights";
 import { getSimilarArtists } from "../api/lastfm/artists";
 import { enrichArtistsWithImages } from "../services/lastfm";
 import { lidarrGet } from "../api/lidarr/get";
@@ -116,12 +116,18 @@ export async function getPromotedArtists(
   const plexToken = user?.plexToken;
   if (!plexToken) return null;
 
-  const topArtists = await getTopArtists(
+  const windowMs = config.playTrendWindowDays * 24 * 60 * 60 * 1000;
+  const weighted = await loadArtistWeights(
+    userId,
     plexToken,
-    config.topArtistsCount,
-    config.topArtistsRange
+    windowMs,
+    config.ratingWeight
   );
-  if (topArtists.length === 0) return null;
+  if (weighted.length === 0) return null;
+
+  const topArtists = [...weighted]
+    .sort((a, b) => b.viewCount - a.viewCount)
+    .slice(0, config.topArtistsCount);
 
   const seeds = weightedRandomPick(
     topArtists,

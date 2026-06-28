@@ -239,6 +239,18 @@ describe("promotedAlbum config", () => {
     ).toThrow("ratingsBackupEnabled must be a boolean");
   });
 
+  it("validates playTrendWindowDays is a positive integer", () => {
+    expect(() =>
+      setConfig({ promotedAlbum: { playTrendWindowDays: 0 } as never })
+    ).toThrow("playTrendWindowDays must be a positive integer");
+  });
+
+  it("validates ratingWeight is non-negative", () => {
+    expect(() =>
+      setConfig({ promotedAlbum: { ratingWeight: -1 } as never })
+    ).toThrow("ratingWeight must be a non-negative number");
+  });
+
   it("allows valid promotedAlbum config", () => {
     setConfig({
       promotedAlbum: {

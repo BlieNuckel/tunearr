@@ -1,13 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const mockGetRatedItems = vi.fn();
-const mockGetTopArtists = vi.fn();
+const mockGetAllArtistPlayCounts = vi.fn();
 
 vi.mock("../../api/plex/ratings", () => ({
   getRatedItems: (...args: unknown[]) => mockGetRatedItems(...args),
 }));
-vi.mock("../../api/plex/topArtists", () => ({
-  getTopArtists: (...args: unknown[]) => mockGetTopArtists(...args),
+vi.mock("../../api/plex/artistPlayCounts", () => ({
+  getAllArtistPlayCounts: (...args: unknown[]) =>
+    mockGetAllArtistPlayCounts(...args),
 }));
 
 import {
@@ -153,10 +154,10 @@ describe("ingestion (with DB)", () => {
     expect(JSON.parse(events[1].payload).rating).toBe(4);
   });
 
-  it("writes a snapshot of per-artist play counts", async () => {
-    mockGetTopArtists.mockResolvedValue([
-      { name: "Andromedik", viewCount: 120, thumb: "", genres: [] },
-      { name: "Durry", viewCount: 30, thumb: "", genres: [] },
+  it("writes a snapshot of per-artist play counts for all played artists", async () => {
+    mockGetAllArtistPlayCounts.mockResolvedValue([
+      { name: "Andromedik", viewCount: 120 },
+      { name: "Durry", viewCount: 30 },
     ]);
 
     await ingestUserSnapshot(1, "tok");
@@ -168,6 +169,6 @@ describe("ingestion (with DB)", () => {
       { name: "Andromedik", playCount: 120 },
       { name: "Durry", playCount: 30 },
     ]);
-    expect(mockGetTopArtists).toHaveBeenCalledWith("tok", 200, "all");
+    expect(mockGetAllArtistPlayCounts).toHaveBeenCalledWith("tok");
   });
 });

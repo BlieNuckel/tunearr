@@ -1,5 +1,5 @@
 import { getRatedItems } from "../../api/plex/ratings";
-import { getTopArtists } from "../../api/plex/topArtists";
+import { getAllArtistPlayCounts } from "../../api/plex/artistPlayCounts";
 import { appendSignalEvent, getSignalEvents } from "../../db/userProfile";
 import type { UserSignalEvent } from "../../db/entity/UserSignalEvent";
 import type { PlexRatedItem } from "../../api/plex/types";
@@ -18,9 +18,6 @@ export type PlexRatingPayload = {
 export type SnapshotPayload = {
   artists: { name: string; playCount: number }[];
 };
-
-/** How many top artists to back up per snapshot (covers the long tail, not just the top few). */
-const SNAPSHOT_ARTIST_COUNT = 200;
 
 /**
  * Latest known rating per `ratingKey`, replayed from the append-only `plex_rating`
@@ -88,14 +85,15 @@ export async function ingestUserRatings(
 }
 
 /**
- * Append a `snapshot` event capturing the user's all-time per-artist play counts —
- * tunearr's own durable copy of the signal Plex can lose on a history clear / re-import.
+ * Append a `snapshot` event capturing the user's cumulative all-time per-artist play
+ * counts for EVERY played artist (not just the top N) — tunearr's own durable copy of
+ * the signal Plex can lose, and the series the recommender diffs to derive play trends.
  */
 export async function ingestUserSnapshot(
   userId: number,
   plexToken: string
 ): Promise<void> {
-  const artists = await getTopArtists(plexToken, SNAPSHOT_ARTIST_COUNT, "all");
+  const artists = await getAllArtistPlayCounts(plexToken);
   const payload: SnapshotPayload = {
     artists: artists.map((a) => ({ name: a.name, playCount: a.viewCount })),
   };

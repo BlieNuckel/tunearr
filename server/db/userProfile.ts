@@ -13,6 +13,8 @@ export type ProfileConfigInputs = {
   genericTags: string[];
   tagsPerArtist: number;
   pickedArtistsCount: number;
+  playTrendWindowDays: number;
+  ratingWeight: number;
 };
 
 /** A partial patch of the anti-repeat exploration memory; only provided fields are replaced. */
@@ -61,6 +63,8 @@ export function computeConfigHash(inputs: ProfileConfigInputs): string {
     genericTags: [...inputs.genericTags].map((t) => t.toLowerCase()).sort(),
     tagsPerArtist: inputs.tagsPerArtist,
     pickedArtistsCount: inputs.pickedArtistsCount,
+    playTrendWindowDays: inputs.playTrendWindowDays,
+    ratingWeight: inputs.ratingWeight,
   });
   return createHash("sha256").update(stable).digest("hex");
 }
