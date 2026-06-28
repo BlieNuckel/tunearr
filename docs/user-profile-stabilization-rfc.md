@@ -1,8 +1,57 @@
 # RFC: Stabilising user profiles
 
-Status: Draft / for discussion
+Status: Step 1 implemented — discussing next steps
 Tracking issue: [#144](https://github.com/BlieNuckel/tunearr/issues/144)
+Step 1 issues: [#166](https://github.com/BlieNuckel/tunearr/issues/166) (#167 entities, #168 recommender, #169 scheduler)
 Related: #137 (explore mode), #145 (explore-vs-Plex boundary), #136 (listening window + anti-repeat)
+
+## Implementation status
+
+**Step 1 (#166) is implemented** (persist the derived profile). The sections below are
+the original design; this block records what actually shipped and where it diverged.
+
+Done:
+
+- **Entities + migration (#167).** `UserProfile` (derived cache, one versioned JSON doc
+  per user) and `UserSignalEvent` (append-only, `kind`-tagged) in `server/db/entity/`,
+  migration `8_UserProfile`, both cascade-deleting with the owning user. Access helpers in
+  `server/db/userProfile.ts`.
+- **Profile-first recommender (#168).** `server/promotedAlbum/profileService.ts`:
+  `regenerateProfile(userId, plexToken)` (request-free, reused by the scheduler) and
+  `loadFreshProfile` (read-first; regenerate only on TTL expiry, `config_hash` mismatch, or
+  `schema_version` bump), guarded by a per-user `AsyncLock`. `getPromotedAlbum` /
+  `getPromotedArtists` now key on `userId`; the in-memory `userCache` /
+  `recentlyShownByUser` maps folded into the persisted `explorationHistory`.
+- **Background regeneration (#169).** `server/services/profile/regenPoller.ts` refreshes
+  stale **and** recently-active profiles off the request path, reusing the in-flight guard.
+
+Diverged from / refined beyond the original sketch:
+
+- **`DerivedProfile` carries `artistTags`** (`{ name, viewCount, tags: {name,count}[] }[]`)
+  in addition to `genreVector` + `explorationHistory`. The within-taste recommendation
+  `trace` ("How this was recommended") renders per-artist viewCounts + tag contributions,
+  which `genreVector` alone can't rebuild — without this, the trace's first two stages go
+  empty once a recommendation is served from the persisted profile (the normal path). Both
+  are produced in one regeneration pass so they can't disagree. We deliberately do **not**
+  store the raw unfiltered Last.fm tag dump: it's re-fetchable external data, and a config /
+  algorithm change flips `config_hash` and forces a clean refetch rather than recomputing a
+  stale snapshot.
+- **Two-layer cache** (was sketched, now concrete): long-lived persisted profile
+  (`profileTtlMinutes`, default 1440) + short-lived in-memory result cache
+  (`cacheDurationMinutes`, default 30). A refresh re-picks a tag/album off the cached vector
+  without re-running the Plex + Last.fm fan-out.
+- **New config** (`promotedAlbum.*`, validated, with Settings UI): `profileTtlMinutes`,
+  `backgroundRegenEnabled`, `backgroundRegenIntervalMinutes`,
+  `backgroundRegenActiveWithinMinutes`.
+
+Deferred, as planned:
+
+- **`similarGraph`** is still not stored, so **explore mode still fans out per request**
+  (ListenBrainz + Last.fm). It needs no migration to add later — just a field in
+  `DerivedProfile`.
+- **Ratings ingestion + snapshots (`UserSignalEvent` writes)** — Step 2. The table exists
+  and the regen poller is the intended home for the snapshot cadence.
+- **Taste page** (Step 3) and **export/restore** (Step 4).
 
 ## Problem
 
@@ -206,6 +255,22 @@ The in-memory `userCache`/`recentlyShownByUser` maps fold into `UserProfile`.
 
 ## Next step
 
-Agree on the open questions above, then split into an implementation issue: entities +
-migration first, snapshot/ingestion second, recommender profile-first path third, taste page
-last. Each lands with full frontend + backend tests per project policy.
+Step 1 (persist the derived profile) is implemented — see **Implementation status** above.
+Discussion now moves to what comes after, in roughly dependency order:
+
+- **Step 2 — ratings ingestion + snapshots.** Gated on confirming Plex exposes `userRating`
+  via the per-user token path (open question 3). Writes `UserSignalEvent` rows
+  (`kind = "snapshot"` / `"plex_rating"`); the regen poller already exists as the cadence
+  home. This is the first feature that makes `UserSignalEvent` earn its place.
+- **Feed new signals into the vector.** The contributor-registry seam from #166 lets a
+  rating / behaviour signal add weight to the _same_ `genreVector` without restructuring the
+  recommender. Worth deciding the weighting model before Step 2 lands data.
+- **`similarGraph` for explore mode.** Persist the ListenBrainz similar-artist graph in
+  `DerivedProfile` so explore stops fanning out per request (currently the one un-optimised
+  path). Migration-free field add.
+- **Step 3 — taste page.** Renders `genreVector` (top genres + weights) and, with Step 2,
+  rating/trend views from the snapshot log.
+- **Step 4 — export/restore.** Out of scope until there's a reason; noted for completeness.
+
+Open questions 1 (snapshot cadence), 2 (per-user TTL override), and 3 (ratings exposure)
+are the ones that block Step 2.
