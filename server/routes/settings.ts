@@ -5,6 +5,7 @@ import { getConfig, setConfig } from "../config";
 import { clearPromotedAlbumCache } from "../promotedAlbum/getPromotedAlbum";
 import { clearPromotedArtistsCache } from "../promotedArtists/getPromotedArtists";
 import { testLidarrConnection } from "../services/settings";
+import { testSlskdConnection } from "../api/slskd/testConnection";
 import { requireAuth } from "../middleware/requireAuth";
 import { requirePermission } from "../middleware/requirePermission";
 import { Permission } from "../../shared/permissions";
@@ -66,6 +67,20 @@ router.post("/test", async (req: Request, res: Response) => {
   }
 
   const result = await testLidarrConnection(lidarrUrl, lidarrApiKey);
+  if ("error" in result) {
+    return res.status(result.status).json({ error: result.error });
+  }
+
+  res.json(result);
+});
+
+router.post("/test-slskd", async (req: Request, res: Response) => {
+  const { slskdUrl, slskdApiKey } = req.body;
+  if (!slskdUrl || !slskdApiKey) {
+    return res.status(400).json({ error: "URL and API key are required" });
+  }
+
+  const result = await testSlskdConnection(slskdUrl, slskdApiKey);
   if ("error" in result) {
     return res.status(result.status).json({ error: result.error });
   }

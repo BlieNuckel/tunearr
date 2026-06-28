@@ -28,6 +28,7 @@ const connectedContext: SettingsContextValue = {
   saveSettings: vi.fn(),
   savePartialSettings: vi.fn(),
   testConnection: vi.fn(),
+  testSlskdConnection: vi.fn(),
   loadLidarrOptionValues: vi.fn(),
 };
 
