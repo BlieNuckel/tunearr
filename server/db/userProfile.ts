@@ -167,6 +167,36 @@ export async function appendSignalEvent(
   return repo.save(entity);
 }
 
+/** A persisted profile paired with its owner's Plex token, for background regeneration. */
+export type ProfileRegenCandidate = {
+  userId: number;
+  plexToken: string;
+  profile: UserProfile;
+};
+
+/**
+ * Every persisted profile owned by an enabled user with a stored Plex token. The
+ * background regenerator filters these by staleness + activity; users who never
+ * used discovery have no row and are intentionally absent (no quota spent on them).
+ */
+export async function getProfileRegenCandidates(): Promise<
+  ProfileRegenCandidate[]
+> {
+  const rows = (await getDataSource().query(
+    `SELECT p.id, p.user_id, p.profile_json, p.schema_version, p.config_hash,
+            p.generated_at, p.last_used_at, u.plex_token AS plex_token
+     FROM user_profiles p
+     JOIN users u ON u.id = p.user_id
+     WHERE u.plex_token IS NOT NULL AND u.enabled = 1`
+  )) as (UserProfile & { plex_token: string })[];
+
+  return rows.map((row) => ({
+    userId: row.user_id,
+    plexToken: row.plex_token,
+    profile: row,
+  }));
+}
+
 export async function getSignalEvents(
   userId: number,
   kind?: string

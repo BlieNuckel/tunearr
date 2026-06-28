@@ -36,6 +36,9 @@ const baseConfig: PromotedAlbumConfig = {
   explorationRate: 0,
   exploreCandidateCount: 12,
   genreOverlapThreshold: 0.15,
+  backgroundRegenEnabled: false,
+  backgroundRegenIntervalMinutes: 60,
+  backgroundRegenActiveWithinMinutes: 10080,
 };
 
 const plexArtists = [

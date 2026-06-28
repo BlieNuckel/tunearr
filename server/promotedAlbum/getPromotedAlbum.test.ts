@@ -108,6 +108,9 @@ const defaultPromotedAlbumConfig: PromotedAlbumConfig = {
     "all",
   ],
   libraryPreference: "prefer_new",
+  backgroundRegenEnabled: false,
+  backgroundRegenIntervalMinutes: 60,
+  backgroundRegenActiveWithinMinutes: 10080,
 };
 
 let userId: number;

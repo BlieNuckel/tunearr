@@ -39,6 +39,9 @@ export type PromotedAlbumConfig = {
   explorationRate: number;
   exploreCandidateCount: number;
   genreOverlapThreshold: number;
+  backgroundRegenEnabled: boolean;
+  backgroundRegenIntervalMinutes: number;
+  backgroundRegenActiveWithinMinutes: number;
 };
 
 export type IConfig = {
@@ -110,6 +113,9 @@ export const DEFAULT_PROMOTED_ALBUM: PromotedAlbumConfig = {
   explorationRate: 0.5,
   exploreCandidateCount: 12,
   genreOverlapThreshold: 0.15,
+  backgroundRegenEnabled: true,
+  backgroundRegenIntervalMinutes: 60,
+  backgroundRegenActiveWithinMinutes: 10080,
 };
 
 const DEFAULT_CONFIG: IConfig = {
@@ -240,6 +246,17 @@ function validatePromotedAlbumConfig(config: PromotedAlbumConfig) {
   validateRatio(config.explorationRate, "explorationRate");
   validatePositiveInt(config.exploreCandidateCount, "exploreCandidateCount");
   validateRatio(config.genreOverlapThreshold, "genreOverlapThreshold");
+  if (typeof config.backgroundRegenEnabled !== "boolean") {
+    throw new Error("backgroundRegenEnabled must be a boolean");
+  }
+  validatePositiveInt(
+    config.backgroundRegenIntervalMinutes,
+    "backgroundRegenIntervalMinutes"
+  );
+  validatePositiveInt(
+    config.backgroundRegenActiveWithinMinutes,
+    "backgroundRegenActiveWithinMinutes"
+  );
   if (
     !VALID_LIBRARY_PREFERENCES.includes(
       config.libraryPreference as LibraryPreference

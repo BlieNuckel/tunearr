@@ -27,4 +27,7 @@ export const DEFAULT_PROMOTED_ALBUM: PromotedAlbumSettings = {
   explorationRate: 0.5,
   exploreCandidateCount: 12,
   genreOverlapThreshold: 0.15,
+  backgroundRegenEnabled: true,
+  backgroundRegenIntervalMinutes: 60,
+  backgroundRegenActiveWithinMinutes: 10080,
 };

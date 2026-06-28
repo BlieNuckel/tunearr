@@ -24,6 +24,7 @@ import wantedRoutes from "./routes/wanted";
 import followedRoutes from "./routes/followed";
 import { startFollowedArtistPoller } from "./services/followed/poller";
 import { startRequestStatusPoller } from "./services/requests/statusPoller";
+import { startProfileRegenPoller } from "./services/profile/regenPoller";
 import { getConfig } from "./config";
 
 const log = createLogger("Server");
@@ -78,6 +79,10 @@ startFollowedArtistPoller(followedPollIntervalMs);
 const requestStatusPollIntervalMs =
   getConfig().requestStatusPollIntervalMs ?? 2 * 60 * 1000;
 startRequestStatusPoller(requestStatusPollIntervalMs);
+
+const profileRegenIntervalMs =
+  getConfig().promotedAlbum.backgroundRegenIntervalMinutes * 60 * 1000;
+startProfileRegenPoller(profileRegenIntervalMs);
 
 app.listen(PORT, () => {
   log.info(`Listening on port ${PORT}`);

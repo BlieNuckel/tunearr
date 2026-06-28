@@ -21,6 +21,9 @@ export interface PromotedAlbumSettings {
   explorationRate: number;
   exploreCandidateCount: number;
   genreOverlapThreshold: number;
+  backgroundRegenEnabled: boolean;
+  backgroundRegenIntervalMinutes: number;
+  backgroundRegenActiveWithinMinutes: number;
 }
 
 export interface PurchaseDecisionSettings {
