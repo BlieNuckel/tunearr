@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { PromotedAlbumConfig } from "../config";
 
-const mockGetTopArtists = vi.fn();
+const mockLoadArtistWeights = vi.fn();
 const mockGetArtistTopTags = vi.fn();
 const mockGetConfigValue = vi.fn();
 
-vi.mock("../api/plex/topArtists", () => ({
-  getTopArtists: (...args: unknown[]) => mockGetTopArtists(...args),
+vi.mock("./artistWeights", () => ({
+  loadArtistWeights: (...args: unknown[]) => mockLoadArtistWeights(...args),
 }));
 
 vi.mock("../api/lastfm/artists", () => ({
@@ -40,6 +40,8 @@ const baseConfig: PromotedAlbumConfig = {
   backgroundRegenIntervalMinutes: 60,
   backgroundRegenActiveWithinMinutes: 10080,
   ratingsBackupEnabled: true,
+  playTrendWindowDays: 90,
+  ratingWeight: 0.5,
 };
 
 const plexArtists = [
@@ -70,7 +72,7 @@ beforeEach(async () => {
   vi.clearAllMocks();
   vi.spyOn(Math, "random").mockReturnValue(0.1);
   mockGetConfigValue.mockReturnValue(baseConfig);
-  mockGetTopArtists.mockResolvedValue(plexArtists);
+  mockLoadArtistWeights.mockResolvedValue(plexArtists);
   mockGetArtistTopTags.mockResolvedValue(tags);
   await initializeDatabase(":memory:");
   userId = await createUser("token");
@@ -134,24 +136,24 @@ describe("regenerateProfile", () => {
 describe("loadFreshProfile", () => {
   it("serves a fresh profile from the DB without re-fanning-out", async () => {
     await regenerateProfile(userId, "token");
-    mockGetTopArtists.mockClear();
+    mockLoadArtistWeights.mockClear();
     mockGetArtistTopTags.mockClear();
 
     const profile = await loadFreshProfile(userId, "token", baseConfig);
     expect(profile!.genreVector).toHaveLength(1);
-    expect(mockGetTopArtists).not.toHaveBeenCalled();
+    expect(mockLoadArtistWeights).not.toHaveBeenCalled();
     expect(mockGetArtistTopTags).not.toHaveBeenCalled();
   });
 
   it("regenerates when the config hash no longer matches", async () => {
     await regenerateProfile(userId, "token");
-    mockGetTopArtists.mockClear();
+    mockLoadArtistWeights.mockClear();
 
     const changedConfig = { ...baseConfig, tagsPerArtist: 2 };
     mockGetConfigValue.mockReturnValue(changedConfig);
 
     await loadFreshProfile(userId, "token", changedConfig);
-    expect(mockGetTopArtists).toHaveBeenCalledTimes(1);
+    expect(mockLoadArtistWeights).toHaveBeenCalledTimes(1);
   });
 
   it("regenerates when the stored schema_version is stale", async () => {
@@ -160,15 +162,15 @@ describe("loadFreshProfile", () => {
       "UPDATE user_profiles SET schema_version = 0 WHERE user_id = ?",
       [userId]
     );
-    mockGetTopArtists.mockClear();
+    mockLoadArtistWeights.mockClear();
 
     await loadFreshProfile(userId, "token", baseConfig);
-    expect(mockGetTopArtists).toHaveBeenCalledTimes(1);
+    expect(mockLoadArtistWeights).toHaveBeenCalledTimes(1);
   });
 
   it("in-flight guard prevents concurrent double-regeneration", async () => {
     let resolveTop: (v: unknown) => void = () => {};
-    mockGetTopArtists.mockImplementation(
+    mockLoadArtistWeights.mockImplementation(
       () =>
         new Promise((resolve) => {
           resolveTop = resolve;
@@ -178,10 +180,12 @@ describe("loadFreshProfile", () => {
     const p1 = loadFreshProfile(userId, "token", baseConfig);
     const p2 = loadFreshProfile(userId, "token", baseConfig);
 
-    await vi.waitFor(() => expect(mockGetTopArtists).toHaveBeenCalledTimes(1));
+    await vi.waitFor(() =>
+      expect(mockLoadArtistWeights).toHaveBeenCalledTimes(1)
+    );
     resolveTop(plexArtists);
     await Promise.all([p1, p2]);
 
-    expect(mockGetTopArtists).toHaveBeenCalledTimes(1);
+    expect(mockLoadArtistWeights).toHaveBeenCalledTimes(1);
   });
 });

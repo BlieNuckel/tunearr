@@ -1,14 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { PromotedAlbumConfig } from "../config";
 
-const mockGetTopArtists = vi.fn();
+const mockLoadArtistWeights = vi.fn();
 const mockGetSimilarArtists = vi.fn();
 const mockEnrichArtistsWithImages = vi.fn();
 const mockLidarrGet = vi.fn();
 const mockGetConfigValue = vi.fn();
 
-vi.mock("../api/plex/topArtists", () => ({
-  getTopArtists: (...args: unknown[]) => mockGetTopArtists(...args),
+vi.mock("../promotedAlbum/artistWeights", () => ({
+  loadArtistWeights: (...args: unknown[]) => mockLoadArtistWeights(...args),
 }));
 
 vi.mock("../api/lastfm/artists", () => ({
@@ -71,6 +71,8 @@ const baseConfig: PromotedAlbumConfig = {
   backgroundRegenIntervalMinutes: 60,
   backgroundRegenActiveWithinMinutes: 10080,
   ratingsBackupEnabled: true,
+  playTrendWindowDays: 90,
+  ratingWeight: 0.5,
 };
 
 const TOP_ARTISTS = [
@@ -98,7 +100,7 @@ beforeEach(async () => {
   vi.spyOn(Math, "random").mockReturnValue(0);
 
   mockGetConfigValue.mockReturnValue(baseConfig);
-  mockGetTopArtists.mockResolvedValue(TOP_ARTISTS);
+  mockLoadArtistWeights.mockResolvedValue(TOP_ARTISTS);
   mockGetSimilarArtists.mockImplementation((name: string) =>
     Promise.resolve(SIMILAR[name] ?? [])
   );
@@ -125,17 +127,22 @@ describe("getPromotedArtists", () => {
       "INSERT INTO users (user_type, enabled) VALUES ('local', 1) RETURNING id"
     )) as { id: number }[];
     expect(await getPromotedArtists(rows[0].id)).toBeNull();
-    expect(mockGetTopArtists).not.toHaveBeenCalled();
+    expect(mockLoadArtistWeights).not.toHaveBeenCalled();
   });
 
   it("returns null when the user has no top artists", async () => {
-    mockGetTopArtists.mockResolvedValue([]);
+    mockLoadArtistWeights.mockResolvedValue([]);
     expect(await getPromotedArtists(userId)).toBeNull();
   });
 
-  it("uses the listening window config to fetch top artists", async () => {
+  it("loads artist weights from the snapshot series for this user", async () => {
     await getPromotedArtists(userId);
-    expect(mockGetTopArtists).toHaveBeenCalledWith("token", 10, "6months");
+    expect(mockLoadArtistWeights).toHaveBeenCalledWith(
+      userId,
+      "token",
+      90 * 24 * 60 * 60 * 1000,
+      0.5
+    );
   });
 
   it("returns similar artists seeded from the top artists", async () => {
@@ -176,10 +183,10 @@ describe("getPromotedArtists", () => {
   it("caches results per user and recomputes on refresh", async () => {
     await getPromotedArtists(userId);
     await getPromotedArtists(userId);
-    expect(mockGetTopArtists).toHaveBeenCalledTimes(1);
+    expect(mockLoadArtistWeights).toHaveBeenCalledTimes(1);
 
     await getPromotedArtists(userId, true);
-    expect(mockGetTopArtists).toHaveBeenCalledTimes(2);
+    expect(mockLoadArtistWeights).toHaveBeenCalledTimes(2);
   });
 
   it("persists anti-repeat memory so a refresh avoids re-showing artists", async () => {

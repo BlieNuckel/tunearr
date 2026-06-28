@@ -25,6 +25,8 @@ export interface PromotedAlbumSettings {
   backgroundRegenIntervalMinutes: number;
   backgroundRegenActiveWithinMinutes: number;
   ratingsBackupEnabled: boolean;
+  playTrendWindowDays: number;
+  ratingWeight: number;
 }
 
 export interface PurchaseDecisionSettings {

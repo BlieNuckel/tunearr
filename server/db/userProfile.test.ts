@@ -36,6 +36,8 @@ const CONFIG_INPUTS = {
   genericTags: ["seen live", "favorites"],
   tagsPerArtist: 5,
   pickedArtistsCount: 3,
+  playTrendWindowDays: 90,
+  ratingWeight: 0.5,
 };
 
 async function createUser(username: string): Promise<number> {

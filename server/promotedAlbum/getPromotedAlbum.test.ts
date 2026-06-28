@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { PromotedAlbumConfig } from "../config";
 
+const mockLoadArtistWeights = vi.fn();
 const mockGetTopArtists = vi.fn();
 const mockGetArtistTopTags = vi.fn();
 const mockGetTopAlbumsByTag = vi.fn();
@@ -10,6 +11,10 @@ const mockFetchReleaseGroupsForArtist = vi.fn();
 const mockGetConfigValue = vi.fn();
 const mockGetSimilarArtists = vi.fn();
 const mockGetArtistMbidByName = vi.fn();
+
+vi.mock("./artistWeights", () => ({
+  loadArtistWeights: (...args: unknown[]) => mockLoadArtistWeights(...args),
+}));
 
 vi.mock("../api/plex/topArtists", () => ({
   getTopArtists: (...args: unknown[]) => mockGetTopArtists(...args),
@@ -112,6 +117,8 @@ const defaultPromotedAlbumConfig: PromotedAlbumConfig = {
   backgroundRegenIntervalMinutes: 60,
   backgroundRegenActiveWithinMinutes: 10080,
   ratingsBackupEnabled: true,
+  playTrendWindowDays: 90,
+  ratingWeight: 0.5,
 };
 
 let userId: number;
@@ -121,6 +128,7 @@ beforeEach(async () => {
   clearPromotedAlbumCache();
   vi.spyOn(Math, "random").mockReturnValue(0.1);
   mockGetConfigValue.mockReturnValue(defaultPromotedAlbumConfig);
+  mockGetTopArtists.mockResolvedValue(plexArtists);
   mockGetReleaseGroupIdFromRelease.mockImplementation((mbid: string) =>
     Promise.resolve({ id: `rg-${mbid}`, firstReleaseDate: "1997-06-16" })
   );
@@ -162,7 +170,7 @@ const albumsPage = {
 
 describe("getPromotedAlbum", () => {
   it("returns a promoted album on happy path with correct shape", async () => {
-    mockGetTopArtists.mockResolvedValue(plexArtists);
+    mockLoadArtistWeights.mockResolvedValue(plexArtists);
     mockGetArtistTopTags.mockResolvedValue(tags);
     mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
     mockLidarrGet.mockResolvedValue({
@@ -184,10 +192,11 @@ describe("getPromotedAlbum", () => {
     });
     expect(wt(result).tag).toBe("alternative");
     expect(result!.inLibrary).toBe(false);
-    expect(mockGetTopArtists).toHaveBeenCalledWith(
+    expect(mockLoadArtistWeights).toHaveBeenCalledWith(
+      expect.any(Number),
       "test-plex-token",
-      10,
-      "6months"
+      expect.any(Number),
+      expect.any(Number)
     );
   });
 
@@ -200,11 +209,11 @@ describe("getPromotedAlbum", () => {
 
     const result = await getPromotedAlbum(tokenlessId);
     expect(result).toBeNull();
-    expect(mockGetTopArtists).not.toHaveBeenCalled();
+    expect(mockLoadArtistWeights).not.toHaveBeenCalled();
   });
 
   it("fetches both page 1 and a deep page of tag albums", async () => {
-    mockGetTopArtists.mockResolvedValue(plexArtists);
+    mockLoadArtistWeights.mockResolvedValue(plexArtists);
     mockGetArtistTopTags.mockResolvedValue(tags);
     mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
     mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
@@ -220,14 +229,14 @@ describe("getPromotedAlbum", () => {
   });
 
   it("returns null when Plex has no artists", async () => {
-    mockGetTopArtists.mockResolvedValue([]);
+    mockLoadArtistWeights.mockResolvedValue([]);
 
     const result = await getPromotedAlbum(userId);
     expect(result).toBeNull();
   });
 
   it("returns null when all tags are generic", async () => {
-    mockGetTopArtists.mockResolvedValue(plexArtists);
+    mockLoadArtistWeights.mockResolvedValue(plexArtists);
     mockGetArtistTopTags.mockResolvedValue([
       { name: "seen live", count: 100 },
       { name: "favorites", count: 80 },
@@ -238,7 +247,7 @@ describe("getPromotedAlbum", () => {
   });
 
   it("handles tag fetch failures gracefully", async () => {
-    mockGetTopArtists.mockResolvedValue(plexArtists);
+    mockLoadArtistWeights.mockResolvedValue(plexArtists);
     mockGetArtistTopTags.mockRejectedValue(new Error("API error"));
 
     const result = await getPromotedAlbum(userId);
@@ -246,7 +255,7 @@ describe("getPromotedAlbum", () => {
   });
 
   it("filters albums without MBIDs", async () => {
-    mockGetTopArtists.mockResolvedValue(plexArtists);
+    mockLoadArtistWeights.mockResolvedValue(plexArtists);
     mockGetArtistTopTags.mockResolvedValue(tags);
     mockGetTopAlbumsByTag.mockResolvedValue({
       albums: [
@@ -261,7 +270,7 @@ describe("getPromotedAlbum", () => {
   });
 
   it("marks inLibrary true when the album is in the Lidarr album list", async () => {
-    mockGetTopArtists.mockResolvedValue(plexArtists);
+    mockLoadArtistWeights.mockResolvedValue(plexArtists);
     mockGetArtistTopTags.mockResolvedValue(tags);
     mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
     mockLidarrGet.mockImplementation((path: string) => {
@@ -283,7 +292,7 @@ describe("getPromotedAlbum", () => {
   });
 
   it("marks inLibrary false when artist is in library but album is not", async () => {
-    mockGetTopArtists.mockResolvedValue(plexArtists);
+    mockLoadArtistWeights.mockResolvedValue(plexArtists);
     mockGetArtistTopTags.mockResolvedValue(tags);
     mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
     mockLidarrGet.mockImplementation((path: string) => {
@@ -302,23 +311,23 @@ describe("getPromotedAlbum", () => {
   });
 
   it("returns the cached result within the result-cache TTL", async () => {
-    mockGetTopArtists.mockResolvedValue(plexArtists);
+    mockLoadArtistWeights.mockResolvedValue(plexArtists);
     mockGetArtistTopTags.mockResolvedValue(tags);
     mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
     mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
 
     const first = await getPromotedAlbum(userId);
-    mockGetTopArtists.mockClear();
+    mockLoadArtistWeights.mockClear();
     mockGetTopAlbumsByTag.mockClear();
 
     const second = await getPromotedAlbum(userId);
     expect(second).toEqual(first);
-    expect(mockGetTopArtists).not.toHaveBeenCalled();
+    expect(mockLoadArtistWeights).not.toHaveBeenCalled();
     expect(mockGetTopAlbumsByTag).not.toHaveBeenCalled();
   });
 
   it("caches results per user — different users get independent results", async () => {
-    mockGetTopArtists.mockResolvedValue(plexArtists);
+    mockLoadArtistWeights.mockResolvedValue(plexArtists);
     mockGetArtistTopTags.mockResolvedValue(tags);
     mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
     mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
@@ -327,33 +336,34 @@ describe("getPromotedAlbum", () => {
     const userB = await createUserWithToken("user-b-token");
 
     await getPromotedAlbum(userA);
-    mockGetTopArtists.mockClear();
+    mockLoadArtistWeights.mockClear();
 
     await getPromotedAlbum(userB);
-    expect(mockGetTopArtists).toHaveBeenCalledWith(
+    expect(mockLoadArtistWeights).toHaveBeenCalledWith(
+      expect.any(Number),
       "user-b-token",
-      10,
-      "6months"
+      expect.any(Number),
+      expect.any(Number)
     );
   });
 
   it("force refresh re-selects an album without re-running the fan-out", async () => {
-    mockGetTopArtists.mockResolvedValue(plexArtists);
+    mockLoadArtistWeights.mockResolvedValue(plexArtists);
     mockGetArtistTopTags.mockResolvedValue(tags);
     mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
     mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
 
     await getPromotedAlbum(userId);
-    mockGetTopArtists.mockClear();
+    mockLoadArtistWeights.mockClear();
     mockGetTopAlbumsByTag.mockClear();
 
     await getPromotedAlbum(userId, true);
-    expect(mockGetTopArtists).not.toHaveBeenCalled();
+    expect(mockLoadArtistWeights).not.toHaveBeenCalled();
     expect(mockGetTopAlbumsByTag).toHaveBeenCalled();
   });
 
   it("falls back gracefully when Lidarr is unavailable", async () => {
-    mockGetTopArtists.mockResolvedValue(plexArtists);
+    mockLoadArtistWeights.mockResolvedValue(plexArtists);
     mockGetArtistTopTags.mockResolvedValue(tags);
     mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
     mockLidarrGet.mockRejectedValue(new Error("Connection refused"));
@@ -364,7 +374,7 @@ describe("getPromotedAlbum", () => {
   });
 
   it("treats all as not in library when Lidarr returns ok: false", async () => {
-    mockGetTopArtists.mockResolvedValue(plexArtists);
+    mockLoadArtistWeights.mockResolvedValue(plexArtists);
     mockGetArtistTopTags.mockResolvedValue(tags);
     mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
     mockLidarrGet.mockResolvedValue({ ok: false, status: 500, data: {} });
@@ -376,18 +386,18 @@ describe("getPromotedAlbum", () => {
 
   it("re-selects an album after the result cache expires, without re-fanning-out", async () => {
     vi.useFakeTimers();
-    mockGetTopArtists.mockResolvedValue(plexArtists);
+    mockLoadArtistWeights.mockResolvedValue(plexArtists);
     mockGetArtistTopTags.mockResolvedValue(tags);
     mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
     mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
 
     await getPromotedAlbum(userId);
-    mockGetTopArtists.mockClear();
+    mockLoadArtistWeights.mockClear();
     mockGetTopAlbumsByTag.mockClear();
 
     vi.advanceTimersByTime(31 * 60 * 1000);
     await getPromotedAlbum(userId);
-    expect(mockGetTopArtists).not.toHaveBeenCalled();
+    expect(mockLoadArtistWeights).not.toHaveBeenCalled();
     expect(mockGetTopAlbumsByTag).toHaveBeenCalled();
 
     vi.useRealTimers();
@@ -395,17 +405,17 @@ describe("getPromotedAlbum", () => {
 
   it("regenerates the profile after the profile TTL expires", async () => {
     vi.useFakeTimers();
-    mockGetTopArtists.mockResolvedValue(plexArtists);
+    mockLoadArtistWeights.mockResolvedValue(plexArtists);
     mockGetArtistTopTags.mockResolvedValue(tags);
     mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
     mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
 
     await getPromotedAlbum(userId);
-    mockGetTopArtists.mockClear();
+    mockLoadArtistWeights.mockClear();
 
     vi.advanceTimersByTime((1440 + 1) * 60 * 1000);
     await getPromotedAlbum(userId);
-    expect(mockGetTopArtists).toHaveBeenCalled();
+    expect(mockLoadArtistWeights).toHaveBeenCalled();
 
     vi.useRealTimers();
   });
@@ -416,7 +426,7 @@ describe("getPromotedAlbum", () => {
       ...defaultPromotedAlbumConfig,
       cacheDurationMinutes: 5,
     });
-    mockGetTopArtists.mockResolvedValue(plexArtists);
+    mockLoadArtistWeights.mockResolvedValue(plexArtists);
     mockGetArtistTopTags.mockResolvedValue(tags);
     mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
     mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
@@ -432,7 +442,7 @@ describe("getPromotedAlbum", () => {
   });
 
   it("deduplicates albums from both pages", async () => {
-    mockGetTopArtists.mockResolvedValue(plexArtists);
+    mockLoadArtistWeights.mockResolvedValue(plexArtists);
     mockGetArtistTopTags.mockResolvedValue(tags);
 
     const duplicatedPage = {
@@ -456,7 +466,7 @@ describe("getPromotedAlbum", () => {
   });
 
   it("returns null when no albums can be converted to release-groups", async () => {
-    mockGetTopArtists.mockResolvedValue(plexArtists);
+    mockLoadArtistWeights.mockResolvedValue(plexArtists);
     mockGetArtistTopTags.mockResolvedValue(tags);
     mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
     mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
@@ -468,7 +478,7 @@ describe("getPromotedAlbum", () => {
 
   describe("anti-repeat", () => {
     it("avoids re-showing the most recent album on refresh", async () => {
-      mockGetTopArtists.mockResolvedValue(plexArtists);
+      mockLoadArtistWeights.mockResolvedValue(plexArtists);
       mockGetArtistTopTags.mockResolvedValue(tags);
       mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
       mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
@@ -482,7 +492,7 @@ describe("getPromotedAlbum", () => {
     });
 
     it("persists anti-repeat memory across a simulated restart", async () => {
-      mockGetTopArtists.mockResolvedValue(plexArtists);
+      mockLoadArtistWeights.mockResolvedValue(plexArtists);
       mockGetArtistTopTags.mockResolvedValue(tags);
       mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
       mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
@@ -497,7 +507,7 @@ describe("getPromotedAlbum", () => {
     });
 
     it("falls back to the full pool when every album was recently shown", async () => {
-      mockGetTopArtists.mockResolvedValue(plexArtists);
+      mockLoadArtistWeights.mockResolvedValue(plexArtists);
       mockGetArtistTopTags.mockResolvedValue(tags);
       mockGetTopAlbumsByTag.mockResolvedValue({
         albums: [albumsPage.albums[0]],
@@ -515,7 +525,7 @@ describe("getPromotedAlbum", () => {
 
   describe("trace", () => {
     it("has correct number of plexArtists entries", async () => {
-      mockGetTopArtists.mockResolvedValue(plexArtists);
+      mockLoadArtistWeights.mockResolvedValue(plexArtists);
       mockGetArtistTopTags.mockResolvedValue(tags);
       mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
       mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
@@ -529,7 +539,7 @@ describe("getPromotedAlbum", () => {
     });
 
     it("marks the picked artists", async () => {
-      mockGetTopArtists.mockResolvedValue(plexArtists);
+      mockLoadArtistWeights.mockResolvedValue(plexArtists);
       mockGetArtistTopTags.mockResolvedValue(tags);
       mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
       mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
@@ -540,7 +550,7 @@ describe("getPromotedAlbum", () => {
     });
 
     it("chosenTag name matches result tag", async () => {
-      mockGetTopArtists.mockResolvedValue(plexArtists);
+      mockLoadArtistWeights.mockResolvedValue(plexArtists);
       mockGetArtistTopTags.mockResolvedValue(tags);
       mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
       mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
@@ -550,7 +560,7 @@ describe("getPromotedAlbum", () => {
     });
 
     it("albumPool counts are accurate", async () => {
-      mockGetTopArtists.mockResolvedValue(plexArtists);
+      mockLoadArtistWeights.mockResolvedValue(plexArtists);
       mockGetArtistTopTags.mockResolvedValue(tags);
       mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
       mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
@@ -565,7 +575,7 @@ describe("getPromotedAlbum", () => {
     });
 
     it("selectionReason is preferred_non_library when artist not in library", async () => {
-      mockGetTopArtists.mockResolvedValue(plexArtists);
+      mockLoadArtistWeights.mockResolvedValue(plexArtists);
       mockGetArtistTopTags.mockResolvedValue(tags);
       mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
       mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
@@ -575,7 +585,7 @@ describe("getPromotedAlbum", () => {
     });
 
     it("selectionReason is fallback_in_library when all artists are in library", async () => {
-      mockGetTopArtists.mockResolvedValue(plexArtists);
+      mockLoadArtistWeights.mockResolvedValue(plexArtists);
       mockGetArtistTopTags.mockResolvedValue(tags);
       mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
       mockLidarrGet.mockImplementation((path: string) => {
@@ -599,7 +609,7 @@ describe("getPromotedAlbum", () => {
     });
 
     it("merges same tags from multiple artists with combined weight", async () => {
-      mockGetTopArtists.mockResolvedValue(plexArtists);
+      mockLoadArtistWeights.mockResolvedValue(plexArtists);
       mockGetArtistTopTags.mockResolvedValue(tags);
       mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
       mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
@@ -615,7 +625,7 @@ describe("getPromotedAlbum", () => {
     });
 
     it("picked artists have tagContributions populated", async () => {
-      mockGetTopArtists.mockResolvedValue(plexArtists);
+      mockLoadArtistWeights.mockResolvedValue(plexArtists);
       mockGetArtistTopTags.mockResolvedValue(tags);
       mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
       mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
@@ -630,39 +640,41 @@ describe("getPromotedAlbum", () => {
   });
 
   describe("config-driven behavior", () => {
-    it("uses topArtistsCount from config", async () => {
+    it("derives the play-trend window from playTrendWindowDays", async () => {
       mockGetConfigValue.mockReturnValue({
         ...defaultPromotedAlbumConfig,
-        topArtistsCount: 5,
+        playTrendWindowDays: 30,
       });
-      mockGetTopArtists.mockResolvedValue(plexArtists);
+      mockLoadArtistWeights.mockResolvedValue(plexArtists);
       mockGetArtistTopTags.mockResolvedValue(tags);
       mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
       mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
 
       await getPromotedAlbum(userId);
-      expect(mockGetTopArtists).toHaveBeenCalledWith(
+      expect(mockLoadArtistWeights).toHaveBeenCalledWith(
+        expect.any(Number),
         "test-plex-token",
-        5,
-        "6months"
+        30 * 24 * 60 * 60 * 1000,
+        expect.any(Number)
       );
     });
 
-    it("uses topArtistsRange from config", async () => {
+    it("passes ratingWeight from config to the weight source", async () => {
       mockGetConfigValue.mockReturnValue({
         ...defaultPromotedAlbumConfig,
-        topArtistsRange: "4weeks",
+        ratingWeight: 1.0,
       });
-      mockGetTopArtists.mockResolvedValue(plexArtists);
+      mockLoadArtistWeights.mockResolvedValue(plexArtists);
       mockGetArtistTopTags.mockResolvedValue(tags);
       mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
       mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
 
       await getPromotedAlbum(userId);
-      expect(mockGetTopArtists).toHaveBeenCalledWith(
+      expect(mockLoadArtistWeights).toHaveBeenCalledWith(
+        expect.any(Number),
         "test-plex-token",
-        10,
-        "4weeks"
+        expect.any(Number),
+        1.0
       );
     });
 
@@ -671,7 +683,7 @@ describe("getPromotedAlbum", () => {
         ...defaultPromotedAlbumConfig,
         genericTags: ["alternative"],
       });
-      mockGetTopArtists.mockResolvedValue(plexArtists);
+      mockLoadArtistWeights.mockResolvedValue(plexArtists);
       mockGetArtistTopTags.mockResolvedValue(tags);
       mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
       mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
@@ -706,7 +718,7 @@ describe("getPromotedAlbum", () => {
         pagination: { page: 1, totalPages: 1 },
       };
 
-      mockGetTopArtists.mockResolvedValue(plexArtists);
+      mockLoadArtistWeights.mockResolvedValue(plexArtists);
       mockGetArtistTopTags.mockResolvedValue(tags);
       mockGetTopAlbumsByTag.mockResolvedValue(libraryAlbums);
       mockLidarrGet.mockImplementation((p: string) => {
@@ -730,7 +742,7 @@ describe("getPromotedAlbum", () => {
         ...defaultPromotedAlbumConfig,
         libraryPreference: "no_preference",
       });
-      mockGetTopArtists.mockResolvedValue(plexArtists);
+      mockLoadArtistWeights.mockResolvedValue(plexArtists);
       mockGetArtistTopTags.mockResolvedValue(tags);
       mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
       mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
@@ -746,7 +758,7 @@ describe("getPromotedAlbum", () => {
         deepPageMin: 5,
         deepPageMax: 5,
       });
-      mockGetTopArtists.mockResolvedValue(plexArtists);
+      mockLoadArtistWeights.mockResolvedValue(plexArtists);
       mockGetArtistTopTags.mockResolvedValue(tags);
       mockGetTopAlbumsByTag.mockResolvedValue(albumsPage);
       mockLidarrGet.mockResolvedValue({ ok: true, data: [] });
@@ -811,7 +823,7 @@ describe("getPromotedAlbum", () => {
 
     function setupExplore() {
       mockGetConfigValue.mockReturnValue(exploreConfig);
-      mockGetTopArtists.mockResolvedValue(plexArtists);
+      mockLoadArtistWeights.mockResolvedValue(plexArtists);
       mockGetArtistMbidByName.mockResolvedValue("mbid-seed");
       mockGetSimilarArtists.mockResolvedValue(similarArtists);
       mockGetArtistTopTags.mockImplementation((name: string) =>

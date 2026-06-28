@@ -22,4 +22,30 @@ describe("RecommendationsSection — ratings backup toggle", () => {
       ratingsBackupEnabled: false,
     });
   });
+
+  it("edits the play trend window and rating weight", () => {
+    const onChange = vi.fn();
+    render(
+      <RecommendationsSection
+        config={DEFAULT_PROMOTED_ALBUM}
+        onConfigChange={onChange}
+      />
+    );
+
+    fireEvent.change(screen.getByLabelText(/Play Trend Window/i), {
+      target: { value: "30" },
+    });
+    expect(onChange).toHaveBeenCalledWith({
+      ...DEFAULT_PROMOTED_ALBUM,
+      playTrendWindowDays: 30,
+    });
+
+    fireEvent.change(screen.getByLabelText(/Rating Weight/i), {
+      target: { value: "1" },
+    });
+    expect(onChange).toHaveBeenCalledWith({
+      ...DEFAULT_PROMOTED_ALBUM,
+      ratingWeight: 1,
+    });
+  });
 });

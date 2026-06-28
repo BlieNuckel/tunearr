@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { PromotedAlbumConfig } from "../../config";
 
-const mockGetTopArtists = vi.fn();
+const mockLoadArtistWeights = vi.fn();
 const mockGetArtistTopTags = vi.fn();
 const mockGetConfigValue = vi.fn();
 
-vi.mock("../../api/plex/topArtists", () => ({
-  getTopArtists: (...args: unknown[]) => mockGetTopArtists(...args),
+vi.mock("../../promotedAlbum/artistWeights", () => ({
+  loadArtistWeights: (...args: unknown[]) => mockLoadArtistWeights(...args),
 }));
 
 vi.mock("../../api/lastfm/artists", () => ({
@@ -44,6 +44,8 @@ const baseConfig: PromotedAlbumConfig = {
   backgroundRegenIntervalMinutes: 60,
   backgroundRegenActiveWithinMinutes: 10080,
   ratingsBackupEnabled: true,
+  playTrendWindowDays: 90,
+  ratingWeight: 0.5,
 };
 
 const plexArtists = [
@@ -84,7 +86,7 @@ beforeEach(async () => {
   vi.clearAllMocks();
   vi.spyOn(Math, "random").mockReturnValue(0.1);
   mockGetConfigValue.mockReturnValue(baseConfig);
-  mockGetTopArtists.mockResolvedValue(plexArtists);
+  mockLoadArtistWeights.mockResolvedValue(plexArtists);
   mockGetArtistTopTags.mockResolvedValue(tags);
   await initializeDatabase(":memory:");
   now = Date.now();
@@ -109,14 +111,15 @@ describe("runProfileRegenOnce", () => {
     await stampProfile(fresh, now, now);
     await stampProfile(staleDormant, now - 2 * DAY_MS, now - 30 * DAY_MS);
 
-    mockGetTopArtists.mockClear();
+    mockLoadArtistWeights.mockClear();
     await runProfileRegenOnce(now);
 
-    expect(mockGetTopArtists).toHaveBeenCalledTimes(1);
-    expect(mockGetTopArtists).toHaveBeenCalledWith(
+    expect(mockLoadArtistWeights).toHaveBeenCalledTimes(1);
+    expect(mockLoadArtistWeights).toHaveBeenCalledWith(
+      expect.any(Number),
       "stale-active",
-      10,
-      "6months"
+      90 * 24 * 60 * 60 * 1000,
+      0.5
     );
   });
 
@@ -129,18 +132,18 @@ describe("runProfileRegenOnce", () => {
       ...baseConfig,
       backgroundRegenEnabled: false,
     });
-    mockGetTopArtists.mockClear();
+    mockLoadArtistWeights.mockClear();
 
     await runProfileRegenOnce(now);
-    expect(mockGetTopArtists).not.toHaveBeenCalled();
+    expect(mockLoadArtistWeights).not.toHaveBeenCalled();
   });
 
   it("skips users without a profile row (never used discovery)", async () => {
     await createUser("no-profile");
-    mockGetTopArtists.mockClear();
+    mockLoadArtistWeights.mockClear();
 
     await runProfileRegenOnce(now);
-    expect(mockGetTopArtists).not.toHaveBeenCalled();
+    expect(mockLoadArtistWeights).not.toHaveBeenCalled();
   });
 
   it("does not double-regenerate when a live request holds the in-flight guard", async () => {
@@ -149,8 +152,8 @@ describe("runProfileRegenOnce", () => {
     await stampProfile(userId, now - 2 * DAY_MS, now);
 
     let resolveTop: (v: unknown) => void = () => {};
-    mockGetTopArtists.mockClear();
-    mockGetTopArtists.mockImplementation(
+    mockLoadArtistWeights.mockClear();
+    mockLoadArtistWeights.mockImplementation(
       () =>
         new Promise((resolve) => {
           resolveTop = resolve;
@@ -158,12 +161,14 @@ describe("runProfileRegenOnce", () => {
     );
 
     const live = loadFreshProfile(userId, "stale-active", baseConfig);
-    await vi.waitFor(() => expect(mockGetTopArtists).toHaveBeenCalledTimes(1));
+    await vi.waitFor(() =>
+      expect(mockLoadArtistWeights).toHaveBeenCalledTimes(1)
+    );
 
     const tick = runProfileRegenOnce(now);
     resolveTop(plexArtists);
     await Promise.all([live, tick]);
 
-    expect(mockGetTopArtists).toHaveBeenCalledTimes(1);
+    expect(mockLoadArtistWeights).toHaveBeenCalledTimes(1);
   });
 });

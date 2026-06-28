@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const mockGetConfigValue = vi.fn();
 const mockGetRatedItems = vi.fn();
-const mockGetTopArtists = vi.fn();
+const mockGetAllArtistPlayCounts = vi.fn();
 
 vi.mock("../../config", () => ({
   getConfigValue: (...args: unknown[]) => mockGetConfigValue(...args),
@@ -10,8 +10,9 @@ vi.mock("../../config", () => ({
 vi.mock("../../api/plex/ratings", () => ({
   getRatedItems: (...args: unknown[]) => mockGetRatedItems(...args),
 }));
-vi.mock("../../api/plex/topArtists", () => ({
-  getTopArtists: (...args: unknown[]) => mockGetTopArtists(...args),
+vi.mock("../../api/plex/artistPlayCounts", () => ({
+  getAllArtistPlayCounts: (...args: unknown[]) =>
+    mockGetAllArtistPlayCounts(...args),
 }));
 
 import { runSignalIngestionOnce } from "./signalPoller";
@@ -41,7 +42,7 @@ beforeEach(async () => {
   await initializeDatabase(":memory:");
   mockGetConfigValue.mockReturnValue({ ratingsBackupEnabled: true });
   mockGetRatedItems.mockResolvedValue([ratedTrack]);
-  mockGetTopArtists.mockResolvedValue([
+  mockGetAllArtistPlayCounts.mockResolvedValue([
     { name: "Andromedik", viewCount: 120, thumb: "", genres: [] },
   ]);
 });

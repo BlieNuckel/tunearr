@@ -1,4 +1,4 @@
-import { getTopArtists } from "../api/plex/topArtists";
+import { loadArtistWeights } from "./artistWeights";
 import { getArtistTopTags } from "../api/lastfm/artists";
 import { getConfigValue } from "../config";
 import type { PromotedAlbumConfig } from "../config";
@@ -103,15 +103,21 @@ export async function regenerateProfile(
 ): Promise<DerivedProfile | null> {
   const config = getConfigValue("promotedAlbum");
 
-  const plexArtists = await getTopArtists(
+  const windowMs = config.playTrendWindowDays * 24 * 60 * 60 * 1000;
+  const weighted = await loadArtistWeights(
+    userId,
     plexToken,
-    config.topArtistsCount,
-    config.topArtistsRange
+    windowMs,
+    config.ratingWeight
   );
-  if (plexArtists.length === 0) return null;
+  if (weighted.length === 0) return null;
+
+  const topArtists = [...weighted]
+    .sort((a, b) => b.viewCount - a.viewCount)
+    .slice(0, config.topArtistsCount);
 
   const pickedArtists = weightedRandomPick(
-    plexArtists,
+    topArtists,
     (a) => a.viewCount,
     config.pickedArtistsCount
   );

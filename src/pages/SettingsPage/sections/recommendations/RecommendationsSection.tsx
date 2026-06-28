@@ -56,12 +56,20 @@ function NumberField({
   step = 1,
   description,
 }: NumberFieldProps) {
+  const fieldId = label
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
+      <label
+        htmlFor={fieldId}
+        className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1"
+      >
         {label}
       </label>
       <input
+        id={fieldId}
         type="number"
         value={value}
         onChange={(e) => {
@@ -230,6 +238,25 @@ export default function RecommendationsSection({
         play counts into its own database, so your taste data survives a Plex
         history clear, re-import, or server migration. Single-instance only.
       </p>
+
+      <NumberField
+        label="Play Trend Window (days)"
+        value={config.playTrendWindowDays}
+        onChange={(v) => update("playTrendWindowDays", v)}
+        min={1}
+        max={365}
+        step={1}
+        description="Recommendations weight artists by plays within this many recent days, diffed from tunearr's own daily snapshots. Until the snapshot history is this deep, all-time play counts are used."
+      />
+      <NumberField
+        label="Rating Weight"
+        value={config.ratingWeight}
+        onChange={(v) => update("ratingWeight", v)}
+        min={0}
+        max={3}
+        step={0.1}
+        description="How much your Plex star ratings boost an artist's weight: ×(1 + weight × stars/5). 0 ignores ratings; 0.5 gives a 5-star artist +50% weight."
+      />
 
       <div>
         <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">

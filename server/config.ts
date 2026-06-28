@@ -43,6 +43,8 @@ export type PromotedAlbumConfig = {
   backgroundRegenIntervalMinutes: number;
   backgroundRegenActiveWithinMinutes: number;
   ratingsBackupEnabled: boolean;
+  playTrendWindowDays: number;
+  ratingWeight: number;
 };
 
 export type IConfig = {
@@ -118,6 +120,8 @@ export const DEFAULT_PROMOTED_ALBUM: PromotedAlbumConfig = {
   backgroundRegenIntervalMinutes: 60,
   backgroundRegenActiveWithinMinutes: 10080,
   ratingsBackupEnabled: true,
+  playTrendWindowDays: 90,
+  ratingWeight: 0.5,
 };
 
 const DEFAULT_CONFIG: IConfig = {
@@ -261,6 +265,10 @@ function validatePromotedAlbumConfig(config: PromotedAlbumConfig) {
   );
   if (typeof config.ratingsBackupEnabled !== "boolean") {
     throw new Error("ratingsBackupEnabled must be a boolean");
+  }
+  validatePositiveInt(config.playTrendWindowDays, "playTrendWindowDays");
+  if (typeof config.ratingWeight !== "number" || config.ratingWeight < 0) {
+    throw new Error("ratingWeight must be a non-negative number");
   }
   if (
     !VALID_LIBRARY_PREFERENCES.includes(
