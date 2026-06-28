@@ -280,3 +280,138 @@ describe("FollowedArtists migration", () => {
     expect(rows).toHaveLength(0);
   });
 });
+
+describe("UserProfile migration", () => {
+  it("creates user_profiles and user_signal_events tables", async () => {
+    const db = await initTestDb();
+
+    const profileCols = (await db.query(
+      "PRAGMA table_info(user_profiles)"
+    )) as { name: string }[];
+    expect(profileCols.map((c) => c.name)).toEqual([
+      "id",
+      "user_id",
+      "profile_json",
+      "schema_version",
+      "config_hash",
+      "generated_at",
+      "last_used_at",
+    ]);
+
+    const eventCols = (await db.query(
+      "PRAGMA table_info(user_signal_events)"
+    )) as { name: string }[];
+    expect(eventCols.map((c) => c.name)).toEqual([
+      "id",
+      "user_id",
+      "kind",
+      "payload",
+      "recorded_at",
+    ]);
+  });
+
+  it("creates the expected indexes", async () => {
+    const db = await initTestDb();
+
+    const indexes = (await db.query(
+      "SELECT name FROM sqlite_master WHERE type='index' AND name LIKE 'idx_user_%' ORDER BY name"
+    )) as { name: string }[];
+    const names = indexes.map((i) => i.name);
+
+    expect(names).toContain("idx_user_profiles_user_id");
+    expect(names).toContain("idx_user_signal_events_user_id");
+    expect(names).toContain("idx_user_signal_events_kind");
+  });
+
+  it("enforces unique user_id on user_profiles", async () => {
+    const db = await initTestDb();
+    await db.query("INSERT INTO users (username) VALUES (?)", ["alice"]);
+    const [{ id: userId }] = (await db.query(
+      "SELECT id FROM users WHERE username = ?",
+      ["alice"]
+    )) as { id: number }[];
+
+    await db.query(
+      "INSERT INTO user_profiles (user_id, profile_json, schema_version, config_hash) VALUES (?, ?, ?, ?)",
+      [userId, "{}", 1, "hash"]
+    );
+
+    await expect(
+      db.query(
+        "INSERT INTO user_profiles (user_id, profile_json, schema_version, config_hash) VALUES (?, ?, ?, ?)",
+        [userId, "{}", 1, "hash"]
+      )
+    ).rejects.toThrow();
+  });
+
+  it("queries signal events by kind and user_id", async () => {
+    const db = await initTestDb();
+    await db.query("INSERT INTO users (username) VALUES (?)", ["bob"]);
+    const [{ id: userId }] = (await db.query(
+      "SELECT id FROM users WHERE username = ?",
+      ["bob"]
+    )) as { id: number }[];
+
+    await db.query(
+      "INSERT INTO user_signal_events (user_id, kind, payload) VALUES (?, ?, ?)",
+      [userId, "snapshot", "{}"]
+    );
+    await db.query(
+      "INSERT INTO user_signal_events (user_id, kind, payload) VALUES (?, ?, ?)",
+      [userId, "plex_rating", "{}"]
+    );
+
+    const snapshots = (await db.query(
+      "SELECT * FROM user_signal_events WHERE user_id = ? AND kind = ?",
+      [userId, "snapshot"]
+    )) as unknown[];
+    expect(snapshots).toHaveLength(1);
+
+    const all = (await db.query(
+      "SELECT * FROM user_signal_events WHERE user_id = ?",
+      [userId]
+    )) as unknown[];
+    expect(all).toHaveLength(2);
+  });
+
+  it("cascades user_profiles and user_signal_events when user is deleted", async () => {
+    const db = await initTestDb();
+    await db.query("INSERT INTO users (username) VALUES (?)", ["carol"]);
+    const [{ id: userId }] = (await db.query(
+      "SELECT id FROM users WHERE username = ?",
+      ["carol"]
+    )) as { id: number }[];
+
+    await db.query(
+      "INSERT INTO user_profiles (user_id, profile_json, schema_version, config_hash) VALUES (?, ?, ?, ?)",
+      [userId, "{}", 1, "hash"]
+    );
+    await db.query(
+      "INSERT INTO user_signal_events (user_id, kind, payload) VALUES (?, ?, ?)",
+      [userId, "snapshot", "{}"]
+    );
+
+    await db.query("DELETE FROM users WHERE id = ?", [userId]);
+
+    const profiles = (await db.query(
+      "SELECT * FROM user_profiles WHERE user_id = ?",
+      [userId]
+    )) as unknown[];
+    const events = (await db.query(
+      "SELECT * FROM user_signal_events WHERE user_id = ?",
+      [userId]
+    )) as unknown[];
+    expect(profiles).toHaveLength(0);
+    expect(events).toHaveLength(0);
+  });
+
+  it("enforces foreign key on user_profiles.user_id", async () => {
+    const db = await initTestDb();
+    await expect(
+      db.query(
+        "INSERT INTO user_profiles (user_id, profile_json, schema_version, config_hash) VALUES (?, ?, ?, ?)",
+        [999, "{}", 1, "hash"]
+      )
+    ).rejects.toThrow();
+  });
+});

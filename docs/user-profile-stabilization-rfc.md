@@ -1,8 +1,57 @@
 # RFC: Stabilising user profiles
 
-Status: Draft / for discussion
+Status: Step 1 implemented — discussing next steps
 Tracking issue: [#144](https://github.com/BlieNuckel/tunearr/issues/144)
+Step 1 issues: [#166](https://github.com/BlieNuckel/tunearr/issues/166) (#167 entities, #168 recommender, #169 scheduler)
 Related: #137 (explore mode), #145 (explore-vs-Plex boundary), #136 (listening window + anti-repeat)
+
+## Implementation status
+
+**Step 1 (#166) is implemented** (persist the derived profile). The sections below are
+the original design; this block records what actually shipped and where it diverged.
+
+Done:
+
+- **Entities + migration (#167).** `UserProfile` (derived cache, one versioned JSON doc
+  per user) and `UserSignalEvent` (append-only, `kind`-tagged) in `server/db/entity/`,
+  migration `8_UserProfile`, both cascade-deleting with the owning user. Access helpers in
+  `server/db/userProfile.ts`.
+- **Profile-first recommender (#168).** `server/promotedAlbum/profileService.ts`:
+  `regenerateProfile(userId, plexToken)` (request-free, reused by the scheduler) and
+  `loadFreshProfile` (read-first; regenerate only on TTL expiry, `config_hash` mismatch, or
+  `schema_version` bump), guarded by a per-user `AsyncLock`. `getPromotedAlbum` /
+  `getPromotedArtists` now key on `userId`; the in-memory `userCache` /
+  `recentlyShownByUser` maps folded into the persisted `explorationHistory`.
+- **Background regeneration (#169).** `server/services/profile/regenPoller.ts` refreshes
+  stale **and** recently-active profiles off the request path, reusing the in-flight guard.
+
+Diverged from / refined beyond the original sketch:
+
+- **`DerivedProfile` carries `artistTags`** (`{ name, viewCount, tags: {name,count}[] }[]`)
+  in addition to `genreVector` + `explorationHistory`. The within-taste recommendation
+  `trace` ("How this was recommended") renders per-artist viewCounts + tag contributions,
+  which `genreVector` alone can't rebuild — without this, the trace's first two stages go
+  empty once a recommendation is served from the persisted profile (the normal path). Both
+  are produced in one regeneration pass so they can't disagree. We deliberately do **not**
+  store the raw unfiltered Last.fm tag dump: it's re-fetchable external data, and a config /
+  algorithm change flips `config_hash` and forces a clean refetch rather than recomputing a
+  stale snapshot.
+- **Two-layer cache** (was sketched, now concrete): long-lived persisted profile
+  (`profileTtlMinutes`, default 1440) + short-lived in-memory result cache
+  (`cacheDurationMinutes`, default 30). A refresh re-picks a tag/album off the cached vector
+  without re-running the Plex + Last.fm fan-out.
+- **New config** (`promotedAlbum.*`, validated, with Settings UI): `profileTtlMinutes`,
+  `backgroundRegenEnabled`, `backgroundRegenIntervalMinutes`,
+  `backgroundRegenActiveWithinMinutes`.
+
+Deferred, as planned:
+
+- **`similarGraph`** is still not stored, so **explore mode still fans out per request**
+  (ListenBrainz + Last.fm). It needs no migration to add later — just a field in
+  `DerivedProfile`.
+- **Ratings ingestion + snapshots (`UserSignalEvent` writes)** — Step 2. The table exists
+  and the regen poller is the intended home for the snapshot cadence.
+- **Taste page** (Step 3) and **export/restore** (Step 4).
 
 ## Problem
 
@@ -58,6 +107,8 @@ Purchase`. `User.plex_token` exists; **no taste columns**. `Config` is global, n
 | Trend over time                   | —                          | No                    | Yes (time-series of snapshots) | Play counts: partially (bounded, prunable history). Ratings: no |
 
 Note: backing up ratings is **net-new ingestion** — tunearr does not read `userRating` today.
+Reachability confirmed (June 2026): the existing per-user token path can fetch it — see
+"Resolved: ratings ingestion" under Open questions.
 
 ### Snapshots vs. Plex's own history
 
@@ -190,10 +241,49 @@ The in-memory `userCache`/`recentlyShownByUser` maps fold into `UserProfile`.
 
 1. **Snapshot cadence** — on login, on a timer (cron-like), or both? How many to retain?
 2. **Profile TTL** — how stale before we force a regenerate? Per-user override?
-3. **Ratings ingestion** — confirm Plex exposes `userRating` per track/album via the existing
-   per-user token path; volume/perf of pulling it.
+3. **Ratings ingestion** — ~~confirm Plex exposes `userRating` per track/album via the existing
+   per-user token path; volume/perf of pulling it.~~ **Resolved (June 2026) — yes; see below.**
 4. **Multi-user** — snapshots are per-user; confirm storage growth is acceptable for many users.
 5. **Privacy / retention** — more per-user data on disk; deletion-on-user-removal must cascade.
+
+### Resolved: ratings ingestion (open question 3)
+
+**Verdict: yes — `userRating` is reachable through the per-user token path tunearr already
+has, and Step 2 is unblocked.** Investigated June 2026 against the live Plex API and the
+existing integration.
+
+- **Same token path, no new auth.** Plex resolves `userRating` per account: querying the PMS
+  with account A's token returns account A's own rating. This is the identical mechanism the
+  app already relies on for `viewCount` / play history in `server/api/plex/topArtists.ts`
+  (`store-plex-token` → `getServerAccessToken` → `User.plex_token` → request headers). No new
+  token flow is needed — each user reads **their own** ratings with **their own** stored
+  token.
+- **Why the "shared user" limitation does not apply.** Plex blocks an _owner's_ token from
+  reading a _friend's_ personal ratings. Tunearr never does this: every user queries with
+  their own token, which is exactly the case Plex supports. We never have one user read
+  another's data.
+- **Read endpoint + perf (the volume half of the question).** Use a server-side filter for
+  rated items only — e.g. `GET /library/sections/{sectionKey}/all?type=10&userRating>>=1`
+  (the `>>=` operator is Plex's "greater-or-equal"; confirm exact encoding in impl). This
+  means we **never scan the whole library** — one paginated, filtered query returns just the
+  (small) rated set. Container pagination (`X-Plex-Container-Size`) is already wired up in
+  `topArtists.ts`. Single-item reads via `GET /library/metadata/{ratingKey}` also carry
+  `userRating`.
+- **Field semantics.** Music ratings exist at artist (`type=8`), album (`type=9`) and track
+  (`type=10`); recommend ingesting albums + tracks. `userRating` is **absent** when an item
+  is unrated — treat missing as "no rating", not 0. Scale is 0–10 (half-star = 1 unit),
+  matching the existing `{ rating: 8 }` stub in `userProfile.test.ts` and the reserved
+  `"plex_rating"` `SignalKind`.
+
+Two caveats to handle during Step 2, neither blocking:
+
+- **Managed / Plex Home users** have no full plex.tv account and follow a different token
+  flow; `userRating` will not resolve for them. The common case (full Plex accounts) is
+  unaffected — just skip or flag managed users.
+- **`view_state_sync` is a per-user toggle** (`PUT /api/v2/user/view_state_sync`) governing
+  cross-platform sync. It does not affect single-PMS reads — music ratings are stored
+  server-side keyed to the account, so the metadata query returns them regardless. Don't
+  assume ratings made on _other_ servers are present.
 
 ## Out of scope
 
@@ -206,6 +296,24 @@ The in-memory `userCache`/`recentlyShownByUser` maps fold into `UserProfile`.
 
 ## Next step
 
-Agree on the open questions above, then split into an implementation issue: entities +
-migration first, snapshot/ingestion second, recommender profile-first path third, taste page
-last. Each lands with full frontend + backend tests per project policy.
+Step 1 (persist the derived profile) is implemented — see **Implementation status** above.
+Discussion now moves to what comes after, in roughly dependency order:
+
+- **Step 2 — ratings ingestion + snapshots.** **Unblocked** — open question 3 resolved
+  (Plex exposes `userRating` via the per-user token path; see "Resolved: ratings ingestion"
+  above). Read rated items with a server-side `userRating>>=1` filter on the existing token
+  path, then write `UserSignalEvent` rows (`kind = "snapshot"` / `"plex_rating"`); the regen
+  poller already exists as the cadence home. This is the first feature that makes
+  `UserSignalEvent` earn its place.
+- **Feed new signals into the vector.** The contributor-registry seam from #166 lets a
+  rating / behaviour signal add weight to the _same_ `genreVector` without restructuring the
+  recommender. Worth deciding the weighting model before Step 2 lands data.
+- **`similarGraph` for explore mode.** Persist the ListenBrainz similar-artist graph in
+  `DerivedProfile` so explore stops fanning out per request (currently the one un-optimised
+  path). Migration-free field add.
+- **Step 3 — taste page.** Renders `genreVector` (top genres + weights) and, with Step 2,
+  rating/trend views from the snapshot log.
+- **Step 4 — export/restore.** Out of scope until there's a reason; noted for completeness.
+
+Open questions 1 (snapshot cadence) and 2 (per-user TTL override) are the remaining
+decisions for Step 2; open question 3 (ratings exposure) is resolved.

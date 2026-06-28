@@ -2,6 +2,7 @@ import type { PromotedAlbumSettings } from "./settingsContextDef";
 
 export const DEFAULT_PROMOTED_ALBUM: PromotedAlbumSettings = {
   cacheDurationMinutes: 30,
+  profileTtlMinutes: 1440,
   topArtistsRange: "6months",
   topArtistsCount: 10,
   pickedArtistsCount: 3,
@@ -26,4 +27,7 @@ export const DEFAULT_PROMOTED_ALBUM: PromotedAlbumSettings = {
   explorationRate: 0.5,
   exploreCandidateCount: 12,
   genreOverlapThreshold: 0.15,
+  backgroundRegenEnabled: true,
+  backgroundRegenIntervalMinutes: 60,
+  backgroundRegenActiveWithinMinutes: 10080,
 };

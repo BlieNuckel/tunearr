@@ -157,6 +157,59 @@ export default function RecommendationsSection({
         description="How long to cache a promoted album before picking a new one. Set to 0 to disable caching."
       />
 
+      <NumberField
+        label="Taste Profile Lifetime (minutes)"
+        value={config.profileTtlMinutes}
+        onChange={(v) => update("profileTtlMinutes", v)}
+        min={0}
+        max={10080}
+        step={60}
+        description="How long your derived taste profile (genre vector) is reused before the expensive Plex + Last.fm rebuild runs again. Longer is cheaper; shorter tracks taste changes faster."
+      />
+
+      <div className="flex items-center gap-3">
+        <input
+          type="checkbox"
+          id="background-regen-enabled"
+          checked={config.backgroundRegenEnabled}
+          onChange={(e) => update("backgroundRegenEnabled", e.target.checked)}
+          className="h-4 w-4 rounded border-2 border-black"
+        />
+        <label
+          htmlFor="background-regen-enabled"
+          className="text-sm font-medium text-gray-900 dark:text-gray-100"
+        >
+          Keep taste profiles warm in the background
+        </label>
+      </div>
+      <p className="text-gray-400 dark:text-gray-500 text-xs -mt-2">
+        Periodically rebuilds stale profiles for recently-active users so no
+        request waits on the rate-limited rebuild. Single-instance only.
+      </p>
+
+      {config.backgroundRegenEnabled && (
+        <>
+          <NumberField
+            label="Background Refresh Interval (minutes)"
+            value={config.backgroundRegenIntervalMinutes}
+            onChange={(v) => update("backgroundRegenIntervalMinutes", v)}
+            min={5}
+            max={1440}
+            step={5}
+            description="How often the background refresh checks for stale profiles."
+          />
+          <NumberField
+            label="Active User Window (minutes)"
+            value={config.backgroundRegenActiveWithinMinutes}
+            onChange={(v) => update("backgroundRegenActiveWithinMinutes", v)}
+            min={60}
+            max={43200}
+            step={60}
+            description="Only refresh profiles for users who viewed recommendations within this window, so dormant accounts don't burn Plex / Last.fm quota."
+          />
+        </>
+      )}
+
       <div>
         <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
           Listening Window

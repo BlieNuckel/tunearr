@@ -1,0 +1,186 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import type { PromotedAlbumConfig } from "../config";
+
+const mockGetTopArtists = vi.fn();
+const mockGetArtistTopTags = vi.fn();
+const mockGetConfigValue = vi.fn();
+
+vi.mock("../api/plex/topArtists", () => ({
+  getTopArtists: (...args: unknown[]) => mockGetTopArtists(...args),
+}));
+
+vi.mock("../api/lastfm/artists", () => ({
+  getArtistTopTags: (...args: unknown[]) => mockGetArtistTopTags(...args),
+}));
+
+vi.mock("../config", () => ({
+  getConfigValue: (...args: unknown[]) => mockGetConfigValue(...args),
+}));
+
+import { regenerateProfile, loadFreshProfile } from "./profileService";
+import { initializeDatabase, closeDatabase, getDataSource } from "../db";
+import { getUserProfile, updateExplorationHistory } from "../db/userProfile";
+import { parseDerivedProfile } from "../db/userProfile";
+
+const baseConfig: PromotedAlbumConfig = {
+  cacheDurationMinutes: 30,
+  profileTtlMinutes: 1440,
+  topArtistsRange: "6months",
+  topArtistsCount: 10,
+  pickedArtistsCount: 3,
+  tagsPerArtist: 5,
+  deepPageMin: 2,
+  deepPageMax: 10,
+  genericTags: ["seen live"],
+  libraryPreference: "prefer_new",
+  explorationRate: 0,
+  exploreCandidateCount: 12,
+  genreOverlapThreshold: 0.15,
+  backgroundRegenEnabled: false,
+  backgroundRegenIntervalMinutes: 60,
+  backgroundRegenActiveWithinMinutes: 10080,
+};
+
+const plexArtists = [
+  { name: "Radiohead", viewCount: 100, thumb: "", genres: [] },
+  { name: "Bjork", viewCount: 50, thumb: "", genres: [] },
+];
+
+const tags = [
+  { name: "alternative", count: 100 },
+  { name: "seen live", count: 90 },
+];
+
+async function createUser(token: string): Promise<number> {
+  const ds = getDataSource();
+  await ds.query(
+    "INSERT INTO users (plex_token, user_type, enabled) VALUES (?, 'plex', 1)",
+    [token]
+  );
+  const rows = (await ds.query("SELECT id FROM users WHERE plex_token = ?", [
+    token,
+  ])) as { id: number }[];
+  return rows[rows.length - 1].id;
+}
+
+let userId: number;
+
+beforeEach(async () => {
+  vi.clearAllMocks();
+  vi.spyOn(Math, "random").mockReturnValue(0.1);
+  mockGetConfigValue.mockReturnValue(baseConfig);
+  mockGetTopArtists.mockResolvedValue(plexArtists);
+  mockGetArtistTopTags.mockResolvedValue(tags);
+  await initializeDatabase(":memory:");
+  userId = await createUser("token");
+});
+
+afterEach(async () => {
+  await closeDatabase();
+  vi.restoreAllMocks();
+});
+
+describe("regenerateProfile", () => {
+  it("builds and persists the genre vector and artist breakdown", async () => {
+    const profile = await regenerateProfile(userId, "token");
+    expect(profile).not.toBeNull();
+
+    expect(profile!.genreVector).toEqual([
+      {
+        tag: "alternative",
+        weight: 100 * 100 + 100 * 50,
+        fromArtists: ["Radiohead", "Bjork"],
+      },
+    ]);
+    expect(profile!.artistTags).toEqual([
+      {
+        name: "Radiohead",
+        viewCount: 100,
+        tags: [{ name: "alternative", count: 100 }],
+      },
+      {
+        name: "Bjork",
+        viewCount: 50,
+        tags: [{ name: "alternative", count: 100 }],
+      },
+    ]);
+
+    const row = await getUserProfile(userId);
+    expect(row).not.toBeNull();
+    expect(parseDerivedProfile(row!.profile_json).genreVector).toHaveLength(1);
+  });
+
+  it("returns null and leaves no vector when every tag is generic", async () => {
+    mockGetArtistTopTags.mockResolvedValue([{ name: "seen live", count: 90 }]);
+    expect(await regenerateProfile(userId, "token")).toBeNull();
+    expect(await getUserProfile(userId)).toBeNull();
+  });
+
+  it("carries existing exploration memory forward across a regenerate", async () => {
+    await updateExplorationHistory(userId, {
+      albums: ["alb-x"],
+      artists: ["art-y"],
+    });
+
+    const profile = await regenerateProfile(userId, "token");
+    expect(profile!.explorationHistory).toEqual({
+      albums: ["alb-x"],
+      artists: ["art-y"],
+    });
+  });
+});
+
+describe("loadFreshProfile", () => {
+  it("serves a fresh profile from the DB without re-fanning-out", async () => {
+    await regenerateProfile(userId, "token");
+    mockGetTopArtists.mockClear();
+    mockGetArtistTopTags.mockClear();
+
+    const profile = await loadFreshProfile(userId, "token", baseConfig);
+    expect(profile!.genreVector).toHaveLength(1);
+    expect(mockGetTopArtists).not.toHaveBeenCalled();
+    expect(mockGetArtistTopTags).not.toHaveBeenCalled();
+  });
+
+  it("regenerates when the config hash no longer matches", async () => {
+    await regenerateProfile(userId, "token");
+    mockGetTopArtists.mockClear();
+
+    const changedConfig = { ...baseConfig, tagsPerArtist: 2 };
+    mockGetConfigValue.mockReturnValue(changedConfig);
+
+    await loadFreshProfile(userId, "token", changedConfig);
+    expect(mockGetTopArtists).toHaveBeenCalledTimes(1);
+  });
+
+  it("regenerates when the stored schema_version is stale", async () => {
+    await regenerateProfile(userId, "token");
+    await getDataSource().query(
+      "UPDATE user_profiles SET schema_version = 0 WHERE user_id = ?",
+      [userId]
+    );
+    mockGetTopArtists.mockClear();
+
+    await loadFreshProfile(userId, "token", baseConfig);
+    expect(mockGetTopArtists).toHaveBeenCalledTimes(1);
+  });
+
+  it("in-flight guard prevents concurrent double-regeneration", async () => {
+    let resolveTop: (v: unknown) => void = () => {};
+    mockGetTopArtists.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveTop = resolve;
+        })
+    );
+
+    const p1 = loadFreshProfile(userId, "token", baseConfig);
+    const p2 = loadFreshProfile(userId, "token", baseConfig);
+
+    await vi.waitFor(() => expect(mockGetTopArtists).toHaveBeenCalledTimes(1));
+    resolveTop(plexArtists);
+    await Promise.all([p1, p2]);
+
+    expect(mockGetTopArtists).toHaveBeenCalledTimes(1);
+  });
+});

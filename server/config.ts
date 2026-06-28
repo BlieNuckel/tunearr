@@ -27,6 +27,7 @@ export type SpendingConfig = {
 
 export type PromotedAlbumConfig = {
   cacheDurationMinutes: number;
+  profileTtlMinutes: number;
   topArtistsRange: TopArtistsRange;
   topArtistsCount: number;
   pickedArtistsCount: number;
@@ -38,6 +39,9 @@ export type PromotedAlbumConfig = {
   explorationRate: number;
   exploreCandidateCount: number;
   genreOverlapThreshold: number;
+  backgroundRegenEnabled: boolean;
+  backgroundRegenIntervalMinutes: number;
+  backgroundRegenActiveWithinMinutes: number;
 };
 
 export type IConfig = {
@@ -84,6 +88,7 @@ export const DEFAULT_REQUEST_STATUS_POLL_INTERVAL_MS = 2 * 60 * 1000;
 
 export const DEFAULT_PROMOTED_ALBUM: PromotedAlbumConfig = {
   cacheDurationMinutes: 30,
+  profileTtlMinutes: 1440,
   topArtistsRange: "6months",
   topArtistsCount: 10,
   pickedArtistsCount: 3,
@@ -108,6 +113,9 @@ export const DEFAULT_PROMOTED_ALBUM: PromotedAlbumConfig = {
   explorationRate: 0.5,
   exploreCandidateCount: 12,
   genreOverlapThreshold: 0.15,
+  backgroundRegenEnabled: true,
+  backgroundRegenIntervalMinutes: 60,
+  backgroundRegenActiveWithinMinutes: 10080,
 };
 
 const DEFAULT_CONFIG: IConfig = {
@@ -213,6 +221,12 @@ function validatePromotedAlbumConfig(config: PromotedAlbumConfig) {
   ) {
     throw new Error("cacheDurationMinutes must be a non-negative number");
   }
+  if (
+    typeof config.profileTtlMinutes !== "number" ||
+    config.profileTtlMinutes < 0
+  ) {
+    throw new Error("profileTtlMinutes must be a non-negative number");
+  }
   if (!VALID_TOP_ARTISTS_RANGES.includes(config.topArtistsRange)) {
     throw new Error(
       `topArtistsRange must be one of: ${VALID_TOP_ARTISTS_RANGES.join(", ")}`
@@ -232,6 +246,17 @@ function validatePromotedAlbumConfig(config: PromotedAlbumConfig) {
   validateRatio(config.explorationRate, "explorationRate");
   validatePositiveInt(config.exploreCandidateCount, "exploreCandidateCount");
   validateRatio(config.genreOverlapThreshold, "genreOverlapThreshold");
+  if (typeof config.backgroundRegenEnabled !== "boolean") {
+    throw new Error("backgroundRegenEnabled must be a boolean");
+  }
+  validatePositiveInt(
+    config.backgroundRegenIntervalMinutes,
+    "backgroundRegenIntervalMinutes"
+  );
+  validatePositiveInt(
+    config.backgroundRegenActiveWithinMinutes,
+    "backgroundRegenActiveWithinMinutes"
+  );
   if (
     !VALID_LIBRARY_PREFERENCES.includes(
       config.libraryPreference as LibraryPreference

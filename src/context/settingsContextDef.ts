@@ -9,6 +9,7 @@ export type TopArtistsRange = "all" | "4weeks" | "6months" | "12months";
 
 export interface PromotedAlbumSettings {
   cacheDurationMinutes: number;
+  profileTtlMinutes: number;
   topArtistsRange: TopArtistsRange;
   topArtistsCount: number;
   pickedArtistsCount: number;
@@ -20,6 +21,9 @@ export interface PromotedAlbumSettings {
   explorationRate: number;
   exploreCandidateCount: number;
   genreOverlapThreshold: number;
+  backgroundRegenEnabled: boolean;
+  backgroundRegenIntervalMinutes: number;
+  backgroundRegenActiveWithinMinutes: number;
 }
 
 export interface PurchaseDecisionSettings {
