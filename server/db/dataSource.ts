@@ -9,6 +9,8 @@ import { Purchase } from "./entity/Purchase";
 import { Config } from "./entity/Config";
 import { FollowedArtist } from "./entity/FollowedArtist";
 import { SeenRelease } from "./entity/SeenRelease";
+import { UserProfile } from "./entity/UserProfile";
+import { UserSignalEvent } from "./entity/UserSignalEvent";
 import { InitialSchema1709000000000 } from "./migration/1_InitialSchema";
 import { ConfigTable1710000000000 } from "./migration/2_ConfigTable";
 import { WantedItems1711000000000 } from "./migration/3_WantedItems";
@@ -16,6 +18,7 @@ import { Purchases1712000000000 } from "./migration/4_Purchases";
 import { FollowedArtists1713000000000 } from "./migration/5_FollowedArtists";
 import { FollowedLastViewedAt1714000000000 } from "./migration/6_FollowedLastViewedAt";
 import { RequestLidarrStatus1715000000000 } from "./migration/7_RequestLidarrStatus";
+import { UserProfile1716000000000 } from "./migration/8_UserProfile";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -41,6 +44,8 @@ export function createDataSource(dbPath?: string): DataSource {
       Config,
       FollowedArtist,
       SeenRelease,
+      UserProfile,
+      UserSignalEvent,
     ],
     migrations: [
       InitialSchema1709000000000,
@@ -50,6 +55,7 @@ export function createDataSource(dbPath?: string): DataSource {
       FollowedArtists1713000000000,
       FollowedLastViewedAt1714000000000,
       RequestLidarrStatus1715000000000,
+      UserProfile1716000000000,
     ],
     synchronize: false,
     migrationsRun: true,

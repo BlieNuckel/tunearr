@@ -1,0 +1,190 @@
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { initializeDatabase, getDataSource, closeDatabase } from "./index";
+import type { DerivedProfile } from "./entity/UserProfile";
+import { DERIVED_PROFILE_SCHEMA_VERSION } from "./entity/UserProfile";
+import {
+  serializeDerivedProfile,
+  parseDerivedProfile,
+  computeConfigHash,
+  getUserProfile,
+  upsertUserProfile,
+  touchProfileUsed,
+  appendSignalEvent,
+  getSignalEvents,
+} from "./userProfile";
+
+const SAMPLE_PROFILE: DerivedProfile = {
+  genreVector: [
+    { tag: "shoegaze", weight: 42, fromArtists: ["Slowdive", "Ride"] },
+    { tag: "dream pop", weight: 17, fromArtists: ["Beach House"] },
+  ],
+  explorationHistory: {
+    albums: ["mbid-album-1", "mbid-album-2"],
+    artists: ["mbid-artist-1"],
+  },
+};
+
+const CONFIG_INPUTS = {
+  topArtistsRange: "6months",
+  genericTags: ["seen live", "favorites"],
+  tagsPerArtist: 5,
+  pickedArtistsCount: 3,
+};
+
+async function createUser(username: string): Promise<number> {
+  await getDataSource().query("INSERT INTO users (username) VALUES (?)", [
+    username,
+  ]);
+  const [{ id }] = (await getDataSource().query(
+    "SELECT id FROM users WHERE username = ?",
+    [username]
+  )) as { id: number }[];
+  return id;
+}
+
+beforeEach(async () => {
+  await initializeDatabase(":memory:");
+});
+
+afterEach(async () => {
+  await closeDatabase();
+});
+
+describe("serializeDerivedProfile / parseDerivedProfile", () => {
+  it("round-trips a profile", () => {
+    const json = serializeDerivedProfile(SAMPLE_PROFILE);
+    expect(parseDerivedProfile(json)).toEqual(SAMPLE_PROFILE);
+  });
+
+  it("returns an empty profile for invalid JSON", () => {
+    expect(parseDerivedProfile("not json")).toEqual({
+      genreVector: [],
+      explorationHistory: { albums: [], artists: [] },
+    });
+  });
+
+  it("fills missing fields with empty defaults", () => {
+    expect(parseDerivedProfile(JSON.stringify({ genreVector: [] }))).toEqual({
+      genreVector: [],
+      explorationHistory: { albums: [], artists: [] },
+    });
+  });
+});
+
+describe("computeConfigHash", () => {
+  it("is stable for the same inputs", () => {
+    expect(computeConfigHash(CONFIG_INPUTS)).toBe(
+      computeConfigHash(CONFIG_INPUTS)
+    );
+  });
+
+  it("is insensitive to genericTags order and case", () => {
+    expect(
+      computeConfigHash({
+        ...CONFIG_INPUTS,
+        genericTags: ["Favorites", "SEEN live"],
+      })
+    ).toBe(computeConfigHash(CONFIG_INPUTS));
+  });
+
+  it("changes when a shaping field changes", () => {
+    expect(computeConfigHash({ ...CONFIG_INPUTS, tagsPerArtist: 6 })).not.toBe(
+      computeConfigHash(CONFIG_INPUTS)
+    );
+    expect(
+      computeConfigHash({ ...CONFIG_INPUTS, topArtistsRange: "all" })
+    ).not.toBe(computeConfigHash(CONFIG_INPUTS));
+  });
+});
+
+describe("upsertUserProfile / getUserProfile", () => {
+  it("returns null when no profile exists", async () => {
+    const userId = await createUser("alice");
+    expect(await getUserProfile(userId)).toBeNull();
+  });
+
+  it("creates a profile then reads it back", async () => {
+    const userId = await createUser("alice");
+    const hash = computeConfigHash(CONFIG_INPUTS);
+
+    await upsertUserProfile(userId, SAMPLE_PROFILE, hash);
+
+    const row = await getUserProfile(userId);
+    expect(row).not.toBeNull();
+    expect(row!.user_id).toBe(userId);
+    expect(row!.config_hash).toBe(hash);
+    expect(row!.schema_version).toBe(DERIVED_PROFILE_SCHEMA_VERSION);
+    expect(parseDerivedProfile(row!.profile_json)).toEqual(SAMPLE_PROFILE);
+  });
+
+  it("updates the existing row instead of inserting a second one", async () => {
+    const userId = await createUser("alice");
+    await upsertUserProfile(userId, SAMPLE_PROFILE, "hash-1");
+
+    const updated: DerivedProfile = {
+      genreVector: [{ tag: "techno", weight: 9, fromArtists: ["Aphex Twin"] }],
+      explorationHistory: { albums: [], artists: [] },
+    };
+    await upsertUserProfile(userId, updated, "hash-2");
+
+    const rows = await getDataSource().query(
+      "SELECT * FROM user_profiles WHERE user_id = ?",
+      [userId]
+    );
+    expect(rows).toHaveLength(1);
+
+    const row = await getUserProfile(userId);
+    expect(row!.config_hash).toBe("hash-2");
+    expect(parseDerivedProfile(row!.profile_json)).toEqual(updated);
+  });
+});
+
+describe("touchProfileUsed", () => {
+  it("advances last_used_at without changing generated_at", async () => {
+    const userId = await createUser("alice");
+    await upsertUserProfile(userId, SAMPLE_PROFILE, "hash");
+    const before = await getUserProfile(userId);
+
+    await getDataSource().query(
+      "UPDATE user_profiles SET last_used_at = ? WHERE user_id = ?",
+      ["2000-01-01T00:00:00.000Z", userId]
+    );
+    await touchProfileUsed(userId);
+
+    const after = await getUserProfile(userId);
+    expect(after!.last_used_at).not.toBe("2000-01-01T00:00:00.000Z");
+    expect(after!.generated_at).toBe(before!.generated_at);
+  });
+});
+
+describe("appendSignalEvent / getSignalEvents", () => {
+  it("appends and reads back events for a user", async () => {
+    const userId = await createUser("alice");
+    await appendSignalEvent(userId, "snapshot", { artists: 3 });
+
+    const events = await getSignalEvents(userId);
+    expect(events).toHaveLength(1);
+    expect(events[0].kind).toBe("snapshot");
+    expect(JSON.parse(events[0].payload)).toEqual({ artists: 3 });
+  });
+
+  it("filters by kind", async () => {
+    const userId = await createUser("alice");
+    await appendSignalEvent(userId, "snapshot", {});
+    await appendSignalEvent(userId, "plex_rating", { rating: 8 });
+    await appendSignalEvent(userId, "snapshot", {});
+
+    expect(await getSignalEvents(userId, "snapshot")).toHaveLength(2);
+    expect(await getSignalEvents(userId, "plex_rating")).toHaveLength(1);
+  });
+
+  it("scopes events to the owning user", async () => {
+    const alice = await createUser("alice");
+    const bob = await createUser("bob");
+    await appendSignalEvent(alice, "snapshot", {});
+    await appendSignalEvent(bob, "snapshot", {});
+
+    expect(await getSignalEvents(alice)).toHaveLength(1);
+    expect(await getSignalEvents(bob)).toHaveLength(1);
+  });
+});

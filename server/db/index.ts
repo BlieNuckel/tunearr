@@ -51,3 +51,10 @@ export { Config } from "./entity/Config";
 export { FollowedArtist } from "./entity/FollowedArtist";
 export type { ReleaseSource } from "./entity/SeenRelease";
 export { SeenRelease } from "./entity/SeenRelease";
+export type { DerivedProfile } from "./entity/UserProfile";
+export {
+  UserProfile,
+  DERIVED_PROFILE_SCHEMA_VERSION,
+} from "./entity/UserProfile";
+export type { SignalKind } from "./entity/UserSignalEvent";
+export { UserSignalEvent } from "./entity/UserSignalEvent";
