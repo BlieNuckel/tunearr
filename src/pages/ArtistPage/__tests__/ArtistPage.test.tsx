@@ -26,6 +26,18 @@ vi.mock("@/hooks/useWantedAlbums", () => ({
   }),
 }));
 
+vi.mock("@/hooks/useLibraryArtists", () => ({
+  default: () => ({
+    isArtistInLibrary: (mbid: string) => mbid === "sim-owned",
+  }),
+}));
+
+let mockSimilar: { artists: unknown[]; loading: boolean };
+
+vi.mock("@/hooks/useSimilarArtists", () => ({
+  default: () => mockSimilar,
+}));
+
 vi.mock("@/components/ReleaseGroupCard", () => ({
   default: ({
     releaseGroup,
@@ -77,6 +89,7 @@ beforeEach(() => {
     loading: false,
     error: null,
   };
+  mockSimilar = { artists: [], loading: false };
 });
 
 describe("ArtistPage", () => {
@@ -155,5 +168,28 @@ describe("ArtistPage", () => {
     expect(
       screen.getByText("No releases found for this artist.")
     ).toBeInTheDocument();
+  });
+
+  it("renders the similar artists section when present", () => {
+    mockState.artist = { mbid: "a1", name: "Radiohead" };
+    mockSimilar = {
+      artists: [
+        { name: "Muse", mbid: "muse-1", imageUrl: "", match: 0.9 },
+        { name: "Coldplay", mbid: "sim-owned", imageUrl: "", match: 0.8 },
+      ],
+      loading: false,
+    };
+    renderPage();
+
+    expect(screen.getByText("Similar artists")).toBeInTheDocument();
+    expect(screen.getByText("Muse")).toBeInTheDocument();
+    expect(screen.getByText("Coldplay")).toBeInTheDocument();
+  });
+
+  it("omits the similar artists section when there are none", () => {
+    mockState.artist = { mbid: "a1", name: "Radiohead" };
+    mockSimilar = { artists: [], loading: false };
+    renderPage();
+    expect(screen.queryByText("Similar artists")).not.toBeInTheDocument();
   });
 });
