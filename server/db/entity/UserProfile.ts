@@ -13,6 +13,27 @@ import { User } from "./User";
  * Adding a field here is migration-free: bump {@link DERIVED_PROFILE_SCHEMA_VERSION}
  * and a version mismatch marks the stored row stale so it regenerates.
  */
+export type SimilarGraphCandidate = {
+  name: string;
+  artistMbid: string;
+  score: number;
+  genres: string[];
+};
+
+/**
+ * One seed artist and the genre-tagged similar artists explore mode draws from.
+ * Built at regeneration time so explore no longer fans out to Plex/MusicBrainz/
+ * ListenBrainz/Last.fm per request. `genres` are already filtered by generic tags;
+ * the genre-overlap threshold is applied at request time off these stored sets.
+ */
+export type SimilarGraphSeed = {
+  seedArtist: string;
+  seedMbid: string;
+  seedGenres: string[];
+  viewCount: number;
+  candidates: SimilarGraphCandidate[];
+};
+
 export type DerivedProfile = {
   genreVector: { tag: string; weight: number; fromArtists: string[] }[];
   artistTags: {
@@ -20,10 +41,11 @@ export type DerivedProfile = {
     viewCount: number;
     tags: { name: string; count: number }[];
   }[];
+  similarGraph: SimilarGraphSeed[];
   explorationHistory: { albums: string[]; artists: string[] };
 };
 
-export const DERIVED_PROFILE_SCHEMA_VERSION = 1;
+export const DERIVED_PROFILE_SCHEMA_VERSION = 2;
 
 /** Derived, regenerable cache — one row per user, the whole profile as one document. */
 @Entity("user_profiles")

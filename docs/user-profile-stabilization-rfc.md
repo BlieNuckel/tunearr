@@ -26,6 +26,18 @@ Done:
 - **Background regeneration (#169).** `server/services/profile/regenPoller.ts` refreshes
   stale **and** recently-active profiles off the request path, reusing the in-flight guard.
 
+- **`similarGraph` persisted; explore no longer fans out per request.** `DerivedProfile`
+  now carries a `similarGraph` (per seed artist: its MBID, genre set, play count, and the
+  genre-tagged ListenBrainz similar artists). `regenerateProfile` builds it in the same pass
+  via `buildSimilarGraph` (the old per-request MusicBrainz + ListenBrainz + Last.fm fan-out,
+  moved off the request path and run sequentially per seed to keep network load identical).
+  At request time `buildExploreResult` reads the graph, weighted-picks a seed, applies the
+  genre-overlap threshold in memory, and only the final album pick (MusicBrainz release
+  groups) hits the network — mirroring how within-taste keeps its Last.fm album fetch
+  per-request. Schema bumped to v2 (forces one clean regen); `topArtistsCount` +
+  `exploreCandidateCount` added to `config_hash` (they shape the stored graph;
+  `genreOverlapThreshold` stays out so threshold tuning needs no regen). No migration.
+
 Diverged from / refined beyond the original sketch:
 
 - **`DerivedProfile` carries `artistTags`** (`{ name, viewCount, tags: {name,count}[] }[]`)
@@ -47,9 +59,6 @@ Diverged from / refined beyond the original sketch:
 
 Deferred, as planned:
 
-- **`similarGraph`** is still not stored, so **explore mode still fans out per request**
-  (ListenBrainz + Last.fm). It needs no migration to add later — just a field in
-  `DerivedProfile`.
 - **Ratings ingestion + snapshots (`UserSignalEvent` writes)** — Step 2 ([#172](https://github.com/BlieNuckel/tunearr/issues/172)).
   The table exists and the regen poller is the intended home for the snapshot cadence. The
   Plex ratings **reader** is prototyped (`server/api/plex/ratings.ts`, with `getMusicSectionKey`
@@ -314,9 +323,9 @@ Discussion now moves to what comes after, in roughly dependency order:
 - **Feed new signals into the vector.** The contributor-registry seam from #166 lets a
   rating / behaviour signal add weight to the _same_ `genreVector` without restructuring the
   recommender. Worth deciding the weighting model before Step 2 lands data.
-- **`similarGraph` for explore mode.** Persist the ListenBrainz similar-artist graph in
-  `DerivedProfile` so explore stops fanning out per request (currently the one un-optimised
-  path). Migration-free field add.
+- **~~`similarGraph` for explore mode.~~ Done** — see Implementation status. The graph is
+  built at regeneration time and read per request; explore no longer fans out to Plex /
+  MusicBrainz / ListenBrainz / Last.fm on the request path.
 - **Step 3 — taste page.** Renders `genreVector` (top genres + weights) and, with Step 2,
   rating/trend views from the snapshot log.
 - **Step 4 — export/restore.** Out of scope until there's a reason; noted for completeness.

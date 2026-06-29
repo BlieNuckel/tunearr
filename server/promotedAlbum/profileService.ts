@@ -1,4 +1,5 @@
 import { loadArtistWeights } from "./artistWeights";
+import { buildSimilarGraph } from "./explore";
 import { getArtistTopTags } from "../api/lastfm/artists";
 import { getConfigValue } from "../config";
 import type { PromotedAlbumConfig } from "../config";
@@ -132,6 +133,8 @@ export async function regenerateProfile(
   );
   if (genreVector.length === 0) return null;
 
+  const similarGraph = await buildSimilarGraph(topArtists, config);
+
   const existing = await getUserProfile(userId);
   const explorationHistory = existing
     ? parseDerivedProfile(existing.profile_json).explorationHistory
@@ -140,6 +143,7 @@ export async function regenerateProfile(
   const profile: DerivedProfile = {
     genreVector,
     artistTags,
+    similarGraph,
     explorationHistory,
   };
 

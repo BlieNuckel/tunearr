@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { PromotedAlbumConfig } from "../config";
 
 const mockLoadArtistWeights = vi.fn();
-const mockGetTopArtists = vi.fn();
 const mockGetArtistTopTags = vi.fn();
 const mockGetTopAlbumsByTag = vi.fn();
 const mockLidarrGet = vi.fn();
@@ -14,10 +13,6 @@ const mockGetArtistMbidByName = vi.fn();
 
 vi.mock("./artistWeights", () => ({
   loadArtistWeights: (...args: unknown[]) => mockLoadArtistWeights(...args),
-}));
-
-vi.mock("../api/plex/topArtists", () => ({
-  getTopArtists: (...args: unknown[]) => mockGetTopArtists(...args),
 }));
 
 vi.mock("../api/lastfm/artists", () => ({
@@ -128,7 +123,6 @@ beforeEach(async () => {
   clearPromotedAlbumCache();
   vi.spyOn(Math, "random").mockReturnValue(0.1);
   mockGetConfigValue.mockReturnValue(defaultPromotedAlbumConfig);
-  mockGetTopArtists.mockResolvedValue(plexArtists);
   mockGetReleaseGroupIdFromRelease.mockImplementation((mbid: string) =>
     Promise.resolve({ id: `rg-${mbid}`, firstReleaseDate: "1997-06-16" })
   );
@@ -894,6 +888,20 @@ describe("getPromotedAlbum", () => {
 
       const result = await getPromotedAlbum(userId);
       expect(result!.mode).toBe("within_taste");
+    });
+
+    it("builds the similar graph once at regen, not per explore request", async () => {
+      setupExplore();
+
+      await getPromotedAlbum(userId);
+      expect(mockGetSimilarArtists).toHaveBeenCalled();
+      mockGetArtistMbidByName.mockClear();
+      mockGetSimilarArtists.mockClear();
+
+      const second = await getPromotedAlbum(userId, true);
+      expect(ex(second).mode).toBe("explore");
+      expect(mockGetArtistMbidByName).not.toHaveBeenCalled();
+      expect(mockGetSimilarArtists).not.toHaveBeenCalled();
     });
 
     it("does not repeat the most recent album across refreshes", async () => {

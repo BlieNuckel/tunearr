@@ -1,4 +1,3 @@
-import { getTopArtists } from "../api/plex/topArtists";
 import { getTopAlbumsByTag } from "../api/lastfm/albums";
 import { lidarrGet } from "../api/lidarr/get";
 import type { LidarrAlbum, LidarrArtist } from "../api/lidarr/types";
@@ -319,21 +318,15 @@ async function loadLibraryMbids(): Promise<{
   };
 }
 
-async function buildExplore(
-  plexToken: string,
+function buildExplore(
+  profile: DerivedProfile,
   config: PromotedAlbumConfig,
   recentlyShown: Set<string>,
   artistInLibrary: (mbid: string) => boolean,
   albumInLibrary: (mbid: string) => boolean
 ): Promise<BuiltAlbum | null> {
-  const plexArtists = await getTopArtists(
-    plexToken,
-    config.topArtistsCount,
-    config.topArtistsRange
-  );
-  if (plexArtists.length === 0) return null;
   return buildExploreResult({
-    plexArtists,
+    similarGraph: profile.similarGraph,
     config,
     recentlyShown,
     artistInLibrary,
@@ -364,9 +357,9 @@ export async function getPromotedAlbum(
   const recentlyShown = new Set(recentAlbums);
 
   let built: BuiltAlbum | null = null;
-  if (Math.random() < config.explorationRate) {
+  if (profile && Math.random() < config.explorationRate) {
     built = await buildExplore(
-      plexToken,
+      profile,
       config,
       recentlyShown,
       artistInLibrary,
