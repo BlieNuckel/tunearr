@@ -74,7 +74,6 @@ Still deferred:
   every user with no pruning (RFC open question 4). Needs a retention policy before the table
   grows large in real multi-user use.
 - **Taste page (Step 3)** and **export/restore (Step 4)** — see Next step.
-- **Taste page** (Step 3) and **export/restore** (Step 4).
 
 ## Problem
 
