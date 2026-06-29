@@ -42,8 +42,8 @@ async function fetchPage(
 /**
  * Every artist in the library with a play count, paginated to completion. Sorted
  * by `viewCount:desc`, so once a page yields no played artist the remainder are all
- * unplayed and we can stop early. Intended for the background snapshot job against a
- * local PMS, where there is no rate limit on walking the whole library.
+ * unplayed and we can stop early. Intended for the background plays-capture job against
+ * a local PMS, where there is no rate limit on walking the whole library.
  */
 export async function getAllArtistPlayCounts(
   plexToken: string

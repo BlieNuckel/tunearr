@@ -52,7 +52,7 @@ afterEach(async () => {
 });
 
 describe("runSignalIngestionOnce", () => {
-  it("ingests ratings + a snapshot for every enabled token-holding user", async () => {
+  it("ingests ratings + a plays capture for every enabled token-holding user", async () => {
     await createUser("alice", "tok-a");
     await createUser("bob", "tok-b");
 
@@ -60,7 +60,7 @@ describe("runSignalIngestionOnce", () => {
 
     for (const userId of [1, 2]) {
       expect(await getSignalEvents(userId, "plex_rating")).toHaveLength(1);
-      expect(await getSignalEvents(userId, "snapshot")).toHaveLength(1);
+      expect(await getSignalEvents(userId, "plex_plays")).toHaveLength(1);
     }
   });
 
@@ -80,16 +80,16 @@ describe("runSignalIngestionOnce", () => {
     await runSignalIngestionOnce();
 
     expect(mockGetRatedItems).not.toHaveBeenCalled();
-    expect(await getSignalEvents(1, "snapshot")).toHaveLength(0);
+    expect(await getSignalEvents(1, "plex_plays")).toHaveLength(0);
   });
 
-  it("does not write a second snapshot within the interval", async () => {
+  it("does not write a second plays capture within the interval", async () => {
     await createUser("alice", "tok-a");
 
     await runSignalIngestionOnce();
     await runSignalIngestionOnce();
 
-    expect(await getSignalEvents(1, "snapshot")).toHaveLength(1);
+    expect(await getSignalEvents(1, "plex_plays")).toHaveLength(1);
   });
 
   it("isolates per-user failures so the sweep continues", async () => {
@@ -99,7 +99,7 @@ describe("runSignalIngestionOnce", () => {
 
     await runSignalIngestionOnce();
 
-    expect(await getSignalEvents(1, "snapshot")).toHaveLength(0);
-    expect(await getSignalEvents(2, "snapshot")).toHaveLength(1);
+    expect(await getSignalEvents(1, "plex_plays")).toHaveLength(0);
+    expect(await getSignalEvents(2, "plex_plays")).toHaveLength(1);
   });
 });
