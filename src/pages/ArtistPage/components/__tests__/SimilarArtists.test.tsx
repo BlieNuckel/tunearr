@@ -3,12 +3,6 @@ import { MemoryRouter } from "react-router-dom";
 import SimilarArtists from "../SimilarArtists";
 import type { SimilarArtist } from "@/hooks/useSimilarArtists";
 
-vi.mock("@/components/FollowArtistButton", () => ({
-  default: ({ artistMbid }: { artistMbid: string }) => (
-    <button data-testid={`follow-${artistMbid}`}>Follow</button>
-  ),
-}));
-
 const artists: SimilarArtist[] = [
   { name: "Muse", mbid: "muse-1", imageUrl: "", match: 0.9 },
   { name: "Coldplay", mbid: "cold-1", imageUrl: "", match: 0.8 },

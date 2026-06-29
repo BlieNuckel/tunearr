@@ -8,12 +8,6 @@ vi.mock("@/hooks/useNavigateToArtist", () => ({
   default: () => ({ go: mockGo, resolving: false }),
 }));
 
-vi.mock("@/components/FollowArtistButton", () => ({
-  default: ({ artistMbid }: { artistMbid: string }) => (
-    <button data-testid={`follow-${artistMbid}`}>Follow</button>
-  ),
-}));
-
 function renderCard(props: Parameters<typeof ArtistCard>[0]) {
   return render(
     <MemoryRouter>
@@ -77,38 +71,26 @@ describe("ArtistCard", () => {
     fireEvent.click(screen.getByRole("button", { name: /Radiohead/ }));
     expect(mockGo).toHaveBeenCalledWith({ mbid: undefined, name: "Radiohead" });
   });
-
-  it("renders a follow button only when an mbid is present", () => {
-    const { rerender } = renderCard({ name: "Radiohead", mbid: "a1" });
-    expect(screen.getByTestId("follow-a1")).toBeInTheDocument();
-
-    rerender(
-      <MemoryRouter>
-        <ArtistCard name="Radiohead" />
-      </MemoryRouter>
-    );
-    expect(screen.queryByTestId(/follow-/)).not.toBeInTheDocument();
-  });
 });
 
-describe("ArtistCard grid variant", () => {
+describe("ArtistCard circle variant", () => {
   it("renders name, match, and library badge", () => {
     renderCard({
       name: "Boards of Canada",
       match: 0.72,
       inLibrary: true,
-      variant: "grid",
+      variant: "circle",
     });
     expect(screen.getByText("Boards of Canada")).toBeInTheDocument();
     expect(screen.getByText("72% match")).toBeInTheDocument();
-    expect(screen.getByText("In Library")).toBeInTheDocument();
+    expect(screen.getByLabelText("In Library")).toBeInTheDocument();
   });
 
   it("renders the image when provided", () => {
     renderCard({
       name: "Boards of Canada",
       imageUrl: "https://example.com/boc.jpg",
-      variant: "grid",
+      variant: "circle",
     });
     expect(screen.getByAltText("Boards of Canada")).toHaveAttribute(
       "src",
@@ -117,16 +99,11 @@ describe("ArtistCard grid variant", () => {
   });
 
   it("navigates to the artist page on click", () => {
-    renderCard({ name: "Boards of Canada", mbid: "boc1", variant: "grid" });
+    renderCard({ name: "Boards of Canada", mbid: "boc1", variant: "circle" });
     fireEvent.click(screen.getByRole("button", { name: /Boards of Canada/ }));
     expect(mockGo).toHaveBeenCalledWith({
       mbid: "boc1",
       name: "Boards of Canada",
     });
-  });
-
-  it("renders a follow button when an mbid is present", () => {
-    renderCard({ name: "Boards of Canada", mbid: "boc1", variant: "grid" });
-    expect(screen.getByTestId("follow-boc1")).toBeInTheDocument();
   });
 });

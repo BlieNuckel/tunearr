@@ -7,7 +7,6 @@ import {
   CheckIcon,
 } from "@/components/icons";
 import ImageWithShimmer from "@/components/ImageWithShimmer";
-import FollowArtistButton from "@/components/FollowArtistButton";
 
 interface ArtistCardProps {
   name: string;
@@ -17,10 +16,10 @@ interface ArtistCardProps {
   match?: number;
   inLibrary?: boolean;
   /**
-   * "list" (default) is a horizontal row; "grid" is a vertical card for grids;
-   * "circle" is a compact circular avatar for dense exploration grids.
+   * "list" (default) is a horizontal row; "circle" is a box-free circular
+   * avatar with the name floating beneath, for artist grids.
    */
-  variant?: "list" | "grid" | "circle";
+  variant?: "list" | "circle";
 }
 
 export default function ArtistCard({
@@ -44,57 +43,13 @@ export default function ArtistCard({
 
   if (variant === "circle") {
     return (
-      <div className="relative flex flex-col items-center text-center group">
-        <button
-          onClick={handleClick}
-          className="flex flex-col items-center w-full"
-          aria-label={name}
-        >
-          <div className="relative w-full aspect-square">
-            <div className="w-full h-full rounded-full overflow-hidden border-2 border-black shadow-cartoon-sm group-hover:translate-y-[-2px] group-hover:shadow-cartoon-md transition-all">
-              {showImage ? (
-                <ImageWithShimmer
-                  src={imageUrl}
-                  alt={name}
-                  className="w-full h-full object-cover"
-                  onError={() => setImageError(true)}
-                />
-              ) : (
-                <div className="w-full h-full bg-amber-100 dark:bg-gray-700 flex items-center justify-center">
-                  <MusicalNoteIcon className="w-8 h-8 text-amber-400 dark:text-amber-500" />
-                </div>
-              )}
-            </div>
-            {inLibrary && (
-              <span
-                className="absolute bottom-0 right-0 flex items-center justify-center w-5 h-5 bg-amber-300 text-black rounded-full border-2 border-black shadow-cartoon-sm"
-                aria-label="In Library"
-              >
-                <CheckIcon className="w-3 h-3" />
-              </span>
-            )}
-          </div>
-          <h3 className="mt-2 w-full text-gray-900 dark:text-gray-100 font-medium text-xs truncate">
-            {name}
-          </h3>
-          {match !== undefined && (
-            <p className="text-gray-400 text-[11px]">
-              {Math.round(match * 100)}% match
-            </p>
-          )}
-        </button>
-      </div>
-    );
-  }
-
-  if (variant === "grid") {
-    return (
-      <div className="relative bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-md overflow-hidden hover:translate-y-[-2px] hover:shadow-cartoon-lg transition-all">
-        <button
-          onClick={handleClick}
-          className="w-full flex flex-col items-center text-center p-3 hover:bg-amber-50 dark:hover:bg-gray-700 transition-colors"
-        >
-          <div className="w-3/4 aspect-square rounded-full overflow-hidden border-2 border-black">
+      <button
+        onClick={handleClick}
+        className="group flex flex-col items-center w-full text-center"
+        aria-label={name}
+      >
+        <div className="relative w-full aspect-square">
+          <div className="w-full h-full rounded-full overflow-hidden border-2 border-black shadow-cartoon-md group-hover:translate-y-[-2px] group-hover:shadow-cartoon-lg transition-all">
             {showImage ? (
               <ImageWithShimmer
                 src={imageUrl}
@@ -104,34 +59,28 @@ export default function ArtistCard({
               />
             ) : (
               <div className="w-full h-full bg-amber-100 dark:bg-gray-700 flex items-center justify-center">
-                <MusicalNoteIcon className="w-10 h-10 text-amber-400 dark:text-amber-500" />
+                <MusicalNoteIcon className="w-8 h-8 text-amber-400 dark:text-amber-500" />
               </div>
             )}
           </div>
-          <h3 className="mt-2.5 w-full text-gray-900 dark:text-gray-100 font-medium text-sm truncate">
-            {name}
-          </h3>
-          {match !== undefined && (
-            <p className="text-gray-400 text-xs">
-              {Math.round(match * 100)}% match
-            </p>
-          )}
           {inLibrary && (
-            <span className="mt-1 inline-block text-xs bg-amber-300 text-black px-1.5 py-0.5 rounded-full border-2 border-black font-bold shadow-cartoon-sm">
-              In Library
+            <span
+              className="absolute bottom-0 right-0 flex items-center justify-center w-5 h-5 bg-amber-300 text-black rounded-full border-2 border-black shadow-cartoon-sm"
+              aria-label="In Library"
+            >
+              <CheckIcon className="w-3 h-3" />
             </span>
           )}
-        </button>
-        {mbid && (
-          <FollowArtistButton
-            artistMbid={mbid}
-            artistName={name}
-            size="sm"
-            showLabel={false}
-            className="absolute top-2 right-2"
-          />
+        </div>
+        <h3 className="mt-2 w-full text-gray-900 dark:text-gray-100 font-medium text-xs truncate">
+          {name}
+        </h3>
+        {match !== undefined && (
+          <p className="text-gray-400 text-[11px]">
+            {Math.round(match * 100)}% match
+          </p>
         )}
-      </div>
+      </button>
     );
   }
 
@@ -170,15 +119,6 @@ export default function ArtistCard({
             </p>
           )}
         </div>
-        {mbid && (
-          <FollowArtistButton
-            artistMbid={mbid}
-            artistName={name}
-            size="sm"
-            showLabel={false}
-            className="flex-shrink-0"
-          />
-        )}
         <ChevronRightIcon className="w-5 h-5 text-gray-400 flex-shrink-0" />
       </button>
     </div>

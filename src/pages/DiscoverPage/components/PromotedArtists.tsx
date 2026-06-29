@@ -71,13 +71,9 @@ export default function PromotedArtists({
       >
         {loading
           ? [...Array(6)].map((_, i) => (
-              <div
-                key={i}
-                className="flex flex-col items-center bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-sm p-3"
-              >
-                <Skeleton className="w-3/4 aspect-square rounded-full" />
-                <Skeleton className="mt-2.5 h-4 w-3/4" />
-                <Skeleton className="mt-2 h-3 w-1/3" />
+              <div key={i} className="flex flex-col items-center">
+                <Skeleton className="w-full aspect-square rounded-full" />
+                <Skeleton className="mt-2 h-3 w-3/4" />
               </div>
             ))
           : artists.map((artist) => (
@@ -88,7 +84,7 @@ export default function PromotedArtists({
                 imageUrl={artist.imageUrl || undefined}
                 match={artist.match}
                 inLibrary={artist.inLibrary}
-                variant="grid"
+                variant="circle"
               />
             ))}
       </div>
