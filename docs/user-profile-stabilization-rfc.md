@@ -1,9 +1,11 @@
 # RFC: Stabilising user profiles
 
-Status: Step 1 implemented — Step 2 scoped, ratings reader prototyped
+Status: Steps 1 & 2 shipped; recommender now sources plays + ratings from the snapshot
+series (canonical-signals, in review). Remaining: `similarGraph`, taste page, export.
 Tracking issue: [#144](https://github.com/BlieNuckel/tunearr/issues/144)
-Step 1 issues: [#166](https://github.com/BlieNuckel/tunearr/issues/166) (#167 entities, #168 recommender, #169 scheduler)
-Step 2 issue: [#172](https://github.com/BlieNuckel/tunearr/issues/172)
+Step 1 issues: [#166](https://github.com/BlieNuckel/tunearr/issues/166) (#167 entities, #168 recommender, #169 scheduler) — all shipped in #170
+Step 2 issue: [#172](https://github.com/BlieNuckel/tunearr/issues/172) — shipped in #173
+Canonical signals: PR #174 (plays + ratings drive the weights from `user_signal_events`)
 Related: #137 (explore mode), #145 (explore-vs-Plex boundary), #136 (listening window + anti-repeat)
 
 ## Implementation status
@@ -25,6 +27,22 @@ Done:
   `recentlyShownByUser` maps folded into the persisted `explorationHistory`.
 - **Background regeneration (#169).** `server/services/profile/regenPoller.ts` refreshes
   stale **and** recently-active profiles off the request path, reusing the in-flight guard.
+- **Step 2 — ratings ingestion + snapshots (#172, shipped #173).** `getRatedItems`
+  (`server/api/plex/ratings.ts`, server-side `userRating>=1` filter) + `signalIngestion.ts`
+  write `kind="plex_rating"` (only-on-change) and `kind="snapshot"` rows; `signalPoller.ts`
+  runs a daily sweep over **every** enabled user with a Plex token. Gated by
+  `ratingsBackupEnabled`. Live-verified against a real PMS (filter encoding, `totalSize`,
+  album+track mapping).
+- **Canonical signals (PR #174).** The recommender's weighted artist finding now reads from
+  `user_signal_events`, not live Plex: per-artist weight = **windowed play trend** (diff of
+  daily snapshots over `playTrendWindowDays`) **× rating multiplier** (`1 + ratingWeight ×
+avg/10`). `loadArtistWeights` (`server/promotedAlbum/artistWeights.ts`) is the seam, used by
+  `regenerateProfile` + `getPromotedArtists`. Snapshots now cover **all** played artists
+  (`getAllArtistPlayCounts`), not the top 200. Cold start falls back to latest all-time counts
+  until the window fills, and ingests one snapshot on demand for a zero-snapshot user. **This
+  evolves the "Plex is source of truth" stance**: Plex is now the ingestion feed; tunearr's
+  own series is the algorithm's canonical input. Explore mode intentionally still uses live
+  ranged `getTopArtists`.
 
 Diverged from / refined beyond the original sketch:
 
@@ -45,15 +63,17 @@ Diverged from / refined beyond the original sketch:
   `backgroundRegenEnabled`, `backgroundRegenIntervalMinutes`,
   `backgroundRegenActiveWithinMinutes`.
 
-Deferred, as planned:
+Still deferred:
 
 - **`similarGraph`** is still not stored, so **explore mode still fans out per request**
-  (ListenBrainz + Last.fm). It needs no migration to add later — just a field in
-  `DerivedProfile`.
-- **Ratings ingestion + snapshots (`UserSignalEvent` writes)** — Step 2 ([#172](https://github.com/BlieNuckel/tunearr/issues/172)).
-  The table exists and the regen poller is the intended home for the snapshot cadence. The
-  Plex ratings **reader** is prototyped (`server/api/plex/ratings.ts`, with `getMusicSectionKey`
-  extracted to `sections.ts`); the `UserSignalEvent` **writes** and cadence are still to do.
+  (ListenBrainz similar-artists + Last.fm genres + Jaccard filter, `server/promotedAlbum/explore.ts`).
+  It needs no migration to add later — just a field in `DerivedProfile`. It's a re-fetchable
+  **external** cache, so it belongs in `DerivedProfile` (config-hash/schema-version invalidated),
+  not in the `user_signal_events` durability table.
+- **Snapshot retention / compaction.** Snapshots now capture every played artist daily for
+  every user with no pruning (RFC open question 4). Needs a retention policy before the table
+  grows large in real multi-user use.
+- **Taste page (Step 3)** and **export/restore (Step 4)** — see Next step.
 - **Taste page** (Step 3) and **export/restore** (Step 4).
 
 ## Problem
@@ -301,25 +321,27 @@ Two caveats to handle during Step 2, neither blocking:
 
 ## Next step
 
-Step 1 (persist the derived profile) is implemented — see **Implementation status** above.
-Discussion now moves to what comes after, in roughly dependency order:
+Steps 1 & 2 are shipped and the recommender now runs off the canonical signal series
+(see **Implementation status**). What remains, in rough dependency order:
 
-- **Step 2 — ratings ingestion + snapshots ([#172](https://github.com/BlieNuckel/tunearr/issues/172)).**
-  **Unblocked** — open question 3 resolved (Plex exposes `userRating` via the per-user token
-  path; see "Resolved: ratings ingestion" above) and the reader is prototyped
-  (`server/api/plex/ratings.ts`, server-side `userRating>=1` filter, paginated, albums + tracks).
-  Remaining: write `UserSignalEvent` rows (`kind = "snapshot"` / `"plex_rating"`) and wire the
-  cadence into the regen poller, which already exists as the cadence home. This is the first
-  feature that makes `UserSignalEvent` earn its place.
-- **Feed new signals into the vector.** The contributor-registry seam from #166 lets a
-  rating / behaviour signal add weight to the _same_ `genreVector` without restructuring the
-  recommender. Worth deciding the weighting model before Step 2 lands data.
+- ✅ **Feed new signals into the vector** — DONE (PR #174). Ratings boost the weights; plays
+  come from the snapshot trend. (Built by extending `loadArtistWeights`/`buildProfileArtifacts`
+  directly; the #166 "contributor registry" seam was never built and is no longer needed.)
 - **`similarGraph` for explore mode.** Persist the ListenBrainz similar-artist graph in
-  `DerivedProfile` so explore stops fanning out per request (currently the one un-optimised
+  `DerivedProfile` so explore stops fanning out per request (the one remaining live external
   path). Migration-free field add.
-- **Step 3 — taste page.** Renders `genreVector` (top genres + weights) and, with Step 2,
+- **Snapshot retention / compaction** (open question 4) — bound the now-unbounded snapshot
+  growth (e.g. dailies for N days, then weekly/monthly rollups).
+- **Step 3 — taste page.** Now fully unblocked: render `genreVector` (top genres + weights) +
   rating/trend views from the snapshot log.
 - **Step 4 — export/restore.** Out of scope until there's a reason; noted for completeness.
 
-Open questions 1 (snapshot cadence) and 2 (per-user TTL override) are the remaining
-decisions for Step 2; open question 3 (ratings exposure) is resolved.
+Smaller deferred items carried from the PRs: rating **clears** aren't recorded (guarded
+against false mass-clears; #173); **managed/Plex-Home** users aren't verified against a real
+account; the "How recommended" **trace `viewCount`** now shows effective weight, not raw plays
+(#174); ratings **amplify** played artists but don't surface a highly-rated-but-unplayed one;
+both pollers assume a **single instance**.
+
+Open questions: 1 (snapshot cadence) resolved — daily, all token-holding users; 3 (ratings
+exposure) resolved; 5 (deletion cascade) handled. Still open: 2 (per-user TTL override,
+deferred) and 4 (snapshot storage growth — now an active concern, see retention above).
