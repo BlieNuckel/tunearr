@@ -3,12 +3,6 @@ import { MemoryRouter } from "react-router-dom";
 import PromotedArtists from "../PromotedArtists";
 import type { PromotedArtistsData } from "@/hooks/usePromotedArtists";
 
-vi.mock("@/components/FollowArtistButton", () => ({
-  default: ({ artistMbid }: { artistMbid: string }) => (
-    <button data-testid={`follow-${artistMbid}`}>Follow</button>
-  ),
-}));
-
 const data: PromotedArtistsData = {
   artists: [
     {

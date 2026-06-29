@@ -14,6 +14,8 @@ const SECTION_HEADING_CLASS =
   "text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-3";
 const ALBUM_GRID_CLASS =
   "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-3 sm:gap-4";
+const ARTIST_GRID_CLASS =
+  "grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-8 gap-3 sm:gap-4";
 
 function AlbumSkeletonCard() {
   return (
@@ -43,14 +45,11 @@ function AlbumSkeletonCard() {
 function SearchSkeletons() {
   return (
     <div className="mt-6 space-y-8">
-      <div className="space-y-2">
-        {[...Array(3)].map((_, i) => (
-          <div
-            key={i}
-            className="bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-sm flex items-center gap-3 p-3"
-          >
-            <Skeleton className="w-12 h-12 rounded-lg flex-shrink-0" />
-            <Skeleton className="h-4 w-1/3" />
+      <div className={ARTIST_GRID_CLASS}>
+        {[...Array(8)].map((_, i) => (
+          <div key={i} className="flex flex-col items-center">
+            <Skeleton className="w-full aspect-square rounded-full" />
+            <Skeleton className="mt-2 h-3 w-3/4" />
           </div>
         ))}
       </div>
@@ -115,7 +114,7 @@ export default function SearchPage() {
           {artists.length > 0 && (
             <section>
               <h2 className={SECTION_HEADING_CLASS}>Artists</h2>
-              <div className="space-y-2">
+              <div className={ARTIST_GRID_CLASS}>
                 {artists.map((artist) => (
                   <ArtistCard
                     key={artist.mbid}

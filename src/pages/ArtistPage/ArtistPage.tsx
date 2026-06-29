@@ -2,10 +2,13 @@ import { useMemo } from "react";
 import { useParams } from "react-router-dom";
 import useArtistDetails from "@/hooks/useArtistDetails";
 import useLibraryAlbums from "@/hooks/useLibraryAlbums";
+import useLibraryArtists from "@/hooks/useLibraryArtists";
 import useWantedAlbums from "@/hooks/useWantedAlbums";
+import useSimilarArtists from "@/hooks/useSimilarArtists";
 import { groupArtistReleases } from "@/utils/groupArtistReleases";
 import ArtistHeader from "./components/ArtistHeader";
 import ReleaseSectionGrid from "./components/ReleaseSectionGrid";
+import SimilarArtists from "./components/SimilarArtists";
 import ArtistPageSkeleton from "./components/ArtistPageSkeleton";
 
 export default function ArtistPage() {
@@ -13,6 +16,9 @@ export default function ArtistPage() {
   const { artist, releaseGroups, loading, error } = useArtistDetails(mbid);
   const { isAlbumInLibrary } = useLibraryAlbums();
   const { isAlbumWanted } = useWantedAlbums();
+  const { isArtistInLibrary } = useLibraryArtists();
+  const { artists: similarArtists, loading: similarLoading } =
+    useSimilarArtists(artist?.name, mbid);
 
   const sections = useMemo(
     () => (mbid ? groupArtistReleases(releaseGroups, mbid) : []),
@@ -58,6 +64,12 @@ export default function ArtistPage() {
           />
         ))
       )}
+
+      <SimilarArtists
+        artists={similarArtists}
+        loading={similarLoading}
+        isArtistInLibrary={isArtistInLibrary}
+      />
     </div>
   );
 }

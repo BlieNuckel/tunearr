@@ -10,7 +10,8 @@ interface PromotedArtistsProps {
   onRefresh: () => void;
 }
 
-const GRID_CLASSES = "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3";
+const GRID_CLASSES =
+  "grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-8 gap-3 sm:gap-4";
 
 function formatSeeds(seeds: string[]): string {
   if (seeds.length === 1) return seeds[0];
@@ -70,16 +71,10 @@ export default function PromotedArtists({
         }`}
       >
         {loading
-          ? [...Array(6)].map((_, i) => (
-              <div
-                key={i}
-                className="bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-sm overflow-hidden"
-              >
-                <Skeleton className="w-full aspect-square rounded-none" />
-                <div className="p-2.5 space-y-2">
-                  <Skeleton className="h-4 w-3/4" />
-                  <Skeleton className="h-3 w-1/3" />
-                </div>
+          ? [...Array(8)].map((_, i) => (
+              <div key={i} className="flex flex-col items-center">
+                <Skeleton className="w-full aspect-square rounded-full" />
+                <Skeleton className="mt-2 h-3 w-3/4" />
               </div>
             ))
           : artists.map((artist) => (
@@ -90,7 +85,6 @@ export default function PromotedArtists({
                 imageUrl={artist.imageUrl || undefined}
                 match={artist.match}
                 inLibrary={artist.inLibrary}
-                variant="grid"
               />
             ))}
       </div>
