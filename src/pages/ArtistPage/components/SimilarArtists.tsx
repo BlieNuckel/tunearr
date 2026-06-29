@@ -39,7 +39,6 @@ export default function SimilarArtists({
                 imageUrl={artist.imageUrl || undefined}
                 match={artist.match}
                 inLibrary={isArtistInLibrary(artist.mbid, artist.name)}
-                variant="circle"
               />
             ))}
       </div>

@@ -85,7 +85,6 @@ export default function PromotedArtists({
                 imageUrl={artist.imageUrl || undefined}
                 match={artist.match}
                 inLibrary={artist.inLibrary}
-                variant="circle"
               />
             ))}
       </div>

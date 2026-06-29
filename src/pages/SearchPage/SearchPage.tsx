@@ -121,7 +121,6 @@ export default function SearchPage() {
                     name={artist.name}
                     mbid={artist.mbid}
                     imageUrl={artist.imageUrl}
-                    variant="circle"
                   />
                 ))}
               </div>
