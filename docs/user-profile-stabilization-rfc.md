@@ -2,7 +2,7 @@
 
 Status: Steps 1 & 2 implemented; similar-graph persisted. Step 3 (taste page) split out to
 the standalone exploratory [#176](https://github.com/BlieNuckel/tunearr/issues/176); Step 4
-(export/restore) discarded. Remaining under #144: snapshot retention/compaction.
+(export/restore) discarded. Snapshot retention resolved via delta-encoding + un-rating detection.
 Tracking issue: [#144](https://github.com/BlieNuckel/tunearr/issues/144)
 Step 1 issues: [#166](https://github.com/BlieNuckel/tunearr/issues/166) (#167 entities, #168 recommender, #169 scheduler)
 Step 2 issue: [#172](https://github.com/BlieNuckel/tunearr/issues/172)
@@ -261,8 +261,11 @@ The in-memory `userCache`/`recentlyShownByUser` maps fold into `UserProfile`.
    concern and stays a single global setting owned by whoever runs the server.
 3. **Ratings ingestion** — ~~confirm Plex exposes `userRating` per track/album via the existing
    per-user token path; volume/perf of pulling it.~~ **Resolved (June 2026) — yes; see below.**
-4. **Multi-user** — snapshots are per-user; confirm storage growth is acceptable for many users.
-5. **Privacy / retention** — more per-user data on disk; deletion-on-user-removal must cascade.
+4. **Storage growth / retention** — `plex_plays` is the dominant growth driver; bound it without
+   losing fidelity. ~~On a timer; how many to retain / how to compact?~~ **Resolved (June 2026)
+   — delta-encode plays + detect un-ratings; see below.**
+5. **Privacy / retention** — more per-user data on disk; deletion-on-user-removal must cascade
+   (handled: `UserSignalEvent` cascade-deletes with the owning user).
 
 ### Resolved: ratings ingestion (open question 3)
 
@@ -305,6 +308,41 @@ Two caveats to handle during Step 2, neither blocking:
   server-side keyed to the account, so the metadata query returns them regardless. Don't
   assume ratings made on _other_ servers are present.
 
+### Resolved: storage growth / retention (open question 4)
+
+**Verdict: delta-encode plays + detect un-ratings.** The earlier worry was that a daily,
+all-artist, per-user `plex_plays` snapshot grows ~linearly (~9 KB/row → ~3.3 MB/user/year).
+The fix follows from the data's own shape — and is consistent with framing plays and ratings as
+two different kinds of signal. Implemented June 2026 (`signalIngestion.ts`, `artistWeights.ts`,
+`api/plex/ratings.ts`).
+
+- **Plays are accumulated facts; ratings are revocable opinions.** A cumulative play count only
+  ever rises under normal use (you can't un-listen); a decrease or a vanished artist means Plex
+  lost data (history clear, re-import) — exactly what this backup exists to survive. A star, by
+  contrast, can be un-starred. The two get different handling rules.
+- **Plays → monotonic-max delta log.** Each `plex_plays` event now carries only the artists
+  whose cumulative count _increased_ since the last capture; an unchanged day writes nothing.
+  Full state is reconstructed by folding the series last-write-wins (`reconstructPlayCounts`),
+  carrying unchanged artists forward. Stored value = `max(everything seen)`: decreases /
+  disappearances / a transient-empty read are never recorded, which protects the backup against
+  a Plex clear **and** removes the mass-clear ambiguity for free. Expected ~95% reduction
+  (steady state ~1–1.5 MB/user; ~1.5 GB at 1000 users), full daily resolution retained, trend
+  diffing unchanged (it just reconstructs both endpoints from the fold). No migration — old full
+  rows fold correctly as baselines.
+- **Ratings → change log incl. un-stars.** Because the rated read uses a server-side
+  `userRating>=1` filter, an un-starred item simply drops out — indistinguishable from a
+  truncated/glitchy fetch. `detectUnratings` finds previously-rated keys absent from the current
+  set; each candidate is **confirmed** against live Plex (`getItemRating` →
+  `/library/metadata/{key}`) before a `rating: 0` clear is appended. Guards: skip on an empty
+  response, and a candidate cap (`UNRATE_CANDIDATE_CAP = 50`) that skips + logs an implausible
+  mass disappearance (a data event, not user action). `aggregateArtistRatings` excludes
+  `rating <= 0` so a cleared star stops contributing.
+- **Deferred (not needed yet):** periodic full **checkpoints** + pruning of pre-checkpoint
+  deltas. The reconstruction fold is O(total deltas) — a few thousand tiny entries even after
+  years on a home server, and run only during background regen — so this buys nothing for
+  correctness or perf today. It is the natural next step if a very long-lived install ever makes
+  the fold or pre-checkpoint history worth bounding.
+
 ## Out of scope
 
 - Any Plex write-back.
@@ -339,6 +377,7 @@ Discussion now moves to what comes after, in roughly dependency order:
 - **Step 4 — export/restore. Discarded.** No driver; user-facing portability was always out
   of scope (see Out of scope). Not tracked anywhere; revisit only if a concrete need appears.
 
-Open questions 1 (cadence) and 3 (ratings exposure) are resolved; 2 (per-user TTL override)
-is closed as won't-do. The only open decision left under #144 is question 4 (snapshot
-retention/compaction).
+Open questions 1 (cadence), 3 (ratings exposure) and 4 (storage growth / retention) are
+resolved; 2 (per-user TTL override) is closed as won't-do. Question 4's only remaining piece —
+checkpoint + prune — is deferred as not-yet-needed (see "Resolved: storage growth / retention").
+With that, every open question under #144 is settled.

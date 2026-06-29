@@ -104,3 +104,24 @@ export async function getRatedItems(
   );
   return perType.flat();
 }
+
+/**
+ * The current user's rating for a single item, or `null` when it carries no `userRating`
+ * (unrated). Reads `/library/metadata/{ratingKey}` directly — no section scan — and is used
+ * to confirm an apparent un-rating before recording it, so an item merely filtered out of
+ * the rated set (or a transient glitch) is never mistaken for a deliberate un-star.
+ */
+export async function getItemRating(
+  plexToken: string,
+  ratingKey: string
+): Promise<number | null> {
+  const { baseUrl, headers } = getPlexConfig(plexToken);
+  const res = await resilientFetch(`${baseUrl}/library/metadata/${ratingKey}`, {
+    headers,
+  });
+  if (!res.ok) throw new Error(`Plex returned ${res.status}`);
+
+  const data: PlexRatedItemsResponse = await res.json();
+  const meta = data.MediaContainer?.Metadata?.[0];
+  return typeof meta?.userRating === "number" ? meta.userRating : null;
+}

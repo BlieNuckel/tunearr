@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { getRatedItems } from "./ratings";
+import { getRatedItems, getItemRating } from "./ratings";
 
 vi.mock("./config", () => ({
   getPlexConfig: vi.fn(() => ({
@@ -167,6 +167,41 @@ describe("getRatedItems", () => {
 
     await expect(getRatedItems("tok", [9])).rejects.toThrow(
       "Plex returned 401"
+    );
+  });
+});
+
+describe("getItemRating", () => {
+  it("returns the rating when present", async () => {
+    mockFetch.mockResolvedValueOnce(
+      okResponse({ MediaContainer: { Metadata: [{ userRating: 6 }] } })
+    );
+
+    expect(await getItemRating("tok", "451")).toBe(6);
+    expect(mockFetch.mock.calls[0][0]).toContain("/library/metadata/451");
+  });
+
+  it("returns null when the item has no userRating", async () => {
+    mockFetch.mockResolvedValueOnce(
+      okResponse({ MediaContainer: { Metadata: [{ title: "Unrated" }] } })
+    );
+
+    expect(await getItemRating("tok", "451")).toBeNull();
+  });
+
+  it("returns null when the item is missing", async () => {
+    mockFetch.mockResolvedValueOnce(
+      okResponse({ MediaContainer: { Metadata: [] } })
+    );
+
+    expect(await getItemRating("tok", "451")).toBeNull();
+  });
+
+  it("throws on a Plex API error", async () => {
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 404 });
+
+    await expect(getItemRating("tok", "451")).rejects.toThrow(
+      "Plex returned 404"
     );
   });
 });

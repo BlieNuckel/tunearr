@@ -93,7 +93,42 @@ describe("derivePlayWeights", () => {
   it("returns empty for no plays captures", () => {
     expect(derivePlayWeights([], NOW, 30 * DAY)).toEqual([]);
   });
+
+  it("reconstructs latest and baseline across delta rows", () => {
+    const playEvents = [
+      playsEvent(
+        [
+          { name: "A", playCount: 10 },
+          { name: "B", playCount: 5 },
+        ],
+        40
+      ),
+      playsEvent([{ name: "A", playCount: 30 }], 0),
+    ];
+    const result = derivePlayWeights(playEvents, NOW, 30 * DAY);
+    expect(result).toEqual([{ name: "A", viewCount: 20 }]);
+  });
 });
+
+function clearedRatingEvent(
+  ratingKey: string,
+  artist: string,
+  rating: number
+): UserSignalEvent {
+  return {
+    id: 0,
+    user_id: 1,
+    kind: "plex_rating",
+    payload: JSON.stringify({
+      ratingKey,
+      kind: "track",
+      title: "t",
+      artist,
+      rating,
+    }),
+    recorded_at: "2026-01-01T00:00:00.000Z",
+  } as UserSignalEvent;
+}
 
 describe("aggregateArtistRatings", () => {
   it("averages ratings per artist from the latest per item", () => {
@@ -103,6 +138,16 @@ describe("aggregateArtistRatings", () => {
       ratingEvent("B", 8),
     ]);
     expect(ratings.get("A")).toBe(8);
+    expect(ratings.get("B")).toBe(8);
+  });
+
+  it("excludes items whose latest rating is 0 (un-rated)", () => {
+    const ratings = aggregateArtistRatings([
+      clearedRatingEvent("a1", "A", 10),
+      clearedRatingEvent("a1", "A", 0),
+      clearedRatingEvent("b1", "B", 8),
+    ]);
+    expect(ratings.has("A")).toBe(false);
     expect(ratings.get("B")).toBe(8);
   });
 });
