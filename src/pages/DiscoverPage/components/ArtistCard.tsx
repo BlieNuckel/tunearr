@@ -1,7 +1,11 @@
 import { useState } from "react";
 import useNavigateToArtist from "@/hooks/useNavigateToArtist";
 import useHaptics from "@/hooks/useHaptics";
-import { ChevronRightIcon, MusicalNoteIcon } from "@/components/icons";
+import {
+  ChevronRightIcon,
+  MusicalNoteIcon,
+  CheckIcon,
+} from "@/components/icons";
 import ImageWithShimmer from "@/components/ImageWithShimmer";
 import FollowArtistButton from "@/components/FollowArtistButton";
 
@@ -12,8 +16,11 @@ interface ArtistCardProps {
   /** 0-1 similarity score, shown as percentage */
   match?: number;
   inLibrary?: boolean;
-  /** "list" (default) is a horizontal row; "grid" is a vertical card for grids */
-  variant?: "list" | "grid";
+  /**
+   * "list" (default) is a horizontal row; "grid" is a vertical card for grids;
+   * "circle" is a compact circular avatar for dense exploration grids.
+   */
+  variant?: "list" | "grid" | "circle";
 }
 
 export default function ArtistCard({
@@ -34,6 +41,51 @@ export default function ArtistCard({
   };
 
   const showImage = imageUrl && !imageError;
+
+  if (variant === "circle") {
+    return (
+      <div className="relative flex flex-col items-center text-center group">
+        <button
+          onClick={handleClick}
+          className="flex flex-col items-center w-full"
+          aria-label={name}
+        >
+          <div className="relative w-full aspect-square">
+            <div className="w-full h-full rounded-full overflow-hidden border-2 border-black shadow-cartoon-sm group-hover:translate-y-[-2px] group-hover:shadow-cartoon-md transition-all">
+              {showImage ? (
+                <ImageWithShimmer
+                  src={imageUrl}
+                  alt={name}
+                  className="w-full h-full object-cover"
+                  onError={() => setImageError(true)}
+                />
+              ) : (
+                <div className="w-full h-full bg-amber-100 dark:bg-gray-700 flex items-center justify-center">
+                  <MusicalNoteIcon className="w-8 h-8 text-amber-400 dark:text-amber-500" />
+                </div>
+              )}
+            </div>
+            {inLibrary && (
+              <span
+                className="absolute bottom-0 right-0 flex items-center justify-center w-5 h-5 bg-amber-300 text-black rounded-full border-2 border-black shadow-cartoon-sm"
+                aria-label="In Library"
+              >
+                <CheckIcon className="w-3 h-3" />
+              </span>
+            )}
+          </div>
+          <h3 className="mt-2 w-full text-gray-900 dark:text-gray-100 font-medium text-xs truncate">
+            {name}
+          </h3>
+          {match !== undefined && (
+            <p className="text-gray-400 text-[11px]">
+              {Math.round(match * 100)}% match
+            </p>
+          )}
+        </button>
+      </div>
+    );
+  }
 
   if (variant === "grid") {
     return (

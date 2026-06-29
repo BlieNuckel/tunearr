@@ -42,7 +42,8 @@ describe("SimilarArtists", () => {
       isArtistInLibrary: (mbid) => mbid === "cold-1",
     });
 
-    expect(screen.getByText("In Library")).toBeInTheDocument();
+    const badges = screen.getAllByLabelText("In Library");
+    expect(badges).toHaveLength(1);
   });
 
   it("renders skeletons while loading", () => {

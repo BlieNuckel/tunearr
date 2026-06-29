@@ -53,6 +53,25 @@ describe("useSimilarArtists", () => {
     expect(result.current.artists.map((a) => a.mbid)).toEqual(["cold-1"]);
   });
 
+  it("caps the list at the top 10 artists", async () => {
+    const many = {
+      artists: Array.from({ length: 15 }, (_, i) => ({
+        name: `Artist ${i}`,
+        mbid: `mbid-${i}`,
+        imageUrl: "",
+        match: 1 - i / 100,
+      })),
+    };
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(many));
+
+    const { result } = renderHook(() => useSimilarArtists("Radiohead"));
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(result.current.artists).toHaveLength(10);
+    expect(result.current.artists[0].mbid).toBe("mbid-0");
+  });
+
   it("sets an error when the request fails", async () => {
     vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({ error: "x" }, 500));
 

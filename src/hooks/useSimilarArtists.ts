@@ -32,9 +32,9 @@ export default function useSimilarArtists(
         }
         const data: { artists: SimilarArtist[] } = await res.json();
         if (cancelled) return;
-        const filtered = (data.artists || []).filter(
-          (a) => !excludeMbid || a.mbid !== excludeMbid
-        );
+        const filtered = (data.artists || [])
+          .filter((a) => !excludeMbid || a.mbid !== excludeMbid)
+          .slice(0, 10);
         setArtists(filtered);
       } catch (err) {
         if (cancelled) return;
