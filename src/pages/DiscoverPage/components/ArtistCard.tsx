@@ -92,9 +92,9 @@ export default function ArtistCard({
       <div className="relative bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-md overflow-hidden hover:translate-y-[-2px] hover:shadow-cartoon-lg transition-all">
         <button
           onClick={handleClick}
-          className="w-full flex flex-col text-left hover:bg-amber-50 dark:hover:bg-gray-700 transition-colors"
+          className="w-full flex flex-col items-center text-center p-3 hover:bg-amber-50 dark:hover:bg-gray-700 transition-colors"
         >
-          <div className="w-full aspect-square overflow-hidden border-b-2 border-black">
+          <div className="w-3/4 aspect-square rounded-full overflow-hidden border-2 border-black">
             {showImage ? (
               <ImageWithShimmer
                 src={imageUrl}
@@ -108,21 +108,19 @@ export default function ArtistCard({
               </div>
             )}
           </div>
-          <div className="p-2.5 min-w-0">
-            <h3 className="text-gray-900 dark:text-gray-100 font-medium text-sm truncate">
-              {name}
-            </h3>
-            {match !== undefined && (
-              <p className="text-gray-400 text-xs">
-                {Math.round(match * 100)}% match
-              </p>
-            )}
-            {inLibrary && (
-              <span className="mt-1 inline-block text-xs bg-amber-300 text-black px-1.5 py-0.5 rounded-full border-2 border-black font-bold shadow-cartoon-sm">
-                In Library
-              </span>
-            )}
-          </div>
+          <h3 className="mt-2.5 w-full text-gray-900 dark:text-gray-100 font-medium text-sm truncate">
+            {name}
+          </h3>
+          {match !== undefined && (
+            <p className="text-gray-400 text-xs">
+              {Math.round(match * 100)}% match
+            </p>
+          )}
+          {inLibrary && (
+            <span className="mt-1 inline-block text-xs bg-amber-300 text-black px-1.5 py-0.5 rounded-full border-2 border-black font-bold shadow-cartoon-sm">
+              In Library
+            </span>
+          )}
         </button>
         {mbid && (
           <FollowArtistButton
@@ -147,11 +145,11 @@ export default function ArtistCard({
           <ImageWithShimmer
             src={imageUrl}
             alt={name}
-            className="w-12 h-12 rounded-lg object-cover flex-shrink-0 border-2 border-black"
+            className="w-12 h-12 rounded-full object-cover flex-shrink-0 border-2 border-black"
             onError={() => setImageError(true)}
           />
         ) : (
-          <div className="w-12 h-12 rounded-lg bg-amber-100 dark:bg-gray-700 flex-shrink-0 flex items-center justify-center border-2 border-black">
+          <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-gray-700 flex-shrink-0 flex items-center justify-center border-2 border-black">
             <MusicalNoteIcon className="w-6 h-6 text-amber-400 dark:text-amber-500" />
           </div>
         )}
