@@ -4,9 +4,14 @@ import type { PromotedAlbumConfig } from "../config";
 const mockLoadArtistWeights = vi.fn();
 const mockGetArtistTopTags = vi.fn();
 const mockGetConfigValue = vi.fn();
+const mockBuildSimilarGraph = vi.fn();
 
 vi.mock("./artistWeights", () => ({
   loadArtistWeights: (...args: unknown[]) => mockLoadArtistWeights(...args),
+}));
+
+vi.mock("./explore", () => ({
+  buildSimilarGraph: (...args: unknown[]) => mockBuildSimilarGraph(...args),
 }));
 
 vi.mock("../api/lastfm/artists", () => ({
@@ -54,6 +59,23 @@ const tags = [
   { name: "seen live", count: 90 },
 ];
 
+const sampleGraph = [
+  {
+    seedArtist: "Radiohead",
+    seedMbid: "mbid-radiohead",
+    seedGenres: ["alternative"],
+    viewCount: 100,
+    candidates: [
+      {
+        name: "Portishead",
+        artistMbid: "mbid-portishead",
+        score: 0.8,
+        genres: ["trip hop"],
+      },
+    ],
+  },
+];
+
 async function createUser(token: string): Promise<number> {
   const ds = getDataSource();
   await ds.query(
@@ -74,6 +96,7 @@ beforeEach(async () => {
   mockGetConfigValue.mockReturnValue(baseConfig);
   mockLoadArtistWeights.mockResolvedValue(plexArtists);
   mockGetArtistTopTags.mockResolvedValue(tags);
+  mockBuildSimilarGraph.mockResolvedValue(sampleGraph);
   await initializeDatabase(":memory:");
   userId = await createUser("token");
 });
@@ -111,6 +134,17 @@ describe("regenerateProfile", () => {
     const row = await getUserProfile(userId);
     expect(row).not.toBeNull();
     expect(parseDerivedProfile(row!.profile_json).genreVector).toHaveLength(1);
+  });
+
+  it("builds and persists the similar-artist graph from the top artists", async () => {
+    const profile = await regenerateProfile(userId, "token");
+    expect(mockBuildSimilarGraph).toHaveBeenCalledWith(plexArtists, baseConfig);
+    expect(profile!.similarGraph).toEqual(sampleGraph);
+
+    const row = await getUserProfile(userId);
+    expect(parseDerivedProfile(row!.profile_json).similarGraph).toEqual(
+      sampleGraph
+    );
   });
 
   it("returns null and leaves no vector when every tag is generic", async () => {

@@ -25,6 +25,22 @@ const SAMPLE_PROFILE: DerivedProfile = {
       tags: [{ name: "shoegaze", count: 100 }],
     },
   ],
+  similarGraph: [
+    {
+      seedArtist: "Slowdive",
+      seedMbid: "mbid-slowdive",
+      seedGenres: ["shoegaze", "dream pop"],
+      viewCount: 30,
+      candidates: [
+        {
+          name: "Cocteau Twins",
+          artistMbid: "mbid-cocteau",
+          score: 0.9,
+          genres: ["ethereal wave", "dream pop"],
+        },
+      ],
+    },
+  ],
   explorationHistory: {
     albums: ["mbid-album-1", "mbid-album-2"],
     artists: ["mbid-artist-1"],
@@ -38,6 +54,8 @@ const CONFIG_INPUTS = {
   pickedArtistsCount: 3,
   playTrendWindowDays: 90,
   ratingWeight: 0.5,
+  topArtistsCount: 10,
+  exploreCandidateCount: 12,
 };
 
 async function createUser(username: string): Promise<number> {
@@ -69,6 +87,7 @@ describe("serializeDerivedProfile / parseDerivedProfile", () => {
     expect(parseDerivedProfile("not json")).toEqual({
       genreVector: [],
       artistTags: [],
+      similarGraph: [],
       explorationHistory: { albums: [], artists: [] },
     });
   });
@@ -77,6 +96,7 @@ describe("serializeDerivedProfile / parseDerivedProfile", () => {
     expect(parseDerivedProfile(JSON.stringify({ genreVector: [] }))).toEqual({
       genreVector: [],
       artistTags: [],
+      similarGraph: [],
       explorationHistory: { albums: [], artists: [] },
     });
   });
@@ -104,6 +124,15 @@ describe("computeConfigHash", () => {
     );
     expect(
       computeConfigHash({ ...CONFIG_INPUTS, topArtistsRange: "all" })
+    ).not.toBe(computeConfigHash(CONFIG_INPUTS));
+  });
+
+  it("changes when a graph-shaping field changes", () => {
+    expect(
+      computeConfigHash({ ...CONFIG_INPUTS, topArtistsCount: 20 })
+    ).not.toBe(computeConfigHash(CONFIG_INPUTS));
+    expect(
+      computeConfigHash({ ...CONFIG_INPUTS, exploreCandidateCount: 6 })
     ).not.toBe(computeConfigHash(CONFIG_INPUTS));
   });
 });
@@ -135,6 +164,7 @@ describe("upsertUserProfile / getUserProfile", () => {
     const updated: DerivedProfile = {
       genreVector: [{ tag: "techno", weight: 9, fromArtists: ["Aphex Twin"] }],
       artistTags: [],
+      similarGraph: [],
       explorationHistory: { albums: [], artists: [] },
     };
     await upsertUserProfile(userId, updated, "hash-2");

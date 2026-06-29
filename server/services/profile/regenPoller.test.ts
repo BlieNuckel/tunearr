@@ -4,9 +4,14 @@ import type { PromotedAlbumConfig } from "../../config";
 const mockLoadArtistWeights = vi.fn();
 const mockGetArtistTopTags = vi.fn();
 const mockGetConfigValue = vi.fn();
+const mockBuildSimilarGraph = vi.fn().mockResolvedValue([]);
 
 vi.mock("../../promotedAlbum/artistWeights", () => ({
   loadArtistWeights: (...args: unknown[]) => mockLoadArtistWeights(...args),
+}));
+
+vi.mock("../../promotedAlbum/explore", () => ({
+  buildSimilarGraph: (...args: unknown[]) => mockBuildSimilarGraph(...args),
 }));
 
 vi.mock("../../api/lastfm/artists", () => ({
