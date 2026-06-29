@@ -2,7 +2,7 @@ import { getSignalEvents } from "../db/userProfile";
 import {
   ingestUserPlays,
   latestRatings,
-  type PlexPlaysPayload,
+  reconstructPlayCounts,
 } from "../services/profile/signalIngestion";
 import type { UserSignalEvent } from "../db/entity/UserSignalEvent";
 
@@ -12,41 +12,16 @@ export type ArtistWeight = {
   viewCount: number;
 };
 
-function parsePlayCounts(event: UserSignalEvent): Map<string, number> {
-  const counts = new Map<string, number>();
-  try {
-    const payload = JSON.parse(event.payload) as PlexPlaysPayload;
-    for (const artist of payload.artists ?? []) {
-      counts.set(artist.name, artist.playCount);
-    }
-  } catch {
-    return counts;
-  }
-  return counts;
-}
-
-/** Most recent plays capture recorded at or before the window start, or null if the series is younger. */
-function findBaseline(
-  playEvents: UserSignalEvent[],
-  windowStart: number
-): UserSignalEvent | null {
-  for (let i = playEvents.length - 1; i >= 0; i--) {
-    if (Date.parse(playEvents[i].recorded_at) <= windowStart)
-      return playEvents[i];
-  }
-  return null;
-}
-
 function allTimeWeights(latest: Map<string, number>): ArtistWeight[] {
   return Array.from(latest, ([name, viewCount]) => ({ name, viewCount }));
 }
 
 /**
- * Per-artist play weight derived from the plays series. When the series spans the
- * full window, weight = plays within the window (latest cumulative count minus the count
- * at the window start). Until the series is that deep — or when nothing was played in the
- * window — weight falls back to the latest cumulative all-time count, so the set is never
- * empty and a thin history still produces sensible weights.
+ * Per-artist play weight derived from the plays delta series. When the series spans the
+ * full window, weight = plays within the window (cumulative count now minus the count
+ * reconstructed at the window start). Until the series is that deep — or when nothing was
+ * played in the window — weight falls back to the latest cumulative all-time count, so the
+ * set is never empty and a thin history still produces sensible weights.
  */
 export function derivePlayWeights(
   playEvents: UserSignalEvent[],
@@ -54,12 +29,14 @@ export function derivePlayWeights(
   windowMs: number
 ): ArtistWeight[] {
   if (playEvents.length === 0) return [];
-  const latest = parsePlayCounts(playEvents[playEvents.length - 1]);
+  const latest = reconstructPlayCounts(playEvents, Infinity);
 
-  const baselineEvent = findBaseline(playEvents, now - windowMs);
-  if (!baselineEvent) return allTimeWeights(latest);
+  const windowStart = now - windowMs;
+  if (Date.parse(playEvents[0].recorded_at) > windowStart) {
+    return allTimeWeights(latest);
+  }
 
-  const baseline = parsePlayCounts(baselineEvent);
+  const baseline = reconstructPlayCounts(playEvents, windowStart);
   const windowed: ArtistWeight[] = [];
   let total = 0;
   for (const [name, count] of latest) {
@@ -70,13 +47,17 @@ export function derivePlayWeights(
   return total > 0 ? windowed : allTimeWeights(latest);
 }
 
-/** Average rating (0–10) per artist, from the latest rating known for each rated item. */
+/**
+ * Average rating (0–10) per artist, from the latest rating known for each rated item.
+ * Items whose latest rating is `0` (un-rated) are excluded so a cleared star doesn't
+ * drag an artist's average down.
+ */
 export function aggregateArtistRatings(
   ratingEvents: UserSignalEvent[]
 ): Map<string, number> {
   const totals = new Map<string, { sum: number; count: number }>();
   for (const payload of latestRatings(ratingEvents).values()) {
-    if (!payload.artist) continue;
+    if (!payload.artist || payload.rating <= 0) continue;
     const entry = totals.get(payload.artist) ?? { sum: 0, count: 0 };
     entry.sum += payload.rating;
     entry.count += 1;
