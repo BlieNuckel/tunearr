@@ -10,7 +10,8 @@ interface PromotedArtistsProps {
   onRefresh: () => void;
 }
 
-const GRID_CLASSES = "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3";
+const GRID_CLASSES =
+  "grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-8 gap-3 sm:gap-4";
 
 function formatSeeds(seeds: string[]): string {
   if (seeds.length === 1) return seeds[0];
@@ -70,7 +71,7 @@ export default function PromotedArtists({
         }`}
       >
         {loading
-          ? [...Array(6)].map((_, i) => (
+          ? [...Array(8)].map((_, i) => (
               <div key={i} className="flex flex-col items-center">
                 <Skeleton className="w-full aspect-square rounded-full" />
                 <Skeleton className="mt-2 h-3 w-3/4" />

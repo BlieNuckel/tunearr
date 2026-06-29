@@ -9,7 +9,7 @@ interface SimilarArtistsProps {
 }
 
 const GRID_CLASSES =
-  "grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-10 gap-3 sm:gap-4";
+  "grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-10 gap-3 sm:gap-4";
 
 export default function SimilarArtists({
   artists,
