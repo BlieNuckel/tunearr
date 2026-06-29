@@ -14,8 +14,8 @@ export type PlexRatingPayload = {
   rating: number;
 };
 
-/** Payload of a `kind = "snapshot"` event — per-artist play counts at one instant. */
-export type SnapshotPayload = {
+/** Payload of a `kind = "plex_plays"` event — per-artist play counts at one instant. */
+export type PlexPlaysPayload = {
   artists: { name: string; playCount: number }[];
 };
 
@@ -85,23 +85,23 @@ export async function ingestUserRatings(
 }
 
 /**
- * Append a `snapshot` event capturing the user's cumulative all-time per-artist play
+ * Append a `plex_plays` event capturing the user's cumulative all-time per-artist play
  * counts for EVERY played artist (not just the top N) — tunearr's own durable copy of
  * the signal Plex can lose, and the series the recommender diffs to derive play trends.
  */
-export async function ingestUserSnapshot(
+export async function ingestUserPlays(
   userId: number,
   plexToken: string
 ): Promise<void> {
   const artists = await getAllArtistPlayCounts(plexToken);
-  const payload: SnapshotPayload = {
+  const payload: PlexPlaysPayload = {
     artists: artists.map((a) => ({ name: a.name, playCount: a.viewCount })),
   };
-  await appendSignalEvent(userId, "snapshot", payload);
+  await appendSignalEvent(userId, "plex_plays", payload);
 }
 
-/** Whether a new snapshot is due — true when none exists or the last is older than the interval. */
-export function snapshotDue(
+/** Whether a new plays capture is due — true when none exists or the last is older than the interval. */
+export function playsDue(
   events: UserSignalEvent[],
   now: number,
   intervalMs: number

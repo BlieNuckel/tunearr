@@ -135,7 +135,7 @@ describe("getPromotedArtists", () => {
     expect(await getPromotedArtists(userId)).toBeNull();
   });
 
-  it("loads artist weights from the snapshot series for this user", async () => {
+  it("loads artist weights from the plays series for this user", async () => {
     await getPromotedArtists(userId);
     expect(mockLoadArtistWeights).toHaveBeenCalledWith(
       userId,

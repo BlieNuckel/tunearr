@@ -1,8 +1,8 @@
 import { getSignalEvents } from "../db/userProfile";
 import {
-  ingestUserSnapshot,
+  ingestUserPlays,
   latestRatings,
-  type SnapshotPayload,
+  type PlexPlaysPayload,
 } from "../services/profile/signalIngestion";
 import type { UserSignalEvent } from "../db/entity/UserSignalEvent";
 
@@ -12,10 +12,10 @@ export type ArtistWeight = {
   viewCount: number;
 };
 
-function parseSnapshotCounts(event: UserSignalEvent): Map<string, number> {
+function parsePlayCounts(event: UserSignalEvent): Map<string, number> {
   const counts = new Map<string, number>();
   try {
-    const payload = JSON.parse(event.payload) as SnapshotPayload;
+    const payload = JSON.parse(event.payload) as PlexPlaysPayload;
     for (const artist of payload.artists ?? []) {
       counts.set(artist.name, artist.playCount);
     }
@@ -25,14 +25,14 @@ function parseSnapshotCounts(event: UserSignalEvent): Map<string, number> {
   return counts;
 }
 
-/** Most recent snapshot recorded at or before the window start, or null if the series is younger. */
+/** Most recent plays capture recorded at or before the window start, or null if the series is younger. */
 function findBaseline(
-  snapshots: UserSignalEvent[],
+  playEvents: UserSignalEvent[],
   windowStart: number
 ): UserSignalEvent | null {
-  for (let i = snapshots.length - 1; i >= 0; i--) {
-    if (Date.parse(snapshots[i].recorded_at) <= windowStart)
-      return snapshots[i];
+  for (let i = playEvents.length - 1; i >= 0; i--) {
+    if (Date.parse(playEvents[i].recorded_at) <= windowStart)
+      return playEvents[i];
   }
   return null;
 }
@@ -42,24 +42,24 @@ function allTimeWeights(latest: Map<string, number>): ArtistWeight[] {
 }
 
 /**
- * Per-artist play weight derived from the snapshot series. When the series spans the
+ * Per-artist play weight derived from the plays series. When the series spans the
  * full window, weight = plays within the window (latest cumulative count minus the count
  * at the window start). Until the series is that deep — or when nothing was played in the
  * window — weight falls back to the latest cumulative all-time count, so the set is never
  * empty and a thin history still produces sensible weights.
  */
 export function derivePlayWeights(
-  snapshots: UserSignalEvent[],
+  playEvents: UserSignalEvent[],
   now: number,
   windowMs: number
 ): ArtistWeight[] {
-  if (snapshots.length === 0) return [];
-  const latest = parseSnapshotCounts(snapshots[snapshots.length - 1]);
+  if (playEvents.length === 0) return [];
+  const latest = parsePlayCounts(playEvents[playEvents.length - 1]);
 
-  const baselineEvent = findBaseline(snapshots, now - windowMs);
+  const baselineEvent = findBaseline(playEvents, now - windowMs);
   if (!baselineEvent) return allTimeWeights(latest);
 
-  const baseline = parseSnapshotCounts(baselineEvent);
+  const baseline = parsePlayCounts(baselineEvent);
   const windowed: ArtistWeight[] = [];
   let total = 0;
   for (const [name, count] of latest) {
@@ -107,9 +107,9 @@ export function applyRatingMultiplier(
 
 /**
  * The recommender's canonical artist-weight source: windowed play trend from the user's
- * own snapshot series, boosted by their ratings. Reads everything from `user_signal_events`
- * — no live Plex query — except the cold-start case (zero snapshots), where one snapshot
- * is ingested on demand so the first read still goes through our own table.
+ * own plays series, boosted by their ratings. Reads everything from `user_signal_events`
+ * — no live Plex query — except the cold-start case (zero captures), where one is ingested
+ * on demand so the first read still goes through our own table.
  */
 export async function loadArtistWeights(
   userId: number,
@@ -118,13 +118,13 @@ export async function loadArtistWeights(
   ratingWeight: number,
   now: number = Date.now()
 ): Promise<ArtistWeight[]> {
-  let snapshots = await getSignalEvents(userId, "snapshot");
-  if (snapshots.length === 0) {
-    await ingestUserSnapshot(userId, plexToken);
-    snapshots = await getSignalEvents(userId, "snapshot");
+  let playEvents = await getSignalEvents(userId, "plex_plays");
+  if (playEvents.length === 0) {
+    await ingestUserPlays(userId, plexToken);
+    playEvents = await getSignalEvents(userId, "plex_plays");
   }
 
-  const plays = derivePlayWeights(snapshots, now, windowMs);
+  const plays = derivePlayWeights(playEvents, now, windowMs);
   const ratings = aggregateArtistRatings(
     await getSignalEvents(userId, "plex_rating")
   );

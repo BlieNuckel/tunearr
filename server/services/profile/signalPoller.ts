@@ -2,8 +2,8 @@ import { getConfigValue } from "../../config";
 import { getSignalEvents, getSignalIngestionUsers } from "../../db/userProfile";
 import {
   ingestUserRatings,
-  ingestUserSnapshot,
-  snapshotDue,
+  ingestUserPlays,
+  playsDue,
 } from "./signalIngestion";
 import { createLogger } from "../../logger";
 
@@ -11,19 +11,19 @@ const log = createLogger("signal-ingestion-poller");
 
 const DEFAULT_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const FIRST_RUN_DELAY_MS = 5 * 60 * 1000;
-const SNAPSHOT_INTERVAL_MS = 24 * 60 * 60 * 1000;
+const PLAYS_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 let timer: ReturnType<typeof setTimeout> | null = null;
 let running = false;
 
 /**
  * One ingestion sweep over every enabled user with a Plex token: append any
- * new/changed ratings, and a snapshot if one is due (>= once/day). Per-user
+ * new/changed ratings, and a plays capture if one is due (>= once/day). Per-user
  * failures (e.g. a managed user whose ratings don't resolve) are logged and
  * skipped so one account never aborts the sweep.
  *
  * NOTE: single-instance assumption — a naive interval double-runs under multiple
- * replicas. The append-only log tolerates duplicate snapshots but would record
+ * replicas. The append-only log tolerates duplicate captures but would record
  * redundant rows.
  */
 export async function runSignalIngestionOnce(now = Date.now()): Promise<void> {
@@ -37,24 +37,24 @@ export async function runSignalIngestionOnce(now = Date.now()): Promise<void> {
 
     const users = await getSignalIngestionUsers();
     let ratingsWritten = 0;
-    let snapshotsWritten = 0;
+    let playsWritten = 0;
 
     for (const user of users) {
       try {
         ratingsWritten += await ingestUserRatings(user.userId, user.plexToken);
-        const snapshots = await getSignalEvents(user.userId, "snapshot");
-        if (snapshotDue(snapshots, now, SNAPSHOT_INTERVAL_MS)) {
-          await ingestUserSnapshot(user.userId, user.plexToken);
-          snapshotsWritten += 1;
+        const playEvents = await getSignalEvents(user.userId, "plex_plays");
+        if (playsDue(playEvents, now, PLAYS_INTERVAL_MS)) {
+          await ingestUserPlays(user.userId, user.plexToken);
+          playsWritten += 1;
         }
       } catch (error) {
         log.error(`Signal ingestion failed for user ${user.userId}`, error);
       }
     }
 
-    if (ratingsWritten > 0 || snapshotsWritten > 0) {
+    if (ratingsWritten > 0 || playsWritten > 0) {
       log.info(
-        `Ingested ${ratingsWritten} rating change(s), ${snapshotsWritten} snapshot(s)`
+        `Ingested ${ratingsWritten} rating change(s), ${playsWritten} plays capture(s)`
       );
     }
   } finally {

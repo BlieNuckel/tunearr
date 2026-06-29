@@ -1,5 +1,6 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { createDataSource } from "./dataSource";
+import { RenamePlexPlays1717000000000 } from "./migration/9_RenamePlexPlays";
 import type { DataSource } from "typeorm";
 
 let ds: DataSource | null = null;
@@ -354,6 +355,36 @@ describe("UserProfile migration", () => {
 
     await db.query(
       "INSERT INTO user_signal_events (user_id, kind, payload) VALUES (?, ?, ?)",
+      [userId, "plex_plays", "{}"]
+    );
+    await db.query(
+      "INSERT INTO user_signal_events (user_id, kind, payload) VALUES (?, ?, ?)",
+      [userId, "plex_rating", "{}"]
+    );
+
+    const plays = (await db.query(
+      "SELECT * FROM user_signal_events WHERE user_id = ? AND kind = ?",
+      [userId, "plex_plays"]
+    )) as unknown[];
+    expect(plays).toHaveLength(1);
+
+    const all = (await db.query(
+      "SELECT * FROM user_signal_events WHERE user_id = ?",
+      [userId]
+    )) as unknown[];
+    expect(all).toHaveLength(2);
+  });
+
+  it("RenamePlexPlays migration relabels legacy 'snapshot' rows as 'plex_plays'", async () => {
+    const db = await initTestDb();
+    await db.query("INSERT INTO users (username) VALUES (?)", ["dave"]);
+    const [{ id: userId }] = (await db.query(
+      "SELECT id FROM users WHERE username = ?",
+      ["dave"]
+    )) as { id: number }[];
+
+    await db.query(
+      "INSERT INTO user_signal_events (user_id, kind, payload) VALUES (?, ?, ?)",
       [userId, "snapshot", "{}"]
     );
     await db.query(
@@ -361,17 +392,17 @@ describe("UserProfile migration", () => {
       [userId, "plex_rating", "{}"]
     );
 
-    const snapshots = (await db.query(
-      "SELECT * FROM user_signal_events WHERE user_id = ? AND kind = ?",
-      [userId, "snapshot"]
-    )) as unknown[];
-    expect(snapshots).toHaveLength(1);
+    const runner = db.createQueryRunner();
+    await new RenamePlexPlays1717000000000().up(runner);
+    await runner.release();
 
-    const all = (await db.query(
-      "SELECT * FROM user_signal_events WHERE user_id = ?",
-      [userId]
-    )) as unknown[];
-    expect(all).toHaveLength(2);
+    const kinds = (
+      (await db.query(
+        "SELECT kind FROM user_signal_events WHERE user_id = ? ORDER BY id",
+        [userId]
+      )) as { kind: string }[]
+    ).map((r) => r.kind);
+    expect(kinds).toEqual(["plex_plays", "plex_rating"]);
   });
 
   it("cascades user_profiles and user_signal_events when user is deleted", async () => {
@@ -388,7 +419,7 @@ describe("UserProfile migration", () => {
     );
     await db.query(
       "INSERT INTO user_signal_events (user_id, kind, payload) VALUES (?, ?, ?)",
-      [userId, "snapshot", "{}"]
+      [userId, "plex_plays", "{}"]
     );
 
     await db.query("DELETE FROM users WHERE id = ?", [userId]);

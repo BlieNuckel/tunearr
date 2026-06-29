@@ -14,11 +14,11 @@ vi.mock("../../api/plex/artistPlayCounts", () => ({
 import {
   latestRatings,
   diffRatings,
-  snapshotDue,
+  playsDue,
   ingestUserRatings,
-  ingestUserSnapshot,
+  ingestUserPlays,
   type PlexRatingPayload,
-  type SnapshotPayload,
+  type PlexPlaysPayload,
 } from "./signalIngestion";
 import { initializeDatabase, closeDatabase, getDataSource } from "../../db";
 import { getSignalEvents } from "../../db/userProfile";
@@ -100,24 +100,24 @@ describe("diffRatings", () => {
   });
 });
 
-describe("snapshotDue", () => {
+describe("playsDue", () => {
   const now = Date.parse("2026-06-28T12:00:00.000Z");
   const day = 24 * 60 * 60 * 1000;
 
-  it("is due when no snapshot exists", () => {
-    expect(snapshotDue([], now, day)).toBe(true);
+  it("is due when no plays capture exists", () => {
+    expect(playsDue([], now, day)).toBe(true);
   });
 
-  it("is not due when the last snapshot is within the interval", () => {
+  it("is not due when the last plays capture is within the interval", () => {
     const recent = {
       recorded_at: "2026-06-28T06:00:00.000Z",
     } as UserSignalEvent;
-    expect(snapshotDue([recent], now, day)).toBe(false);
+    expect(playsDue([recent], now, day)).toBe(false);
   });
 
-  it("is due when the last snapshot is older than the interval", () => {
+  it("is due when the last plays capture is older than the interval", () => {
     const old = { recorded_at: "2026-06-26T06:00:00.000Z" } as UserSignalEvent;
-    expect(snapshotDue([old], now, day)).toBe(true);
+    expect(playsDue([old], now, day)).toBe(true);
   });
 });
 
@@ -154,17 +154,17 @@ describe("ingestion (with DB)", () => {
     expect(JSON.parse(events[1].payload).rating).toBe(4);
   });
 
-  it("writes a snapshot of per-artist play counts for all played artists", async () => {
+  it("writes a plays capture of per-artist play counts for all played artists", async () => {
     mockGetAllArtistPlayCounts.mockResolvedValue([
       { name: "Andromedik", viewCount: 120 },
       { name: "Durry", viewCount: 30 },
     ]);
 
-    await ingestUserSnapshot(1, "tok");
+    await ingestUserPlays(1, "tok");
 
-    const events = await getSignalEvents(1, "snapshot");
+    const events = await getSignalEvents(1, "plex_plays");
     expect(events).toHaveLength(1);
-    const payload = JSON.parse(events[0].payload) as SnapshotPayload;
+    const payload = JSON.parse(events[0].payload) as PlexPlaysPayload;
     expect(payload.artists).toEqual([
       { name: "Andromedik", playCount: 120 },
       { name: "Durry", playCount: 30 },

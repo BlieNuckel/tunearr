@@ -1,6 +1,8 @@
 # RFC: Stabilising user profiles
 
-Status: Step 1 implemented — Step 2 scoped, ratings reader prototyped
+Status: Steps 1 & 2 implemented; similar-graph persisted. Step 3 (taste page) split out to
+the standalone exploratory [#176](https://github.com/BlieNuckel/tunearr/issues/176); Step 4
+(export/restore) discarded. Remaining under #144: snapshot retention/compaction.
 Tracking issue: [#144](https://github.com/BlieNuckel/tunearr/issues/144)
 Step 1 issues: [#166](https://github.com/BlieNuckel/tunearr/issues/166) (#167 entities, #168 recommender, #169 scheduler)
 Step 2 issue: [#172](https://github.com/BlieNuckel/tunearr/issues/172)
@@ -63,7 +65,8 @@ Deferred, as planned:
   The table exists and the regen poller is the intended home for the snapshot cadence. The
   Plex ratings **reader** is prototyped (`server/api/plex/ratings.ts`, with `getMusicSectionKey`
   extracted to `sections.ts`); the `UserSignalEvent` **writes** and cadence are still to do.
-- **Taste page** (Step 3) and **export/restore** (Step 4).
+- **Taste page** (Step 3) and **export/restore** (Step 4) are **no longer part of this
+  work** — see "Next step" below.
 
 ## Problem
 
@@ -252,7 +255,10 @@ The in-memory `userCache`/`recentlyShownByUser` maps fold into `UserProfile`.
 ## Open questions
 
 1. **Snapshot cadence** — on login, on a timer (cron-like), or both? How many to retain?
-2. **Profile TTL** — how stale before we force a regenerate? Per-user override?
+2. **Profile TTL** — how stale before we force a regenerate? ~~Per-user override?~~
+   **Closed — won't do (June 2026).** No per-user TTL override. A user could set an
+   unreasonably low TTL and flood the server with regenerations; TTL is a server-capacity
+   concern and stays a single global setting owned by whoever runs the server.
 3. **Ratings ingestion** — ~~confirm Plex exposes `userRating` per track/album via the existing
    per-user token path; volume/perf of pulling it.~~ **Resolved (June 2026) — yes; see below.**
 4. **Multi-user** — snapshots are per-user; confirm storage growth is acceptable for many users.
@@ -326,9 +332,13 @@ Discussion now moves to what comes after, in roughly dependency order:
 - **~~`similarGraph` for explore mode.~~ Done** — see Implementation status. The graph is
   built at regeneration time and read per request; explore no longer fans out to Plex /
   MusicBrainz / ListenBrainz / Last.fm on the request path.
-- **Step 3 — taste page.** Renders `genreVector` (top genres + weights) and, with Step 2,
-  rating/trend views from the snapshot log.
-- **Step 4 — export/restore.** Out of scope until there's a reason; noted for completeness.
+- **Step 3 — taste page. Dropped from this work.** Split out to a standalone, exploratory
+  issue ([#176](https://github.com/BlieNuckel/tunearr/issues/176)) and deliberately
+  disconnected from #144 — whether to build it at all is undecided. The persistence it would
+  render (`genreVector`, snapshot/rating series) already shipped, so nothing here blocks it.
+- **Step 4 — export/restore. Discarded.** No driver; user-facing portability was always out
+  of scope (see Out of scope). Not tracked anywhere; revisit only if a concrete need appears.
 
-Open questions 1 (snapshot cadence) and 2 (per-user TTL override) are the remaining
-decisions for Step 2; open question 3 (ratings exposure) is resolved.
+Open questions 1 (cadence) and 3 (ratings exposure) are resolved; 2 (per-user TTL override)
+is closed as won't-do. The only open decision left under #144 is question 4 (snapshot
+retention/compaction).

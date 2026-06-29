@@ -21,14 +21,14 @@ import type { UserSignalEvent } from "../db/entity/UserSignalEvent";
 const DAY = 24 * 60 * 60 * 1000;
 const NOW = Date.parse("2026-06-28T00:00:00.000Z");
 
-function snapshotEvent(
+function playsEvent(
   artists: { name: string; playCount: number }[],
   daysAgo: number
 ): UserSignalEvent {
   return {
     id: 0,
     user_id: 1,
-    kind: "snapshot",
+    kind: "plex_plays",
     payload: JSON.stringify({ artists }),
     recorded_at: new Date(NOW - daysAgo * DAY).toISOString(),
   } as UserSignalEvent;
@@ -52,15 +52,15 @@ function ratingEvent(artist: string, rating: number): UserSignalEvent {
 
 describe("derivePlayWeights", () => {
   it("returns windowed deltas when the series spans the window", () => {
-    const snapshots = [
-      snapshotEvent(
+    const playEvents = [
+      playsEvent(
         [
           { name: "A", playCount: 10 },
           { name: "B", playCount: 5 },
         ],
         40
       ),
-      snapshotEvent(
+      playsEvent(
         [
           { name: "A", playCount: 30 },
           { name: "B", playCount: 5 },
@@ -68,29 +68,29 @@ describe("derivePlayWeights", () => {
         0
       ),
     ];
-    const result = derivePlayWeights(snapshots, NOW, 30 * DAY);
+    const result = derivePlayWeights(playEvents, NOW, 30 * DAY);
     expect(result).toEqual([{ name: "A", viewCount: 20 }]);
   });
 
   it("falls back to latest all-time counts until the window is covered", () => {
-    const snapshots = [
-      snapshotEvent([{ name: "A", playCount: 10 }], 5),
-      snapshotEvent([{ name: "A", playCount: 12 }], 0),
+    const playEvents = [
+      playsEvent([{ name: "A", playCount: 10 }], 5),
+      playsEvent([{ name: "A", playCount: 12 }], 0),
     ];
-    const result = derivePlayWeights(snapshots, NOW, 30 * DAY);
+    const result = derivePlayWeights(playEvents, NOW, 30 * DAY);
     expect(result).toEqual([{ name: "A", viewCount: 12 }]);
   });
 
   it("falls back to all-time when nothing was played in the window", () => {
-    const snapshots = [
-      snapshotEvent([{ name: "A", playCount: 10 }], 40),
-      snapshotEvent([{ name: "A", playCount: 10 }], 0),
+    const playEvents = [
+      playsEvent([{ name: "A", playCount: 10 }], 40),
+      playsEvent([{ name: "A", playCount: 10 }], 0),
     ];
-    const result = derivePlayWeights(snapshots, NOW, 30 * DAY);
+    const result = derivePlayWeights(playEvents, NOW, 30 * DAY);
     expect(result).toEqual([{ name: "A", viewCount: 10 }]);
   });
 
-  it("returns empty for no snapshots", () => {
+  it("returns empty for no plays captures", () => {
     expect(derivePlayWeights([], NOW, 30 * DAY)).toEqual([]);
   });
 });
@@ -132,7 +132,7 @@ describe("loadArtistWeights (with DB)", () => {
     await closeDatabase();
   });
 
-  it("ingests a snapshot on demand when the user has none", async () => {
+  it("ingests a plays capture on demand when the user has none", async () => {
     mockGetAllArtistPlayCounts.mockResolvedValue([
       { name: "A", viewCount: 42 },
     ]);
@@ -140,12 +140,12 @@ describe("loadArtistWeights (with DB)", () => {
     const result = await loadArtistWeights(1, "tok", 30 * DAY, 0.5, NOW);
 
     expect(mockGetAllArtistPlayCounts).toHaveBeenCalledWith("tok");
-    expect(await getSignalEvents(1, "snapshot")).toHaveLength(1);
+    expect(await getSignalEvents(1, "plex_plays")).toHaveLength(1);
     expect(result).toEqual([{ name: "A", viewCount: 42 }]);
   });
 
-  it("reads existing snapshots + ratings without a live fetch", async () => {
-    await appendSignalEvent(1, "snapshot", {
+  it("reads existing plays + ratings without a live fetch", async () => {
+    await appendSignalEvent(1, "plex_plays", {
       artists: [{ name: "A", playCount: 100 }],
     });
     await appendSignalEvent(1, "plex_rating", {
