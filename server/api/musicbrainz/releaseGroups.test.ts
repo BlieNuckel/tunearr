@@ -5,6 +5,7 @@ import {
   getReleaseGroupIdFromRelease,
   getReleaseGroupLabel,
   getReleaseGroupDate,
+  getAlbumDetails,
 } from "./releaseGroups";
 
 const mockFetch = vi.fn();
@@ -102,6 +103,62 @@ describe("getReleaseGroupById", () => {
       artistName: "Unknown Artist",
       albumTitle: "Mystery Album",
     });
+  });
+});
+
+describe("getAlbumDetails", () => {
+  it("returns full album metadata including artist MBID and type", async () => {
+    mockFetch.mockResolvedValue(
+      okResponse({
+        id: "rg-123",
+        title: "OK Computer",
+        "primary-type": "Album",
+        "first-release-date": "1997-06-16",
+        "secondary-types": ["Live"],
+        "artist-credit": [
+          { name: "Radiohead", artist: { id: "a1", name: "Radiohead" } },
+        ],
+      })
+    );
+
+    const result = await getAlbumDetails("rg-123");
+    expect(result).toEqual({
+      mbid: "rg-123",
+      title: "OK Computer",
+      artistName: "Radiohead",
+      artistMbid: "a1",
+      firstReleaseDate: "1997-06-16",
+      primaryType: "Album",
+      secondaryTypes: ["Live"],
+    });
+    expect(mockFetch).toHaveBeenCalledWith(
+      "https://musicbrainz.test/ws/2/release-group/rg-123?inc=artist-credits&fmt=json",
+      { headers: { "User-Agent": "test" } }
+    );
+  });
+
+  it("falls back to defaults when fields are missing", async () => {
+    mockFetch.mockResolvedValue(
+      okResponse({ id: "rg-456", "artist-credit": [] })
+    );
+
+    const result = await getAlbumDetails("rg-456");
+    expect(result).toEqual({
+      mbid: "rg-456",
+      title: "Unknown Album",
+      artistName: "Unknown Artist",
+      artistMbid: null,
+      firstReleaseDate: null,
+      primaryType: null,
+      secondaryTypes: [],
+    });
+  });
+
+  it("returns null when the release group is not found", async () => {
+    mockFetch.mockResolvedValue(errorResponse(404));
+
+    const result = await getAlbumDetails("nonexistent");
+    expect(result).toBeNull();
   });
 });
 

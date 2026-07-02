@@ -6,15 +6,11 @@ const DEAL_ROTATIONS = [-4, 3.5, -3, 4.5, -3.5, 3];
 interface ReleaseSectionGridProps {
   title: string;
   items: ReleaseGroup[];
-  isAlbumInLibrary: (albumMbid: string) => boolean;
-  isAlbumWanted: (albumMbid: string) => boolean;
 }
 
 export default function ReleaseSectionGrid({
   title,
   items,
-  isAlbumInLibrary,
-  isAlbumWanted,
 }: ReleaseSectionGridProps) {
   return (
     <section className="mb-8">
@@ -33,11 +29,7 @@ export default function ReleaseSectionGrid({
               } as React.CSSProperties
             }
           >
-            <ReleaseGroupCard
-              releaseGroup={rg}
-              inLibrary={isAlbumInLibrary(rg.id)}
-              initialWanted={isAlbumWanted(rg.id)}
-            />
+            <ReleaseGroupCard releaseGroup={rg} />
           </div>
         ))}
       </div>

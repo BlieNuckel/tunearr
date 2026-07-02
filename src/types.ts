@@ -29,6 +29,17 @@ export interface ArtistSearchResult {
   imageUrl?: string;
 }
 
+export interface AlbumDetails {
+  mbid: string;
+  title: string;
+  artistName: string;
+  artistMbid: string | null;
+  firstReleaseDate: string | null;
+  primaryType: string | null;
+  secondaryTypes: string[];
+  label: { name: string; mbid: string } | null;
+}
+
 export interface Track {
   position: number;
   title: string;

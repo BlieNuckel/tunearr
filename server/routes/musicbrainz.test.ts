@@ -6,6 +6,7 @@ const mockGetReleaseTracks = vi.fn();
 const mockEnrichTracksWithPreviews = vi.fn();
 const mockGetReleaseGroupLabel = vi.fn();
 const mockGetReleaseGroupDate = vi.fn();
+const mockGetAlbumDetails = vi.fn();
 const mockGetLabelAncestors = vi.fn();
 const mockGetConfigValue = vi.fn();
 const mockEvaluatePurchaseDecision = vi.fn();
@@ -22,6 +23,7 @@ vi.mock("../api/musicbrainz/releaseGroups", () => ({
   getReleaseGroupLabel: (...args: unknown[]) =>
     mockGetReleaseGroupLabel(...args),
   getReleaseGroupDate: (...args: unknown[]) => mockGetReleaseGroupDate(...args),
+  getAlbumDetails: (...args: unknown[]) => mockGetAlbumDetails(...args),
 }));
 
 vi.mock("../api/musicbrainz/artists", () => ({
@@ -298,6 +300,65 @@ describe("GET /tracks/:releaseGroupId", () => {
     await request(app).get("/tracks/rg-456");
 
     expect(mockEnrichTracksWithPreviews).not.toHaveBeenCalled();
+  });
+});
+
+describe("GET /album/:mbid", () => {
+  it("returns 404 when the album is not found", async () => {
+    mockGetAlbumDetails.mockResolvedValue(null);
+
+    const res = await request(app).get("/album/missing");
+    expect(res.status).toBe(404);
+    expect(mockFetchReleaseGroupsForArtist).not.toHaveBeenCalled();
+    expect(mockGetReleaseGroupLabel).not.toHaveBeenCalled();
+  });
+
+  it("composes album details, label and more-from-artist", async () => {
+    const album = {
+      mbid: "rg-1",
+      title: "OK Computer",
+      artistName: "Radiohead",
+      artistMbid: "a1",
+      firstReleaseDate: "1997-06-16",
+      primaryType: "Album",
+      secondaryTypes: [],
+    };
+    const label = { name: "Parlophone", mbid: "label-1" };
+    mockGetAlbumDetails.mockResolvedValue(album);
+    mockFetchReleaseGroupsForArtist.mockResolvedValue([
+      { id: "rg-1", title: "OK Computer" },
+      { id: "rg-2", title: "Kid A" },
+    ]);
+    mockGetReleaseGroupLabel.mockResolvedValue(label);
+
+    const res = await request(app).get("/album/rg-1");
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      album: { ...album, label },
+      moreFromArtist: [{ id: "rg-2", title: "Kid A" }],
+    });
+    expect(mockGetAlbumDetails).toHaveBeenCalledWith("rg-1");
+    expect(mockFetchReleaseGroupsForArtist).toHaveBeenCalledWith("a1");
+    expect(mockGetReleaseGroupLabel).toHaveBeenCalledWith("rg-1");
+  });
+
+  it("skips more-from-artist when artist MBID is missing", async () => {
+    mockGetAlbumDetails.mockResolvedValue({
+      mbid: "rg-9",
+      title: "Mystery",
+      artistName: "Unknown Artist",
+      artistMbid: null,
+      firstReleaseDate: null,
+      primaryType: null,
+      secondaryTypes: [],
+    });
+    mockGetReleaseGroupLabel.mockResolvedValue(null);
+
+    const res = await request(app).get("/album/rg-9");
+    expect(res.status).toBe(200);
+    expect(res.body.moreFromArtist).toEqual([]);
+    expect(res.body.album.label).toBeNull();
+    expect(mockFetchReleaseGroupsForArtist).not.toHaveBeenCalled();
   });
 });
 

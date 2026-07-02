@@ -1,5 +1,5 @@
 import Skeleton from "@/components/Skeleton";
-import ReleaseGroupCard from "@/components/ReleaseGroupCard";
+import WantedCard from "@/components/WantedCard";
 import useLibraryAlbums from "@/hooks/useLibraryAlbums";
 import type { WantedItem, ReleaseGroup } from "@/types";
 
@@ -32,14 +32,14 @@ export default function WantedList({
   const { isAlbumInLibrary } = useLibraryAlbums();
   if (loading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
         {[...Array(6)].map((_, i) => (
           <div
             key={i}
-            className="bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-sm overflow-hidden"
+            className="flex items-center bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-sm overflow-hidden"
           >
-            <Skeleton className="aspect-square w-full" />
-            <div className="p-3 space-y-2">
+            <Skeleton className="w-24 aspect-square flex-shrink-0 rounded-none" />
+            <div className="flex-1 px-4 py-3 space-y-2">
               <Skeleton className="h-4 w-2/3" />
               <Skeleton className="h-3 w-1/2" />
             </div>
@@ -62,9 +62,9 @@ export default function WantedList({
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-3 sm:gap-4">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
       {items.map((item) => (
-        <ReleaseGroupCard
+        <WantedCard
           key={item.albumMbid}
           releaseGroup={toReleaseGroup(item)}
           inLibrary={isAlbumInLibrary(item.albumMbid)}

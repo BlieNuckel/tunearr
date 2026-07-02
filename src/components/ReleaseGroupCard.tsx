@@ -1,203 +1,34 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import MonitorButton from "./MonitorButton";
-import TrackList from "./TrackList";
-import PurchaseLinksModal from "./PurchaseLinksModal";
-import PurchasePriceModal from "./PurchasePriceModal";
-import Spinner from "./Spinner";
-import { CheckIcon, PlusIcon } from "@/components/icons";
 import ImageWithShimmer from "./ImageWithShimmer";
-import OptionSelect from "./OptionSelect";
-import useLidarr from "../hooks/useLidarr";
-import useWanted from "../hooks/useWanted";
-import usePurchase from "../hooks/usePurchase";
-import useReleaseTracks from "../hooks/useReleaseTracks";
-import useAudioPreview from "../hooks/useAudioPreview";
-import useFollowedArtists from "../hooks/useFollowedArtists";
 import useHaptics from "../hooks/useHaptics";
-import { useAuth } from "../context/useAuth";
-import { hasPermission, Permission } from "@shared/permissions";
 import { pastelColorFromId } from "../utils/color";
-import { getMonitorState } from "../utils/monitorState";
-import type { Option } from "./OptionSelect";
-import { MonitorState, ReleaseGroup } from "../types";
-
-const mobileMonitorStyles: Record<MonitorState, string> = {
-  idle: "bg-amber-300 hover:bg-amber-200 text-black",
-  adding: "bg-amber-200 text-amber-700 cursor-wait",
-  success: "bg-emerald-400 text-black cursor-default",
-  already_monitored: "bg-gray-200 text-gray-500 cursor-default",
-  error: "bg-rose-400 text-white",
-};
+import { ReleaseGroup } from "../types";
 
 interface ReleaseGroupCardProps {
   releaseGroup: ReleaseGroup;
-  inLibrary?: boolean;
-  defaultExpanded?: boolean;
-  initialWanted?: boolean;
-  onRemovedFromWanted?: (albumMbid: string) => void | Promise<void>;
 }
 
 export default function ReleaseGroupCard({
   releaseGroup,
-  inLibrary = false,
-  defaultExpanded = false,
-  initialWanted = false,
-  onRemovedFromWanted,
 }: ReleaseGroupCardProps) {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const canImport =
-    user !== null && hasPermission(user.permissions, Permission.IMPORT);
+  const haptics = useHaptics();
 
-  const [isFlipped, setIsFlipped] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
-
-  const artistCredit = releaseGroup["artist-credit"]?.[0]?.artist;
-  const artistName = artistCredit?.name || "Unknown Artist";
-  const artistMbid = artistCredit?.id;
+  const artistName =
+    releaseGroup["artist-credit"]?.[0]?.artist?.name || "Unknown Artist";
   const albumTitle = releaseGroup.title || "";
   const albumMbid = releaseGroup.id;
-  const pastelBg = useMemo(() => pastelColorFromId(albumMbid), [albumMbid]);
   const year = releaseGroup["first-release-date"]?.slice(0, 4) || "";
+  const pastelBg = useMemo(() => pastelColorFromId(albumMbid), [albumMbid]);
   const coverUrl = `https://coverartarchive.org/release-group/${albumMbid}/front-500`;
 
-  const haptics = useHaptics();
-  const { state, errorMsg, requestAlbum } = useLidarr();
-  const {
-    state: wantedState,
-    addToWanted,
-    removeFromWanted,
-  } = useWanted(initialWanted);
-  const { state: purchaseState, record: recordPurchase } = usePurchase();
-  const {
-    media,
-    loading: tracksLoading,
-    error: tracksError,
-    fetchTracks,
-  } = useReleaseTracks();
-  const { toggle, stop, isTrackPlaying } = useAudioPreview();
-  const { isFollowing, follow, unfollow } = useFollowedArtists();
-
-  const expandContentRef = useRef<HTMLDivElement>(null);
-  const [expandHeight, setExpandHeight] = useState(0);
-
-  useEffect(() => {
-    const el = expandContentRef.current;
-    if (!el) return;
-    const observer = new ResizeObserver(() => {
-      setExpandHeight(el.offsetHeight);
-    });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
-  const effectiveState = getMonitorState(state, inLibrary);
-  const disabled =
-    effectiveState === "adding" ||
-    effectiveState === "success" ||
-    effectiveState === "already_monitored";
-
-  const loadTracksIfNeeded = () => {
-    if (media.length === 0 && !tracksLoading) {
-      fetchTracks(albumMbid, artistName);
-    }
-  };
-
-  useEffect(() => {
-    if (defaultExpanded) loadTracksIfNeeded();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const handleMouseEnter = () => {
-    setIsFlipped(true);
-    loadTracksIfNeeded();
-  };
-
-  const handleMouseLeave = () => {
-    setIsFlipped(false);
-    stop();
-  };
-
-  const handleMobileCardClick = () => {
-    haptics.light();
-    if (!isExpanded) loadTracksIfNeeded();
-    if (isExpanded) stop();
-    setIsExpanded(!isExpanded);
-  };
-
-  const handleMonitorClick = () => {
-    haptics.medium();
-    if (!albumTitle) {
-      requestAlbum({ albumMbid });
-      return;
-    }
-
-    if (effectiveState === "idle" || effectiveState === "error") {
-      setIsModalOpen(true);
-    }
-  };
-
-  const handleAddToLibrary = () => {
-    requestAlbum({ albumMbid });
-  };
-
-  const isWanted = wantedState === "wanted";
-  const handleRemoveFromWanted = async () => {
-    if (onRemovedFromWanted) {
-      await onRemovedFromWanted(albumMbid);
-    } else {
-      await removeFromWanted(albumMbid);
-    }
-  };
-  const isPurchased = purchaseState === "purchased";
-  const following = artistMbid ? isFollowing(artistMbid) : false;
-  const cardOptions: Option[] = [
-    isWanted
-      ? { label: "Remove from wanted", onClick: handleRemoveFromWanted }
-      : { label: "Add to wanted", onClick: () => addToWanted(albumMbid) },
-    ...(isPurchased
-      ? []
-      : [
-          {
-            label: "Mark as purchased",
-            onClick: () => setIsPurchaseModalOpen(true),
-          },
-        ]),
-    ...(canImport
-      ? [
-          {
-            label: "Upload files",
-            onClick: () => navigate(`/library/upload?mbid=${albumMbid}`),
-          },
-        ]
-      : []),
-    ...(artistMbid
-      ? [
-          following
-            ? {
-                label: "Unfollow artist",
-                onClick: () => {
-                  void unfollow(artistMbid);
-                },
-              }
-            : {
-                label: "Follow artist",
-                onClick: () => {
-                  void follow(artistMbid, artistName);
-                },
-              },
-        ]
-      : []),
-  ];
-
-  const handleRecordPurchase = (price: number, currency: string) => {
-    recordPurchase(albumMbid, price, currency);
-  };
-
   const [coverError, setCoverError] = useState(false);
+
+  const handleClick = () => {
+    haptics.light();
+    navigate(`/album/${albumMbid}`);
+  };
 
   const coverImage = !coverError ? (
     <div className="absolute inset-0">
@@ -210,172 +41,59 @@ export default function ReleaseGroupCard({
     </div>
   ) : null;
 
-  const monitorIcon =
-    effectiveState === "adding" ? (
-      <Spinner />
-    ) : effectiveState === "success" ||
-      effectiveState === "already_monitored" ? (
-      <CheckIcon className="w-5 h-5" />
-    ) : (
-      <PlusIcon className="w-5 h-5" />
-    );
-
   return (
     <>
-      {/* Mobile: horizontal card with expand */}
-      <div
-        className="sm:hidden bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-md overflow-hidden"
+      <button
+        type="button"
+        onClick={handleClick}
+        className="sm:hidden w-full flex items-center text-left bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-md overflow-hidden"
         data-testid="release-group-card-mobile"
       >
         <div
-          className="flex items-center cursor-pointer"
-          onClick={handleMobileCardClick}
+          className="w-24 aspect-square flex-shrink-0 relative"
+          style={{ backgroundColor: pastelBg }}
         >
-          <div
-            className="w-24 aspect-square flex-shrink-0 relative"
-            style={{ backgroundColor: pastelBg }}
-          >
-            {coverImage}
-          </div>
-          <div className="flex-1 min-w-0 px-4 py-3">
-            <h3 className="text-gray-900 dark:text-gray-100 font-semibold text-base truncate">
-              {albumTitle}
-            </h3>
-            <p className="text-gray-500 dark:text-gray-400 text-sm truncate">
-              {artistName}
-            </p>
-            {year && (
-              <p className="text-gray-400 dark:text-gray-500 text-xs">{year}</p>
-            )}
-          </div>
-          <div className="flex items-center gap-1.5 flex-shrink-0 mr-3">
-            <div onClick={(e) => e.stopPropagation()}>
-              <OptionSelect options={cardOptions} title={albumTitle} />
-            </div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleMonitorClick();
-              }}
-              disabled={disabled}
-              className={`w-12 h-12 flex items-center justify-center rounded-lg border-2 border-black shadow-cartoon-sm ${mobileMonitorStyles[effectiveState]}`}
-              data-testid="mobile-monitor-button"
-              aria-label="Request album"
-            >
-              {monitorIcon}
-            </button>
-          </div>
+          {coverImage}
         </div>
-        <div
-          className="overflow-hidden transition-[height] duration-300"
-          data-expanded={isExpanded}
-          style={{
-            height: isExpanded ? expandHeight : 0,
-            transitionTimingFunction: "cubic-bezier(0.34, 1.3, 0.64, 1)",
-          }}
-        >
-          <div ref={expandContentRef}>
-            <div
-              className="border-t-2 border-black p-3 overlay-scrollbar max-h-64 overflow-y-auto"
-              data-testid="mobile-tracklist"
-            >
-              <TrackList
-                media={media}
-                loading={tracksLoading}
-                error={tracksError}
-                onTogglePreview={toggle}
-                isTrackPlaying={isTrackPlaying}
-              />
-            </div>
-          </div>
+        <div className="flex-1 min-w-0 px-4 py-3">
+          <h3 className="text-gray-900 dark:text-gray-100 font-semibold text-base truncate">
+            {albumTitle}
+          </h3>
+          <p className="text-gray-500 dark:text-gray-400 text-sm truncate">
+            {artistName}
+          </p>
+          {year && (
+            <p className="text-gray-400 dark:text-gray-500 text-xs">{year}</p>
+          )}
         </div>
-      </div>
+      </button>
 
-      {/* Desktop: flip card on hover */}
-      <div
-        className="hidden sm:block flip-card"
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
+      <button
+        type="button"
+        onClick={handleClick}
+        className="hidden sm:block w-full text-left bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-md overflow-hidden hover:translate-y-[-2px] hover:shadow-cartoon-lg transition-all"
+        data-testid="release-group-card"
       >
-        <div className={`flip-card-inner ${isFlipped ? "flipped" : ""}`}>
-          <div
-            className="bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-md overflow-hidden flip-card-face"
-            data-testid="release-group-card"
-          >
-            <div
-              className="aspect-square relative"
-              style={{ backgroundColor: pastelBg }}
-            >
-              {coverImage}
-            </div>
-
-            <div className="p-3 border-t-2 border-black">
-              <h3 className="text-gray-900 dark:text-gray-100 font-semibold text-sm truncate mb-1">
-                {albumTitle}
-              </h3>
-              <p className="text-gray-500 dark:text-gray-400 text-xs truncate">
-                {artistName}
-              </p>
-              {year && (
-                <p className="text-gray-400 dark:text-gray-500 text-xs mt-0.5">
-                  {year}
-                </p>
-              )}
-            </div>
-          </div>
-
-          <div
-            className="bg-white dark:bg-gray-800 rounded-xl border-2 border-black overflow-hidden flex flex-col p-4 flip-card-face flip-card-back shadow-cartoon-md-flip"
-            data-testid="release-group-card-back"
-          >
-            <div className="flex-shrink-0">
-              <h3 className="text-gray-900 dark:text-gray-100 font-semibold text-sm truncate">
-                {albumTitle}
-              </h3>
-              <p className="text-gray-500 dark:text-gray-400 text-xs truncate">
-                {artistName}
-              </p>
-            </div>
-
-            <div className="flex-1 overflow-y-auto mt-3 min-h-0 overlay-scrollbar">
-              <TrackList
-                media={media}
-                loading={tracksLoading}
-                error={tracksError}
-                onTogglePreview={toggle}
-                isTrackPlaying={isTrackPlaying}
-              />
-            </div>
-
-            <div className="flex-shrink-0 mt-2 flex items-center justify-end gap-1.5">
-              <OptionSelect options={cardOptions} title={albumTitle} />
-              <MonitorButton
-                state={effectiveState}
-                onClick={handleMonitorClick}
-                errorMsg={errorMsg ?? undefined}
-              />
-            </div>
-          </div>
+        <div
+          className="aspect-square relative"
+          style={{ backgroundColor: pastelBg }}
+        >
+          {coverImage}
         </div>
-      </div>
-
-      <PurchaseLinksModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        artistName={artistName}
-        albumTitle={albumTitle}
-        albumMbid={albumMbid}
-        onAddToLibrary={handleAddToLibrary}
-      />
-
-      <PurchasePriceModal
-        isOpen={isPurchaseModalOpen}
-        onClose={() => setIsPurchaseModalOpen(false)}
-        artistName={artistName}
-        albumTitle={albumTitle}
-        onConfirm={handleRecordPurchase}
-        saving={purchaseState === "recording"}
-      />
+        <div className="p-3 border-t-2 border-black">
+          <h3 className="text-gray-900 dark:text-gray-100 font-semibold text-sm truncate mb-1">
+            {albumTitle}
+          </h3>
+          <p className="text-gray-500 dark:text-gray-400 text-xs truncate">
+            {artistName}
+          </p>
+          {year && (
+            <p className="text-gray-400 dark:text-gray-500 text-xs mt-0.5">
+              {year}
+            </p>
+          )}
+        </div>
+      </button>
     </>
   );
 }
