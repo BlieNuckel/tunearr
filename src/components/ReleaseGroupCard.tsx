@@ -1,7 +1,10 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ImageWithShimmer from "./ImageWithShimmer";
+import ContextMenu from "./ContextMenu";
+import AlbumActionModals from "./AlbumActionModals";
 import useHaptics from "../hooks/useHaptics";
+import useAlbumActions from "../hooks/useAlbumActions";
 import { pastelColorFromId } from "../utils/color";
 import { ReleaseGroup } from "../types";
 
@@ -14,6 +17,7 @@ export default function ReleaseGroupCard({
 }: ReleaseGroupCardProps) {
   const navigate = useNavigate();
   const haptics = useHaptics();
+  const actions = useAlbumActions({ releaseGroup });
 
   const artistName =
     releaseGroup["artist-credit"]?.[0]?.artist?.name || "Unknown Artist";
@@ -42,7 +46,7 @@ export default function ReleaseGroupCard({
   ) : null;
 
   return (
-    <>
+    <ContextMenu options={actions.contextOptions} title={albumTitle}>
       <button
         type="button"
         onClick={handleClick}
@@ -94,6 +98,8 @@ export default function ReleaseGroupCard({
           )}
         </div>
       </button>
-    </>
+
+      <AlbumActionModals actions={actions} />
+    </ContextMenu>
   );
 }

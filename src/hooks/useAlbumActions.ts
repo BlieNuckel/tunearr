@@ -27,6 +27,7 @@ export interface AlbumActions {
   disabled: boolean;
   options: Option[];
   menuOptions: Option[];
+  contextOptions: Option[];
   isWanted: boolean;
   wantedPending: boolean;
   toggleWanted: () => void;
@@ -112,43 +113,53 @@ export default function useAlbumActions({
     ? { label: "Remove from wanted", onClick: handleRemoveFromWanted }
     : { label: "Add to wanted", onClick: () => addToWanted(albumMbid) };
 
+  const markPurchasedOption: Option = {
+    label: "Mark as purchased",
+    onClick: () => setIsPriceModalOpen(true),
+  };
+
+  const uploadOption: Option = {
+    label: "Upload files",
+    onClick: () => navigate(`/library/upload?mbid=${albumMbid}`),
+  };
+
+  const followOption: Option | null = artistMbid
+    ? following
+      ? {
+          label: "Unfollow artist",
+          onClick: () => {
+            void unfollow(artistMbid);
+          },
+        }
+      : {
+          label: "Follow artist",
+          onClick: () => {
+            void follow(artistMbid, artistName);
+          },
+        }
+    : null;
+
+  const goToArtistOption: Option | null = artistMbid
+    ? {
+        label: "Go to artist",
+        onClick: () => navigate(`/artist/${artistMbid}`),
+      }
+    : null;
+
   const menuOptions: Option[] = [
-    ...(isPurchased
-      ? []
-      : [
-          {
-            label: "Mark as purchased",
-            onClick: () => setIsPriceModalOpen(true),
-          },
-        ]),
-    ...(canImport
-      ? [
-          {
-            label: "Upload files",
-            onClick: () => navigate(`/library/upload?mbid=${albumMbid}`),
-          },
-        ]
-      : []),
-    ...(artistMbid
-      ? [
-          following
-            ? {
-                label: "Unfollow artist",
-                onClick: () => {
-                  void unfollow(artistMbid);
-                },
-              }
-            : {
-                label: "Follow artist",
-                onClick: () => {
-                  void follow(artistMbid, artistName);
-                },
-              },
-        ]
-      : []),
+    ...(isPurchased ? [] : [markPurchasedOption]),
+    ...(canImport ? [uploadOption] : []),
+    ...(followOption ? [followOption] : []),
   ];
 
   const options: Option[] = [wantedOption, ...menuOptions];
+
+  const contextOptions: Option[] = [
+    wantedOption,
+    ...(isPurchased ? [] : [markPurchasedOption]),
+    ...(canImport ? [uploadOption] : []),
+    ...(goToArtistOption ? [goToArtistOption] : []),
+  ];
 
   return {
     albumMbid,
@@ -159,6 +170,7 @@ export default function useAlbumActions({
     disabled,
     options,
     menuOptions,
+    contextOptions,
     isWanted,
     wantedPending,
     toggleWanted,
