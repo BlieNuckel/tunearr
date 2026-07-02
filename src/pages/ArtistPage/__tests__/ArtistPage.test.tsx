@@ -20,12 +20,6 @@ vi.mock("@/hooks/useLibraryAlbums", () => ({
   }),
 }));
 
-vi.mock("@/hooks/useWantedAlbums", () => ({
-  default: () => ({
-    isAlbumWanted: (id: string) => id === "wanted",
-  }),
-}));
-
 vi.mock("@/hooks/useLibraryArtists", () => ({
   default: () => ({
     isArtistInLibrary: (mbid: string) => mbid === "sim-owned",
@@ -39,22 +33,8 @@ vi.mock("@/hooks/useSimilarArtists", () => ({
 }));
 
 vi.mock("@/components/ReleaseGroupCard", () => ({
-  default: ({
-    releaseGroup,
-    inLibrary,
-    initialWanted,
-  }: {
-    releaseGroup: ReleaseGroup;
-    inLibrary?: boolean;
-    initialWanted?: boolean;
-  }) => (
-    <div
-      data-testid={`rg-${releaseGroup.id}`}
-      data-in-library={inLibrary}
-      data-wanted={initialWanted}
-    >
-      {releaseGroup.title}
-    </div>
+  default: ({ releaseGroup }: { releaseGroup: ReleaseGroup }) => (
+    <div data-testid={`rg-${releaseGroup.id}`}>{releaseGroup.title}</div>
   ),
 }));
 
@@ -124,7 +104,7 @@ describe("ArtistPage", () => {
     expect(screen.getByText("Drill EP")).toBeInTheDocument();
   });
 
-  it("passes library status through to release cards and header", () => {
+  it("shows the In Library badge when the artist owns an album", () => {
     mockState.artist = { mbid: "a1", name: "Radiohead" };
     mockState.releaseGroups = [
       makeRg({ id: "in-lib", title: "Owned" }),
@@ -132,33 +112,9 @@ describe("ArtistPage", () => {
     ];
     renderPage();
 
-    expect(screen.getByTestId("rg-in-lib")).toHaveAttribute(
-      "data-in-library",
-      "true"
-    );
-    expect(screen.getByTestId("rg-missing")).toHaveAttribute(
-      "data-in-library",
-      "false"
-    );
+    expect(screen.getByTestId("rg-in-lib")).toBeInTheDocument();
+    expect(screen.getByTestId("rg-missing")).toBeInTheDocument();
     expect(screen.getByText("In Library")).toBeInTheDocument();
-  });
-
-  it("passes wanted status through to release cards", () => {
-    mockState.artist = { mbid: "a1", name: "Radiohead" };
-    mockState.releaseGroups = [
-      makeRg({ id: "wanted", title: "On Wanted" }),
-      makeRg({ id: "not-wanted", title: "Not Wanted" }),
-    ];
-    renderPage();
-
-    expect(screen.getByTestId("rg-wanted")).toHaveAttribute(
-      "data-wanted",
-      "true"
-    );
-    expect(screen.getByTestId("rg-not-wanted")).toHaveAttribute(
-      "data-wanted",
-      "false"
-    );
   });
 
   it("shows an empty message when the artist has no releases", () => {

@@ -15,33 +15,13 @@ vi.mock("@/hooks/useSearch", () => ({
   default: () => mockSearchState,
 }));
 
-vi.mock("@/hooks/useLibraryAlbums", () => ({
-  default: () => ({
-    isAlbumInLibrary: () => false,
-  }),
-}));
-
-vi.mock("@/hooks/useWantedAlbums", () => ({
-  default: () => ({
-    isAlbumWanted: (id: string) => id === "rg-wanted",
-  }),
-}));
-
 vi.mock("@/hooks/useNavigateToArtist", () => ({
   default: () => ({ go: vi.fn(), resolving: false }),
 }));
 
 vi.mock("@/components/ReleaseGroupCard", () => ({
-  default: ({
-    releaseGroup,
-    initialWanted,
-  }: {
-    releaseGroup: { title: string };
-    initialWanted?: boolean;
-  }) => (
-    <div data-testid="release-card" data-wanted={initialWanted}>
-      {releaseGroup.title}
-    </div>
+  default: ({ releaseGroup }: { releaseGroup: { title: string } }) => (
+    <div data-testid="release-card">{releaseGroup.title}</div>
   ),
 }));
 
@@ -129,24 +109,6 @@ describe("SearchPage", () => {
 
     expect(screen.queryByText("Artists")).not.toBeInTheDocument();
     expect(screen.getByText("Albums")).toBeInTheDocument();
-  });
-
-  it("seeds initialWanted from the wanted list for matching albums", () => {
-    mockSearchState.albums = [
-      makeAlbum("rg-wanted", "In Rainbows"),
-      makeAlbum("rg-other", "Amnesiac", 90),
-    ];
-
-    renderSearchPage("Radiohead");
-
-    expect(screen.getByText("In Rainbows")).toHaveAttribute(
-      "data-wanted",
-      "true"
-    );
-    expect(screen.getByText("Amnesiac")).toHaveAttribute(
-      "data-wanted",
-      "false"
-    );
   });
 
   it("shows the no-results state when a query returns nothing", () => {

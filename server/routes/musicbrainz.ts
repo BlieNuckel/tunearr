@@ -7,6 +7,7 @@ import {
   getReleaseGroupById,
   getReleaseGroupLabel,
   getReleaseGroupDate,
+  getAlbumDetails,
 } from "../api/musicbrainz/releaseGroups";
 import {
   getArtistById,
@@ -148,6 +149,27 @@ router.get(
     res.json(result);
   }
 );
+
+router.get("/album/:mbid", rateLimiter, async (req: Request, res: Response) => {
+  const { mbid } = req.params;
+  const album = await getAlbumDetails(mbid as string);
+
+  if (!album) {
+    return res.status(404).json({ error: "Album not found" });
+  }
+
+  const [moreFromArtist, label] = await Promise.all([
+    album.artistMbid
+      ? fetchReleaseGroupsForArtist(album.artistMbid)
+      : Promise.resolve([]),
+    getReleaseGroupLabel(mbid as string),
+  ]);
+
+  res.json({
+    album: { ...album, label },
+    moreFromArtist: moreFromArtist.filter((rg) => rg.id !== mbid),
+  });
+});
 
 function sendSSE(res: Response, event: string, data: unknown) {
   res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);

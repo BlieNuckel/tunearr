@@ -4,6 +4,7 @@ import RequireAuth from "./components/RequireAuth";
 import RequireOnboarding from "./components/RequireOnboarding";
 import SearchPage from "./pages/SearchPage/SearchPage";
 import ArtistPage from "./pages/ArtistPage/ArtistPage";
+import AlbumPage from "./pages/AlbumPage/AlbumPage";
 import DiscoverPage from "./pages/DiscoverPage/DiscoverPage";
 import LibraryPage from "./pages/LibraryPage/LibraryPage";
 import SettingsLayout from "./pages/SettingsPage/SettingsLayout";
@@ -30,6 +31,7 @@ function App() {
             <Route path="/" element={<DiscoverPage />} />
             <Route path="/search" element={<SearchPage />} />
             <Route path="/artist/:mbid" element={<ArtistPage />} />
+            <Route path="/album/:mbid" element={<AlbumPage />} />
             <Route path="/library/upload" element={<UploadPage />} />
             <Route path="/library" element={<LibraryPage />}>
               <Route

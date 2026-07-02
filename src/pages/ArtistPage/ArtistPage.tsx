@@ -3,7 +3,6 @@ import { useParams } from "react-router-dom";
 import useArtistDetails from "@/hooks/useArtistDetails";
 import useLibraryAlbums from "@/hooks/useLibraryAlbums";
 import useLibraryArtists from "@/hooks/useLibraryArtists";
-import useWantedAlbums from "@/hooks/useWantedAlbums";
 import useSimilarArtists from "@/hooks/useSimilarArtists";
 import { groupArtistReleases } from "@/utils/groupArtistReleases";
 import ArtistHeader from "./components/ArtistHeader";
@@ -15,7 +14,6 @@ export default function ArtistPage() {
   const { mbid } = useParams<{ mbid: string }>();
   const { artist, releaseGroups, loading, error } = useArtistDetails(mbid);
   const { isAlbumInLibrary } = useLibraryAlbums();
-  const { isAlbumWanted } = useWantedAlbums();
   const { isArtistInLibrary } = useLibraryArtists();
   const { artists: similarArtists, loading: similarLoading } =
     useSimilarArtists(artist?.name, mbid);
@@ -59,8 +57,6 @@ export default function ArtistPage() {
             key={section.title}
             title={section.title}
             items={section.items}
-            isAlbumInLibrary={isAlbumInLibrary}
-            isAlbumWanted={isAlbumWanted}
           />
         ))
       )}

@@ -9,6 +9,16 @@ import type {
   MusicBrainzLabelReleasesResponse,
 } from "./types";
 
+export type AlbumDetails = {
+  mbid: string;
+  title: string;
+  artistName: string;
+  artistMbid: string | null;
+  firstReleaseDate: string | null;
+  primaryType: string | null;
+  secondaryTypes: string[];
+};
+
 /** Search for release groups (albums/EPs) by text query */
 export async function searchReleaseGroups(
   query: string
@@ -56,6 +66,31 @@ export async function getReleaseGroupById(
   return {
     artistName: data["artist-credit"]?.[0]?.name ?? "Unknown Artist",
     albumTitle: data.title ?? "Unknown Album",
+  };
+}
+
+/** Fetch album metadata for a release group, including artist MBID and type */
+export async function getAlbumDetails(
+  releaseGroupMbid: string
+): Promise<AlbumDetails | null> {
+  const url = `${MB_BASE}/release-group/${releaseGroupMbid}?inc=artist-credits&fmt=json`;
+  const response = await rateLimitedMbFetch(url, { headers: MB_HEADERS });
+
+  if (!response.ok) {
+    return null;
+  }
+
+  const data: MusicBrainzReleaseGroup = await response.json();
+  const credit = data["artist-credit"]?.[0];
+
+  return {
+    mbid: data.id,
+    title: data.title ?? "Unknown Album",
+    artistName: credit?.name ?? "Unknown Artist",
+    artistMbid: credit?.artist?.id ?? null,
+    firstReleaseDate: data["first-release-date"] || null,
+    primaryType: data["primary-type"] || null,
+    secondaryTypes: data["secondary-types"] ?? [],
   };
 }
 
