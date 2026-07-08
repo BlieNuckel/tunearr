@@ -11,10 +11,7 @@ export type AuthUser = {
 };
 
 export type AuthStatus =
-  | "loading"
-  | "needs-setup"
-  | "unauthenticated"
-  | "authenticated";
+  "loading" | "needs-setup" | "unauthenticated" | "authenticated";
 
 export interface AuthContextValue {
   status: AuthStatus;

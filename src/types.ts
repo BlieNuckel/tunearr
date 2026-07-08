@@ -63,10 +63,7 @@ export interface RequestUser {
 }
 
 export type LidarrLifecycleStatus =
-  | "downloading"
-  | "wanted"
-  | "imported"
-  | "failed";
+  "downloading" | "wanted" | "imported" | "failed";
 
 export interface LidarrLifecycle {
   status: LidarrLifecycleStatus | null;
@@ -115,11 +112,7 @@ export interface SpendingSummary {
 }
 
 export type MonitorState =
-  | "idle"
-  | "adding"
-  | "success"
-  | "already_monitored"
-  | "error";
+  "idle" | "adding" | "success" | "already_monitored" | "error";
 
 export type ReleaseNotificationSource = "musicbrainz" | "deezer" | "apple";
 

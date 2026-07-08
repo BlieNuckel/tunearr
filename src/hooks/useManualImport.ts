@@ -15,12 +15,7 @@ export type ManualImportItem = {
 };
 
 type ImportStep =
-  | "idle"
-  | "uploading"
-  | "reviewing"
-  | "importing"
-  | "done"
-  | "error";
+  "idle" | "uploading" | "reviewing" | "importing" | "done" | "error";
 
 type ImportState = {
   step: ImportStep;

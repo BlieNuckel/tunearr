@@ -114,12 +114,10 @@ router.post("/auto-setup", async (req: Request, res: Response) => {
     host,
     port,
     downloadClientSchemas.data
-  ).catch(
-    (e): SetupResult => ({
-      success: false,
-      error: e instanceof Error ? e.message : String(e),
-    })
-  );
+  ).catch((e): SetupResult => ({
+    success: false,
+    error: e instanceof Error ? e.message : String(e),
+  }));
 
   let indexer: SetupResult;
   if (!downloadClient.success) {
@@ -143,12 +141,10 @@ router.post("/auto-setup", async (req: Request, res: Response) => {
         port,
         indexerSchemas.data,
         tunearrClient.id
-      ).catch(
-        (e): SetupResult => ({
-          success: false,
-          error: e instanceof Error ? e.message : String(e),
-        })
-      );
+      ).catch((e): SetupResult => ({
+        success: false,
+        error: e instanceof Error ? e.message : String(e),
+      }));
     }
   }
 

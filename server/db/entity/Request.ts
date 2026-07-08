@@ -13,10 +13,7 @@ import { User } from "./User";
 export type RequestStatus = "pending" | "approved" | "declined";
 
 export type LidarrLifecycleStatus =
-  | "wanted"
-  | "downloading"
-  | "imported"
-  | "failed";
+  "wanted" | "downloading" | "imported" | "failed";
 
 @Entity("requests")
 export class Request {

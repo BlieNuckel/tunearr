@@ -10,12 +10,7 @@ interface BottomSheetProps {
 }
 
 type SheetPhase =
-  | "entering"
-  | "open"
-  | "dragging"
-  | "settling"
-  | "exiting"
-  | "closed";
+  "entering" | "open" | "dragging" | "settling" | "exiting" | "closed";
 
 const DISMISS_THRESHOLD = 100;
 const EXIT_DURATION = 200;

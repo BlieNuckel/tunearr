@@ -39,8 +39,7 @@ async function extractFiles(dataTransfer: DataTransfer): Promise<File[]> {
   const folderEntry = items
     .map((item) => item.webkitGetAsEntry?.())
     .find((entry) => entry?.isDirectory) as
-    | FileSystemDirectoryEntry
-    | undefined;
+    FileSystemDirectoryEntry | undefined;
 
   if (folderEntry) {
     return readFolderEntries(folderEntry);

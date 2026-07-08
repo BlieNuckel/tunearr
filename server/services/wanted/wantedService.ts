@@ -3,8 +3,7 @@ import { getReleaseGroupById } from "../../api/musicbrainz/releaseGroups";
 import { createLogger } from "../../logger";
 
 type AddWantedResult =
-  | { status: "added"; id: number }
-  | { status: "already_wanted"; id: number };
+  { status: "added"; id: number } | { status: "already_wanted"; id: number };
 
 type RemoveWantedResult = { status: "removed" } | { status: "not_found" };
 

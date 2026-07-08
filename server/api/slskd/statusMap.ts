@@ -1,11 +1,7 @@
 import type { SlskdTransfer } from "./types";
 
 type SabnzbdStatus =
-  | "Downloading"
-  | "Queued"
-  | "Paused"
-  | "Completed"
-  | "Failed";
+  "Downloading" | "Queued" | "Paused" | "Completed" | "Failed";
 
 export function mapTransferState(stateFlags: string): SabnzbdStatus {
   const flags = stateFlags.split(", ").map((s) => s.trim());

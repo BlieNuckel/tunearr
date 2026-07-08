@@ -11,9 +11,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export type LibraryPreference =
-  | "prefer_new"
-  | "prefer_library"
-  | "no_preference";
+  "prefer_new" | "prefer_library" | "no_preference";
 
 export type PurchaseDecisionConfig = {
   labelBlocklist: string[];
@@ -180,8 +178,7 @@ function mergeWithDefaults(saved: Record<string, unknown>): IConfig {
 export const getConfig = (): IConfig => {
   const db = getRawDb();
   const row = db.prepare("SELECT data FROM config WHERE id = 1").get() as
-    | { data: string }
-    | undefined;
+    { data: string } | undefined;
 
   if (!row) {
     return {
