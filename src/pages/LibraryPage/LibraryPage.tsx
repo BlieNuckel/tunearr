@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/useAuth";
 import { hasPermission } from "@shared/permissions";
@@ -19,6 +19,9 @@ import PurchaseList from "./components/PurchaseList";
 import SpendingSummary from "./components/SpendingSummary";
 import FollowingList from "./components/FollowingList";
 import Skeleton from "@/components/Skeleton";
+import RefreshButton from "@/components/RefreshButton";
+
+type LibraryTab = "purchases" | "wanted" | "following" | "requests";
 
 function buildLibraryTabs(unseenCount: number): SettingsRoute[] {
   return [
@@ -109,6 +112,7 @@ export default function LibraryPage() {
     loading: wantedLoading,
     error: wantedError,
     removeItem: removeWantedItem,
+    refresh: refreshWanted,
   } = useWantedList();
   const {
     items: purchaseItems,
@@ -116,7 +120,29 @@ export default function LibraryPage() {
     loading: purchasesLoading,
     error: purchasesError,
     removeItem: removePurchaseItem,
+    refresh: refreshPurchases,
   } = usePurchaseList();
+
+  const activeTab: LibraryTab | null = isPurchasesTab
+    ? "purchases"
+    : isWantedTab
+      ? "wanted"
+      : isFollowingTab
+        ? "following"
+        : isRequestsTab
+          ? "requests"
+          : null;
+  const prevTabRef = useRef<LibraryTab | null>(null);
+
+  useEffect(() => {
+    if (activeTab === null || prevTabRef.current === activeTab) return;
+    const isFirstTab = prevTabRef.current === null;
+    prevTabRef.current = activeTab;
+    if (isFirstTab) return;
+    if (activeTab === "requests") void refresh();
+    else if (activeTab === "wanted") void refreshWanted();
+    else if (activeTab === "purchases") void refreshPurchases();
+  }, [activeTab, refresh, refreshWanted, refreshPurchases]);
 
   const handleFilterChange = useCallback((key: string, values: string[]) => {
     setFilters((prev) => ({ ...prev, [key]: values }));
@@ -150,6 +176,55 @@ export default function LibraryPage() {
     [refresh]
   );
 
+  const tabContent = (
+    <>
+      {isPurchasesTab && (
+        <PurchaseList
+          items={purchaseItems}
+          loading={purchasesLoading}
+          error={purchasesError}
+          onRemove={removePurchaseItem}
+        />
+      )}
+
+      {isWantedTab && (
+        <WantedList
+          items={wantedItems}
+          loading={wantedLoading}
+          error={wantedError}
+          onRemove={removeWantedItem}
+        />
+      )}
+
+      {isFollowingTab && <FollowingList />}
+
+      {isRequestsTab && (
+        <div className="flex flex-col gap-6">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <RequestFilter values={filters} onChange={handleFilterChange} />
+            <RefreshButton onRefresh={refresh} ariaLabel="Refresh requests" />
+          </div>
+
+          <RequestList
+            requests={requests}
+            loading={loading}
+            error={error}
+            emptyMessage={
+              showMine ? "You haven't made any requests yet" : "No requests yet"
+            }
+            showUser={effectiveShowAll}
+            showActions={canManageRequests && effectiveShowAll}
+            showAdminDetails={isAdmin}
+            onApprove={approveRequest}
+            onDecline={declineRequest}
+            onSearch={handleSearch}
+            onUnmonitor={handleUnmonitor}
+          />
+        </div>
+      )}
+    </>
+  );
+
   if (isMobile && isSubTab) {
     return (
       <div className="space-y-6">
@@ -158,51 +233,7 @@ export default function LibraryPage() {
           parentRoute="/library"
           mobileBackLabel="Library"
         >
-          <>
-            {isPurchasesTab && (
-              <PurchaseList
-                items={purchaseItems}
-                loading={purchasesLoading}
-                error={purchasesError}
-                onRemove={removePurchaseItem}
-              />
-            )}
-
-            {isWantedTab && (
-              <WantedList
-                items={wantedItems}
-                loading={wantedLoading}
-                error={wantedError}
-                onRemove={removeWantedItem}
-              />
-            )}
-
-            {isFollowingTab && <FollowingList />}
-
-            {isRequestsTab && (
-              <div className="flex flex-col gap-6">
-                <RequestFilter values={filters} onChange={handleFilterChange} />
-
-                <RequestList
-                  requests={requests}
-                  loading={loading}
-                  error={error}
-                  emptyMessage={
-                    showMine
-                      ? "You haven't made any requests yet"
-                      : "No requests yet"
-                  }
-                  showUser={effectiveShowAll}
-                  showActions={canManageRequests && effectiveShowAll}
-                  showAdminDetails={isAdmin}
-                  onApprove={approveRequest}
-                  onDecline={declineRequest}
-                  onSearch={handleSearch}
-                  onUnmonitor={handleUnmonitor}
-                />
-              </div>
-            )}
-          </>
+          {tabContent}
         </SettingsTabs>
       </div>
     );
@@ -236,51 +267,7 @@ export default function LibraryPage() {
         parentRoute="/library"
         mobileBackLabel="Library"
       >
-        <>
-          {isPurchasesTab && (
-            <PurchaseList
-              items={purchaseItems}
-              loading={purchasesLoading}
-              error={purchasesError}
-              onRemove={removePurchaseItem}
-            />
-          )}
-
-          {isWantedTab && (
-            <WantedList
-              items={wantedItems}
-              loading={wantedLoading}
-              error={wantedError}
-              onRemove={removeWantedItem}
-            />
-          )}
-
-          {isFollowingTab && <FollowingList />}
-
-          {isRequestsTab && (
-            <div className="flex flex-col gap-6">
-              <RequestFilter values={filters} onChange={handleFilterChange} />
-
-              <RequestList
-                requests={requests}
-                loading={loading}
-                error={error}
-                emptyMessage={
-                  showMine
-                    ? "You haven't made any requests yet"
-                    : "No requests yet"
-                }
-                showUser={effectiveShowAll}
-                showActions={canManageRequests && effectiveShowAll}
-                showAdminDetails={isAdmin}
-                onApprove={approveRequest}
-                onDecline={declineRequest}
-                onSearch={handleSearch}
-                onUnmonitor={handleUnmonitor}
-              />
-            </div>
-          )}
-        </>
+        {tabContent}
       </SettingsTabs>
     </div>
   );

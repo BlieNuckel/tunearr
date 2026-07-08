@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useNavigate } from "react-router-dom";
 import LibraryPage from "../LibraryPage";
 import { AuthContext, type AuthContextValue } from "@/context/authContextDef";
 import { Permission } from "@shared/permissions";
@@ -109,6 +109,32 @@ function renderWithAuth(permissions: number, route = "/library/requests") {
       </AuthContext.Provider>
     </MemoryRouter>
   );
+}
+
+function NavigateButton({ to, label }: { to: string; label: string }) {
+  const navigate = useNavigate();
+  return (
+    <button type="button" onClick={() => navigate(to)}>
+      {label}
+    </button>
+  );
+}
+
+function renderWithNav(permissions: number, route = "/library/requests") {
+  return render(
+    <MemoryRouter initialEntries={[route]}>
+      <AuthContext.Provider value={makeAuthContext(permissions)}>
+        <NavigateButton to="/library/wanted" label="go-wanted" />
+        <NavigateButton to="/library/requests" label="go-requests" />
+        <LibraryPage />
+      </AuthContext.Provider>
+    </MemoryRouter>
+  );
+}
+
+function countFetchCalls(url: string): number {
+  return vi.mocked(fetch).mock.calls.filter(([calledUrl]) => calledUrl === url)
+    .length;
 }
 
 async function toggleFilterChip(
@@ -412,5 +438,82 @@ describe("LibraryPage", () => {
     expect(
       screen.queryByText("Supporting artists this month")
     ).not.toBeInTheDocument();
+  });
+
+  it("shows a refresh button on the requests tab", async () => {
+    renderWithAuth(Permission.REQUEST);
+
+    expect(
+      screen.getByRole("button", { name: "Refresh requests" })
+    ).toBeInTheDocument();
+  });
+
+  it("does not show the requests refresh button on other tabs", () => {
+    renderWithAuth(Permission.REQUEST, "/library/wanted");
+
+    expect(
+      screen.queryByRole("button", { name: "Refresh requests" })
+    ).not.toBeInTheDocument();
+  });
+
+  it("refetches requests when the refresh button is clicked", async () => {
+    renderWithAuth(Permission.ADMIN);
+    const user = userEvent.setup();
+
+    await waitFor(() => {
+      expect(countFetchCalls("/api/requests")).toBe(1);
+    });
+
+    await user.click(screen.getByRole("button", { name: "Refresh requests" }));
+
+    await waitFor(() => {
+      expect(countFetchCalls("/api/requests")).toBe(2);
+    });
+  });
+
+  it("refetches wanted list when switching to the wanted tab", async () => {
+    renderWithNav(Permission.ADMIN, "/library/requests");
+    const user = userEvent.setup();
+
+    await waitFor(() => {
+      expect(countFetchCalls("/api/wanted")).toBe(1);
+    });
+
+    await user.click(screen.getByRole("button", { name: "go-wanted" }));
+
+    await waitFor(() => {
+      expect(countFetchCalls("/api/wanted")).toBe(2);
+    });
+  });
+
+  it("refetches requests when switching back to the requests tab", async () => {
+    renderWithNav(Permission.ADMIN, "/library/wanted");
+    const user = userEvent.setup();
+
+    await waitFor(() => {
+      expect(countFetchCalls("/api/requests")).toBe(1);
+    });
+
+    await user.click(screen.getByRole("button", { name: "go-requests" }));
+
+    await waitFor(() => {
+      expect(countFetchCalls("/api/requests")).toBe(2);
+    });
+  });
+
+  it("does not refetch when re-rendering on the same tab", async () => {
+    renderWithNav(Permission.ADMIN, "/library/requests");
+    const user = userEvent.setup();
+
+    await waitFor(() => {
+      expect(countFetchCalls("/api/requests")).toBe(1);
+    });
+
+    await user.click(screen.getByRole("button", { name: "go-requests" }));
+
+    await waitFor(() => {
+      expect(countFetchCalls("/api/wanted")).toBe(1);
+    });
+    expect(countFetchCalls("/api/requests")).toBe(1);
   });
 });
