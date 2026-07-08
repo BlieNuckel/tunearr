@@ -2,7 +2,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockGetConfig = vi.fn();
 const mockSetConfig = vi.fn();
-const mockExistsSync = vi.fn();
+const mockValidateWritableDirectory = vi.fn();
+const mockListDirectorySuggestions = vi.fn();
 const mockClearPromotedAlbumCache = vi.fn();
 const mockTestLidarrConnection = vi.fn();
 const mockTestSlskdConnection = vi.fn();
@@ -12,9 +13,11 @@ vi.mock("../config", () => ({
   setConfig: (...args: unknown[]) => mockSetConfig(...args),
 }));
 
-vi.mock("fs", () => ({
-  default: { existsSync: (p: string) => mockExistsSync(p) },
-  existsSync: (p: string) => mockExistsSync(p),
+vi.mock("../services/pathValidation", () => ({
+  validateWritableDirectory: (...args: unknown[]) =>
+    mockValidateWritableDirectory(...args),
+  listDirectorySuggestions: (...args: unknown[]) =>
+    mockListDirectorySuggestions(...args),
 }));
 
 vi.mock("../promotedAlbum/getPromotedAlbum", () => ({
@@ -95,58 +98,83 @@ describe("PUT /settings", () => {
     });
   });
 
-  it("rejects non-existent import path", async () => {
-    mockExistsSync.mockReturnValue(false);
+  it("rejects an invalid import path", async () => {
+    mockValidateWritableDirectory.mockReturnValue({
+      valid: false,
+      error: 'Path "/bad/path" does not exist.',
+    });
     const res = await request(app)
       .put("/settings")
       .send({ importPath: "/bad/path" });
     expect(res.status).toBe(400);
     expect(res.body.error).toContain("/bad/path");
+    expect(mockSetConfig).not.toHaveBeenCalled();
   });
 
-  it("accepts existing import path", async () => {
-    mockExistsSync.mockReturnValue(true);
+  it("accepts a valid import path", async () => {
+    mockValidateWritableDirectory.mockReturnValue({ valid: true });
     const res = await request(app)
       .put("/settings")
       .send({ importPath: "/good/path" });
     expect(res.status).toBe(200);
+    expect(mockValidateWritableDirectory).toHaveBeenCalledWith("/good/path");
   });
 });
 
-describe("POST /settings/validate-import-path", () => {
+describe("POST /settings/validate-path", () => {
   it("returns valid for empty path", async () => {
     const res = await request(app)
-      .post("/settings/validate-import-path")
-      .send({ importPath: "" });
+      .post("/settings/validate-path")
+      .send({ path: "" });
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ valid: true });
+    expect(mockValidateWritableDirectory).not.toHaveBeenCalled();
+  });
+
+  it("returns valid for missing path", async () => {
+    const res = await request(app).post("/settings/validate-path").send({});
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ valid: true });
   });
 
-  it("returns valid for missing importPath", async () => {
+  it("returns valid for a writable directory", async () => {
+    mockValidateWritableDirectory.mockReturnValue({ valid: true });
     const res = await request(app)
-      .post("/settings/validate-import-path")
-      .send({});
+      .post("/settings/validate-path")
+      .send({ path: "/good/path" });
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ valid: true });
+    expect(mockValidateWritableDirectory).toHaveBeenCalledWith("/good/path");
   });
 
-  it("returns valid for existing path", async () => {
-    mockExistsSync.mockReturnValue(true);
+  it("returns 400 with the validation error for an invalid path", async () => {
+    mockValidateWritableDirectory.mockReturnValue({
+      valid: false,
+      error: 'Tunearr does not have write permission for "/bad/path".',
+    });
     const res = await request(app)
-      .post("/settings/validate-import-path")
-      .send({ importPath: "/good/path" });
-    expect(res.status).toBe(200);
-    expect(res.body).toEqual({ valid: true });
-    expect(mockExistsSync).toHaveBeenCalledWith("/good/path");
-  });
-
-  it("returns 400 for non-existent path", async () => {
-    mockExistsSync.mockReturnValue(false);
-    const res = await request(app)
-      .post("/settings/validate-import-path")
-      .send({ importPath: "/bad/path" });
+      .post("/settings/validate-path")
+      .send({ path: "/bad/path" });
     expect(res.status).toBe(400);
-    expect(res.body.error).toContain("/bad/path");
+    expect(res.body.error).toContain("write permission");
+  });
+});
+
+describe("GET /settings/browse", () => {
+  it("returns directory suggestions", async () => {
+    mockListDirectorySuggestions.mockReturnValue(["/imports", "/images"]);
+    const res = await request(app).get("/settings/browse?path=/im");
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ suggestions: ["/imports", "/images"] });
+    expect(mockListDirectorySuggestions).toHaveBeenCalledWith("/im");
+  });
+
+  it("returns empty suggestions when path is missing", async () => {
+    mockListDirectorySuggestions.mockReturnValue([]);
+    const res = await request(app).get("/settings/browse");
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ suggestions: [] });
+    expect(mockListDirectorySuggestions).toHaveBeenCalledWith("");
   });
 });
 

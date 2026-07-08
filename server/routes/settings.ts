@@ -1,7 +1,10 @@
 import type { Request, Response } from "express";
 import express from "express";
-import fs from "fs";
 import { getConfig, setConfig } from "../config";
+import {
+  listDirectorySuggestions,
+  validateWritableDirectory,
+} from "../services/pathValidation";
 import { clearPromotedAlbumCache } from "../promotedAlbum/getPromotedAlbum";
 import { clearPromotedArtistsCache } from "../promotedArtists/getPromotedArtists";
 import { testLidarrConnection } from "../services/settings";
@@ -28,10 +31,11 @@ router.get("/", (_req: Request, res: Response) => {
 router.put("/", (req: Request, res: Response) => {
   const partialConfig = req.body;
 
-  if (partialConfig.importPath && !fs.existsSync(partialConfig.importPath)) {
-    return res.status(400).json({
-      error: `Import path "${partialConfig.importPath}" does not exist. Make sure the directory is created or the volume is mounted.`,
-    });
+  if (partialConfig.importPath) {
+    const result = validateWritableDirectory(partialConfig.importPath);
+    if (!result.valid) {
+      return res.status(400).json({ error: result.error });
+    }
   }
 
   setConfig(partialConfig);
@@ -44,20 +48,24 @@ router.put("/", (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-router.post("/validate-import-path", (req: Request, res: Response) => {
-  const { importPath } = req.body;
+router.post("/validate-path", (req: Request, res: Response) => {
+  const { path: dirPath } = req.body;
 
-  if (!importPath) {
+  if (!dirPath) {
     return res.json({ valid: true });
   }
 
-  if (!fs.existsSync(importPath)) {
-    return res.status(400).json({
-      error: `Import path "${importPath}" does not exist. Make sure the directory is created or the volume is mounted.`,
-    });
+  const result = validateWritableDirectory(dirPath);
+  if (!result.valid) {
+    return res.status(400).json({ error: result.error });
   }
 
   res.json({ valid: true });
+});
+
+router.get("/browse", (req: Request, res: Response) => {
+  const dirPath = typeof req.query.path === "string" ? req.query.path : "";
+  res.json({ suggestions: listDirectorySuggestions(dirPath) });
 });
 
 router.post("/test", async (req: Request, res: Response) => {

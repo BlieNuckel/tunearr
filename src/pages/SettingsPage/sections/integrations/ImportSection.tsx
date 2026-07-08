@@ -1,3 +1,5 @@
+import PathInput from "@/components/PathInput";
+
 interface ImportSectionProps {
   importPath: string;
   onImportPathChange: (path: string) => void;
@@ -16,12 +18,11 @@ export default function ImportSection({
         <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
           Import Path
         </label>
-        <input
-          type="text"
+        <PathInput
           value={importPath}
-          onChange={(e) => onImportPathChange(e.target.value)}
+          onChange={onImportPathChange}
           placeholder="/imports"
-          className="w-full sm:w-sm px-3 py-2 bg-white dark:bg-gray-800 border-2 border-black rounded-lg text-gray-900 dark:text-gray-100 placeholder-gray-200 dark:placeholder-gray-600 focus:outline-none focus:border-amber-400 shadow-cartoon-md"
+          className="w-full sm:w-sm"
         />
         <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">
           Shared volume path accessible by both this app and Lidarr for file
