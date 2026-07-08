@@ -164,8 +164,7 @@ async function selectAlbumWithPreference(
   reason: TraceSelectionReason;
 } | null> {
   let fallback:
-    | { album: (typeof shuffled)[0]; rgMbid: string; year: string }
-    | undefined;
+    { album: (typeof shuffled)[0]; rgMbid: string; year: string } | undefined;
 
   for (const album of shuffled) {
     const rgInfo = await getRgInfo(album.mbid);

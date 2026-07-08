@@ -1,9 +1,7 @@
 import { createContext } from "react";
 
 export type LibraryPreference =
-  | "prefer_new"
-  | "prefer_library"
-  | "no_preference";
+  "prefer_new" | "prefer_library" | "no_preference";
 
 export type TopArtistsRange = "all" | "4weeks" | "6months" | "12months";
 

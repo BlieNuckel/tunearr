@@ -4,8 +4,7 @@ import { getConfig } from "../../config";
 import { createLogger } from "../../logger";
 
 type RecordPurchaseResult =
-  | { status: "recorded"; id: number }
-  | { status: "updated"; id: number };
+  { status: "recorded"; id: number } | { status: "updated"; id: number };
 
 type RemovePurchaseResult = { status: "removed" } | { status: "not_found" };
 

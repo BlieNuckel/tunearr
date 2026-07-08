@@ -8,8 +8,7 @@ import {
 import { createLogger } from "../../logger";
 
 type AddFollowResult =
-  | { status: "added"; id: number }
-  | { status: "already_following"; id: number };
+  { status: "added"; id: number } | { status: "already_following"; id: number };
 
 type RemoveFollowResult = { status: "removed" } | { status: "not_found" };
 
