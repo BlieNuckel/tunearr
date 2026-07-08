@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useMemo } from "react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/context/useAuth";
 import { hasPermission, Permission } from "@shared/permissions";
@@ -7,6 +7,8 @@ import ImportReview from "@/components/ImportReview";
 import Spinner from "@/components/Spinner";
 import ImageWithShimmer from "@/components/ImageWithShimmer";
 import useFileUpload from "@/hooks/useFileUpload";
+import useAsyncData from "@/hooks/useAsyncData";
+import type { FetchContext } from "@/hooks/useAsyncData";
 import { pastelColorFromId } from "@/utils/color";
 import { ArrowLeftIcon, XMarkIcon, DocumentIcon } from "@/components/icons";
 
@@ -21,27 +23,16 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+async function fetchReleaseGroupInfo({
+  key,
+}: FetchContext): Promise<ReleaseGroupInfo | null> {
+  const res = await fetch(`/api/musicbrainz/release-group/${key}`);
+  return res.ok ? res.json() : null;
+}
+
 function useReleaseGroupInfo(mbid: string | null) {
-  const [info, setInfo] = useState<ReleaseGroupInfo | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  const fetchInfo = useCallback(async (id: string) => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/musicbrainz/release-group/${id}`);
-      setInfo(res.ok ? await res.json() : null);
-    } catch {
-      setInfo(null);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (mbid) fetchInfo(mbid);
-  }, [mbid, fetchInfo]);
-
-  return { info, loading };
+  const { data, loading } = useAsyncData(mbid, fetchReleaseGroupInfo);
+  return { info: data ?? null, loading };
 }
 
 export default function UploadPage() {

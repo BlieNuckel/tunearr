@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import useAsyncData from "./useAsyncData";
+import type { FetchContext } from "./useAsyncData";
 import type { ArtistDetails, ReleaseGroup } from "../types";
 
 interface ArtistDetailsResponse {
@@ -6,45 +7,27 @@ interface ArtistDetailsResponse {
   releaseGroups: ReleaseGroup[];
 }
 
+async function fetchArtistDetails({
+  key,
+}: FetchContext): Promise<ArtistDetailsResponse> {
+  const res = await fetch(`/api/musicbrainz/artist/${key}`);
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Failed to load artist");
+  }
+  return res.json();
+}
+
 export default function useArtistDetails(mbid: string | undefined) {
-  const [artist, setArtist] = useState<ArtistDetails | null>(null);
-  const [releaseGroups, setReleaseGroups] = useState<ReleaseGroup[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { data, loading, error } = useAsyncData(
+    mbid ?? null,
+    fetchArtistDetails
+  );
 
-  useEffect(() => {
-    if (!mbid) return;
-
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-
-    const load = async () => {
-      try {
-        const res = await fetch(`/api/musicbrainz/artist/${mbid}`);
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data.error || "Failed to load artist");
-        }
-        const data: ArtistDetailsResponse = await res.json();
-        if (cancelled) return;
-        setArtist(data.artist);
-        setReleaseGroups(data.releaseGroups || []);
-      } catch (err) {
-        if (cancelled) return;
-        setError(err instanceof Error ? err.message : "Failed to load artist");
-        setArtist(null);
-        setReleaseGroups([]);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-
-    void load();
-    return () => {
-      cancelled = true;
-    };
-  }, [mbid]);
-
-  return { artist, releaseGroups, loading, error };
+  return {
+    artist: data?.artist ?? null,
+    releaseGroups: data?.releaseGroups ?? [],
+    loading,
+    error,
+  };
 }

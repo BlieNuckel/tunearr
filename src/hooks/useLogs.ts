@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+import useAsyncData from "./useAsyncData";
+import type { FetchContext } from "./useAsyncData";
 
 type LogLevel = "debug" | "info" | "warn" | "error";
 
@@ -25,54 +26,45 @@ type UseLogsParams = {
   search?: string;
 };
 
-export default function useLogs({
+function buildLogsUrl({
   page,
   pageSize,
   level,
   search,
-}: UseLogsParams) {
-  const [data, setData] = useState<LogsResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+}: UseLogsParams): string {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    pageSize: pageSize.toString(),
+  });
 
-  const fetchLogs = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const params = new URLSearchParams({
-        page: page.toString(),
-        pageSize: pageSize.toString(),
-      });
-
-      if (level) {
-        for (const l of level) {
-          params.append("level", l);
-        }
-      }
-
-      if (search) {
-        params.append("search", search);
-      }
-
-      const res = await fetch(`/api/logs?${params.toString()}`);
-
-      if (!res.ok) {
-        throw new Error("Failed to fetch logs");
-      }
-
-      const responseData = await res.json();
-      setData(responseData);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch logs");
-    } finally {
-      setLoading(false);
+  if (level) {
+    for (const l of level) {
+      params.append("level", l);
     }
-  }, [page, pageSize, level, search]);
+  }
 
-  useEffect(() => {
-    fetchLogs();
-  }, [fetchLogs]);
+  if (search) {
+    params.append("search", search);
+  }
 
-  return { data, loading, error, refetch: fetchLogs };
+  return `/api/logs?${params.toString()}`;
+}
+
+async function fetchLogs({ key }: FetchContext): Promise<LogsResponse> {
+  const res = await fetch(key);
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch logs");
+  }
+
+  return res.json();
+}
+
+export default function useLogs(params: UseLogsParams) {
+  const { data, loading, error, refresh } = useAsyncData<LogsResponse>(
+    buildLogsUrl(params),
+    fetchLogs
+  );
+
+  return { data, loading, error, refetch: refresh };
 }

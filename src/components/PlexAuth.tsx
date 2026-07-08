@@ -131,22 +131,27 @@ export default function PlexAuth({
     if (fetchState.status !== "idle") return;
 
     let cancelled = false;
-    setFetchState({ status: "fetching" });
-
     const clientId = getClientId();
 
-    Promise.all([
-      fetchAccount(),
-      fetch(`/api/plex/servers?clientId=${encodeURIComponent(clientId)}`).then(
-        (res) => (res.ok ? res.json() : null)
-      ),
-    ]).then(([acct, serversData]) => {
+    const load = async () => {
+      if (cancelled) return;
+      setFetchState({ status: "fetching" });
+
+      const [acct, serversData] = await Promise.all([
+        fetchAccount(),
+        fetch(
+          `/api/plex/servers?clientId=${encodeURIComponent(clientId)}`
+        ).then((res) => (res.ok ? res.json() : null)),
+      ]);
+
       if (cancelled) return;
       setFetchState({ status: "done", account: acct });
       if (serversData?.servers) {
         setServers((prev) => (prev.length > 0 ? prev : serversData.servers));
       }
-    });
+    };
+
+    Promise.resolve().then(load);
 
     return () => {
       cancelled = true;

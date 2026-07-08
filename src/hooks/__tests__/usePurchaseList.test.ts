@@ -164,7 +164,13 @@ describe("usePurchaseList", () => {
         new Response(JSON.stringify(mockSummary), { status: 200 })
       );
 
-    await act(() => result.current.refresh());
+    let refreshPromise!: Promise<void>;
+    act(() => {
+      refreshPromise = result.current.refresh();
+    });
+    await act(async () => {
+      await refreshPromise;
+    });
 
     expect(result.current.items).toEqual(mockItems);
     expect(result.current.summary).toEqual(mockSummary);

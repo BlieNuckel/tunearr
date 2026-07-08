@@ -94,7 +94,7 @@ describe("PlexAuth", () => {
     );
   });
 
-  it("shows loading state while fetching account", () => {
+  it("shows loading state while fetching account", async () => {
     mockUseAuth.mockReturnValue({
       user: { hasPlexToken: true },
       status: "authenticated",
@@ -105,7 +105,7 @@ describe("PlexAuth", () => {
 
     render(<PlexAuth {...defaultProps} />);
 
-    expect(screen.getByText("Loading account...")).toBeInTheDocument();
+    expect(await screen.findByText("Loading account...")).toBeInTheDocument();
   });
 
   it("falls back to sign-in button when account fetch fails", async () => {

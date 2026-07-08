@@ -1,4 +1,4 @@
-import { useEffect, useState, SubmitEvent, RefObject } from "react";
+import { useState, SubmitEvent, RefObject } from "react";
 import { SearchIcon } from "@/components/icons";
 import useHaptics from "@/hooks/useHaptics";
 
@@ -14,11 +14,13 @@ export default function SearchBar({
   inputRef,
 }: SearchBarProps) {
   const [query, setQuery] = useState(initialQuery);
+  const [prevInitialQuery, setPrevInitialQuery] = useState(initialQuery);
   const haptics = useHaptics();
 
-  useEffect(() => {
+  if (prevInitialQuery !== initialQuery) {
+    setPrevInitialQuery(initialQuery);
     setQuery(initialQuery);
-  }, [initialQuery]);
+  }
 
   const handleSubmit = (e: SubmitEvent) => {
     e.preventDefault();

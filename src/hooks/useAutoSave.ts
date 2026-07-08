@@ -27,14 +27,16 @@ export function useAutoSave(
   savePartialSettings: (partial: Partial<AppSettings>) => Promise<void>
 ) {
   const [fields, setFields] = useState<AppSettings>(settings);
+  const [prevSettings, setPrevSettings] = useState<AppSettings>(settings);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
   const timersRef = useRef<DebounceTimers>({});
   const savedTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-  useEffect(() => {
+  if (prevSettings !== settings) {
+    setPrevSettings(settings);
     setFields(settings);
-  }, [settings]);
+  }
 
   const performSave = useCallback(
     async (partial: Partial<AppSettings>) => {

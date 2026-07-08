@@ -1,4 +1,6 @@
-import { useState, useEffect } from "react";
+import { useMemo } from "react";
+import useAsyncData from "./useAsyncData";
+import type { FetchContext } from "./useAsyncData";
 
 export type SimilarArtist = {
   name: string;
@@ -7,51 +9,33 @@ export type SimilarArtist = {
   match?: number;
 };
 
+async function fetchSimilarArtists({
+  key,
+}: FetchContext): Promise<SimilarArtist[]> {
+  const res = await fetch(key);
+  if (!res.ok) {
+    throw new Error("Failed to fetch similar artists");
+  }
+  const data: { artists: SimilarArtist[] } = await res.json();
+  return data.artists || [];
+}
+
 export default function useSimilarArtists(
   artistName: string | undefined,
   excludeMbid?: string
 ) {
-  const [artists, setArtists] = useState<SimilarArtist[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const key = artistName
+    ? `/api/lastfm/similar?artist=${encodeURIComponent(artistName)}`
+    : null;
+  const { data, loading, error } = useAsyncData(key, fetchSimilarArtists);
 
-  useEffect(() => {
-    if (!artistName) return;
-
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-
-    const load = async () => {
-      try {
-        const res = await fetch(
-          `/api/lastfm/similar?artist=${encodeURIComponent(artistName)}`
-        );
-        if (!res.ok) {
-          throw new Error("Failed to fetch similar artists");
-        }
-        const data: { artists: SimilarArtist[] } = await res.json();
-        if (cancelled) return;
-        const filtered = (data.artists || [])
-          .filter((a) => !excludeMbid || a.mbid !== excludeMbid)
-          .slice(0, 10);
-        setArtists(filtered);
-      } catch (err) {
-        if (cancelled) return;
-        setError(
-          err instanceof Error ? err.message : "Failed to fetch similar artists"
-        );
-        setArtists([]);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-
-    void load();
-    return () => {
-      cancelled = true;
-    };
-  }, [artistName, excludeMbid]);
+  const artists = useMemo(
+    () =>
+      (data ?? [])
+        .filter((a) => !excludeMbid || a.mbid !== excludeMbid)
+        .slice(0, 10),
+    [data, excludeMbid]
+  );
 
   return { artists, loading, error };
 }

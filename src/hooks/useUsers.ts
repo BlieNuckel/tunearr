@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+import { useCallback } from "react";
+import useAsyncData from "./useAsyncData";
 
 type ManagedUser = {
   id: number;
@@ -23,39 +24,29 @@ async function fetchJson<T>(url: string, options?: RequestInit): Promise<T> {
   return data;
 }
 
+function fetchUsers(): Promise<ManagedUser[]> {
+  return fetchJson<ManagedUser[]>("/api/users");
+}
+
 export type { ManagedUser, CreateUserPayload };
 
 export function useUsers() {
-  const [users, setUsers] = useState<ManagedUser[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data, loading, error, refresh, setData } = useAsyncData<
+    ManagedUser[]
+  >("users", fetchUsers);
 
-  const load = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await fetchJson<ManagedUser[]>("/api/users");
-      setUsers(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load users");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  const createUser = useCallback(async (payload: CreateUserPayload) => {
-    const user = await fetchJson<ManagedUser>("/api/users", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    setUsers((prev) => [...prev, user]);
-    return user;
-  }, []);
+  const createUser = useCallback(
+    async (payload: CreateUserPayload) => {
+      const user = await fetchJson<ManagedUser>("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      setData((prev) => [...prev, user]);
+      return user;
+    },
+    [setData]
+  );
 
   const updatePermissions = useCallback(
     async (userId: number, permissions: number) => {
@@ -67,34 +58,40 @@ export function useUsers() {
           body: JSON.stringify({ permissions }),
         }
       );
-      setUsers((prev) => prev.map((u) => (u.id === userId ? user : u)));
+      setData((prev) => prev.map((u) => (u.id === userId ? user : u)));
       return user;
     },
-    []
+    [setData]
   );
 
-  const toggleEnabled = useCallback(async (userId: number) => {
-    const user = await fetchJson<ManagedUser>(
-      `/api/users/${userId}/toggle-enabled`,
-      { method: "PATCH" }
-    );
-    setUsers((prev) => prev.map((u) => (u.id === userId ? user : u)));
-    return user;
-  }, []);
+  const toggleEnabled = useCallback(
+    async (userId: number) => {
+      const user = await fetchJson<ManagedUser>(
+        `/api/users/${userId}/toggle-enabled`,
+        { method: "PATCH" }
+      );
+      setData((prev) => prev.map((u) => (u.id === userId ? user : u)));
+      return user;
+    },
+    [setData]
+  );
 
-  const removeUser = useCallback(async (userId: number) => {
-    await fetchJson<void>(`/api/users/${userId}`, { method: "DELETE" });
-    setUsers((prev) => prev.filter((u) => u.id !== userId));
-  }, []);
+  const removeUser = useCallback(
+    async (userId: number) => {
+      await fetchJson<void>(`/api/users/${userId}`, { method: "DELETE" });
+      setData((prev) => prev.filter((u) => u.id !== userId));
+    },
+    [setData]
+  );
 
   return {
-    users,
+    users: data ?? [],
     loading,
     error,
     createUser,
     updatePermissions,
     toggleEnabled,
     removeUser,
-    reload: load,
+    reload: refresh,
   };
 }
