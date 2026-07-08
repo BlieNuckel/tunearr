@@ -1,6 +1,11 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import ImportSection from "../ImportSection";
 
+const mockFetch = vi.fn(() =>
+  Promise.resolve({ ok: true, json: () => Promise.resolve({ valid: true }) })
+);
+vi.stubGlobal("fetch", mockFetch);
+
 describe("ImportSection", () => {
   it("renders the current import path", () => {
     render(

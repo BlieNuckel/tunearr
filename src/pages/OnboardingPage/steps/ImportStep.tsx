@@ -1,3 +1,4 @@
+import PathInput from "@/components/PathInput";
 import StepDescription from "../components/StepDescription";
 
 interface ImportStepProps {
@@ -16,13 +17,11 @@ export default function ImportStep({
         <label className="block text-sm font-medium text-gray-600 mb-1">
           Import Path
         </label>
-        <input
-          type="text"
-          data-testid="import-path-input"
+        <PathInput
           value={importPath}
-          onChange={(e) => onImportPathChange(e.target.value)}
+          onChange={onImportPathChange}
           placeholder="/imports"
-          className="w-full px-3 py-2 bg-white border-2 border-black rounded-lg text-gray-900 placeholder-gray-200 focus:outline-none focus:border-amber-400 shadow-cartoon-md"
+          data-testid="import-path-input"
         />
       </div>
       <div className="bg-amber-50 rounded-xl p-4 border-2 border-black shadow-cartoon-sm">

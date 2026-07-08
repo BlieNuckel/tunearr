@@ -70,10 +70,10 @@ export function useOnboarding() {
   const preNextChecks: Partial<Record<StepId, () => Promise<void>>> = {
     import: async () => {
       if (!fields.importPath) return;
-      const res = await fetch("/api/settings/validate-import-path", {
+      const res = await fetch("/api/settings/validate-path", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ importPath: fields.importPath }),
+        body: JSON.stringify({ path: fields.importPath }),
       });
       if (!res.ok) {
         const data = await res.json();
