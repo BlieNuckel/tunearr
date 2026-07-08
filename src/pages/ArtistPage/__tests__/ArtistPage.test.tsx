@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import ArtistPage from "../ArtistPage";
 import type { ArtistDetails, ReleaseGroup } from "@/types";
@@ -87,7 +88,7 @@ describe("ArtistPage", () => {
     expect(screen.getByText("Artist not found")).toBeInTheDocument();
   });
 
-  it("renders the artist name and grouped sections", () => {
+  it("renders sections with only the first one expanded", () => {
     mockState.artist = { mbid: "a1", name: "Radiohead", type: "Group" };
     mockState.releaseGroups = [
       makeRg({ id: "alb", title: "OK Computer", "primary-type": "Album" }),
@@ -101,6 +102,20 @@ describe("ArtistPage", () => {
     expect(screen.getByText("Albums")).toBeInTheDocument();
     expect(screen.getByText("EPs")).toBeInTheDocument();
     expect(screen.getByText("OK Computer")).toBeInTheDocument();
+    expect(screen.queryByText("Drill EP")).not.toBeInTheDocument();
+  });
+
+  it("shows a collapsed section's releases after expanding it", async () => {
+    const user = userEvent.setup();
+    mockState.artist = { mbid: "a1", name: "Radiohead", type: "Group" };
+    mockState.releaseGroups = [
+      makeRg({ id: "alb", title: "OK Computer", "primary-type": "Album" }),
+      makeRg({ id: "ep", title: "Drill EP", "primary-type": "EP" }),
+    ];
+    renderPage();
+
+    await user.click(screen.getByRole("button", { name: /EPs\s*\(1\)/ }));
+
     expect(screen.getByText("Drill EP")).toBeInTheDocument();
   });
 
@@ -112,8 +127,6 @@ describe("ArtistPage", () => {
     ];
     renderPage();
 
-    expect(screen.getByTestId("rg-in-lib")).toBeInTheDocument();
-    expect(screen.getByTestId("rg-missing")).toBeInTheDocument();
     expect(screen.getByText("In Library")).toBeInTheDocument();
   });
 

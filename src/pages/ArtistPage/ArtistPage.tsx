@@ -52,11 +52,12 @@ export default function ArtistPage() {
           No releases found for this artist.
         </p>
       ) : (
-        sections.map((section) => (
+        sections.map((section, index) => (
           <ReleaseSectionGrid
             key={section.title}
             title={section.title}
             items={section.items}
+            defaultExpanded={index === 0}
           />
         ))
       )}
