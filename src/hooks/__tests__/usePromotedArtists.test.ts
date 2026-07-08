@@ -111,7 +111,13 @@ describe("usePromotedArtists", () => {
       expect(result.current.loading).toBe(false);
     });
 
-    await act(() => result.current.refresh());
+    let refreshPromise!: Promise<void>;
+    act(() => {
+      refreshPromise = result.current.refresh();
+    });
+    await act(async () => {
+      await refreshPromise;
+    });
 
     expect(fetch).toHaveBeenCalledWith("/api/promoted-artists?refresh=true");
   });

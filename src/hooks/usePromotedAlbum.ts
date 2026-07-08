@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+import useAsyncData from "./useAsyncData";
+import type { FetchContext } from "./useAsyncData";
 
 export type TraceArtistTagContribution = {
   tagName: string;
@@ -86,43 +87,26 @@ export type PromotedAlbumData = {
     }
 );
 
+async function fetchPromotedAlbum({
+  refresh,
+}: FetchContext): Promise<PromotedAlbumData | null> {
+  const url = refresh
+    ? "/api/promoted-album?refresh=true"
+    : "/api/promoted-album";
+  const res = await fetch(url);
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch promoted album");
+  }
+
+  return res.json();
+}
+
 export default function usePromotedAlbum() {
-  const [promotedAlbum, setPromotedAlbum] = useState<PromotedAlbumData | null>(
-    null
+  const { data, loading, error, refresh } = useAsyncData(
+    "promoted-album",
+    fetchPromotedAlbum
   );
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  const fetchAlbum = useCallback(async (refresh = false) => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const url = refresh
-        ? "/api/promoted-album?refresh=true"
-        : "/api/promoted-album";
-      const res = await fetch(url);
-
-      if (!res.ok) {
-        throw new Error("Failed to fetch promoted album");
-      }
-
-      const data = await res.json();
-      setPromotedAlbum(data);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to fetch promoted album"
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchAlbum();
-  }, [fetchAlbum]);
-
-  const refresh = useCallback(() => fetchAlbum(true), [fetchAlbum]);
-
-  return { promotedAlbum, loading, error, refresh };
+  return { promotedAlbum: data, loading, error, refresh };
 }

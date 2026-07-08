@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+import useAsyncData from "./useAsyncData";
+import type { FetchContext } from "./useAsyncData";
 
 export type PromotedArtist = {
   name: string;
@@ -13,42 +14,26 @@ export type PromotedArtistsData = {
   seedArtists: string[];
 };
 
+async function fetchPromotedArtists({
+  refresh,
+}: FetchContext): Promise<PromotedArtistsData | null> {
+  const url = refresh
+    ? "/api/promoted-artists?refresh=true"
+    : "/api/promoted-artists";
+  const res = await fetch(url);
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch promoted artists");
+  }
+
+  return res.json();
+}
+
 export default function usePromotedArtists() {
-  const [promotedArtists, setPromotedArtists] =
-    useState<PromotedArtistsData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data, loading, error, refresh } = useAsyncData(
+    "promoted-artists",
+    fetchPromotedArtists
+  );
 
-  const fetchArtists = useCallback(async (refresh = false) => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const url = refresh
-        ? "/api/promoted-artists?refresh=true"
-        : "/api/promoted-artists";
-      const res = await fetch(url);
-
-      if (!res.ok) {
-        throw new Error("Failed to fetch promoted artists");
-      }
-
-      const data = await res.json();
-      setPromotedArtists(data);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to fetch promoted artists"
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchArtists();
-  }, [fetchArtists]);
-
-  const refresh = useCallback(() => fetchArtists(true), [fetchArtists]);
-
-  return { promotedArtists, loading, error, refresh };
+  return { promotedArtists: data, loading, error, refresh };
 }

@@ -27,8 +27,6 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
-      // New in eslint-plugin-react-hooks 7.1; flags 17 existing hooks — #185
-      "react-hooks/set-state-in-effect": "off",
       "react-refresh/only-export-components": [
         "warn",
         { allowConstantExport: true },

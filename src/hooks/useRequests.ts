@@ -1,4 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useCallback } from "react";
+import useAsyncData from "./useAsyncData";
+import type { FetchContext } from "./useAsyncData";
 import { RequestItem } from "@/types";
 
 type UseRequestsOptions = {
@@ -29,53 +31,52 @@ function buildUrl(options: UseRequestsOptions): string {
   return qs ? `/api/requests?${qs}` : "/api/requests";
 }
 
+async function fetchRequestList({ key }: FetchContext): Promise<RequestItem[]> {
+  const res = await fetch(key);
+  if (!res.ok) throw new Error("Failed to fetch requests");
+  return res.json();
+}
+
 export function useRequests({
   userId,
   status,
 }: UseRequestsOptions = {}): UseRequestsReturn {
-  const [requests, setRequests] = useState<RequestItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data, loading, error, refresh, setData } = useAsyncData<
+    RequestItem[]
+  >(buildUrl({ userId, status }), fetchRequestList);
 
-  const fetchRequests = useCallback(async () => {
-    try {
-      const res = await fetch(buildUrl({ userId, status }));
-      if (!res.ok) throw new Error("Failed to fetch requests");
-      const data = await res.json();
-      setRequests(data);
-      setError(null);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "An unknown error occurred"
+  const approveRequest = useCallback(
+    async (id: number) => {
+      const res = await fetch(`/api/requests/${id}/approve`, {
+        method: "POST",
+      });
+      if (!res.ok) throw new Error("Failed to approve request");
+      setData((prev) =>
+        prev.map((r) => (r.id === id ? { ...r, status: "approved" } : r))
       );
-    } finally {
-      setLoading(false);
-    }
-  }, [userId, status]);
+    },
+    [setData]
+  );
 
-  useEffect(() => {
-    fetchRequests();
-  }, [fetchRequests]);
+  const declineRequest = useCallback(
+    async (id: number) => {
+      const res = await fetch(`/api/requests/${id}/decline`, {
+        method: "POST",
+      });
+      if (!res.ok) throw new Error("Failed to decline request");
+      setData((prev) =>
+        prev.map((r) => (r.id === id ? { ...r, status: "declined" } : r))
+      );
+    },
+    [setData]
+  );
 
-  const refresh = useCallback(async () => {
-    await fetchRequests();
-  }, [fetchRequests]);
-
-  const approveRequest = useCallback(async (id: number) => {
-    const res = await fetch(`/api/requests/${id}/approve`, { method: "POST" });
-    if (!res.ok) throw new Error("Failed to approve request");
-    setRequests((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, status: "approved" } : r))
-    );
-  }, []);
-
-  const declineRequest = useCallback(async (id: number) => {
-    const res = await fetch(`/api/requests/${id}/decline`, { method: "POST" });
-    if (!res.ok) throw new Error("Failed to decline request");
-    setRequests((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, status: "declined" } : r))
-    );
-  }, []);
-
-  return { requests, loading, error, refresh, approveRequest, declineRequest };
+  return {
+    requests: data ?? [],
+    loading: loading && data === null,
+    error,
+    refresh,
+    approveRequest,
+    declineRequest,
+  };
 }

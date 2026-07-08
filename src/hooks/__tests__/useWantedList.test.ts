@@ -119,7 +119,13 @@ describe("useWantedList", () => {
       new Response(JSON.stringify(mockItems), { status: 200 })
     );
 
-    await act(() => result.current.refresh());
+    let refreshPromise!: Promise<void>;
+    act(() => {
+      refreshPromise = result.current.refresh();
+    });
+    await act(async () => {
+      await refreshPromise;
+    });
 
     expect(result.current.items).toEqual(mockItems);
   });
