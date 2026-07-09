@@ -10,7 +10,7 @@ import type { SectionDefinition } from "./types";
 export const SECTION_DEFINITIONS: readonly SectionDefinition[] = [
   {
     id: "spotlight",
-    span: { cols: 6, rows: 1 },
+    span: { cols: 4, rows: 2 },
     desktopOrder: 1,
     mobileOrder: 1,
     whenEmpty: "hide",
@@ -18,7 +18,7 @@ export const SECTION_DEFINITIONS: readonly SectionDefinition[] = [
   },
   {
     id: "artists",
-    span: { cols: 6, rows: 1 },
+    span: { cols: 2, rows: 2 },
     desktopOrder: 2,
     mobileOrder: 2,
     whenEmpty: "hide",

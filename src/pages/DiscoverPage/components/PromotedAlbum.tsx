@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import type { PromotedAlbumData } from "@/hooks/usePromotedAlbum";
 import MonitorButton from "@/components/MonitorButton";
@@ -6,7 +6,8 @@ import OptionSelect from "@/components/OptionSelect";
 import useHaptics from "@/hooks/useHaptics";
 import PurchaseLinksModal from "@/components/PurchaseLinksModal";
 import RecommendationTraceModal from "./RecommendationTraceModal";
-import { ChevronDownIcon, MusicalNoteIcon } from "@/components/icons";
+import TracksPreviewModal from "./TracksPreviewModal";
+import { MusicalNoteIcon } from "@/components/icons";
 import SectionHeader from "./SectionHeader";
 import ShuffleButton from "./ShuffleButton";
 import useLidarr from "@/hooks/useLidarr";
@@ -15,7 +16,6 @@ import useReleaseTracks from "@/hooks/useReleaseTracks";
 import useAudioPreview from "@/hooks/useAudioPreview";
 import ImageWithShimmer from "@/components/ImageWithShimmer";
 import Skeleton from "@/components/Skeleton";
-import TrackList from "@/components/TrackList";
 import { pastelColorFromId } from "@/utils/color";
 import { getMonitorState } from "@/utils/monitorState";
 import type { Option } from "@/components/OptionSelect";
@@ -37,8 +37,6 @@ export default function PromotedAlbum({
   const [isAnimating, setIsAnimating] = useState(false);
   const [isTracksOpen, setIsTracksOpen] = useState(false);
   const [fetchedMbid, setFetchedMbid] = useState<string | null>(null);
-  const [expandHeight, setExpandHeight] = useState(0);
-  const expandContentRef = useRef<HTMLDivElement>(null);
 
   const haptics = useHaptics();
   const { state, errorMsg, requestAlbum, reset: resetLidarr } = useLidarr();
@@ -60,16 +58,6 @@ export default function PromotedAlbum({
   const album = data?.album;
   const inLibrary = data?.inLibrary ?? false;
   const pastelBg = album ? pastelColorFromId(album.mbid) : "hsl(200, 70%, 85%)";
-
-  useEffect(() => {
-    const el = expandContentRef.current;
-    if (!el) return;
-    const observer = new ResizeObserver(() => {
-      setExpandHeight(el.offsetHeight);
-    });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
 
   const isWanted = wantedState === "wanted";
   const wantedOptions: Option[] = [
@@ -114,23 +102,22 @@ export default function PromotedAlbum({
     }, 300);
   };
 
-  const handleTracksToggle = () => {
-    if (
-      !isTracksOpen &&
-      album &&
-      fetchedMbid !== album.mbid &&
-      !tracksLoading
-    ) {
+  const handleTracksOpen = () => {
+    if (album && fetchedMbid !== album.mbid && !tracksLoading) {
       fetchTracks(album.mbid, album.artistName);
       setFetchedMbid(album.mbid);
     }
-    if (isTracksOpen) stop();
-    setIsTracksOpen(!isTracksOpen);
+    setIsTracksOpen(true);
+  };
+
+  const handleTracksClose = () => {
+    stop();
+    setIsTracksOpen(false);
   };
 
   return (
     <>
-      <div>
+      <div className="h-full flex flex-col">
         <SectionHeader
           title="Recommended for you"
           action={
@@ -144,15 +131,15 @@ export default function PromotedAlbum({
         />
 
         <div
-          className={`bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-md overflow-hidden transition-all duration-300 ${
+          className={`flex-1 bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-md overflow-hidden flex flex-col transition-all duration-300 ${
             isAnimating
               ? "opacity-0 -translate-x-4 scale-95"
               : "opacity-100 translate-x-0 scale-100"
           }`}
         >
-          <div className="flex flex-col sm:flex-row">
+          <div className="flex-1 flex flex-col sm:flex-row">
             <div
-              className="w-full sm:w-48 aspect-square sm:aspect-auto sm:h-48 flex-shrink-0 overflow-hidden"
+              className="w-full sm:w-48 aspect-square sm:aspect-auto sm:min-h-48 flex-shrink-0 overflow-hidden"
               style={{ backgroundColor: pastelBg }}
             >
               {loading ? (
@@ -216,19 +203,12 @@ export default function PromotedAlbum({
 
                   <div className="mt-3 flex items-center justify-between">
                     <button
-                      onClick={handleTracksToggle}
+                      onClick={handleTracksOpen}
                       className="flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
-                      aria-label={
-                        isTracksOpen ? "Hide tracks" : "Preview tracks"
-                      }
+                      aria-label="Preview tracks"
                     >
                       <MusicalNoteIcon className="w-3.5 h-3.5" />
-                      <span>{isTracksOpen ? "Hide tracks" : "Preview"}</span>
-                      <ChevronDownIcon
-                        className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                          isTracksOpen ? "rotate-180" : ""
-                        }`}
-                      />
+                      <span>Preview</span>
                     </button>
                     <div className="flex items-center gap-1.5">
                       <OptionSelect
@@ -246,29 +226,22 @@ export default function PromotedAlbum({
               ) : null}
             </div>
           </div>
-
-          <div
-            className="overflow-hidden transition-[height] duration-300"
-            style={{
-              height: isTracksOpen ? expandHeight : 0,
-              transitionTimingFunction: "cubic-bezier(0.34, 1.3, 0.64, 1)",
-            }}
-            data-testid="tracks-expand"
-          >
-            <div ref={expandContentRef}>
-              <div className="border-t-2 border-black px-4 py-3 overlay-scrollbar max-h-64 overflow-y-auto">
-                <TrackList
-                  media={media}
-                  loading={tracksLoading}
-                  error={tracksError}
-                  onTogglePreview={toggle}
-                  isTrackPlaying={isTrackPlaying}
-                />
-              </div>
-            </div>
-          </div>
         </div>
       </div>
+
+      {album && (
+        <TracksPreviewModal
+          isOpen={isTracksOpen}
+          onClose={handleTracksClose}
+          albumName={album.name}
+          artistName={album.artistName}
+          media={media}
+          loading={tracksLoading}
+          error={tracksError}
+          onTogglePreview={toggle}
+          isTrackPlaying={isTrackPlaying}
+        />
+      )}
 
       {album && (
         <PurchaseLinksModal
