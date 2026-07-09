@@ -6,11 +6,9 @@ import OptionSelect from "@/components/OptionSelect";
 import useHaptics from "@/hooks/useHaptics";
 import PurchaseLinksModal from "@/components/PurchaseLinksModal";
 import RecommendationTraceModal from "./RecommendationTraceModal";
-import {
-  RefreshIcon,
-  ChevronDownIcon,
-  MusicalNoteIcon,
-} from "@/components/icons";
+import { ChevronDownIcon, MusicalNoteIcon } from "@/components/icons";
+import SectionHeader from "./SectionHeader";
+import ShuffleButton from "./ShuffleButton";
 import useLidarr from "@/hooks/useLidarr";
 import useWanted from "@/hooks/useWanted";
 import useReleaseTracks from "@/hooks/useReleaseTracks";
@@ -132,23 +130,18 @@ export default function PromotedAlbum({
 
   return (
     <>
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-            Recommended for you
-          </h2>
-          <button
-            onClick={handleRefresh}
-            disabled={isAnimating || loading}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 text-xs font-bold bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            aria-label="Shuffle recommendation"
-          >
-            <RefreshIcon
-              className={`w-4 h-4 ${isAnimating || loading ? "animate-spin" : ""}`}
+      <div>
+        <SectionHeader
+          title="Recommended for you"
+          action={
+            <ShuffleButton
+              onClick={handleRefresh}
+              disabled={isAnimating || loading}
+              spinning={isAnimating || loading}
+              ariaLabel="Shuffle recommendation"
             />
-            <span className="hidden sm:inline">Shuffle</span>
-          </button>
-        </div>
+          }
+        />
 
         <div
           className={`bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-md overflow-hidden transition-all duration-300 ${
