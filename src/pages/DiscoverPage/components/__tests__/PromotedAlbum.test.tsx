@@ -120,8 +120,13 @@ vi.mock("../RecommendationTraceModal", () => ({
     ) : null,
 }));
 
-vi.mock("@/components/TrackList", () => ({
-  default: () => <div data-testid="track-list" />,
+vi.mock("../TracksPreviewModal", () => ({
+  default: ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) =>
+    isOpen ? (
+      <div data-testid="tracks-modal">
+        <button onClick={onClose}>Close Tracks</button>
+      </div>
+    ) : null,
 }));
 
 const albumData: PromotedAlbumData = {
@@ -599,12 +604,12 @@ describe("PromotedAlbum", () => {
       fireEvent.click(screen.getByLabelText("Preview tracks"));
       expect(mockFetchTracks).toHaveBeenCalledTimes(1);
 
-      fireEvent.click(screen.getByLabelText("Hide tracks"));
+      fireEvent.click(screen.getByText("Close Tracks"));
       fireEvent.click(screen.getByLabelText("Preview tracks"));
       expect(mockFetchTracks).toHaveBeenCalledTimes(1);
     });
 
-    it("shows track list after clicking preview", () => {
+    it("opens the tracks modal after clicking preview", () => {
       renderWithRouter(
         <PromotedAlbum
           data={albumData}
@@ -612,11 +617,12 @@ describe("PromotedAlbum", () => {
           onRefresh={mockRefresh}
         />
       );
+      expect(screen.queryByTestId("tracks-modal")).not.toBeInTheDocument();
       fireEvent.click(screen.getByLabelText("Preview tracks"));
-      expect(screen.getByTestId("track-list")).toBeInTheDocument();
+      expect(screen.getByTestId("tracks-modal")).toBeInTheDocument();
     });
 
-    it("toggles label to Hide tracks when open", () => {
+    it("stops audio when closing the tracks modal", () => {
       renderWithRouter(
         <PromotedAlbum
           data={albumData}
@@ -625,24 +631,12 @@ describe("PromotedAlbum", () => {
         />
       );
       fireEvent.click(screen.getByLabelText("Preview tracks"));
-      expect(screen.getByLabelText("Hide tracks")).toBeInTheDocument();
-      expect(screen.getByText("Hide tracks")).toBeInTheDocument();
-    });
-
-    it("stops audio when closing track list", () => {
-      renderWithRouter(
-        <PromotedAlbum
-          data={albumData}
-          loading={false}
-          onRefresh={mockRefresh}
-        />
-      );
-      fireEvent.click(screen.getByLabelText("Preview tracks"));
-      fireEvent.click(screen.getByLabelText("Hide tracks"));
+      fireEvent.click(screen.getByText("Close Tracks"));
       expect(mockStop).toHaveBeenCalled();
+      expect(screen.queryByTestId("tracks-modal")).not.toBeInTheDocument();
     });
 
-    it("stops audio and closes track list on shuffle", () => {
+    it("stops audio and closes the tracks modal on shuffle", () => {
       vi.useFakeTimers();
       renderWithRouter(
         <PromotedAlbum
@@ -652,11 +646,11 @@ describe("PromotedAlbum", () => {
         />
       );
       fireEvent.click(screen.getByLabelText("Preview tracks"));
-      expect(screen.getByText("Hide tracks")).toBeInTheDocument();
+      expect(screen.getByTestId("tracks-modal")).toBeInTheDocument();
 
       fireEvent.click(screen.getByLabelText("Shuffle recommendation"));
       expect(mockStop).toHaveBeenCalled();
-      expect(screen.queryByText("Hide tracks")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("tracks-modal")).not.toBeInTheDocument();
 
       vi.useRealTimers();
     });

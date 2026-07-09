@@ -29,10 +29,9 @@ Full-stack TypeScript app: React 19 frontend + Express 5 backend. Vite proxies `
 
 **Frontend (`/src`):** React with React Router DOM, Tailwind CSS v4 for styling. Path aliases: `@/*` maps to `./src/*`, `@shared/*` maps to `./shared/*`. Pages live under `src/pages/` with co-located sub-components:
 
-- `/` — DiscoverPage (similar artists from Plex/Last.fm)
+- `/` — DiscoverPage (promoted album + promoted artists recommendations)
 - `/search` — SearchPage (MusicBrainz album search)
-- `/explore` — ExplorationPage
-- `/library` — LibraryPage (subroutes: `/library/wanted`, `/library/requests`)
+- `/library` — LibraryPage (subroutes: `/library/purchases`, `/library/wanted`, `/library/requests`, `/library/following`)
 - `/library/upload` — UploadPage (manual import)
 - `/settings` — SettingsLayout (subroutes: general, integrations, recommendations, users, logs, notifications with email/webhook sub-pages)
 - `/onboarding` — OnboardingPage (first-run setup)
@@ -46,13 +45,13 @@ Shared components in `src/components/`. Frontend uses plain `fetch()` to relativ
 **Backend (`/server`):** Express with four layers:
 
 - **Service layer** (`/server/api/`) — each external API has a `<name>/` directory (e.g., `lidarr/`, `lastfm/`, `musicbrainz/`, `plex/`, `deezer/`, `apple/`, `slskd/`) containing `types.ts`, usually `config.ts`, and function files. Service configs read from `getConfig()` lazily at request time (no restart needed after settings change).
-- **Route layer** (`/server/routes/`) — maps Express routes to service functions. Routes mount at `/api/settings`, `/api/lidarr`, `/api/musicbrainz`, `/api/lastfm`, `/api/plex`, `/api/promoted-album`, `/api/torznab`, `/api/sabnzbd`, `/api/auth`, `/api/users`, `/api/requests`, `/api/wanted`, `/api/exploration`, `/api/logs`. The Lidarr router is an aggregator that mounts sub-routers (add, albums, artists, history, import, queue, search, wanted, qualityProfile, rootPath, metadataProfile, autoSetup).
+- **Route layer** (`/server/routes/`) — maps Express routes to service functions. Routes mount at `/api/settings`, `/api/lidarr`, `/api/musicbrainz`, `/api/lastfm`, `/api/plex`, `/api/promoted-album`, `/api/promoted-artists`, `/api/torznab`, `/api/sabnzbd`, `/api/auth`, `/api/users`, `/api/requests`, `/api/purchases`, `/api/wanted`, `/api/followed`, `/api/logs`. The Lidarr router is an aggregator that mounts sub-routers (add, albums, artists, history, import, queue, search, wanted, qualityProfile, rootPath, metadataProfile, autoSetup).
 - **Middleware** (`/server/middleware/`) — `errorHandler.ts` (global Express error handler), `rateLimiter.ts` (MusicBrainz 1 req/sec), `requireAuth.ts` (session cookie authentication), `requirePermission.ts` (bitfield permission checks), `ApiError.ts` (typed error class with HTTP status).
 - **Auth layer** (`/server/auth/`) — session management (`sessions.ts`), password hashing (`password.ts`), user CRUD (`users.ts`). Sessions stored in SQLite alongside users.
 
-**Database (`/server/db/`):** SQLite via better-sqlite3 + TypeORM. Entities in `/server/db/entity/`: `User`, `Session`, `Request`, `Config`, `WantedItem`. Migrations in `/server/db/migration/` run automatically on startup (`migrationsRun: true`). WAL mode enabled. Access the singleton DataSource via `getDataSource()` after `initializeDatabase()`.
+**Database (`/server/db/`):** SQLite via better-sqlite3 + TypeORM. Entities in `/server/db/entity/`: `User`, `Session`, `Request`, `Config`, `WantedItem`, `FollowedArtist`, `SeenRelease`, `Purchase`, `UserProfile`, `UserSignalEvent`. Migrations in `/server/db/migration/` run automatically on startup (`migrationsRun: true`). WAL mode enabled. Access the singleton DataSource via `getDataSource()` after `initializeDatabase()`.
 
-**Auth & permissions:** Bitfield-based permission system in `shared/permissions.ts` (shared between frontend and backend). Permissions: `ADMIN`, `MANAGE_USERS`, `MANAGE_REQUESTS`, `REQUEST`, `AUTO_APPROVE`, `REQUEST_VIEW`. `ADMIN` bypasses all checks. Auth uses HTTP-only session cookies (`tunearr_session`). Some routes (torznab, sabnzbd, logs, exploration, auth) are public; most require `requireAuth` middleware. Each user's Plex OAuth token is stored on the `User` entity (`plex_token` column) and used for per-user Plex media server queries. The server config only stores `plexUrl` (shared), not the token. `AuthUser` includes `hasPlexToken` (sent to frontend) and `plexToken` (server-side only). The `/api/auth/store-plex-token` endpoint updates a user's stored Plex token.
+**Auth & permissions:** Bitfield-based permission system in `shared/permissions.ts` (shared between frontend and backend). Permissions: `ADMIN`, `MANAGE_USERS`, `MANAGE_REQUESTS`, `REQUEST`, `AUTO_APPROVE`, `REQUEST_VIEW`. `ADMIN` bypasses all checks. Auth uses HTTP-only session cookies (`tunearr_session`). Some routes (torznab, sabnzbd, logs, auth) are public; most require `requireAuth` middleware. Each user's Plex OAuth token is stored on the `User` entity (`plex_token` column) and used for per-user Plex media server queries. The server config only stores `plexUrl` (shared), not the token. `AuthUser` includes `hasPlexToken` (sent to frontend) and `plexToken` (server-side only). The `/api/auth/store-plex-token` endpoint updates a user's stored Plex token.
 
 **Soulseek integration via torznab/SABnzbd emulation (`/server/api/slskd/`):** The app integrates Soulseek (via an external slskd daemon) into Lidarr's standard indexer+download-client workflow by emulating two services:
 

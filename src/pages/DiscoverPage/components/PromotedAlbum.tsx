@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import type { PromotedAlbumData } from "@/hooks/usePromotedAlbum";
 import MonitorButton from "@/components/MonitorButton";
@@ -6,18 +6,16 @@ import OptionSelect from "@/components/OptionSelect";
 import useHaptics from "@/hooks/useHaptics";
 import PurchaseLinksModal from "@/components/PurchaseLinksModal";
 import RecommendationTraceModal from "./RecommendationTraceModal";
-import {
-  RefreshIcon,
-  ChevronDownIcon,
-  MusicalNoteIcon,
-} from "@/components/icons";
+import TracksPreviewModal from "./TracksPreviewModal";
+import { MusicalNoteIcon } from "@/components/icons";
+import SectionHeader from "./SectionHeader";
+import ShuffleButton from "./ShuffleButton";
 import useLidarr from "@/hooks/useLidarr";
 import useWanted from "@/hooks/useWanted";
 import useReleaseTracks from "@/hooks/useReleaseTracks";
 import useAudioPreview from "@/hooks/useAudioPreview";
 import ImageWithShimmer from "@/components/ImageWithShimmer";
 import Skeleton from "@/components/Skeleton";
-import TrackList from "@/components/TrackList";
 import { pastelColorFromId } from "@/utils/color";
 import { getMonitorState } from "@/utils/monitorState";
 import type { Option } from "@/components/OptionSelect";
@@ -39,8 +37,6 @@ export default function PromotedAlbum({
   const [isAnimating, setIsAnimating] = useState(false);
   const [isTracksOpen, setIsTracksOpen] = useState(false);
   const [fetchedMbid, setFetchedMbid] = useState<string | null>(null);
-  const [expandHeight, setExpandHeight] = useState(0);
-  const expandContentRef = useRef<HTMLDivElement>(null);
 
   const haptics = useHaptics();
   const { state, errorMsg, requestAlbum, reset: resetLidarr } = useLidarr();
@@ -62,16 +58,6 @@ export default function PromotedAlbum({
   const album = data?.album;
   const inLibrary = data?.inLibrary ?? false;
   const pastelBg = album ? pastelColorFromId(album.mbid) : "hsl(200, 70%, 85%)";
-
-  useEffect(() => {
-    const el = expandContentRef.current;
-    if (!el) return;
-    const observer = new ResizeObserver(() => {
-      setExpandHeight(el.offsetHeight);
-    });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
 
   const isWanted = wantedState === "wanted";
   const wantedOptions: Option[] = [
@@ -116,50 +102,44 @@ export default function PromotedAlbum({
     }, 300);
   };
 
-  const handleTracksToggle = () => {
-    if (
-      !isTracksOpen &&
-      album &&
-      fetchedMbid !== album.mbid &&
-      !tracksLoading
-    ) {
+  const handleTracksOpen = () => {
+    if (album && fetchedMbid !== album.mbid && !tracksLoading) {
       fetchTracks(album.mbid, album.artistName);
       setFetchedMbid(album.mbid);
     }
-    if (isTracksOpen) stop();
-    setIsTracksOpen(!isTracksOpen);
+    setIsTracksOpen(true);
+  };
+
+  const handleTracksClose = () => {
+    stop();
+    setIsTracksOpen(false);
   };
 
   return (
     <>
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-            Recommended for you
-          </h2>
-          <button
-            onClick={handleRefresh}
-            disabled={isAnimating || loading}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 text-xs font-bold bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            aria-label="Shuffle recommendation"
-          >
-            <RefreshIcon
-              className={`w-4 h-4 ${isAnimating || loading ? "animate-spin" : ""}`}
+      <div className="h-full flex flex-col">
+        <SectionHeader
+          title="Recommended for you"
+          action={
+            <ShuffleButton
+              onClick={handleRefresh}
+              disabled={isAnimating || loading}
+              spinning={isAnimating || loading}
+              ariaLabel="Shuffle recommendation"
             />
-            <span className="hidden sm:inline">Shuffle</span>
-          </button>
-        </div>
+          }
+        />
 
         <div
-          className={`bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-md overflow-hidden transition-all duration-300 ${
+          className={`relative flex-1 lg:min-h-80 bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-md overflow-hidden flex flex-col transition-all duration-300 ${
             isAnimating
               ? "opacity-0 -translate-x-4 scale-95"
               : "opacity-100 translate-x-0 scale-100"
           }`}
         >
-          <div className="flex flex-col sm:flex-row">
+          <div className="flex-1 flex flex-col sm:flex-row">
             <div
-              className="w-full sm:w-48 aspect-square sm:aspect-auto sm:h-48 flex-shrink-0 overflow-hidden"
+              className="w-full sm:w-48 lg:w-auto aspect-square sm:aspect-auto sm:h-48 lg:h-auto flex-shrink-0 overflow-hidden lg:absolute lg:inset-0"
               style={{ backgroundColor: pastelBg }}
             >
               {loading ? (
@@ -171,13 +151,15 @@ export default function PromotedAlbum({
                     src={album.coverUrl}
                     alt={`${album.name} cover`}
                     className="w-full h-full object-cover"
+                    wrapperClassName="w-full h-full"
                     onError={() => setCoverError(true)}
                   />
                 )
               )}
+              <div className="hidden lg:block absolute inset-0 bg-gradient-to-t from-black/80 via-black/35 to-transparent pointer-events-none" />
             </div>
 
-            <div className="flex-1 p-4 flex flex-col justify-between min-w-0">
+            <div className="flex-1 p-4 flex flex-col justify-between min-w-0 lg:relative lg:justify-end lg:p-5">
               {loading ? (
                 <div className="space-y-3">
                   <Skeleton className="h-6 w-3/4" />
@@ -187,10 +169,10 @@ export default function PromotedAlbum({
               ) : album ? (
                 <>
                   <div>
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 truncate">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 truncate lg:text-xl lg:text-white">
                       {album.name}
                     </h3>
-                    <p className="text-gray-500 dark:text-gray-400 text-sm truncate">
+                    <p className="text-gray-500 dark:text-gray-400 text-sm truncate lg:text-gray-300">
                       <Link
                         to={`/search?q=${encodeURIComponent(album.artistName)}`}
                         className="hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
@@ -223,19 +205,12 @@ export default function PromotedAlbum({
 
                   <div className="mt-3 flex items-center justify-between">
                     <button
-                      onClick={handleTracksToggle}
-                      className="flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
-                      aria-label={
-                        isTracksOpen ? "Hide tracks" : "Preview tracks"
-                      }
+                      onClick={handleTracksOpen}
+                      className="flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 lg:text-gray-300 lg:hover:text-amber-400 transition-colors"
+                      aria-label="Preview tracks"
                     >
                       <MusicalNoteIcon className="w-3.5 h-3.5" />
-                      <span>{isTracksOpen ? "Hide tracks" : "Preview"}</span>
-                      <ChevronDownIcon
-                        className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                          isTracksOpen ? "rotate-180" : ""
-                        }`}
-                      />
+                      <span>Preview</span>
                     </button>
                     <div className="flex items-center gap-1.5">
                       <OptionSelect
@@ -253,29 +228,22 @@ export default function PromotedAlbum({
               ) : null}
             </div>
           </div>
-
-          <div
-            className="overflow-hidden transition-[height] duration-300"
-            style={{
-              height: isTracksOpen ? expandHeight : 0,
-              transitionTimingFunction: "cubic-bezier(0.34, 1.3, 0.64, 1)",
-            }}
-            data-testid="tracks-expand"
-          >
-            <div ref={expandContentRef}>
-              <div className="border-t-2 border-black px-4 py-3 overlay-scrollbar max-h-64 overflow-y-auto">
-                <TrackList
-                  media={media}
-                  loading={tracksLoading}
-                  error={tracksError}
-                  onTogglePreview={toggle}
-                  isTrackPlaying={isTrackPlaying}
-                />
-              </div>
-            </div>
-          </div>
         </div>
       </div>
+
+      {album && (
+        <TracksPreviewModal
+          isOpen={isTracksOpen}
+          onClose={handleTracksClose}
+          albumName={album.name}
+          artistName={album.artistName}
+          media={media}
+          loading={tracksLoading}
+          error={tracksError}
+          onTogglePreview={toggle}
+          isTrackPlaying={isTrackPlaying}
+        />
+      )}
 
       {album && (
         <PurchaseLinksModal

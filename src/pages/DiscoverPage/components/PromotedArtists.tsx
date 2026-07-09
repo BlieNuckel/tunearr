@@ -2,7 +2,8 @@ import { useState } from "react";
 import type { PromotedArtistsData } from "@/hooks/usePromotedArtists";
 import ArtistCard from "./ArtistCard";
 import Skeleton from "@/components/Skeleton";
-import { RefreshIcon } from "@/components/icons";
+import SectionHeader from "./SectionHeader";
+import ShuffleButton from "./ShuffleButton";
 
 interface PromotedArtistsProps {
   data: PromotedArtistsData | null;
@@ -10,8 +11,9 @@ interface PromotedArtistsProps {
   onRefresh: () => void;
 }
 
-const GRID_CLASSES =
-  "grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-8 gap-3 sm:gap-4";
+const SKELETON_COUNT = 6;
+
+const GRID_CLASSES = "grid grid-cols-3 lg:grid-cols-2 gap-3 sm:gap-4";
 
 function formatSeeds(seeds: string[]): string {
   if (seeds.length === 1) return seeds[0];
@@ -41,52 +43,49 @@ export default function PromotedArtists({
   if (!loading && artists.length === 0) return null;
 
   return (
-    <div className="mb-6">
-      <div className="flex items-center justify-between mb-2">
-        <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-          Artists you might like
-        </h2>
-        <button
-          onClick={handleRefresh}
-          disabled={isAnimating || loading}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 text-xs font-bold bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          aria-label="Shuffle recommended artists"
-        >
-          <RefreshIcon
-            className={`w-4 h-4 ${isAnimating || loading ? "animate-spin" : ""}`}
+    <div className="h-full flex flex-col">
+      <SectionHeader
+        title="Artists you might like"
+        action={
+          <ShuffleButton
+            onClick={handleRefresh}
+            disabled={isAnimating || loading}
+            spinning={isAnimating || loading}
+            ariaLabel="Shuffle recommended artists"
           />
-          <span className="hidden sm:inline">Shuffle</span>
-        </button>
-      </div>
+        }
+      />
 
-      {seeds.length > 0 && !loading && (
-        <p className="text-xs text-gray-400 mb-3">
-          Because you listen to {formatSeeds(seeds)}
-        </p>
-      )}
+      <div className="flex-1 bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-md p-4 flex flex-col">
+        <div
+          className={`${GRID_CLASSES} flex-1 content-start transition-all duration-300 ${
+            isAnimating ? "opacity-0 scale-95" : "opacity-100 scale-100"
+          }`}
+        >
+          {loading
+            ? [...Array(SKELETON_COUNT)].map((_, i) => (
+                <div key={i} className="flex flex-col items-center">
+                  <Skeleton className="w-full aspect-square rounded-full" />
+                  <Skeleton className="mt-2 h-3 w-3/4" />
+                </div>
+              ))
+            : artists.map((artist) => (
+                <ArtistCard
+                  key={`${artist.name}-${artist.mbid}`}
+                  name={artist.name}
+                  mbid={artist.mbid || undefined}
+                  imageUrl={artist.imageUrl || undefined}
+                  match={artist.match}
+                  inLibrary={artist.inLibrary}
+                />
+              ))}
+        </div>
 
-      <div
-        className={`${GRID_CLASSES} transition-all duration-300 ${
-          isAnimating ? "opacity-0 scale-95" : "opacity-100 scale-100"
-        }`}
-      >
-        {loading
-          ? [...Array(8)].map((_, i) => (
-              <div key={i} className="flex flex-col items-center">
-                <Skeleton className="w-full aspect-square rounded-full" />
-                <Skeleton className="mt-2 h-3 w-3/4" />
-              </div>
-            ))
-          : artists.map((artist) => (
-              <ArtistCard
-                key={`${artist.name}-${artist.mbid}`}
-                name={artist.name}
-                mbid={artist.mbid || undefined}
-                imageUrl={artist.imageUrl || undefined}
-                match={artist.match}
-                inLibrary={artist.inLibrary}
-              />
-            ))}
+        {seeds.length > 0 && !loading && (
+          <p className="text-xs text-gray-400 mt-3">
+            Because you listen to {formatSeeds(seeds)}
+          </p>
+        )}
       </div>
     </div>
   );
