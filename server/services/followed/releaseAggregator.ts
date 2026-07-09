@@ -40,7 +40,11 @@ function yearMonth(date: string | null | undefined): string {
   return date.slice(0, 7);
 }
 
-function buildKey(title: string, date: string | null | undefined): string {
+/** The dedup key shared by the poller pipeline and the discover blend. */
+export function buildReleaseKey(
+  title: string,
+  date: string | null | undefined
+): string {
   return `${normalizeTitle(title)}|${yearMonth(date)}`;
 }
 
@@ -54,7 +58,7 @@ async function fetchFromMusicBrainz(
   try {
     const groups = await fetchReleaseGroupsForArtist(artistMbid);
     return groups.map((rg) => ({
-      release_key: buildKey(rg.title, rg["first-release-date"]),
+      release_key: buildReleaseKey(rg.title, rg["first-release-date"]),
       source: "musicbrainz" as const,
       album_title: rg.title,
       release_date: rg["first-release-date"] || null,
@@ -78,7 +82,7 @@ async function fetchFromDeezer(
       ? DEEZER_RECORD_TYPE_MAP[a.record_type.toLowerCase()]
       : undefined;
     return {
-      release_key: buildKey(a.title, a.release_date),
+      release_key: buildReleaseKey(a.title, a.release_date),
       source: "deezer" as const,
       album_title: a.title,
       release_date: a.release_date ?? null,
@@ -95,7 +99,7 @@ async function fetchFromApple(
 ): Promise<AggregatedRelease[]> {
   const albums = await getAppleAlbums(artistName);
   return albums.map((a) => ({
-    release_key: buildKey(a.collectionName, a.releaseDate),
+    release_key: buildReleaseKey(a.collectionName, a.releaseDate),
     source: "apple" as const,
     album_title: a.collectionName,
     release_date: a.releaseDate ? a.releaseDate.slice(0, 10) : null,
