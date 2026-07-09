@@ -65,6 +65,7 @@ export async function getArtistAlbumsByName(
         releaseDate: r.releaseDate,
         collectionType: r.collectionType,
         artistName: r.artistName,
+        artworkUrl100: r.artworkUrl100,
       }));
   } catch (error) {
     log.error(`Error fetching Apple albums for ${artistName}`, error);
