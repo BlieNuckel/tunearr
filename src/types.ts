@@ -122,6 +122,27 @@ export interface FollowedArtistItem {
   createdAt: string;
 }
 
+export type NewReleaseSource = "followed" | "library" | "similar";
+
+export type NewReleaseLidarrStatus = "downloading" | "wanted" | "imported";
+
+export interface NewReleaseItem {
+  releaseGroupMbid: string | null;
+  title: string;
+  artistName: string;
+  artistMbid: string | null;
+  releaseDate: string | null;
+  source: NewReleaseSource;
+  coverUrl: string | null;
+  lidarrStatus: NewReleaseLidarrStatus | null;
+  followedReleaseId: number | null;
+}
+
+export interface NewReleasesData {
+  items: NewReleaseItem[];
+  windowDays: number;
+}
+
 export interface FollowedReleaseItem {
   id: number;
   followedArtistId: number;
