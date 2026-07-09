@@ -22,4 +22,5 @@ export type AppleAlbum = {
   releaseDate?: string;
   collectionType?: string;
   artistName?: string;
+  artworkUrl100?: string;
 };
