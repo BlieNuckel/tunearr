@@ -131,7 +131,7 @@ export default function PromotedAlbum({
         />
 
         <div
-          className={`flex-1 bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-md overflow-hidden flex flex-col transition-all duration-300 ${
+          className={`relative flex-1 lg:min-h-80 bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-md overflow-hidden flex flex-col transition-all duration-300 ${
             isAnimating
               ? "opacity-0 -translate-x-4 scale-95"
               : "opacity-100 translate-x-0 scale-100"
@@ -139,7 +139,7 @@ export default function PromotedAlbum({
         >
           <div className="flex-1 flex flex-col sm:flex-row">
             <div
-              className="w-full sm:w-48 aspect-square sm:aspect-auto sm:min-h-48 flex-shrink-0 overflow-hidden"
+              className="w-full sm:w-48 lg:w-auto aspect-square sm:aspect-auto sm:h-48 lg:h-auto flex-shrink-0 overflow-hidden lg:absolute lg:inset-0"
               style={{ backgroundColor: pastelBg }}
             >
               {loading ? (
@@ -151,13 +151,15 @@ export default function PromotedAlbum({
                     src={album.coverUrl}
                     alt={`${album.name} cover`}
                     className="w-full h-full object-cover"
+                    wrapperClassName="w-full h-full"
                     onError={() => setCoverError(true)}
                   />
                 )
               )}
+              <div className="hidden lg:block absolute inset-0 bg-gradient-to-t from-black/80 via-black/35 to-transparent pointer-events-none" />
             </div>
 
-            <div className="flex-1 p-4 flex flex-col justify-between min-w-0">
+            <div className="flex-1 p-4 flex flex-col justify-between min-w-0 lg:relative lg:justify-end lg:p-5">
               {loading ? (
                 <div className="space-y-3">
                   <Skeleton className="h-6 w-3/4" />
@@ -167,10 +169,10 @@ export default function PromotedAlbum({
               ) : album ? (
                 <>
                   <div>
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 truncate">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 truncate lg:text-xl lg:text-white">
                       {album.name}
                     </h3>
-                    <p className="text-gray-500 dark:text-gray-400 text-sm truncate">
+                    <p className="text-gray-500 dark:text-gray-400 text-sm truncate lg:text-gray-300">
                       <Link
                         to={`/search?q=${encodeURIComponent(album.artistName)}`}
                         className="hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
@@ -204,7 +206,7 @@ export default function PromotedAlbum({
                   <div className="mt-3 flex items-center justify-between">
                     <button
                       onClick={handleTracksOpen}
-                      className="flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
+                      className="flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 lg:text-gray-300 lg:hover:text-amber-400 transition-colors"
                       aria-label="Preview tracks"
                     >
                       <MusicalNoteIcon className="w-3.5 h-3.5" />

@@ -4,6 +4,8 @@ interface ImageWithShimmerProps {
   src: string;
   alt: string;
   className?: string;
+  /** Extra classes for the wrapper div, e.g. to make it fill its parent */
+  wrapperClassName?: string;
   onError?: () => void;
 }
 
@@ -11,6 +13,7 @@ export default function ImageWithShimmer({
   src,
   alt,
   className = "",
+  wrapperClassName = "",
   onError,
 }: ImageWithShimmerProps) {
   const [isLoading, setIsLoading] = useState(true);
@@ -31,7 +34,7 @@ export default function ImageWithShimmer({
   }
 
   return (
-    <div className="relative">
+    <div className={`relative ${wrapperClassName}`}>
       {isLoading && (
         <div
           className={`absolute inset-0 bg-gray-200 dark:bg-gray-700 animate-shimmer ${className}`}
