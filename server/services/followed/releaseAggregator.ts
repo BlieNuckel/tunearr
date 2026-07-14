@@ -1,6 +1,5 @@
 import { fetchReleaseGroupsForArtist } from "../../api/musicbrainz/releaseGroups";
 import { getArtistAlbumsByName as getDeezerAlbums } from "../../api/deezer/albums";
-import { getArtistAlbumsByName as getAppleAlbums } from "../../api/apple/albums";
 import { createLogger } from "../../logger";
 import type { ReleaseSource } from "../../db/index";
 
@@ -60,21 +59,8 @@ async function fetchFromDeezer(
   }));
 }
 
-async function fetchFromApple(
-  artistName: string
-): Promise<AggregatedRelease[]> {
-  const albums = await getAppleAlbums(artistName);
-  return albums.map((a) => ({
-    release_key: buildKey(a.collectionName, a.releaseDate),
-    source: "apple" as const,
-    album_title: a.collectionName,
-    release_date: a.releaseDate ? a.releaseDate.slice(0, 10) : null,
-    external_id: String(a.collectionId),
-  }));
-}
-
 /**
- * Aggregate the artist's releases across MB, Deezer, Apple.
+ * Aggregate the artist's releases across MB and Deezer.
  * Dedupes by (normalized title + release year-month). MB is preferred when
  * the same key surfaces from multiple sources.
  */
@@ -82,14 +68,13 @@ export async function aggregateArtistReleases(
   artistMbid: string,
   artistName: string
 ): Promise<AggregatedRelease[]> {
-  const [mb, deezer, apple] = await Promise.all([
+  const [mb, deezer] = await Promise.all([
     fetchFromMusicBrainz(artistMbid),
     fetchFromDeezer(artistName),
-    fetchFromApple(artistName),
   ]);
 
-  const sourceOrder: ReleaseSource[] = ["musicbrainz", "deezer", "apple"];
-  const combined = [...mb, ...deezer, ...apple];
+  const sourceOrder: ReleaseSource[] = ["musicbrainz", "deezer"];
+  const combined = [...mb, ...deezer];
 
   const byKey = new Map<string, AggregatedRelease>();
   for (const rel of combined) {
