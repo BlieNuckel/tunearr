@@ -14,15 +14,14 @@
 
 ## Features
 
-- **Discover** — A personalized dashboard built from your listening history. Tunearr derives a taste profile from your Plex plays and ratings and uses it to promote an album and a set of artists you're likely to enjoy, alongside new releases and genre-based exploration that deliberately steps outside your comfort zone.
-- **Search & browse** — Search MusicBrainz for albums and artists. Artist pages show the full discography and similar artists; album pages show track listings and purchase links, and let you request the album or add it straight to Lidarr.
-- **Requests** — A multi-user request workflow. Users with the right permission can request albums; admins approve or deny, or grant auto-approval. Approved requests are sent to Lidarr and tracked until they land in your library.
-- **Users & permissions** — Multiple user accounts with granular permissions (managing users, managing requests, requesting, auto-approval). Each user can link their own Plex account for personalized recommendations.
-- **Soulseek integration** — Connect an [slskd](https://github.com/slskd/slskd) instance and Tunearr exposes it to Lidarr as a standard indexer and download client, so Soulseek results flow through Lidarr's normal grab/import pipeline.
-- **Buy or download** — A configurable purchase-decision engine suggests when an album is better bought than downloaded (e.g. rare labels, old releases), with spending tracking and an optional monthly budget.
-- **Library** — Track your purchases, wanted albums, and open requests in one place. Follow artists to get notified in-app when they release something new.
-- **Manual import** — Upload purchased music files through the web interface, review them, and import them into Lidarr.
-- **Logs & settings** — Searchable settings, connection tests for every integration, and a built-in log viewer.
+- **Discover** — Personalized recommendations built from your Plex listening history, plus new releases and genre exploration beyond your usual taste.
+- **Search & browse** — Search MusicBrainz for artists and albums, then request them or add them straight to Lidarr.
+- **Requests** — Multi-user request workflow with approvals, tracked until the music lands in your library.
+- **Users & permissions** — Multiple accounts with granular permissions; each user can link their own Plex account.
+- **Soulseek integration** — Hook up [slskd](https://github.com/slskd/slskd) and Lidarr downloads from Soulseek like from any normal indexer.
+- **Buy or download** — Get suggestions for when an album is better bought than downloaded, with spending tracking and an optional budget.
+- **Library** — Keep tabs on purchases, wanted albums, and requests, and follow artists to catch new releases.
+- **Manual import** — Upload purchased music through the web interface and import it into Lidarr.
 
 <!-- SCREENSHOT PLACEHOLDER: 2-3 more screenshots (artist page, requests/library, settings) — side by side or stacked -->
 
