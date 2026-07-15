@@ -76,6 +76,8 @@ docker compose up -d
 
 All persistent state (settings, database, logs) lives in the `/config` volume.
 
+For a complete stack — Tunearr, Lidarr, and slskd with the shared volumes wired up — see the [Docker setup guide](docs/setup-docker.md).
+
 ### Building from source
 
 ```sh
@@ -127,6 +129,8 @@ The repository is a flake that ships a package and a NixOS module.
 
 An overlay is also available as `inputs.tunearr.overlays.default` if you prefer managing the package yourself.
 
+For a complete configuration — Tunearr, Lidarr, and slskd on one host with permissions sorted out — see the [NixOS setup guide](docs/setup-nixos.md).
+
 ## Integrations
 
 | Service | Required | Purpose                                                      |
@@ -138,14 +142,13 @@ An overlay is also available as `inputs.tunearr.overlays.default` if you prefer 
 
 MusicBrainz, Deezer (album artwork), and ListenBrainz are used automatically and need no configuration.
 
+Setup details for each integration are in the [integrations guide](docs/integrations.md).
+
 ### Soulseek via slskd
 
-Tunearr can bridge Soulseek into Lidarr's normal workflow. Point Tunearr at your slskd instance under **Settings → Integrations**, then add two things in Lidarr:
+Tunearr can bridge Soulseek into Lidarr's normal workflow. Point Tunearr at your slskd instance under **Settings → Integrations**, then click **Set Up in Lidarr** — Tunearr creates the indexer and download client in Lidarr for you. (You can also add them manually: a Newznab indexer at `http(s)://<tunearr>/api/torznab` and a SABnzbd download client at `http(s)://<tunearr>/api/sabnzbd`.)
 
-- An **indexer** of type Newznab pointing at `http(s)://<tunearr>/api/torznab`
-- A **download client** of type SABnzbd pointing at `http(s)://<tunearr>/api/sabnzbd`
-
-Lidarr then searches, grabs, and imports Soulseek releases exactly like it would from any indexer — Tunearr handles the translation to and from slskd behind the scenes.
+Lidarr then searches, grabs, and imports Soulseek releases exactly like it would from any indexer — Tunearr handles the translation to and from slskd behind the scenes. The [Soulseek guide](docs/soulseek.md) explains how the bridge works, how to configure slskd, and how to get the download path right.
 
 > **Note:** the `/api/torznab` and `/api/sabnzbd` endpoints are unauthenticated so Lidarr can reach them. Don't expose Tunearr directly to the internet without a reverse proxy handling access control.
 
