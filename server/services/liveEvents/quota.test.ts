@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { DEFAULT_LIVE_EVENTS } from "../../../shared/settingsDefaults";
 
 const mockGetConfig = vi.fn();
@@ -172,6 +172,15 @@ describe("getQuotaStatus", () => {
 });
 
 describe("counting and warning", () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-08-17T00:00:00Z"));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   function recorder() {
     installQuotaTracking();
     return mockSetCallRecorder.mock.calls[0][0] as (info: {
