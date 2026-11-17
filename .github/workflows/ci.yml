@@ -30,7 +30,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Typecheck frontend
-        run: tsc --noEmit
+        run: pnpm run typecheck:client
 
       - name: Typecheck server
         run: pnpm run typecheck:server
