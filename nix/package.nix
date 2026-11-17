@@ -28,7 +28,8 @@ let
 in
 stdenv.mkDerivation (finalAttrs: {
   pname = "tunearr";
-  version = "0.1.0";
+  # package.json is the one place a release bumps the version.
+  version = (lib.importJSON ../package.json).version;
 
   # Filter out generated/local dirs so the build input is reproducible and the
   # pnpmDeps hash stays stable across machines.
@@ -63,7 +64,7 @@ stdenv.mkDerivation (finalAttrs: {
   pnpmDeps = fetchPnpmDeps {
     inherit (finalAttrs) pname version src;
     fetcherVersion = 4;
-    hash = "sha256-k7fcbFFXNz3WvTR6ZaxssMqJxap/d3IHlqtXGqyn2xc=";
+    hash = "sha256-5ZCSAwurAVhGxjLWPR+gl05XSb+z/ZEP3Resmk3sx74=";
   };
 
   # pnpmConfigHook installs with --ignore-scripts, so the native better-sqlite3

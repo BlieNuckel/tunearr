@@ -1,0 +1,113 @@
+name: Release
+
+# A release is cut by bumping "version" in package.json on main. Nothing else
+# publishes: merges to main only run CI.
+on:
+  push:
+    branches: [main]
+    paths: [package.json]
+  # Rebuilds the newest release's image so it picks up base-image patches,
+  # without cutting a new version.
+  schedule:
+    - cron: "0 4 * * 1"
+  # Releases the current package.json version when its tag is missing, e.g. one
+  # that was bumped before this workflow existed.
+  workflow_dispatch:
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  detect:
+    # A dispatch from any other branch would release that branch's commit.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      mode: ${{ steps.detect.outputs.mode }}
+      version: ${{ steps.detect.outputs.version }}
+      ref: ${{ steps.detect.outputs.ref }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: detect
+        run: .github/scripts/detect-release.sh "${{ github.event_name }}" "${{ github.event.before }}"
+
+  ci:
+    needs: detect
+    if: needs.detect.outputs.mode == 'release'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ci.yml
+
+  tag:
+    needs: [detect, ci]
+    if: needs.detect.outputs.mode == 'release'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.detect.outputs.version }}
+      SHA: ${{ needs.detect.outputs.ref }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.detect.outputs.ref }}
+          fetch-depth: 0
+
+      - name: Create the tag and GitHub release
+        run: gh release create "v$VERSION" --target "$SHA" --title "v$VERSION" --generate-notes
+
+      # Fast-forward only: NixOS users follow this branch, and a release that is
+      # not a descendant of the last one would rewrite what they already have.
+      - name: Move the release branch
+        run: git push origin "$SHA:refs/heads/release"
+
+  docker:
+    needs: [detect, tag]
+    if: >-
+      always() &&
+      (needs.detect.outputs.mode == 'rebuild' ||
+       (needs.detect.outputs.mode == 'release' && needs.tag.result == 'success'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v${{ needs.detect.outputs.version }}
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # {{major}} is skipped while the major version is 0, since 0.x promises no
+      # compatibility between minors.
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}},value=v${{ needs.detect.outputs.version }}
+            type=semver,pattern={{major}}.{{minor}},value=v${{ needs.detect.outputs.version }}
+            type=semver,pattern={{major}},value=v${{ needs.detect.outputs.version }}
+            type=raw,value=latest
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
