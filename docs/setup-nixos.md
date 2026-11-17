@@ -8,9 +8,11 @@ Add the flake input and enable the service:
 
 ```nix
 {
-  inputs.tunearr.url = "github:BlieNuckel/tunearr";
+  inputs.tunearr.url = "github:BlieNuckel/tunearr/release";
 }
 ```
+
+`release` follows the newest release. Pin a tag such as `github:BlieNuckel/tunearr/v0.2.0` to stay on one release, or use plain `github:BlieNuckel/tunearr` to track unreleased work on `main`.
 
 ```nix
 {

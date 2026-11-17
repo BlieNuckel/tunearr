@@ -116,6 +116,10 @@ That's it — search for an album in Lidarr (or request one in Tunearr) and it s
 
 The examples run everything as UID/GID `1000`. If you use different IDs, keep them consistent: the slskd container must be able to write `./slskd/downloads`, and the Lidarr container must be able to read it and write `./music`. Mismatched ownership between these shared directories is the most common cause of failed imports.
 
+## Image tags
+
+`latest` is the newest release. Use `X.Y` (e.g. `0.2`) to take patch releases only, or `X.Y.Z` to pin one release. Images are only published on a release, never on a merge to `main`.
+
 ## Building the image from source
 
 ```sh

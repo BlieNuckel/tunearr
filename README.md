@@ -78,6 +78,8 @@ services:
     restart: unless-stopped
 ```
 
+`latest` is the newest release. To stay on a line, use `X.Y` (e.g. `0.2`) for patch updates only, or `X.Y.Z` to pin one release exactly.
+
 If you want to use the manual import feature, also mount the directory your music files will be uploaded to:
 
 ```yaml
@@ -115,9 +117,11 @@ The repository is a flake that ships a package and a NixOS module.
 
 ```nix
 {
-  inputs.tunearr.url = "github:BlieNuckel/tunearr";
+  inputs.tunearr.url = "github:BlieNuckel/tunearr/release";
 }
 ```
+
+The `release` branch always points at the newest release, so `nix flake update tunearr` moves to it. To pin a single release instead, use its tag, e.g. `github:BlieNuckel/tunearr/v0.2.0`. Following plain `github:BlieNuckel/tunearr` tracks unreleased work on `main`.
 
 2. Import the module and enable the service:
 
@@ -209,6 +213,23 @@ pnpm dev:mock      # dev mode with a mocked Lidarr (MOCK_LIDARR=true)
 ```
 
 The stack is React 19 + Tailwind CSS v4 on the frontend and Express 5 + SQLite (TypeORM) on the backend, all TypeScript. See [CLAUDE.md](CLAUDE.md) for a full architecture overview.
+
+### Releasing
+
+Merging to `main` only runs CI. A release is cut by bumping `version` in `package.json`:
+
+```sh
+npm version minor --no-git-tag-version   # or patch / major
+```
+
+Merge that change to `main`. The `Release` workflow sees the version differ from the previous commit and runs the following steps in order:
+
+1. Runs the full CI, including the Nix build.
+2. Tags `vX.Y.Z` and creates a GitHub release with generated notes.
+3. Fast-forwards the `release` branch that NixOS users follow.
+4. Pushes the Docker image as `X.Y.Z`, `X.Y`, `X` (from 1.0 on) and `latest`.
+
+A version that is already tagged, or older than the newest release, is not released. Each Monday the newest release's image is rebuilt so it picks up base-image patches. The **Run workflow** button on the Release workflow releases the current version if its tag is missing.
 
 ### Changing dependencies
 

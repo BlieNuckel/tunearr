@@ -129,3 +129,5 @@ The result: Lidarr sees a normal indexer and download client, but downloads actu
 ## Deployment
 
 Multi-stage Dockerfile: builds frontend with Vite, then runs the server with tsx (`node_modules/.bin/tsx server/index.ts`) in a `node:22-alpine` image as the non-root `node` user. `APP_CONFIG_DIR=/config` is intended to be bind-mounted for persistence.
+
+Releases are driven by `package.json`'s `version`. `.github/workflows/ci.yml` runs on every push and PR and publishes nothing. `.github/workflows/release.yml` runs when a push to `main` changes the version (decided by `.github/scripts/detect-release.sh`). It re-runs CI, tags `vX.Y.Z` with a GitHub release, fast-forwards the `release` branch NixOS users follow, and pushes the GHCR image tags. `nix/package.nix` reads its version from `package.json`, so a release bumps one file.
