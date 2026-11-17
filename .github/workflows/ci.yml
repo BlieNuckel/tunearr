@@ -1,16 +1,15 @@
-name: CI and publish
+name: CI
 
+# Merging to main runs CI and nothing else. Images and the NixOS `release`
+# branch only move when release.yml sees a version bump in package.json.
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
-  schedule:
-    - cron: "0 4 * * 1"
+  workflow_call:
 
 env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
   HUSKY: 0
 
 jobs:
@@ -18,8 +17,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    outputs:
-      sha: ${{ steps.push.outputs.sha }}
     steps:
       - uses: actions/checkout@v4
 
@@ -78,37 +75,3 @@ jobs:
       # user's nixos-rebuild.
       - name: Build the Nix package
         run: nix build .#tunearr --print-build-logs
-
-  publish:
-    needs: ci
-    if: github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.ci.outputs.sha }}
-
-      - uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - uses: docker/metadata-action@v5
-        id: meta
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=sha
-            type=raw,value=latest
-
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}

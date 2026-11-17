@@ -28,7 +28,8 @@ let
 in
 stdenv.mkDerivation (finalAttrs: {
   pname = "tunearr";
-  version = "0.1.0";
+  # package.json is the one place a release bumps the version.
+  version = (lib.importJSON ../package.json).version;
 
   # Filter out generated/local dirs so the build input is reproducible and the
   # pnpmDeps hash stays stable across machines.
