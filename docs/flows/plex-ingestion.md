@@ -1,12 +1,11 @@
 # Plex ingestion
 
-Tunearr never recommends off a live Plex query. Two pollers copy Plex into an append-only
-log (`user_signal_events`), and every reader folds that log back into state. The log is the
-durable copy of signals Plex itself can lose (history purges, library re-imports) and the
-only place trends can be measured from, since a cumulative counter cannot be diffed against
-its own past.
+Two pollers copy Plex into an append-only log (`user_signal_events`). The log is the durable
+copy of signals Plex itself can lose (history purges, library re-imports) and the only place
+trends could ever be measured from, since a cumulative counter cannot be diffed against its
+own past. Nothing reads it for recommendations any more: it is kept as data.
 
-Code: `server/api/plex/`, `server/services/profile/`, `server/db/userProfile.ts`.
+Code: `server/api/plex/`, `server/services/profile/`, `server/db/signalEvents.ts`.
 
 ## What is read, and by which poller
 
@@ -52,7 +51,8 @@ flowchart TB
 
 Ordering inside one sweep matters: plays are captured before history, so an episode for a
 track first seen this sweep already has its length stored when it joins onto it. Both
-pollers are gated on `promotedAlbum.ratingsBackupEnabled` and assume a single instance.
+pollers are gated on `listeningCaptureEnabled` (the "Record listening history" switch on the
+Plex integration page) and assume a single instance.
 
 ## Event kinds
 
@@ -106,23 +106,21 @@ early. Watches are memory-only: a restart loses the windows in flight.
 
 ## Reading the log back
 
+Each ingest diffs what Plex reports now against what the log already holds, so the log is
+folded back into state on every sweep. The folds are last-write-wins in written order and
+stop at an optional cutoff.
+
 ```mermaid
 flowchart TB
   ev[("user_signal_events<br/>ordered by recorded_at, id")]
 
   fold["foldEvents / foldEpisodes<br/>last-write-wins, stops past cutoffMs"]
 
-  rt["latestRatings"]
-  rtp["reconstructTrackPlayCounts"]
-  rab["reconstructAlbumTrackCounts"]
-  rlh["reconstructListenEpisodes"]
-  rme["reconstructMeasuredEpisodes"]
-
-  merge["mergeMeasuredEpisodes<br/>measured time replaces inferred,<br/>unmatched measured episodes appended"]
-  series["loadEpisodeSeries<br/>one episode series"]
-
-  ra["rollupToArtists / rollupToAlbums<br/>rollupToArtistCatalogue"]
-  re["rollupEpisodesToArtists / rollupEpisodesToAlbums"]
+  rt["latestRatings<br/>diffed by ingestUserRatings"]
+  rtp["reconstructTrackPlayCounts<br/>diffed by ingestUserTrackPlays"]
+  rab["reconstructAlbumTrackCounts<br/>diffed by ingestUserAlbumTracks"]
+  rlh["reconstructListenEpisodes<br/>watermark for ingestUserListenHistory"]
+  rme["reconstructMeasuredEpisodes<br/>dedup for recordMeasuredEpisodes"]
 
   ev --> fold
   fold --> rt
@@ -130,21 +128,4 @@ flowchart TB
   fold --> rab
   fold --> rlh
   fold --> rme
-  rlh --> merge
-  rme --> merge
-  merge --> series
-  rtp --> ra
-  rab --> ra
-  series --> re
 ```
-
-Two rules keep this honest:
-
-- **One source per window.** History and the cumulative counts describe the same plays, so
-  `historyCovers()` decides per window (and `coverageIndex()` per bucket) which one is read.
-  Adding both would count every play inside the covered span twice.
-- **Milliseconds are the currency.** `listenedMs` is observed where a session witnessed the
-  play and inferred as `plays x track length` otherwise, capped by
-  `maxTrackMinutesForWeight`. `toPlayEquivalents()` converts back to play-equivalents
-  (one nominal 210s play is `1`) so the play-denominated thresholds keep meaning what they
-  meant. `listeningWeight` at `0` ranks on decisions to press play, at `1` on exposure time.

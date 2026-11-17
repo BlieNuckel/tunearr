@@ -1,7 +1,5 @@
 import { lidarrPost } from "../../api/lidarr/post";
 import { lidarrPut } from "../../api/lidarr/put";
-import { clearPromotedAlbumCache } from "../../promotedAlbum/getPromotedAlbum";
-import { clearPromotedArtistsCache } from "../../promotedArtists/getPromotedArtists";
 import {
   getAlbumByMbid,
   getOrAddArtist,
@@ -50,8 +48,6 @@ export async function fulfillRequest(
   });
 
   invalidateLidarrCaches();
-  clearPromotedAlbumCache();
-  clearPromotedArtistsCache();
 
   return { status: "success", artistName, albumTitle };
 }

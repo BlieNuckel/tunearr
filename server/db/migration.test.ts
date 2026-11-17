@@ -3,6 +3,7 @@ import { createDataSource } from "./dataSource";
 import { RenamePlexPlays1717000000000 } from "./migration/9_RenamePlexPlays";
 import { FollowedReleases1718000000000 } from "./migration/10_FollowedReleases";
 import { LiveEvents1721000000000 } from "./migration/13_LiveEvents";
+import { RemoveRecommendations1725000000000 } from "./migration/17_RemoveRecommendations";
 import type { DataSource } from "typeorm";
 
 let ds: DataSource | null = null;
@@ -381,22 +382,17 @@ describe("FollowedArtists migration", () => {
   });
 });
 
-describe("UserProfile migration", () => {
-  it("creates user_profiles and user_signal_events tables", async () => {
-    const db = await initTestDb();
+async function insertUser(db: DataSource, username: string): Promise<number> {
+  await db.query("INSERT INTO users (username) VALUES (?)", [username]);
+  const [{ id }] = (await db.query("SELECT id FROM users WHERE username = ?", [
+    username,
+  ])) as { id: number }[];
+  return id;
+}
 
-    const profileCols = (await db.query(
-      "PRAGMA table_info(user_profiles)"
-    )) as { name: string }[];
-    expect(profileCols.map((c) => c.name)).toEqual([
-      "id",
-      "user_id",
-      "profile_json",
-      "schema_version",
-      "config_hash",
-      "generated_at",
-      "last_used_at",
-    ]);
+describe("signal events schema", () => {
+  it("creates user_signal_events with its indexes", async () => {
+    const db = await initTestDb();
 
     const eventCols = (await db.query(
       "PRAGMA table_info(user_signal_events)"
@@ -408,79 +404,19 @@ describe("UserProfile migration", () => {
       "payload",
       "recorded_at",
     ]);
-  });
-
-  it("creates the expected indexes", async () => {
-    const db = await initTestDb();
 
     const indexes = (await db.query(
-      "SELECT name FROM sqlite_master WHERE type='index' AND name LIKE 'idx_user_%' ORDER BY name"
+      "SELECT name FROM sqlite_master WHERE type='index' AND name LIKE 'idx_user_signal_events_%' ORDER BY name"
     )) as { name: string }[];
-    const names = indexes.map((i) => i.name);
-
-    expect(names).toContain("idx_user_profiles_user_id");
-    expect(names).toContain("idx_user_signal_events_user_id");
-    expect(names).toContain("idx_user_signal_events_kind");
-  });
-
-  it("enforces unique user_id on user_profiles", async () => {
-    const db = await initTestDb();
-    await db.query("INSERT INTO users (username) VALUES (?)", ["alice"]);
-    const [{ id: userId }] = (await db.query(
-      "SELECT id FROM users WHERE username = ?",
-      ["alice"]
-    )) as { id: number }[];
-
-    await db.query(
-      "INSERT INTO user_profiles (user_id, profile_json, schema_version, config_hash) VALUES (?, ?, ?, ?)",
-      [userId, "{}", 1, "hash"]
-    );
-
-    await expect(
-      db.query(
-        "INSERT INTO user_profiles (user_id, profile_json, schema_version, config_hash) VALUES (?, ?, ?, ?)",
-        [userId, "{}", 1, "hash"]
-      )
-    ).rejects.toThrow();
-  });
-
-  it("queries signal events by kind and user_id", async () => {
-    const db = await initTestDb();
-    await db.query("INSERT INTO users (username) VALUES (?)", ["bob"]);
-    const [{ id: userId }] = (await db.query(
-      "SELECT id FROM users WHERE username = ?",
-      ["bob"]
-    )) as { id: number }[];
-
-    await db.query(
-      "INSERT INTO user_signal_events (user_id, kind, payload) VALUES (?, ?, ?)",
-      [userId, "plex_plays", "{}"]
-    );
-    await db.query(
-      "INSERT INTO user_signal_events (user_id, kind, payload) VALUES (?, ?, ?)",
-      [userId, "plex_rating", "{}"]
-    );
-
-    const plays = (await db.query(
-      "SELECT * FROM user_signal_events WHERE user_id = ? AND kind = ?",
-      [userId, "plex_plays"]
-    )) as unknown[];
-    expect(plays).toHaveLength(1);
-
-    const all = (await db.query(
-      "SELECT * FROM user_signal_events WHERE user_id = ?",
-      [userId]
-    )) as unknown[];
-    expect(all).toHaveLength(2);
+    expect(indexes.map((i) => i.name)).toEqual([
+      "idx_user_signal_events_kind",
+      "idx_user_signal_events_user_id",
+    ]);
   });
 
   it("RenamePlexPlays migration relabels legacy 'snapshot' rows as 'plex_plays'", async () => {
     const db = await initTestDb();
-    await db.query("INSERT INTO users (username) VALUES (?)", ["dave"]);
-    const [{ id: userId }] = (await db.query(
-      "SELECT id FROM users WHERE username = ?",
-      ["dave"]
-    )) as { id: number }[];
+    const userId = await insertUser(db, "dave");
 
     await db.query(
       "INSERT INTO user_signal_events (user_id, kind, payload) VALUES (?, ?, ?)",
@@ -504,45 +440,92 @@ describe("UserProfile migration", () => {
     expect(kinds).toEqual(["plex_plays", "plex_rating"]);
   });
 
-  it("cascades user_profiles and user_signal_events when user is deleted", async () => {
+  it("cascades user_signal_events when user is deleted", async () => {
     const db = await initTestDb();
-    await db.query("INSERT INTO users (username) VALUES (?)", ["carol"]);
-    const [{ id: userId }] = (await db.query(
-      "SELECT id FROM users WHERE username = ?",
-      ["carol"]
-    )) as { id: number }[];
+    const userId = await insertUser(db, "carol");
 
-    await db.query(
-      "INSERT INTO user_profiles (user_id, profile_json, schema_version, config_hash) VALUES (?, ?, ?, ?)",
-      [userId, "{}", 1, "hash"]
-    );
     await db.query(
       "INSERT INTO user_signal_events (user_id, kind, payload) VALUES (?, ?, ?)",
-      [userId, "plex_plays", "{}"]
+      [userId, "plex_rating", "{}"]
     );
-
     await db.query("DELETE FROM users WHERE id = ?", [userId]);
 
-    const profiles = (await db.query(
-      "SELECT * FROM user_profiles WHERE user_id = ?",
-      [userId]
-    )) as unknown[];
     const events = (await db.query(
       "SELECT * FROM user_signal_events WHERE user_id = ?",
       [userId]
     )) as unknown[];
-    expect(profiles).toHaveLength(0);
     expect(events).toHaveLength(0);
   });
 
-  it("enforces foreign key on user_profiles.user_id", async () => {
+  it("enforces foreign key on user_signal_events.user_id", async () => {
     const db = await initTestDb();
     await expect(
       db.query(
-        "INSERT INTO user_profiles (user_id, profile_json, schema_version, config_hash) VALUES (?, ?, ?, ?)",
-        [999, "{}", 1, "hash"]
+        "INSERT INTO user_signal_events (user_id, kind, payload) VALUES (?, ?, ?)",
+        [999, "plex_rating", "{}"]
       )
     ).rejects.toThrow();
+  });
+});
+
+describe("RemoveRecommendations migration", () => {
+  async function tableNames(db: DataSource): Promise<string[]> {
+    const rows = (await db.query(
+      `SELECT name FROM sqlite_master WHERE type = 'table' AND name IN
+       ('user_profiles', 'promoted_album_snapshots') ORDER BY name`
+    )) as { name: string }[];
+    return rows.map((r) => r.name);
+  }
+
+  it("leaves no recommender tables on a fresh database", async () => {
+    const db = await initTestDb();
+    expect(await tableNames(db)).toEqual([]);
+  });
+
+  it("deletes plex_plays rows and keeps every other signal", async () => {
+    const db = await initTestDb();
+    const userId = await insertUser(db, "erin");
+    const runner = db.createQueryRunner();
+    await new RemoveRecommendations1725000000000().down(runner);
+
+    for (const kind of ["plex_plays", "plex_rating", "plex_track_plays"]) {
+      await db.query(
+        "INSERT INTO user_signal_events (user_id, kind, payload) VALUES (?, ?, ?)",
+        [userId, kind, "{}"]
+      );
+    }
+    await new RemoveRecommendations1725000000000().up(runner);
+    await runner.release();
+
+    const kinds = (
+      (await db.query("SELECT kind FROM user_signal_events ORDER BY id")) as {
+        kind: string;
+      }[]
+    ).map((r) => r.kind);
+    expect(kinds).toEqual(["plex_rating", "plex_track_plays"]);
+  });
+
+  it("reverts the schema and re-applies cleanly", async () => {
+    const db = await initTestDb();
+    const runner = db.createQueryRunner();
+
+    await new RemoveRecommendations1725000000000().down(runner);
+    expect(await tableNames(db)).toEqual([
+      "promoted_album_snapshots",
+      "user_profiles",
+    ]);
+    const restored = (await db.query(
+      "PRAGMA table_info(live_event_performers)"
+    )) as { name: string }[];
+    expect(restored.map((c) => c.name)).toContain("genres");
+
+    await new RemoveRecommendations1725000000000().up(runner);
+    await runner.release();
+    expect(await tableNames(db)).toEqual([]);
+    const dropped = (await db.query(
+      "PRAGMA table_info(live_event_performers)"
+    )) as { name: string }[];
+    expect(dropped.map((c) => c.name)).not.toContain("genres");
   });
 });
 
@@ -610,7 +593,6 @@ describe("LiveEvents migration", () => {
       "artist_name",
       "is_headliner",
       "performance_rank",
-      "genres",
     ]);
 
     const stateCols = (await db.query(

@@ -1,5 +1,5 @@
-import { appendSignalEvents, getSignalEvents } from "../../db/userProfile";
-import { foldEpisodes, reconstructListenEpisodes } from "./listenHistory";
+import { appendSignalEvents, getSignalEvents } from "../../db/signalEvents";
+import { foldEpisodes } from "./listenHistory";
 import type { PlexTrackSession } from "../../api/plex/sessions";
 import type { ListenEpisode, PlexListenHistoryPayload } from "./listenHistory";
 import type { UserSignalEvent } from "../../db/entity/UserSignalEvent";
@@ -24,9 +24,6 @@ export type SessionWatch = {
   lastSeenAt: number;
   listenedMs: number;
 };
-
-/** Floor on the join tolerance, for an episode whose length is unknown on both sides. */
-const MIN_JOIN_TOLERANCE_MS = 1_000;
 
 /**
  * How far the playback position may run ahead of wall clock between two polls before the
@@ -224,92 +221,4 @@ export async function recordMeasuredEpisodes(
   }
   await appendSignalEvents(userId, "plex_listen_sessions", chunks);
   return fresh.length;
-}
-
-/**
- * Whether a measured episode and a history episode describe the same playback: the same
- * track, started within the track's own length of each other. History derives its start
- * from the halfway commit, so the two never agree exactly — the tolerance is the width of
- * the error that derivation can carry.
- */
-function describesSamePlay(
-  measured: ListenEpisode,
-  historical: ListenEpisode
-): boolean {
-  const tolerance = Math.max(
-    measured.durationMs,
-    historical.durationMs,
-    MIN_JOIN_TOLERANCE_MS
-  );
-  return Math.abs(measured.startedAt - historical.startedAt) <= tolerance;
-}
-
-/** History episodes bucketed by track, so the join scans one track's plays, not all of them. */
-function indexByTrack(
-  history: Map<string, ListenEpisode>
-): Map<string, string[]> {
-  const byTrack = new Map<string, string[]>();
-  for (const [key, episode] of history) {
-    const keys = byTrack.get(episode.ratingKey);
-    if (keys) keys.push(key);
-    else byTrack.set(episode.ratingKey, [key]);
-  }
-  return byTrack;
-}
-
-/**
- * One series describing each play once. History is the record of *which* plays happened;
- * where a measured episode witnessed the same play, its observed time replaces the inferred
- * estimate, keeping history's own `viewedAt`. Measured episodes matching nothing are
- * appended — that is playback abandoned before it ever committed a play, which is invisible
- * to every other source and the reason this layer exists.
- */
-export function mergeMeasuredEpisodes(
-  history: Map<string, ListenEpisode>,
-  measured: Map<string, ListenEpisode>
-): Map<string, ListenEpisode> {
-  const merged = new Map(history);
-  const byTrack = indexByTrack(history);
-
-  for (const episode of measured.values()) {
-    let joined = false;
-    for (const key of byTrack.get(episode.ratingKey) ?? []) {
-      const historical = merged.get(key);
-      if (!historical || !describesSamePlay(episode, historical)) continue;
-      merged.set(key, {
-        ...historical,
-        listenedMs: episode.listenedMs,
-        measured: true,
-      });
-      joined = true;
-      break;
-    }
-    if (joined) continue;
-
-    merged.set(
-      measuredEpisodeKey(episode.ratingKey, episode.startedAt),
-      episode
-    );
-  }
-  return merged;
-}
-
-/**
- * Both episode series as one, measured time replacing inferred wherever a session witnessed
- * the play. The weighting deliberately cannot tell which it got — that is what makes the
- * millisecond currency worth the trouble.
- */
-export async function loadEpisodeSeries(
-  userId: number
-): Promise<Map<string, ListenEpisode>> {
-  return mergeMeasuredEpisodes(
-    reconstructListenEpisodes(
-      await getSignalEvents(userId, "plex_listen_history"),
-      Infinity
-    ),
-    reconstructMeasuredEpisodes(
-      await getSignalEvents(userId, "plex_listen_sessions"),
-      Infinity
-    )
-  );
 }

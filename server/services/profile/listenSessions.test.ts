@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import {
   measuredEpisodeKey,
-  mergeMeasuredEpisodes,
   observeSessions,
   reconstructMeasuredEpisodes,
   recordMeasuredEpisodes,
@@ -10,7 +9,7 @@ import {
   watchKey,
 } from "./listenSessions";
 import { initializeDatabase, closeDatabase, getDataSource } from "../../db";
-import { getSignalEvents } from "../../db/userProfile";
+import { getSignalEvents } from "../../db/signalEvents";
 import type { PlexTrackSession } from "../../api/plex/sessions";
 import type { ListenEpisode } from "./listenHistory";
 import type { UserSignalEvent } from "../../db/entity/UserSignalEvent";
@@ -233,63 +232,5 @@ describe("reconstructMeasuredEpisodes", () => {
 
     expect(stored.size).toBe(2);
     expect(stored.has(measuredEpisodeKey("451", T0))).toBe(true);
-  });
-});
-
-describe("mergeMeasuredEpisodes", () => {
-  it("replaces the inferred time on the play it witnessed", () => {
-    const history = new Map([["451:1770000105", episode("451", T0)]]);
-    const measured = new Map([
-      [
-        measuredEpisodeKey("451", T0 + 4_000),
-        episode("451", T0 + 4_000, { listenedMs: 120_000, measured: true }),
-      ],
-    ]);
-
-    const merged = mergeMeasuredEpisodes(history, measured);
-
-    expect(merged.size).toBe(1);
-    expect(merged.get("451:1770000105")).toMatchObject({
-      listenedMs: 120_000,
-      measured: true,
-    });
-  });
-
-  it("keeps a measured episode that matched no play at all", () => {
-    const history = new Map([["451:1770000105", episode("451", T0)]]);
-    const abandoned = episode("999", T0, {
-      listenedMs: 30_000,
-      measured: true,
-    });
-
-    const merged = mergeMeasuredEpisodes(
-      history,
-      new Map([[measuredEpisodeKey("999", T0), abandoned]])
-    );
-
-    expect(merged.size).toBe(2);
-    expect(merged.get(measuredEpisodeKey("999", T0))).toBe(abandoned);
-  });
-
-  it("does not join a play of the same track from another day", () => {
-    const history = new Map([["451:1770000105", episode("451", T0)]]);
-    const later = episode("451", T0 + 24 * 60 * 60 * 1000, {
-      listenedMs: 90_000,
-      measured: true,
-    });
-
-    const merged = mergeMeasuredEpisodes(
-      history,
-      new Map([[measuredEpisodeKey("451", later.startedAt), later]])
-    );
-
-    expect(merged.size).toBe(2);
-    expect(merged.get("451:1770000105")?.measured).toBe(false);
-  });
-
-  it("leaves history untouched when nothing was measured", () => {
-    const history = new Map([["451:1770000105", episode("451", T0)]]);
-
-    expect(mergeMeasuredEpisodes(history, new Map())).toEqual(history);
   });
 });

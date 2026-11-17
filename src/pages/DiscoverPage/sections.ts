@@ -1,7 +1,4 @@
-import ArtistsSection from "./components/sections/ArtistsSection";
 import LiveBannerSection from "./components/sections/LiveBannerSection";
-import NearbyShowsSection from "./components/sections/NearbyShowsSection";
-import SpotlightSection from "./components/sections/SpotlightSection";
 import NewReleasesSection from "./components/sections/NewReleasesSection";
 import type { SectionDefinition } from "./types";
 
@@ -24,36 +21,11 @@ export const SECTION_DEFINITIONS: readonly SectionDefinition[] = [
     Component: LiveBannerSection,
   },
   {
-    id: "spotlight",
-    span: { cols: 4, rows: 5 },
+    id: "newReleases",
+    span: { cols: 6, rows: 3 },
     desktopOrder: 2,
     mobileOrder: 2,
     whenEmpty: "hide",
-    whenError: "keep",
-    Component: SpotlightSection,
-  },
-  {
-    id: "artists",
-    span: { cols: 2, rows: 5 },
-    desktopOrder: 3,
-    mobileOrder: 4,
-    whenEmpty: "hide",
-    Component: ArtistsSection,
-  },
-  {
-    id: "newReleases",
-    span: { cols: 4, rows: 3 },
-    desktopOrder: 4,
-    mobileOrder: 3,
-    whenEmpty: "hide",
     Component: NewReleasesSection,
-  },
-  {
-    id: "nearbyShows",
-    span: { cols: 2, rows: 5 },
-    desktopOrder: 5,
-    mobileOrder: 5,
-    whenEmpty: "hide",
-    Component: NearbyShowsSection,
   },
 ];

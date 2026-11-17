@@ -1,4 +1,4 @@
-import { render as rtlRender, screen, fireEvent } from "@testing-library/react";
+import { render as rtlRender, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import DiscoverPage from "../DiscoverPage";
 
@@ -7,71 +7,13 @@ const render = (ui: React.ReactElement) =>
     wrapper: ({ children }) => <MemoryRouter>{children}</MemoryRouter>,
   });
 
-const mockRefreshPromotedAlbums = vi.fn();
-const mockRefreshArtists = vi.fn();
-
-let mockPromotedAlbums: unknown[] = [];
-let mockPromotedAlbumsError: string | null = null;
-let mockPromotedArtists: unknown = null;
-
-vi.mock("@/hooks/usePromotedAlbums", () => ({
-  default: () => ({
-    promotedAlbums: mockPromotedAlbums,
-    loading: false,
-    error: mockPromotedAlbumsError,
-    refresh: mockRefreshPromotedAlbums,
-  }),
+vi.mock("../components/sections/LiveBannerSection", () => ({
+  default: () => <div data-testid="live-banner-section" />,
 }));
 
-vi.mock("@/hooks/usePromotedArtists", () => ({
-  default: () => ({
-    promotedArtists: mockPromotedArtists,
-    loading: false,
-    error: null,
-    refresh: mockRefreshArtists,
-  }),
+vi.mock("../components/sections/NewReleasesSection", () => ({
+  default: () => <div data-testid="new-releases-section" />,
 }));
-
-vi.mock("../components/PromotedAlbumCarousel", () => ({
-  default: ({
-    albums,
-    onRefresh,
-  }: {
-    albums: { album: { name: string } }[];
-    onRefresh: () => void;
-  }) => (
-    <div data-testid="promoted-album">
-      {albums.map((a) => (
-        <span key={a.album.name}>{a.album.name}</span>
-      ))}
-      <button onClick={onRefresh}>Refresh Album</button>
-    </div>
-  ),
-}));
-
-vi.mock("../components/PromotedArtists", () => ({
-  default: ({
-    data,
-    onRefresh,
-  }: {
-    data: { artists: { name: string }[] };
-    onRefresh: () => void;
-  }) => (
-    <div data-testid="promoted-artists">
-      {data.artists.map((a) => (
-        <span key={a.name}>{a.name}</span>
-      ))}
-      <button onClick={onRefresh}>Refresh Artists</button>
-    </div>
-  ),
-}));
-
-beforeEach(() => {
-  vi.clearAllMocks();
-  mockPromotedAlbums = [];
-  mockPromotedAlbumsError = null;
-  mockPromotedArtists = null;
-});
 
 describe("DiscoverPage", () => {
   it("renders the Discover heading", () => {
@@ -79,58 +21,22 @@ describe("DiscoverPage", () => {
     expect(screen.getByText("Discover")).toBeInTheDocument();
   });
 
-  it("renders promoted albums when data is available", () => {
-    mockPromotedAlbums = [{ album: { name: "OK Computer" } }];
+  it("renders the live banner and new releases sections", () => {
     render(<DiscoverPage />);
-    expect(screen.getByTestId("promoted-album")).toBeInTheDocument();
-    expect(screen.getByText("OK Computer")).toBeInTheDocument();
+    expect(screen.getByTestId("live-banner-section")).toBeInTheDocument();
+    expect(screen.getByTestId("new-releases-section")).toBeInTheDocument();
   });
 
-  it("keeps the spotlight tile when the load failed, so the failure is visible", () => {
-    mockPromotedAlbumsError = "Failed to fetch promoted albums";
+  it("renders no recommendation sections", () => {
     render(<DiscoverPage />);
-    expect(screen.getByTestId("promoted-album")).toBeInTheDocument();
-    expect(screen.getByTestId("discover-section-spotlight").className).not.toBe(
-      "hidden"
-    );
-  });
-
-  it("does not render promoted albums when the list is empty", () => {
-    mockPromotedAlbums = [];
-    render(<DiscoverPage />);
-    expect(screen.queryByTestId("promoted-album")).not.toBeInTheDocument();
-  });
-
-  it("calls refresh when promoted album refresh clicked", () => {
-    mockPromotedAlbums = [{ album: { name: "OK Computer" } }];
-    render(<DiscoverPage />);
-    fireEvent.click(screen.getByText("Refresh Album"));
-    expect(mockRefreshPromotedAlbums).toHaveBeenCalled();
-  });
-
-  it("renders promoted artists when data is available", () => {
-    mockPromotedArtists = {
-      artists: [{ name: "Boards of Canada" }],
-      seedArtists: ["Aphex Twin"],
-    };
-    render(<DiscoverPage />);
-    expect(screen.getByTestId("promoted-artists")).toBeInTheDocument();
-    expect(screen.getByText("Boards of Canada")).toBeInTheDocument();
-  });
-
-  it("does not render promoted artists when data is null", () => {
-    mockPromotedArtists = null;
-    render(<DiscoverPage />);
-    expect(screen.queryByTestId("promoted-artists")).not.toBeInTheDocument();
-  });
-
-  it("calls refresh when promoted artists refresh clicked", () => {
-    mockPromotedArtists = {
-      artists: [{ name: "Boards of Canada" }],
-      seedArtists: [],
-    };
-    render(<DiscoverPage />);
-    fireEvent.click(screen.getByText("Refresh Artists"));
-    expect(mockRefreshArtists).toHaveBeenCalled();
+    expect(
+      screen.queryByTestId("discover-section-spotlight")
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("discover-section-artists")
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("discover-section-nearbyShows")
+    ).not.toBeInTheDocument();
   });
 });

@@ -26,7 +26,6 @@ function makeItem(overrides: Partial<NewReleaseItem> = {}): NewReleaseItem {
     artistName: "Some Artist",
     artistMbid: "mbid-1",
     releaseDate: "2026-07-01",
-    source: "followed",
     coverUrl: "https://caa/rg-1",
     lidarrStatus: null,
     followedReleaseId: 11,
@@ -68,31 +67,22 @@ describe("NewReleasesShelf", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("renders a card per item with title, artist, and source label", () => {
+  it("renders a card per item with title and artist", () => {
     renderShelf(
       makeData([
         makeItem(),
         makeItem({
           releaseGroupMbid: "rg-2",
-          title: "Library Find",
-          artistName: "Lib Artist",
-          source: "library",
-          followedReleaseId: null,
-        }),
-        makeItem({
-          releaseGroupMbid: "rg-3",
-          title: "Similar Find",
-          artistName: "Sim Artist",
-          source: "similar",
-          followedReleaseId: null,
+          title: "Second Album",
+          artistName: "Other Artist",
+          followedReleaseId: 12,
         }),
       ])
     );
 
     expect(screen.getByText("Fresh Album")).toBeInTheDocument();
-    expect(screen.getByText("Following")).toBeInTheDocument();
-    expect(screen.getByText("Library artist")).toBeInTheDocument();
-    expect(screen.getByText("Similar artist")).toBeInTheDocument();
+    expect(screen.getByText("Second Album")).toBeInTheDocument();
+    expect(screen.getByText(/Other Artist/)).toBeInTheDocument();
   });
 
   it("links to the album page when an MBID exists", () => {
@@ -146,10 +136,8 @@ describe("NewReleasesShelf", () => {
     });
   });
 
-  it("does not call the viewed endpoint for feed items", () => {
-    renderShelf(
-      makeData([makeItem({ source: "library", followedReleaseId: null })])
-    );
+  it("does not call the viewed endpoint without a followed release id", () => {
+    renderShelf(makeData([makeItem({ followedReleaseId: null })]));
     fireEvent.click(
       screen.getByRole("link", { name: "Fresh Album by Some Artist" })
     );

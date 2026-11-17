@@ -5,8 +5,6 @@ import {
   listDirectorySuggestions,
   validateWritableDirectory,
 } from "../services/pathValidation";
-import { clearPromotedAlbumCache } from "../promotedAlbum/getPromotedAlbum";
-import { clearPromotedArtistsCache } from "../promotedArtists/getPromotedArtists";
 import {
   onLiveEventsSettingsSaved,
   snapshotLiveEventsSettings,
@@ -47,11 +45,6 @@ router.put("/", (req: Request, res: Response) => {
     : null;
 
   setConfig(partialConfig);
-
-  if (partialConfig.promotedAlbum) {
-    clearPromotedAlbumCache();
-    clearPromotedArtistsCache();
-  }
 
   if (liveEventsBefore) {
     onLiveEventsSettingsSaved(liveEventsBefore);

@@ -97,7 +97,6 @@ function normalizePerformers(
       artist_name: performer.name ?? "Unknown artist",
       is_headliner: performer["x-isHeadliner"] === true,
       performance_rank: performer["x-performanceRank"] ?? null,
-      genres: performer.genre ?? null,
     });
   }
 

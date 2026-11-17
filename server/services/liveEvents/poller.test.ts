@@ -5,7 +5,6 @@ const mockGetConfig = vi.fn();
 const mockIsConfigured = vi.fn();
 const mockResolve = vi.fn();
 const mockSweep = vi.fn();
-const mockGeoSweep = vi.fn();
 const mockNotify = vi.fn();
 
 vi.mock("../../config", () => ({
@@ -22,10 +21,6 @@ vi.mock("./resolution", () => ({
 
 vi.mock("./rosterSweep", () => ({
   runRosterSweep: () => mockSweep(),
-}));
-
-vi.mock("./geoSweep", () => ({
-  runGeoSweep: () => mockGeoSweep(),
 }));
 
 vi.mock("./notifier", () => ({
@@ -50,7 +45,6 @@ beforeEach(() => {
     failed: 0,
   });
   mockSweep.mockResolvedValue({ ran: true });
-  mockGeoSweep.mockResolvedValue({ ran: true });
   mockNotify.mockResolvedValue({ announced: 0, statusChanges: 0 });
   mockGetConfig.mockReturnValue({
     liveEvents: { ...DEFAULT_LIVE_EVENTS, enabled: true, apiKey: "k" },
@@ -79,30 +73,10 @@ describe("runLivePollOnce", () => {
     expect(order).toEqual(["resolve", "sweep"]);
   });
 
-  it("sweeps the roster before the nearby radius", async () => {
+  it("notifies only after the roster sweep has landed its data", async () => {
     const order: string[] = [];
     mockSweep.mockImplementation(async () => {
       order.push("roster");
-      return { ran: true };
-    });
-    mockGeoSweep.mockImplementation(async () => {
-      order.push("geo");
-      return { ran: true };
-    });
-
-    await runLivePollOnce();
-
-    expect(order).toEqual(["roster", "geo"]);
-  });
-
-  it("notifies only after both sweeps have landed their data", async () => {
-    const order: string[] = [];
-    mockSweep.mockImplementation(async () => {
-      order.push("roster");
-      return { ran: true };
-    });
-    mockGeoSweep.mockImplementation(async () => {
-      order.push("geo");
       return { ran: true };
     });
     mockNotify.mockImplementation(async () => {
@@ -112,7 +86,7 @@ describe("runLivePollOnce", () => {
 
     await runLivePollOnce();
 
-    expect(order).toEqual(["roster", "geo", "notify"]);
+    expect(order).toEqual(["roster", "notify"]);
   });
 
   it("caps resolution per tick", async () => {

@@ -11,7 +11,7 @@ export default function LastfmStep({
 }: LastfmStepProps) {
   return (
     <div className="space-y-4">
-      <StepDescription text="Last.fm powers the Discover page with similar artist recommendations and popular albums. You can skip this and add it later in Settings." />
+      <StepDescription text="Last.fm powers similar artists and similar albums on artist and album pages. You can skip this and add it later in Settings." />
       <div>
         <label className="block text-sm font-medium text-gray-600 mb-1">
           Last.fm API Key

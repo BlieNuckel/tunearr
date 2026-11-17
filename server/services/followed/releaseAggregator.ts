@@ -40,14 +40,14 @@ function yearMonth(date: string | null | undefined): string {
 }
 
 /** The dedup key shared by the poller pipeline and the discover blend. */
-export function buildReleaseKey(
+function buildReleaseKey(
   title: string,
   date: string | null | undefined
 ): string {
   return `${normalizeTitle(title)}|${yearMonth(date)}`;
 }
 
-export function coverArtUrlForReleaseGroup(releaseGroupMbid: string): string {
+function coverArtUrlForReleaseGroup(releaseGroupMbid: string): string {
   return `https://coverartarchive.org/release-group/${releaseGroupMbid}/front-500`;
 }
 

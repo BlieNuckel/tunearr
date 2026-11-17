@@ -5,7 +5,6 @@ const mockGetOrAddArtist = vi.fn();
 const mockGetOrAddAlbum = vi.fn();
 const mockLidarrPost = vi.fn();
 const mockLidarrPut = vi.fn();
-const mockClearPromotedAlbumCache = vi.fn();
 
 vi.mock("../../api/lidarr/post", () => ({
   lidarrPost: (...args: unknown[]) => mockLidarrPost(...args),
@@ -13,10 +12,6 @@ vi.mock("../../api/lidarr/post", () => ({
 
 vi.mock("../../api/lidarr/put", () => ({
   lidarrPut: (...args: unknown[]) => mockLidarrPut(...args),
-}));
-
-vi.mock("../../promotedAlbum/getPromotedAlbum", () => ({
-  clearPromotedAlbumCache: () => mockClearPromotedAlbumCache(),
 }));
 
 vi.mock("../lidarr/helpers", () => ({
@@ -98,7 +93,6 @@ describe("fulfillRequest", () => {
     const result = await fulfillRequest("mbid-1");
     expect(result.status).toBe("success");
     expect(mockLidarrPut).not.toHaveBeenCalled();
-    expect(mockClearPromotedAlbumCache).toHaveBeenCalled();
   });
 
   it("throws when monitor call fails", async () => {

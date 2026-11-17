@@ -4,7 +4,6 @@ import {
   searchReleaseGroups,
 } from "../../api/musicbrainz/releaseGroups";
 import { withCache } from "../../cache";
-import { getConfigValue } from "../../config";
 import { createLogger } from "../../logger";
 import { normalizeAlbumKey } from "../../utils/albumKey";
 import { collectArtistCandidates } from "./artistLeg";
@@ -23,6 +22,26 @@ const MAX_RESULTS = 12;
 const MB_RESOLUTION_BUDGET = 5;
 
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+
+/** Last.fm tags that describe how people use the site rather than what the music is. */
+const GENERIC_TAGS: ReadonlySet<string> = new Set([
+  "seen live",
+  "favorites",
+  "favourite",
+  "my favorite",
+  "love",
+  "awesome",
+  "beautiful",
+  "cool",
+  "check out",
+  "spotify",
+  "under 2000 listeners",
+  "all",
+  "music",
+  "powerful",
+  "fun",
+  "in vinyl collection",
+]);
 
 const cache = new NodeCache();
 
@@ -125,12 +144,8 @@ async function buildSimilarAlbums(mbid: string): Promise<SimilarAlbum[]> {
   const seed = await loadSeed(mbid);
   if (!seed || !seed.artistName || !seed.title) return [];
 
-  const genericTags = new Set(
-    getConfigValue("promotedAlbum").genericTags.map((t) => t.toLowerCase())
-  );
-
   const [tagCandidates, artistCandidates] = await Promise.all([
-    collectTagCandidates(seed, genericTags),
+    collectTagCandidates(seed, GENERIC_TAGS),
     collectArtistCandidates(seed),
   ]);
 

@@ -1,14 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockGetFollowedReleases = vi.fn();
-const mockGetCachedFeed = vi.fn();
-const mockGetArtistList = vi.fn();
-const mockGetUserProfile = vi.fn();
 const mockEnrich = vi.fn();
-
-vi.mock("./feedCache", () => ({
-  getCachedFreshReleases: (...args: unknown[]) => mockGetCachedFeed(...args),
-}));
 
 vi.mock("../followed/followedService", async (importOriginal) => {
   const original =
@@ -20,25 +13,8 @@ vi.mock("../followed/followedService", async (importOriginal) => {
   };
 });
 
-vi.mock("../lidarr/artists", () => ({
-  getArtistList: (...args: unknown[]) => mockGetArtistList(...args),
-}));
-
 vi.mock("../requests/lidarrEnrichment", () => ({
   enrichRequestsWithLidarr: (...args: unknown[]) => mockEnrich(...args),
-}));
-
-vi.mock("../../db/userProfile", async (importOriginal) => {
-  const original =
-    await importOriginal<typeof import("../../db/userProfile")>();
-  return {
-    ...original,
-    getUserProfile: (...args: unknown[]) => mockGetUserProfile(...args),
-  };
-});
-
-vi.mock("../../logger", () => ({
-  createLogger: () => ({ info: vi.fn(), error: vi.fn(), warn: vi.fn() }),
 }));
 
 import { TARGET_ITEM_COUNT, getNewReleases } from "./newReleases";
@@ -69,230 +45,109 @@ function followedRow(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function feedRelease(overrides: Record<string, unknown> = {}) {
-  return {
-    artistName: "Library Artist",
-    artistMbids: ["mbid-library"],
-    releaseName: "Library Album",
-    releaseDate: daysAgo(10),
-    releaseGroupMbid: "rg-library",
-    primaryType: "Album",
-    secondaryType: null,
-    ...overrides,
-  };
-}
-
-function profileWithSimilar(mbids: string[]) {
-  return {
-    profile_json: JSON.stringify({
-      genreVector: [],
-      artistTags: [],
-      similarGraph: [
-        {
-          seedArtist: "Seed",
-          seedMbid: "mbid-seed",
-          seedGenres: [],
-          viewCount: 10,
-          candidates: mbids.map((m, i) => ({
-            name: `Similar ${i}`,
-            artistMbid: m,
-            score: 100,
-            genres: [],
-          })),
-        },
-      ],
-      explorationHistory: { albums: [], artists: [] },
-    }),
-  };
+function followedRows(
+  count: number,
+  daysOffset: (i: number) => number,
+  overrides: Record<string, unknown> = {}
+) {
+  return Array.from({ length: count }, (_, i) =>
+    followedRow({
+      id: i + 1,
+      release_group_mbid: `rg-${daysOffset(i)}-${i}`,
+      album_title: `Album ${i}`,
+      release_date: daysAgo(daysOffset(i)),
+      release_key: `album${i}|x`,
+      viewed_at: "2026-07-08T00:00:00.000Z",
+      ...overrides,
+    })
+  );
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
   mockGetFollowedReleases.mockResolvedValue([]);
-  mockGetCachedFeed.mockResolvedValue([]);
-  mockGetArtistList.mockResolvedValue({ ok: true, data: [] });
-  mockGetUserProfile.mockResolvedValue(null);
   mockEnrich.mockImplementation(async (mbids: string[]) =>
     mbids.map(() => null)
   );
 });
 
 describe("getNewReleases", () => {
-  it("returns empty items when there is nothing anywhere", async () => {
+  it("returns empty items when nothing is followed", async () => {
     const result = await getNewReleases(1, NOW);
     expect(result.items).toEqual([]);
     expect(result.windowDays).toBe(90);
   });
 
-  it("maps followed releases with source and followedReleaseId", async () => {
+  it("maps followed releases with their followedReleaseId", async () => {
     mockGetFollowedReleases.mockResolvedValue([followedRow()]);
 
     const result = await getNewReleases(1, NOW);
-    expect(result.items).toHaveLength(1);
-    expect(result.items[0]).toEqual({
-      releaseGroupMbid: "rg-followed",
-      title: "Followed Album",
-      artistName: "Followed Artist",
-      artistMbid: "mbid-followed",
-      releaseDate: daysAgo(5),
-      source: "followed",
-      coverUrl: "https://caa/rg-followed",
-      lidarrStatus: null,
-      followedReleaseId: 1,
-    });
+    expect(result.items).toEqual([
+      {
+        releaseGroupMbid: "rg-followed",
+        title: "Followed Album",
+        artistName: "Followed Artist",
+        artistMbid: "mbid-followed",
+        releaseDate: daysAgo(5),
+        coverUrl: "https://caa/rg-followed",
+        lidarrStatus: null,
+        followedReleaseId: 1,
+      },
+    ]);
   });
 
-  it("includes library-artist releases from the feed", async () => {
-    mockGetArtistList.mockResolvedValue({
-      ok: true,
-      data: [
-        { id: 1, name: "Library Artist", foreignArtistId: "mbid-library" },
-      ],
-    });
-    mockGetCachedFeed.mockResolvedValue([feedRelease()]);
-
-    const result = await getNewReleases(1, NOW);
-    expect(result.items).toHaveLength(1);
-    expect(result.items[0].source).toBe("library");
-    expect(result.items[0].coverUrl).toBe(
-      "https://coverartarchive.org/release-group/rg-library/front-500"
-    );
-    expect(result.items[0].followedReleaseId).toBeNull();
-  });
-
-  it("includes similar-artist releases from the user profile graph", async () => {
-    mockGetUserProfile.mockResolvedValue(profileWithSimilar(["mbid-similar"]));
-    mockGetCachedFeed.mockResolvedValue([
-      feedRelease({
-        artistName: "Similar Artist",
-        artistMbids: ["mbid-similar"],
-        releaseGroupMbid: "rg-similar",
+  it("filters noisy release types", async () => {
+    mockGetFollowedReleases.mockResolvedValue([
+      followedRow({ id: 1, secondary_types: '["Live"]' }),
+      followedRow({
+        id: 2,
+        release_group_mbid: "rg-ost",
+        secondary_types: '["Soundtrack"]',
       }),
     ]);
 
     const result = await getNewReleases(1, NOW);
-    expect(result.items).toHaveLength(1);
-    expect(result.items[0].source).toBe("similar");
+    expect(result.items.map((i) => i.releaseGroupMbid)).toEqual(["rg-ost"]);
   });
 
-  it("skips the similar tier when no profile exists", async () => {
-    mockGetCachedFeed.mockResolvedValue([
-      feedRelease({ artistMbids: ["mbid-similar"] }),
-    ]);
-
-    const result = await getNewReleases(1, NOW);
-    expect(result.items).toEqual([]);
-  });
-
-  it("filters noisy release types from feed and followed tiers", async () => {
-    mockGetFollowedReleases.mockResolvedValue([
-      followedRow({ secondary_types: '["Live"]' }),
-    ]);
-    mockGetArtistList.mockResolvedValue({
-      ok: true,
-      data: [{ id: 1, name: "A", foreignArtistId: "mbid-library" }],
-    });
-    mockGetCachedFeed.mockResolvedValue([
-      feedRelease({ secondaryType: "Remix", releaseGroupMbid: "rg-remix" }),
-      feedRelease({ primaryType: "Broadcast", releaseGroupMbid: "rg-bc" }),
-      feedRelease({ secondaryType: "Soundtrack", releaseGroupMbid: "rg-ost" }),
-    ]);
-
-    const result = await getNewReleases(1, NOW);
-    expect(result.items).toHaveLength(1);
-    expect(result.items[0].releaseGroupMbid).toBe("rg-ost");
-  });
-
-  it("drops Various Artists compilations from feed and followed tiers", async () => {
+  it("drops Various Artists compilations", async () => {
     mockGetFollowedReleases.mockResolvedValue([
       followedRow({
         artist_name: "Various Artists",
         artist_mbid: VARIOUS_ARTISTS_MBID,
       }),
     ]);
-    mockGetArtistList.mockResolvedValue({
-      ok: true,
-      data: [{ id: 1, name: "A", foreignArtistId: "mbid-library" }],
-    });
-    mockGetCachedFeed.mockResolvedValue([
-      feedRelease({ artistName: "Various Artists", releaseGroupMbid: "rg-va" }),
-      feedRelease({
-        artistMbids: ["mbid-library", VARIOUS_ARTISTS_MBID],
-        releaseGroupMbid: "rg-va-credit",
-      }),
-      feedRelease({ releaseGroupMbid: "rg-real" }),
-    ]);
 
     const result = await getNewReleases(1, NOW);
-    expect(result.items).toHaveLength(1);
-    expect(result.items[0].releaseGroupMbid).toBe("rg-real");
+    expect(result.items).toEqual([]);
   });
 
-  it("prefers the followed entry when the same release appears in the feed", async () => {
-    mockGetFollowedReleases.mockResolvedValue([followedRow()]);
-    mockGetArtistList.mockResolvedValue({
-      ok: true,
-      data: [{ id: 1, name: "A", foreignArtistId: "mbid-followed" }],
-    });
-    mockGetCachedFeed.mockResolvedValue([
-      feedRelease({
-        artistMbids: ["mbid-followed"],
-        releaseGroupMbid: "rg-followed",
-        releaseName: "Followed Album",
-      }),
-    ]);
-
-    const result = await getNewReleases(1, NOW);
-    expect(result.items).toHaveLength(1);
-    expect(result.items[0].source).toBe("followed");
-  });
-
-  it("dedupes a pre-backfill followed item against its feed twin by title", async () => {
+  it("keeps one entry for a release followed through two of its artists", async () => {
     mockGetFollowedReleases.mockResolvedValue([
-      followedRow({
-        release_group_mbid: null,
-        cover_url: "https://deezer/cover.jpg",
-        artist_name: "Library Artist",
-        album_title: "Library Album",
-        release_date: daysAgo(10),
-      }),
+      followedRow({ id: 1, artist_name: "First" }),
+      followedRow({ id: 2, artist_name: "Second", followed_artist_id: 2 }),
     ]);
-    mockGetArtistList.mockResolvedValue({
-      ok: true,
-      data: [{ id: 1, name: "A", foreignArtistId: "mbid-library" }],
-    });
-    mockGetCachedFeed.mockResolvedValue([feedRelease()]);
 
     const result = await getNewReleases(1, NOW);
     expect(result.items).toHaveLength(1);
-    expect(result.items[0].source).toBe("followed");
-    expect(result.items[0].releaseGroupMbid).toBeNull();
+    expect(result.items[0].followedReleaseId).toBe(1);
+  });
+
+  it("keeps rows without a release-group MBID", async () => {
+    mockGetFollowedReleases.mockResolvedValue([
+      followedRow({ id: 1, release_group_mbid: null, album_title: "One" }),
+      followedRow({ id: 2, release_group_mbid: null, album_title: "Two" }),
+    ]);
+
+    const result = await getNewReleases(1, NOW);
+    expect(result.items).toHaveLength(2);
   });
 
   it("widens the window until the target is filled and reports it", async () => {
-    mockGetArtistList.mockResolvedValue({
-      ok: true,
-      data: [{ id: 1, name: "A", foreignArtistId: "mbid-library" }],
-    });
-    // Half inside the 30-day window and half outside, so reaching the target
-    // requires widening no matter what the target is set to.
     const recentCount = Math.floor(TARGET_ITEM_COUNT / 2);
-    mockGetCachedFeed.mockResolvedValue([
-      ...Array.from({ length: recentCount }, (_, i) =>
-        feedRelease({
-          releaseGroupMbid: `rg-recent-${i}`,
-          releaseName: `Recent ${i}`,
-          releaseDate: daysAgo(i + 1),
-        })
-      ),
-      ...Array.from({ length: TARGET_ITEM_COUNT - recentCount }, (_, i) =>
-        feedRelease({
-          releaseGroupMbid: `rg-older-${i}`,
-          releaseName: `Older ${i}`,
-          releaseDate: daysAgo(40 + i),
-        })
-      ),
-    ]);
+    mockGetFollowedReleases.mockResolvedValue(
+      followedRows(TARGET_ITEM_COUNT, (i) => (i < recentCount ? i + 1 : 40 + i))
+    );
 
     const result = await getNewReleases(1, NOW);
     expect(result.windowDays).toBe(60);
@@ -300,18 +155,8 @@ describe("getNewReleases", () => {
   });
 
   it("keeps a 30-day window when the target is already met", async () => {
-    mockGetArtistList.mockResolvedValue({
-      ok: true,
-      data: [{ id: 1, name: "A", foreignArtistId: "mbid-library" }],
-    });
-    mockGetCachedFeed.mockResolvedValue(
-      Array.from({ length: TARGET_ITEM_COUNT + 1 }, (_, i) =>
-        feedRelease({
-          releaseGroupMbid: `rg-${i}`,
-          releaseName: `Fresh ${i}`,
-          releaseDate: daysAgo(i + 1),
-        })
-      )
+    mockGetFollowedReleases.mockResolvedValue(
+      followedRows(TARGET_ITEM_COUNT + 1, (i) => i + 1)
     );
 
     const result = await getNewReleases(1, NOW);
@@ -319,17 +164,18 @@ describe("getNewReleases", () => {
     expect(result.items).toHaveLength(TARGET_ITEM_COUNT);
   });
 
-  it("excludes unreleased (future-dated) and windowless releases", async () => {
-    mockGetArtistList.mockResolvedValue({
-      ok: true,
-      data: [{ id: 1, name: "A", foreignArtistId: "mbid-library" }],
-    });
-    mockGetCachedFeed.mockResolvedValue([
-      feedRelease({ releaseGroupMbid: "rg-future", releaseDate: daysAgo(-3) }),
-      feedRelease({ releaseGroupMbid: "rg-undated", releaseDate: null }),
-      feedRelease({
-        releaseGroupMbid: "rg-ancient",
-        releaseDate: daysAgo(200),
+  it("excludes unreleased, undated and out-of-window releases", async () => {
+    mockGetFollowedReleases.mockResolvedValue([
+      followedRow({
+        id: 1,
+        release_group_mbid: "a",
+        release_date: daysAgo(-3),
+      }),
+      followedRow({ id: 2, release_group_mbid: "b", release_date: null }),
+      followedRow({
+        id: 3,
+        release_group_mbid: "c",
+        release_date: daysAgo(200),
       }),
     ]);
 
@@ -337,64 +183,46 @@ describe("getNewReleases", () => {
     expect(result.items).toEqual([]);
   });
 
-  it("puts unseen followed releases first, then newest", async () => {
+  it("puts unseen releases first, then newest", async () => {
     mockGetFollowedReleases.mockResolvedValue([
       followedRow({
         id: 1,
-        release_group_mbid: "rg-seen",
-        album_title: "Seen Followed",
+        release_group_mbid: "rg-seen-new",
         release_date: daysAgo(1),
         viewed_at: "2026-07-08T00:00:00.000Z",
-        release_key: "seenfollowed|2026-07",
       }),
       followedRow({
         id: 2,
         release_group_mbid: "rg-unseen",
-        album_title: "Unseen Followed",
         release_date: daysAgo(20),
         viewed_at: null,
-        release_key: "unseenfollowed|2026-06",
       }),
-    ]);
-    mockGetArtistList.mockResolvedValue({
-      ok: true,
-      data: [{ id: 1, name: "A", foreignArtistId: "mbid-library" }],
-    });
-    mockGetCachedFeed.mockResolvedValue([
-      feedRelease({ releaseGroupMbid: "rg-lib", releaseDate: daysAgo(2) }),
+      followedRow({
+        id: 3,
+        release_group_mbid: "rg-seen-old",
+        release_date: daysAgo(10),
+        viewed_at: "2026-07-08T00:00:00.000Z",
+      }),
     ]);
 
     const result = await getNewReleases(1, NOW);
     expect(result.items.map((i) => i.releaseGroupMbid)).toEqual([
       "rg-unseen",
-      "rg-seen",
-      "rg-lib",
+      "rg-seen-new",
+      "rg-seen-old",
     ]);
   });
 
-  it("caps the shelf at the target with unseen-followed priority", async () => {
+  it("caps the shelf at the target with unseen priority", async () => {
     mockGetFollowedReleases.mockResolvedValue([
+      ...followedRows(TARGET_ITEM_COUNT + 2, (i) => i + 1),
       followedRow({
-        id: 9,
+        id: 99,
         release_group_mbid: "rg-unseen",
-        album_title: "Unseen",
         release_date: daysAgo(25),
-        release_key: "unseen|2026-06",
+        viewed_at: null,
       }),
     ]);
-    mockGetArtistList.mockResolvedValue({
-      ok: true,
-      data: [{ id: 1, name: "A", foreignArtistId: "mbid-library" }],
-    });
-    mockGetCachedFeed.mockResolvedValue(
-      Array.from({ length: TARGET_ITEM_COUNT + 2 }, (_, i) =>
-        feedRelease({
-          releaseGroupMbid: `rg-${i}`,
-          releaseName: `Fresh ${i}`,
-          releaseDate: daysAgo(i + 1),
-        })
-      )
-    );
 
     const result = await getNewReleases(1, NOW);
     expect(result.items).toHaveLength(TARGET_ITEM_COUNT);
@@ -410,17 +238,5 @@ describe("getNewReleases", () => {
     const result = await getNewReleases(1, NOW);
     expect(mockEnrich).toHaveBeenCalledWith(["rg-followed"]);
     expect(result.items[0].lidarrStatus).toBe("imported");
-  });
-
-  it("treats a Lidarr failure as empty library tier", async () => {
-    mockGetArtistList.mockResolvedValue({
-      ok: false,
-      error: "down",
-      status: 500,
-    });
-    mockGetCachedFeed.mockResolvedValue([feedRelease()]);
-
-    const result = await getNewReleases(1, NOW);
-    expect(result.items).toEqual([]);
   });
 });

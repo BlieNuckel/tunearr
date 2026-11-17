@@ -50,11 +50,6 @@ export { Purchase } from "./entity/Purchase";
 export { Config } from "./entity/Config";
 export { FollowedArtist } from "./entity/FollowedArtist";
 export { FollowedRelease } from "./entity/FollowedRelease";
-export type { DerivedProfile } from "./entity/UserProfile";
-export {
-  UserProfile,
-  DERIVED_PROFILE_SCHEMA_VERSION,
-} from "./entity/UserProfile";
 export type { SignalKind } from "./entity/UserSignalEvent";
 export { UserSignalEvent } from "./entity/UserSignalEvent";
 export { NotificationPreference } from "./entity/NotificationPreference";
@@ -68,4 +63,3 @@ export { LiveEventPerformer } from "./entity/LiveEventPerformer";
 export type { LiveEventResponse } from "./entity/UserLiveEventState";
 export { UserLiveEventState } from "./entity/UserLiveEventState";
 export { LiveQuotaUsage } from "./entity/LiveQuotaUsage";
-export { PromotedAlbumSnapshot } from "./entity/PromotedAlbumSnapshot";

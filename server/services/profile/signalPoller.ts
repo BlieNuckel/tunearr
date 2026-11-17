@@ -1,5 +1,8 @@
 import { getConfigValue } from "../../config";
-import { getSignalEvents, getSignalIngestionUsers } from "../../db/userProfile";
+import {
+  getSignalEvents,
+  getSignalIngestionUsers,
+} from "../../db/signalEvents";
 import {
   captureDue,
   ingestUserAlbumTracks,
@@ -42,7 +45,7 @@ export async function runSignalIngestionOnce(now = Date.now()): Promise<void> {
   }
   running = true;
   try {
-    if (!getConfigValue("promotedAlbum").ratingsBackupEnabled) return;
+    if (!getConfigValue("listeningCaptureEnabled")) return;
 
     const users = await getSignalIngestionUsers();
     let ratingsWritten = 0;

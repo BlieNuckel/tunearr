@@ -20,12 +20,12 @@ function makeDefinition(
   overrides: Partial<SectionDefinition> = {}
 ): SectionDefinition {
   return {
-    id: "spotlight",
+    id: "newReleases",
     span: { cols: 6, rows: 1 },
     desktopOrder: 1,
     mobileOrder: 1,
     whenEmpty: "hide",
-    Component: makeStatusSection("ready", "spotlight content"),
+    Component: makeStatusSection("ready", "newReleases content"),
     ...overrides,
   };
 }
@@ -37,16 +37,16 @@ describe("DiscoverGrid", () => {
         definitions={[
           makeDefinition(),
           makeDefinition({
-            id: "artists",
+            id: "liveBanner",
             desktopOrder: 2,
-            Component: makeStatusSection("ready", "artists content"),
+            Component: makeStatusSection("ready", "liveBanner content"),
           }),
         ]}
       />
     );
 
-    expect(screen.getByText("spotlight content")).toBeInTheDocument();
-    expect(screen.getByText("artists content")).toBeInTheDocument();
+    expect(screen.getByText("newReleases content")).toBeInTheDocument();
+    expect(screen.getByText("liveBanner content")).toBeInTheDocument();
   });
 
   it("orders slots in the DOM by desktopOrder", () => {
@@ -54,19 +54,19 @@ describe("DiscoverGrid", () => {
       <DiscoverGrid
         definitions={[
           makeDefinition({
-            id: "artists",
+            id: "liveBanner",
             desktopOrder: 2,
-            Component: makeStatusSection("ready", "artists content"),
+            Component: makeStatusSection("ready", "liveBanner content"),
           }),
-          makeDefinition({ id: "spotlight", desktopOrder: 1 }),
+          makeDefinition({ id: "newReleases", desktopOrder: 1 }),
         ]}
       />
     );
 
     const slots = screen.getAllByTestId(/discover-section-/);
     expect(slots.map((el) => el.dataset.testid)).toEqual([
-      "discover-section-spotlight",
-      "discover-section-artists",
+      "discover-section-newReleases",
+      "discover-section-liveBanner",
     ]);
   });
 
@@ -75,13 +75,13 @@ describe("DiscoverGrid", () => {
       <DiscoverGrid
         definitions={[
           makeDefinition({
-            Component: makeStatusSection("empty", "spotlight content"),
+            Component: makeStatusSection("empty", "newReleases content"),
           }),
         ]}
       />
     );
 
-    expect(screen.getByTestId("discover-section-spotlight")).toHaveClass(
+    expect(screen.getByTestId("discover-section-newReleases")).toHaveClass(
       "hidden"
     );
   });
@@ -91,13 +91,13 @@ describe("DiscoverGrid", () => {
       <DiscoverGrid
         definitions={[
           makeDefinition({
-            Component: makeStatusSection("error", "spotlight content"),
+            Component: makeStatusSection("error", "newReleases content"),
           }),
         ]}
       />
     );
 
-    expect(screen.getByTestId("discover-section-spotlight")).toHaveClass(
+    expect(screen.getByTestId("discover-section-newReleases")).toHaveClass(
       "hidden"
     );
   });
@@ -108,13 +108,13 @@ describe("DiscoverGrid", () => {
         definitions={[
           makeDefinition({
             whenEmpty: "keep",
-            Component: makeStatusSection("empty", "spotlight content"),
+            Component: makeStatusSection("empty", "newReleases content"),
           }),
         ]}
       />
     );
 
-    expect(screen.getByTestId("discover-section-spotlight")).not.toHaveClass(
+    expect(screen.getByTestId("discover-section-newReleases")).not.toHaveClass(
       "hidden"
     );
   });
@@ -124,13 +124,13 @@ describe("DiscoverGrid", () => {
       <DiscoverGrid
         definitions={[
           makeDefinition({
-            Component: makeStatusSection("empty", "spotlight content"),
+            Component: makeStatusSection("empty", "newReleases content"),
           }),
         ]}
       />
     );
 
-    expect(screen.getByText("spotlight content")).toBeInTheDocument();
+    expect(screen.getByText("newReleases content")).toBeInTheDocument();
   });
 
   it("applies span classes and the mobile order variable to each slot", () => {
@@ -142,7 +142,7 @@ describe("DiscoverGrid", () => {
       />
     );
 
-    const slot = screen.getByTestId("discover-section-spotlight");
+    const slot = screen.getByTestId("discover-section-newReleases");
     expect(slot).toHaveClass("lg:col-span-4");
     expect(slot).toHaveClass("lg:row-span-2");
     expect(slot.style.getPropertyValue("--order-mobile")).toBe("3");

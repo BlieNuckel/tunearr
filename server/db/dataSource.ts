@@ -9,7 +9,6 @@ import { Purchase } from "./entity/Purchase";
 import { Config } from "./entity/Config";
 import { FollowedArtist } from "./entity/FollowedArtist";
 import { FollowedRelease } from "./entity/FollowedRelease";
-import { UserProfile } from "./entity/UserProfile";
 import { UserSignalEvent } from "./entity/UserSignalEvent";
 import { NotificationPreference } from "./entity/NotificationPreference";
 import { PushSubscription } from "./entity/PushSubscription";
@@ -17,7 +16,6 @@ import { LiveEvent } from "./entity/LiveEvent";
 import { LiveEventPerformer } from "./entity/LiveEventPerformer";
 import { UserLiveEventState } from "./entity/UserLiveEventState";
 import { LiveQuotaUsage } from "./entity/LiveQuotaUsage";
-import { PromotedAlbumSnapshot } from "./entity/PromotedAlbumSnapshot";
 import { InitialSchema1709000000000 } from "./migration/1_InitialSchema";
 import { ConfigTable1710000000000 } from "./migration/2_ConfigTable";
 import { WantedItems1711000000000 } from "./migration/3_WantedItems";
@@ -34,6 +32,7 @@ import { LiveEvents1721000000000 } from "./migration/13_LiveEvents";
 import { LiveEventPerformerGenres1722000000000 } from "./migration/14_LiveEventPerformerGenres";
 import { LiveQuotaUsage1723000000000 } from "./migration/15_LiveQuotaUsage";
 import { PromotedAlbumSnapshots1724000000000 } from "./migration/16_PromotedAlbumSnapshots";
+import { RemoveRecommendations1725000000000 } from "./migration/17_RemoveRecommendations";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -59,7 +58,6 @@ export function createDataSource(dbPath?: string): DataSource {
       Config,
       FollowedArtist,
       FollowedRelease,
-      UserProfile,
       UserSignalEvent,
       NotificationPreference,
       PushSubscription,
@@ -67,7 +65,6 @@ export function createDataSource(dbPath?: string): DataSource {
       LiveEventPerformer,
       UserLiveEventState,
       LiveQuotaUsage,
-      PromotedAlbumSnapshot,
     ],
     migrations: [
       InitialSchema1709000000000,
@@ -86,6 +83,7 @@ export function createDataSource(dbPath?: string): DataSource {
       LiveEventPerformerGenres1722000000000,
       LiveQuotaUsage1723000000000,
       PromotedAlbumSnapshots1724000000000,
+      RemoveRecommendations1725000000000,
     ],
     synchronize: false,
     migrationsRun: true,

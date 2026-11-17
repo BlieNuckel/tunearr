@@ -13,7 +13,7 @@ const IMMEDIATE_FIELDS: Set<keyof AppSettings> = new Set([
   "lidarrQualityProfileId",
   "lidarrRootFolderPath",
   "lidarrMetadataProfileId",
-  "promotedAlbum",
+  "listeningCaptureEnabled",
   "purchaseDecision",
   "spending",
 ]);

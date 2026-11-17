@@ -5,11 +5,11 @@ What each integration does, what it needs, and how to set it up. Everything here
 | Service              | Required | Purpose                                                      |
 | -------------------- | -------- | ------------------------------------------------------------ |
 | [Lidarr](#lidarr)    | Yes      | Music library management; requests and imports go through it |
-| [Last.fm](#lastfm)   | No       | Similar artists and genre tags for discovery                 |
-| [Plex](#plex)        | No       | Listening history and ratings that power recommendations     |
+| [Last.fm](#lastfm)   | No       | Similar artists and similar albums                           |
+| [Plex](#plex)        | No       | Captures each user's listening history and ratings           |
 | [slskd](soulseek.md) | No       | Soulseek downloads via Lidarr                                |
 
-MusicBrainz (search and metadata), Deezer (album artwork), and ListenBrainz (discovery data) are public APIs used automatically — no configuration needed.
+MusicBrainz (search and metadata), Deezer (album artwork), and ListenBrainz (similar artists) are public APIs used automatically — no configuration needed.
 
 ## Lidarr
 
@@ -24,13 +24,13 @@ After connecting, pick a **quality profile**, **metadata profile**, and **root f
 
 ## Last.fm
 
-Powers "similar artists" and genre tags on artist pages and in Discover. Without it, those sections simply stay empty — everything else works.
+Powers "similar artists" on artist pages and "similar albums" on album pages. Without it, those sections simply stay empty — everything else works.
 
 Setup: create a free API account at [last.fm/api/account/create](https://www.last.fm/api/account/create) and paste the **API key** into Tunearr. No user login or scrobbling setup involved — Tunearr only reads public artist data.
 
 ## Plex
 
-Plex is what makes recommendations personal: Tunearr reads your listening history and track/album ratings to build a taste profile, which drives the promoted album and artists on the Discover page. Without Plex, Discover still works but recommends from broader, non-personalized sources.
+Tunearr copies each linked user's Plex listening history, play counts and track/album ratings into its own database, so the history survives Plex purges and library re-imports. Nothing in the app reads it yet. Capture can be switched off with **Record listening history** on the Plex integration page.
 
 Plex is linked **per user**, not globally:
 

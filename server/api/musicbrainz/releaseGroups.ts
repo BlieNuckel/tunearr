@@ -1,6 +1,5 @@
 import { MB_BASE, mbJson } from "./config";
 import { mbCached, MB_TTL } from "./cache";
-import { createLogger } from "../../logger";
 import type { MbPriority } from "./queue";
 import type {
   MusicBrainzReleaseGroup,
@@ -22,8 +21,6 @@ export type AlbumDetails = {
 };
 
 type LabelResult = { name: string; mbid: string } | null;
-
-const log = createLogger("musicbrainz");
 
 async function loadReleaseGroupSearch(
   query: string,
@@ -264,26 +261,4 @@ export function getReleaseGroupInfo(
     },
     (p) => loadReleaseGroupInfo(releaseGroupMbid, p)
   );
-}
-
-/**
- * Resolve an MBID of unknown kind to its release group. Last.fm is inconsistent about
- * whether `tag.getTopAlbums` hands back a release MBID or a release-group one, and the
- * release lookup 404s on the latter — a miss `mbCached` then stores for the whole TTL,
- * silently dropping that album from every candidate pool. So a miss retries the MBID as a
- * release group before giving up. Both legs are cached, so a repeat costs no MusicBrainz
- * slots; only a first-time already-a-release-group MBID spends the extra one.
- */
-export async function resolveReleaseGroupInfo(
-  mbid: string,
-  priority: MbPriority = "interactive"
-): Promise<ReleaseGroupInfo | null> {
-  const fromRelease = await getReleaseGroupIdFromRelease(mbid, priority);
-  if (fromRelease) return fromRelease;
-
-  const asReleaseGroup = await getReleaseGroupInfo(mbid, priority);
-  if (asReleaseGroup) {
-    log.debug(`MBID ${mbid} was already a release group, not a release`);
-  }
-  return asReleaseGroup;
 }

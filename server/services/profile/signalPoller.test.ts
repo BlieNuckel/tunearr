@@ -26,7 +26,7 @@ vi.mock("../../api/plex/playHistory", () => ({
 
 import { runSignalIngestionOnce } from "./signalPoller";
 import { initializeDatabase, closeDatabase, getDataSource } from "../../db";
-import { getSignalEvents } from "../../db/userProfile";
+import { getSignalEvents } from "../../db/signalEvents";
 
 async function createUser(
   username: string,
@@ -49,7 +49,7 @@ const ratedTrack = {
 
 beforeEach(async () => {
   await initializeDatabase(":memory:");
-  mockGetConfigValue.mockReturnValue({ ratingsBackupEnabled: true });
+  mockGetConfigValue.mockReturnValue(true);
   mockGetRatedItems.mockResolvedValue([ratedTrack]);
   mockGetAllTrackPlayCounts.mockResolvedValue([
     {
@@ -118,7 +118,7 @@ describe("runSignalIngestionOnce", () => {
   });
 
   it("does nothing when the backup is disabled", async () => {
-    mockGetConfigValue.mockReturnValue({ ratingsBackupEnabled: false });
+    mockGetConfigValue.mockReturnValue(false);
     await createUser("alice", "tok-a");
 
     await runSignalIngestionOnce();

@@ -1,11 +1,9 @@
 # New releases shelf
 
-Four cards on Discover blending three tiers: releases by artists the user follows, releases
-by artists in the Lidarr library, and releases by artists adjacent to the user's taste. Two
-different pipelines feed it, one persisted and one cached in memory.
+Six cards on Discover, all releases by artists the user follows. The followed-artist poller
+records them; the shelf reads what it recorded.
 
-Code: `server/services/discover/newReleases.ts`, `feedCache.ts`,
-`server/services/followed/`.
+Code: `server/services/discover/newReleases.ts`, `server/services/followed/`.
 
 ## The followed pipeline (persisted, poller-driven)
 
@@ -35,39 +33,21 @@ flowchart TB
 The first poll after following records the entire back catalogue, and none of it is news to
 the person who just chose to follow that artist, so notifications are suppressed for it.
 
-## The blend (per request)
+## The shelf (per request)
 
 ```mermaid
 flowchart TB
-  subgraph inputs["fetched concurrently"]
-    f["getFollowedReleasesForUser<br/>up to 200 rows"]
-    lb["getCachedFreshReleases<br/>ListenBrainz sitewide feed, 6h global cache"]
-    lib["Lidarr artist list -> mbid set"]
-    sim["profile.similarGraph -> candidate mbid set"]
-  end
-
+  f["getFollowedReleasesForUser<br/>up to 200 rows"]
   filter["isAllowedReleaseType + placeholder-artist filter"]
-  m1["feed releases matching a library artist -> source: library"]
-  m2["feed releases matching a similar artist -> source: similar"]
-  dedup["dedupeCandidates<br/>keys: release-group mbid and artist-scoped title+month<br/>precedence followed > library > similar"]
-  win["widen the window 30 -> 60 -> 90 days<br/>until 4 candidates exist"]
-  sort["unseen followed first, then newest"]
+  dedup["dedupeCandidates<br/>one entry per release-group mbid"]
+  win["widen the window 30 -> 60 -> 90 days<br/>until 6 candidates exist"]
+  sort["unseen first, then newest"]
   enrich["enrichRequestsWithLidarr<br/>downloading / wanted / imported"]
-  out["4 items + the window used"]
+  out["6 items + the window used"]
 
-  f --> filter
-  lb --> filter
-  filter --> m1
-  filter --> m2
-  lib --> m1
-  sim --> m2
-  filter --> dedup
-  m1 --> dedup
-  m2 --> dedup
-  dedup --> win --> sort --> enrich --> out
+  f --> filter --> dedup --> win --> sort --> enrich --> out
 ```
 
-The artist-scoped title key exists so a followed row written before its mbid backfill still
-suppresses its twin from the ListenBrainz feed, without colliding across artists. The window
-widens rather than the count shrinking, because a half-empty shelf reads as broken while a
-90 day window reads as quiet.
+A release by two followed artists is stored once per artist, which is why the shelf dedupes on
+the release-group mbid. The window widens rather than the count shrinking, because a
+half-empty shelf reads as broken while a 90 day window reads as quiet.

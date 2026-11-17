@@ -33,7 +33,6 @@ function makeItem() {
     artistName: "Artist",
     artistMbid: "mbid-1",
     releaseDate: "2026-07-01",
-    source: "followed",
     coverUrl: null,
     lidarrStatus: null,
     followedReleaseId: 1,

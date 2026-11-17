@@ -13,8 +13,7 @@ import { User } from "./User";
  * (plays, ratings, behaviour) without a migration — a new signal is a new string.
  *
  * `plex_plays` is gone: the artist-level series it named was superseded by
- * `plex_track_plays`, carried no per-track detail, and stopped being written long before it
- * stopped being read. Rows may still exist and are simply never folded.
+ * `plex_track_plays`, and its rows were deleted when the recommenders were removed.
  */
 export type SignalKind =
   | "plex_track_plays"

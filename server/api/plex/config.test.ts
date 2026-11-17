@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { getPlexConfig } from "./config";
 import {
-  DEFAULT_PROMOTED_ALBUM,
   DEFAULT_PURCHASE_DECISION,
   DEFAULT_SPENDING,
   DEFAULT_NOTIFICATIONS,
@@ -34,7 +33,6 @@ const fullConfig = {
   slskdDownloadPath: "",
   torznabApiKey: "",
   theme: "system" as const,
-  promotedAlbum: DEFAULT_PROMOTED_ALBUM,
   purchaseDecision: DEFAULT_PURCHASE_DECISION,
   spending: DEFAULT_SPENDING,
   notifications: DEFAULT_NOTIFICATIONS,
@@ -42,6 +40,7 @@ const fullConfig = {
   followedArtistPollIntervalMs: DEFAULT_FOLLOWED_POLL_INTERVAL_MS,
   requestStatusPollIntervalMs: DEFAULT_REQUEST_STATUS_POLL_INTERVAL_MS,
   listenSessionPollIntervalMs: DEFAULT_LISTEN_SESSION_POLL_INTERVAL_MS,
+  listeningCaptureEnabled: true,
 };
 
 beforeEach(() => {

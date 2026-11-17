@@ -1,15 +1,12 @@
 import { createContext } from "react";
 import type {
   LiveEventsSettings,
-  PromotedAlbumSettings,
   PurchaseDecisionSettings,
   SpendingSettings,
 } from "@shared/settingsDefaults";
 
 export type {
-  LibraryPreference,
   LiveEventsSettings,
-  PromotedAlbumSettings,
   PurchaseDecisionSettings,
   SpendingSettings,
 } from "@shared/settingsDefaults";
@@ -27,7 +24,7 @@ export interface AppSettings {
   slskdApiKey: string;
   slskdDownloadPath: string;
   torznabApiKey: string;
-  promotedAlbum?: PromotedAlbumSettings;
+  listeningCaptureEnabled?: boolean;
   purchaseDecision?: PurchaseDecisionSettings;
   spending?: SpendingSettings;
   liveEvents?: LiveEventsSettings;

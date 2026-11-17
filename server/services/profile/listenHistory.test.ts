@@ -8,22 +8,16 @@ vi.mock("../../api/plex/playHistory", () => ({
 
 import {
   episodeKey,
-  historyCoverageStart,
-  historyCovers,
   historyWatermark,
   ingestUserListenHistory,
   reconstructListenEpisodes,
-  rollupEpisodesToAlbums,
-  rollupEpisodesToArtists,
   type ListenEpisode,
   type PlexListenHistoryPayload,
 } from "./listenHistory";
 import { NOMINAL_TRACK_MS } from "./signalIngestion";
 import { initializeDatabase, closeDatabase, getDataSource } from "../../db";
-import { appendSignalEvent, getSignalEvents } from "../../db/userProfile";
+import { appendSignalEvents, getSignalEvents } from "../../db/signalEvents";
 import type { UserSignalEvent } from "../../db/entity/UserSignalEvent";
-
-const HOUR_MS = 60 * 60 * 1000;
 
 function episode(
   ratingKey: string,
@@ -172,253 +166,6 @@ describe("historyWatermark", () => {
   });
 });
 
-describe("historyCoverageStart", () => {
-  it("is the oldest listening history covers", () => {
-    const stored = reconstructListenEpisodes(
-      [
-        episodeEvent(
-          [episode("1", "A", 1_770_003_600), episode("2", "A", 1_770_000_000)],
-          "2026-01-01T00:00:00.000Z"
-        ),
-      ],
-      Infinity
-    );
-
-    expect(historyCoverageStart(stored)).toBe(
-      1_770_000_000 * 1000 - NOMINAL_TRACK_MS / 2
-    );
-  });
-
-  it("is null when history covers nothing", () => {
-    expect(historyCoverageStart(new Map())).toBeNull();
-  });
-});
-
-describe("historyCovers", () => {
-  const stored = reconstructListenEpisodes(
-    [
-      episodeEvent(
-        [episode("1", "A", 1_770_000_000)],
-        "2026-01-01T00:00:00.000Z"
-      ),
-    ],
-    Infinity
-  );
-  const coveredFrom = 1_770_000_000 * 1000;
-
-  it("covers a window that starts after the oldest episode", () => {
-    expect(historyCovers(stored, coveredFrom + HOUR_MS)).toBe(true);
-  });
-
-  it("does not cover a window reaching back past the log", () => {
-    expect(historyCovers(stored, coveredFrom - HOUR_MS)).toBe(false);
-  });
-
-  it("covers nothing when no episodes are stored", () => {
-    expect(historyCovers(new Map(), 0)).toBe(false);
-  });
-});
-
-describe("rollupEpisodesToAlbums", () => {
-  it("sums listening per album and counts the plays behind it", () => {
-    const stored = reconstructListenEpisodes(
-      [
-        episodeEvent(
-          [
-            episode("1", "A", 1_770_000_000, {
-              albumKey: "alb1",
-              albumTitle: "One",
-              durationMs: 300_000,
-            }),
-            episode("2", "A", 1_770_010_000, {
-              albumKey: "alb1",
-              albumTitle: "One",
-              durationMs: 180_000,
-            }),
-            episode("3", "A", 1_770_020_000, {
-              albumKey: "alb2",
-              albumTitle: "Two",
-              durationMs: 180_000,
-            }),
-          ],
-          "2026-01-01T00:00:00.000Z"
-        ),
-      ],
-      Infinity
-    );
-
-    const [one, two] = rollupEpisodesToAlbums(stored);
-    expect(one).toMatchObject({
-      albumKey: "alb1",
-      title: "One",
-      artistName: "A",
-      playCount: 2,
-      listenedMs: 480_000,
-    });
-    expect(two).toMatchObject({ albumKey: "alb2", playCount: 1 });
-  });
-
-  it("counts an episode against the window it started in, not the one it committed in", () => {
-    const stored = reconstructListenEpisodes(
-      [
-        episodeEvent(
-          [
-            episode("set", "A", 1_770_000_000, {
-              albumKey: "alb1",
-              albumTitle: "One",
-              durationMs: 5_400_000,
-            }),
-          ],
-          "2026-01-01T00:00:00.000Z"
-        ),
-      ],
-      Infinity
-    );
-    const startedAt = 1_770_000_000 * 1000 - 5_400_000 / 2;
-
-    expect(rollupEpisodesToAlbums(stored, startedAt + 1)).toEqual([]);
-    expect(rollupEpisodesToAlbums(stored, startedAt)).toHaveLength(1);
-  });
-
-  it("caps what one episode contributes when a ceiling is given", () => {
-    const stored = reconstructListenEpisodes(
-      [
-        episodeEvent(
-          [
-            episode("set", "A", 1_770_000_000, {
-              albumKey: "alb1",
-              albumTitle: "One",
-              durationMs: 5_400_000,
-            }),
-          ],
-          "2026-01-01T00:00:00.000Z"
-        ),
-      ],
-      Infinity
-    );
-
-    expect(
-      rollupEpisodesToAlbums(stored, -Infinity, Infinity, 600_000)[0].listenedMs
-    ).toBe(600_000);
-  });
-
-  it("drops an episode with no album attribution at all", () => {
-    const stored = reconstructListenEpisodes(
-      [
-        episodeEvent(
-          [
-            episode("1", "A", 1_770_000_000, {
-              albumKey: "",
-              albumTitle: "",
-            }),
-          ],
-          "2026-01-01T00:00:00.000Z"
-        ),
-      ],
-      Infinity
-    );
-
-    expect(rollupEpisodesToAlbums(stored)).toEqual([]);
-  });
-});
-
-describe("rollupEpisodesToArtists", () => {
-  it("sums listening per artist and counts the plays behind it", () => {
-    const stored = reconstructListenEpisodes(
-      [
-        episodeEvent(
-          [
-            episode("set", "A", 1_770_000_000, { durationMs: 5_400_000 }),
-            episode("song", "A", 1_770_010_000, { durationMs: 180_000 }),
-            episode("other", "B", 1_770_020_000, { durationMs: 180_000 }),
-          ],
-          "2026-01-01T00:00:00.000Z"
-        ),
-      ],
-      Infinity
-    );
-
-    const [a, b] = rollupEpisodesToArtists(stored);
-    expect(a).toMatchObject({ name: "A", plays: 2, listenedMs: 5_580_000 });
-    expect(b).toMatchObject({ name: "B", plays: 1, listenedMs: 180_000 });
-  });
-
-  it("takes the track with the most listening across its own episodes", () => {
-    const stored = reconstructListenEpisodes(
-      [
-        episodeEvent(
-          [
-            episode("set", "A", 1_770_000_000, { durationMs: 3_000_000 }),
-            episode("song", "A", 1_770_010_000, { durationMs: 1_800_000 }),
-            episode("song", "A", 1_770_020_000, { durationMs: 1_800_000 }),
-          ],
-          "2026-01-01T00:00:00.000Z"
-        ),
-      ],
-      Infinity
-    );
-
-    expect(rollupEpisodesToArtists(stored)[0]).toMatchObject({
-      topTrackKey: "song",
-      topTrackListenedMs: 3_600_000,
-    });
-  });
-
-  it("windows on when playback started, not when the play committed", () => {
-    const setStart = 1_770_000_000_000;
-    const durationMs = 5_400_000;
-    const stored = reconstructListenEpisodes(
-      [
-        episodeEvent(
-          [
-            episode("set", "A", (setStart + durationMs / 2) / 1000, {
-              durationMs,
-            }),
-          ],
-          "2026-01-01T00:00:00.000Z"
-        ),
-      ],
-      Infinity
-    );
-
-    expect(rollupEpisodesToArtists(stored, setStart - HOUR_MS)).toHaveLength(1);
-    expect(rollupEpisodesToArtists(stored, setStart + HOUR_MS)).toHaveLength(0);
-  });
-
-  it("groups by artist key so a rename stays one bucket", () => {
-    const stored = reconstructListenEpisodes(
-      [
-        episodeEvent(
-          [
-            episode("1", "Old", 1_770_000_000, { artistKey: "k1" }),
-            episode("2", "New", 1_770_010_000, { artistKey: "k1" }),
-          ],
-          "2026-01-01T00:00:00.000Z"
-        ),
-      ],
-      Infinity
-    );
-
-    const rollups = rollupEpisodesToArtists(stored);
-    expect(rollups).toHaveLength(1);
-    expect(rollups[0]).toMatchObject({ artistKey: "k1", plays: 2 });
-  });
-
-  it("drops episodes with neither an artist key nor a name", () => {
-    const stored = reconstructListenEpisodes(
-      [
-        episodeEvent(
-          [episode("1", "", 1_770_000_000, { artistKey: "" })],
-          "2026-01-01T00:00:00.000Z"
-        ),
-      ],
-      Infinity
-    );
-
-    expect(rollupEpisodesToArtists(stored)).toEqual([]);
-  });
-});
-
 describe("ingestUserListenHistory (with DB)", () => {
   beforeEach(async () => {
     await initializeDatabase(":memory:");
@@ -474,20 +221,22 @@ describe("ingestUserListenHistory (with DB)", () => {
   });
 
   it("joins the track length from the play-count series", async () => {
-    await appendSignalEvent(1, "plex_track_plays", {
-      tracks: [
-        {
-          ratingKey: "1",
-          title: "t1",
-          artistKey: "ak-A",
-          artistName: "A",
-          albumKey: "alb-A",
-          albumTitle: "Album",
-          playCount: 3,
-          durationMs: 5_400_000,
-        },
-      ],
-    });
+    await appendSignalEvents(1, "plex_track_plays", [
+      {
+        tracks: [
+          {
+            ratingKey: "1",
+            title: "t1",
+            artistKey: "ak-A",
+            artistName: "A",
+            albumKey: "alb-A",
+            albumTitle: "Album",
+            playCount: 3,
+            durationMs: 5_400_000,
+          },
+        ],
+      },
+    ]);
     mockGetPlayHistory.mockResolvedValue([historyRow("1", "A", 1_770_000_000)]);
 
     await ingestUserListenHistory(1, "tok");
@@ -501,20 +250,22 @@ describe("ingestUserListenHistory (with DB)", () => {
   });
 
   it("corrects the start time for the halfway commit", async () => {
-    await appendSignalEvent(1, "plex_track_plays", {
-      tracks: [
-        {
-          ratingKey: "1",
-          title: "t1",
-          artistKey: "ak-A",
-          artistName: "A",
-          albumKey: "alb-A",
-          albumTitle: "Album",
-          playCount: 1,
-          durationMs: 5_400_000,
-        },
-      ],
-    });
+    await appendSignalEvents(1, "plex_track_plays", [
+      {
+        tracks: [
+          {
+            ratingKey: "1",
+            title: "t1",
+            artistKey: "ak-A",
+            artistName: "A",
+            albumKey: "alb-A",
+            albumTitle: "Album",
+            playCount: 1,
+            durationMs: 5_400_000,
+          },
+        ],
+      },
+    ]);
     mockGetPlayHistory.mockResolvedValue([historyRow("1", "A", 1_770_000_000)]);
 
     await ingestUserListenHistory(1, "tok");

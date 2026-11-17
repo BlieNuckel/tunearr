@@ -136,8 +136,6 @@ export interface FollowedArtistItem {
   liveTracking: LiveTrackingState;
 }
 
-export type NewReleaseSource = "followed" | "library" | "similar";
-
 export type NewReleaseLidarrStatus = "downloading" | "wanted" | "imported";
 
 export interface NewReleaseItem {
@@ -146,7 +144,6 @@ export interface NewReleaseItem {
   artistName: string;
   artistMbid: string | null;
   releaseDate: string | null;
-  source: NewReleaseSource;
   coverUrl: string | null;
   lidarrStatus: NewReleaseLidarrStatus | null;
   followedReleaseId: number | null;
@@ -216,18 +213,6 @@ export interface LiveNoticeData {
   additionalCount: number;
 }
 
-export interface NearbyShow extends LiveEventSummary {
-  affinity: number;
-  matchedGenres: string[];
-  following: boolean;
-  /** Headliner photo, filled in when the event itself has no image. */
-  artistImageUrl: string | null;
-}
-
-export interface NearbyShowsData {
-  events: NearbyShow[];
-}
-
 export interface LiveUserPreferences {
   live_radius_km: number | null;
   live_lat: number | null;
@@ -261,66 +246,6 @@ export interface GeocodedPlace {
   latitude: number;
   longitude: number;
   population: number | null;
-}
-
-/** Sizes of one user's derived taste profile, for the admin inspector. */
-export interface ProfileDebugCounts {
-  genres: number;
-  artists: number;
-  taggedAlbums: number;
-  albumsWithOwnGenre: number;
-  genrelessAlbums: number;
-  similarSeeds: number;
-  similarCandidates: number;
-  knownAlbums: number;
-  exploredAlbums: number;
-  exploredArtists: number;
-}
-
-export interface ProfileDebugProfile {
-  generatedAt: string;
-  lastUsedAt: string;
-  schemaVersion: number;
-  currentSchemaVersion: number;
-  configHash: string;
-  currentConfigHash: string;
-  stale: boolean;
-  counts: ProfileDebugCounts;
-  topGenres: { tag: string; weight: number }[];
-  topOtherTags: { tag: string; weight: number; tagClass: string }[];
-  topArtists: { name: string; viewCount: number }[];
-}
-
-export interface ProfileDebugSignal {
-  kind: string;
-  count: number;
-  firstAt: string;
-  lastAt: string;
-}
-
-export interface ProfileDebugRecentSignal {
-  kind: string;
-  recordedAt: string;
-  changed: number;
-}
-
-export interface ProfileDebugPlex {
-  trackedTracks: number;
-  totalPlays: number;
-  artists: number;
-  ratedItems: number;
-  listenEpisodes: number;
-  listenedHours: number;
-}
-
-export interface ProfileDebugEntry {
-  userId: number;
-  username: string;
-  hasPlexToken: boolean;
-  profile: ProfileDebugProfile | null;
-  signals: ProfileDebugSignal[];
-  recentSignals: ProfileDebugRecentSignal[];
-  plex: ProfileDebugPlex;
 }
 
 export interface LivePreferencesPatch {

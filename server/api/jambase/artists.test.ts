@@ -32,7 +32,6 @@ describe("resolveArtistByMbid", () => {
     expect(artist).toEqual({
       jambaseArtistId: "jambase:219057",
       name: "Radiohead",
-      genres: ["indie", "rock"],
       numUpcomingEvents: 0,
       events: [],
     });

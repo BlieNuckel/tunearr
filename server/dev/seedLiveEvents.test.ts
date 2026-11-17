@@ -21,14 +21,6 @@ describe("seed data shape", () => {
     }
   });
 
-  it("gives every performer genres, which the shelf ranks on", () => {
-    for (const event of SEED_LIVE_EVENTS) {
-      for (const performer of event.performers) {
-        expect(performer.genres.length).toBeGreaterThan(0);
-      }
-    }
-  });
-
   it("gives every event a headliner to lead the copy with", () => {
     for (const event of SEED_LIVE_EVENTS) {
       expect(event.performers.some((p) => p.isHeadliner)).toBe(true);
@@ -85,10 +77,12 @@ describe("state coverage", () => {
     expect(find((e) => e.dayOffset < 0)).not.toHaveLength(0);
   });
 
-  it("covers both sides of the shelf's Following badge", () => {
-    const performers = SEED_LIVE_EVENTS.flatMap((e) => e.performers);
-    expect(performers.some((p) => FOLLOWED_IDS.has(p.jambaseId))).toBe(true);
-    expect(performers.some((p) => !FOLLOWED_IDS.has(p.jambaseId))).toBe(true);
+  it("only seeds shows by followed artists, the only ones ever surfaced", () => {
+    for (const event of SEED_LIVE_EVENTS) {
+      expect(event.performers.some((p) => FOLLOWED_IDS.has(p.jambaseId))).toBe(
+        true
+      );
+    }
   });
 
   it("covers a show with no ticket link", () => {

@@ -5,27 +5,21 @@ import { getDataSource } from "./db/index";
 import { createLogger } from "./logger";
 import { countryCodeError } from "../shared/countries";
 import {
-  DEFAULT_PROMOTED_ALBUM,
   DEFAULT_PURCHASE_DECISION,
   DEFAULT_SPENDING,
   DEFAULT_LIVE_EVENTS,
-  type LibraryPreference,
-  type PromotedAlbumSettings,
   type PurchaseDecisionSettings,
   type SpendingSettings,
   type LiveEventsSettings,
 } from "../shared/settingsDefaults";
 
 export {
-  DEFAULT_PROMOTED_ALBUM,
   DEFAULT_PURCHASE_DECISION,
   DEFAULT_SPENDING,
   DEFAULT_LIVE_EVENTS,
 } from "../shared/settingsDefaults";
-export type { LibraryPreference } from "../shared/settingsDefaults";
 
 /** Server-side aliases for the shared settings shapes. */
-export type PromotedAlbumConfig = PromotedAlbumSettings;
 export type PurchaseDecisionConfig = PurchaseDecisionSettings;
 export type SpendingConfig = SpendingSettings;
 export type LiveEventsConfig = LiveEventsSettings;
@@ -69,7 +63,6 @@ export type IConfig = {
   slskdDownloadPath: string;
   /** Shared secret Lidarr sends to `/api/torznab` and `/api/sabnzbd`. Empty disables the check. */
   torznabApiKey: string;
-  promotedAlbum: PromotedAlbumConfig;
   purchaseDecision: PurchaseDecisionConfig;
   spending: SpendingConfig;
   notifications: NotificationsConfig;
@@ -82,18 +75,15 @@ export type IConfig = {
    * interval is the resolution of the whole measurement.
    */
   listenSessionPollIntervalMs: number;
+  /** Master switch for copying Plex ratings, plays and listening sessions into the signal log. */
+  listeningCaptureEnabled: boolean;
 };
 
 /** Input type for setConfig — nested objects are optional since defaults are deep-merged */
 export type IConfigInput = Omit<
   IConfig,
-  | "promotedAlbum"
-  | "purchaseDecision"
-  | "spending"
-  | "notifications"
-  | "liveEvents"
+  "purchaseDecision" | "spending" | "notifications" | "liveEvents"
 > & {
-  promotedAlbum?: Partial<PromotedAlbumConfig>;
   purchaseDecision?: Partial<PurchaseDecisionConfig>;
   spending?: Partial<SpendingConfig>;
   liveEvents?: Partial<LiveEventsConfig>;
@@ -130,7 +120,6 @@ const DEFAULT_CONFIG: IConfig = {
   slskdApiKey: "",
   slskdDownloadPath: "",
   torznabApiKey: "",
-  promotedAlbum: DEFAULT_PROMOTED_ALBUM,
   purchaseDecision: DEFAULT_PURCHASE_DECISION,
   spending: DEFAULT_SPENDING,
   notifications: DEFAULT_NOTIFICATIONS,
@@ -138,6 +127,7 @@ const DEFAULT_CONFIG: IConfig = {
   followedArtistPollIntervalMs: DEFAULT_FOLLOWED_POLL_INTERVAL_MS,
   requestStatusPollIntervalMs: DEFAULT_REQUEST_STATUS_POLL_INTERVAL_MS,
   listenSessionPollIntervalMs: DEFAULT_LISTEN_SESSION_POLL_INTERVAL_MS,
+  listeningCaptureEnabled: true,
 };
 
 type RawStatement = {
@@ -155,14 +145,30 @@ function getRawDb(): RawDatabase {
     .databaseConnection;
 }
 
-function mergeWithDefaults(saved: Record<string, unknown>): IConfig {
+/**
+ * Configs saved before the recommenders were removed hold the capture switch as
+ * `promotedAlbum.ratingsBackupEnabled`, alongside knobs nothing reads any more.
+ */
+function migrateLegacyKeys(
+  saved: Record<string, unknown>
+): Record<string, unknown> {
+  const { promotedAlbum, ...rest } = saved;
+  const legacyCapture = (promotedAlbum as { ratingsBackupEnabled?: unknown })
+    ?.ratingsBackupEnabled;
+  if (
+    rest.listeningCaptureEnabled === undefined &&
+    legacyCapture !== undefined
+  ) {
+    rest.listeningCaptureEnabled = legacyCapture;
+  }
+  return rest;
+}
+
+function mergeWithDefaults(raw: Record<string, unknown>): IConfig {
+  const saved = migrateLegacyKeys(raw);
   return {
     ...DEFAULT_CONFIG,
     ...saved,
-    promotedAlbum: {
-      ...DEFAULT_PROMOTED_ALBUM,
-      ...((saved.promotedAlbum as Record<string, unknown>) ?? {}),
-    },
     purchaseDecision: {
       ...DEFAULT_PURCHASE_DECISION,
       ...((saved.purchaseDecision as Record<string, unknown>) ?? {}),
@@ -195,7 +201,6 @@ export const getConfig = (): IConfig => {
   if (!row) {
     return {
       ...DEFAULT_CONFIG,
-      promotedAlbum: { ...DEFAULT_PROMOTED_ALBUM },
       purchaseDecision: { ...DEFAULT_PURCHASE_DECISION },
       spending: { ...DEFAULT_SPENDING },
       notifications: { ...DEFAULT_NOTIFICATIONS },
@@ -206,12 +211,6 @@ export const getConfig = (): IConfig => {
   return mergeWithDefaults(JSON.parse(row.data));
 };
 
-const VALID_LIBRARY_PREFERENCES: LibraryPreference[] = [
-  "prefer_new",
-  "prefer_library",
-  "no_preference",
-];
-
 function validatePositiveInt(value: unknown, name: string) {
   if (typeof value !== "number" || !Number.isInteger(value) || value < 1) {
     throw new Error(`${name} must be a positive integer`);
@@ -221,62 +220,6 @@ function validatePositiveInt(value: unknown, name: string) {
 function validateRatio(value: unknown, name: string) {
   if (typeof value !== "number" || value < 0 || value > 1) {
     throw new Error(`${name} must be a number between 0 and 1`);
-  }
-}
-
-function validatePromotedAlbumConfig(config: PromotedAlbumConfig) {
-  if (
-    typeof config.cacheDurationMinutes !== "number" ||
-    config.cacheDurationMinutes < 0
-  ) {
-    throw new Error("cacheDurationMinutes must be a non-negative number");
-  }
-  if (
-    typeof config.profileTtlMinutes !== "number" ||
-    config.profileTtlMinutes < 0
-  ) {
-    throw new Error("profileTtlMinutes must be a non-negative number");
-  }
-  validatePositiveInt(config.topArtistsCount, "topArtistsCount");
-  validatePositiveInt(config.pickedArtistsCount, "pickedArtistsCount");
-  validatePositiveInt(config.tagsPerArtist, "tagsPerArtist");
-  validatePositiveInt(config.deepPageMin, "deepPageMin");
-  validatePositiveInt(config.deepPageMax, "deepPageMax");
-  if (config.deepPageMax < config.deepPageMin) {
-    throw new Error("deepPageMax must be >= deepPageMin");
-  }
-  if (!Array.isArray(config.genericTags)) {
-    throw new Error("genericTags must be an array");
-  }
-  validateRatio(config.explorationRate, "explorationRate");
-  validatePositiveInt(config.exploreCandidateCount, "exploreCandidateCount");
-  validateRatio(config.genreOverlapThreshold, "genreOverlapThreshold");
-  if (typeof config.backgroundRegenEnabled !== "boolean") {
-    throw new Error("backgroundRegenEnabled must be a boolean");
-  }
-  validatePositiveInt(
-    config.backgroundRegenIntervalMinutes,
-    "backgroundRegenIntervalMinutes"
-  );
-  validatePositiveInt(
-    config.backgroundRegenActiveWithinMinutes,
-    "backgroundRegenActiveWithinMinutes"
-  );
-  if (typeof config.ratingsBackupEnabled !== "boolean") {
-    throw new Error("ratingsBackupEnabled must be a boolean");
-  }
-  validatePositiveInt(config.playTrendWindowDays, "playTrendWindowDays");
-  if (typeof config.ratingWeight !== "number" || config.ratingWeight < 0) {
-    throw new Error("ratingWeight must be a non-negative number");
-  }
-  if (
-    !VALID_LIBRARY_PREFERENCES.includes(
-      config.libraryPreference as LibraryPreference
-    )
-  ) {
-    throw new Error(
-      `libraryPreference must be one of: ${VALID_LIBRARY_PREFERENCES.join(", ")}`
-    );
   }
 }
 
@@ -361,7 +304,6 @@ function validateLiveEventsConfig(config: LiveEventsConfig) {
   }
 
   validatePositiveInt(config.sweepRadiusKm, "liveEvents.sweepRadiusKm");
-  validatePositiveInt(config.shelfHorizonDays, "liveEvents.shelfHorizonDays");
   validatePositiveInt(config.bannerHorizonDays, "liveEvents.bannerHorizonDays");
   validatePositiveInt(config.announceDays, "liveEvents.announceDays");
   validatePositiveInt(config.imminentDaysLocal, "liveEvents.imminentDaysLocal");
@@ -402,7 +344,6 @@ function validateLiveEventsConfig(config: LiveEventsConfig) {
       throw new Error(`liveEvents.${name} must be a string or null`);
     }
   }
-  validateRatio(config.shelfMinAffinity, "liveEvents.shelfMinAffinity");
 
   if (config.bannerHorizonDays > MAX_BANNER_HORIZON_DAYS) {
     throw new Error(
@@ -487,6 +428,9 @@ function validateConfig(mergedConfig: IConfig) {
       "listenSessionPollIntervalMs must be a number >= 1000 (1 second)"
     );
   }
+  if (typeof mergedConfig.listeningCaptureEnabled !== "boolean") {
+    throw new Error("listeningCaptureEnabled must be a boolean");
+  }
 }
 
 export const setConfig = (newConfig: Partial<IConfigInput>) => {
@@ -494,10 +438,6 @@ export const setConfig = (newConfig: Partial<IConfigInput>) => {
   const mergedConfig = {
     ...currentConfig,
     ...newConfig,
-    promotedAlbum: {
-      ...currentConfig.promotedAlbum,
-      ...(newConfig.promotedAlbum ?? {}),
-    },
     purchaseDecision: {
       ...currentConfig.purchaseDecision,
       ...(newConfig.purchaseDecision ?? {}),
@@ -521,10 +461,6 @@ export const setConfig = (newConfig: Partial<IConfigInput>) => {
   };
 
   validateConfig(mergedConfig);
-
-  if (newConfig.promotedAlbum !== undefined) {
-    validatePromotedAlbumConfig(mergedConfig.promotedAlbum);
-  }
 
   if (newConfig.purchaseDecision !== undefined) {
     validatePurchaseDecisionConfig(mergedConfig.purchaseDecision);
@@ -568,7 +504,6 @@ export const initializeConfig = () => {
 
   let initialConfig: IConfig = {
     ...DEFAULT_CONFIG,
-    promotedAlbum: { ...DEFAULT_PROMOTED_ALBUM },
     purchaseDecision: { ...DEFAULT_PURCHASE_DECISION },
     spending: { ...DEFAULT_SPENDING },
     notifications: { ...DEFAULT_NOTIFICATIONS },

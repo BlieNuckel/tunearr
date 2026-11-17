@@ -1,6 +1,6 @@
 import { getConfigValue } from "../../config";
 import { getActiveSessions } from "../../api/plex/sessions";
-import { getSignalIngestionUsers } from "../../db/userProfile";
+import { getSignalIngestionUsers } from "../../db/signalEvents";
 import {
   observeSessions,
   recordMeasuredEpisodes,
@@ -26,7 +26,7 @@ export async function runListenSessionPollOnce(
   if (running) return 0;
   running = true;
   try {
-    if (!getConfigValue("promotedAlbum").ratingsBackupEnabled) return 0;
+    if (!getConfigValue("listeningCaptureEnabled")) return 0;
 
     const users = await getSignalIngestionUsers();
     let written = 0;

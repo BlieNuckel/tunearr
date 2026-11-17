@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  A self-hosted web app for discovering, requesting, and managing music through Lidarr — with multi-user requests, taste-based recommendations, and optional Soulseek integration.
+  A self-hosted web app for discovering, requesting, and managing music through Lidarr — with multi-user requests, followed-artist releases, and optional Soulseek integration.
 </p>
 
 <p align="center">
@@ -17,7 +17,7 @@
 
 ## Features
 
-- **Discover** — Personalized recommendations built from your Plex listening history, plus new releases and genre exploration beyond your usual taste.
+- **Discover** — New releases from the artists you follow, and tour dates for them.
 - **Search & browse** — Search MusicBrainz for artists and albums, then request them or add them straight to Lidarr.
 - **Requests** — Multi-user request workflow with approvals, tracked until the music lands in your library.
 - **Users & permissions** — Multiple accounts with granular permissions; each user can link their own Plex account.
@@ -40,7 +40,7 @@
   <tr>
     <td colspan="2" valign="top">
       <img src="docs/screenshots/settings.png" alt="Settings" width="100%" />
-      <p align="center"><sub>Settings — integrations, recommendations, users, and logs</sub></p>
+      <p align="center"><sub>Settings — integrations, users, and logs</sub></p>
     </td>
   </tr>
 </table>
@@ -160,8 +160,8 @@ For a complete configuration — Tunearr, Lidarr, and slskd on one host with per
 | Service | Required | Purpose                                                      |
 | ------- | -------- | ------------------------------------------------------------ |
 | Lidarr  | Yes      | Music library management; requests and imports go through it |
-| Last.fm | No       | Similar artists and genre tags for discovery                 |
-| Plex    | No       | Listening history and ratings that power recommendations     |
+| Last.fm | No       | Similar artists and similar albums                           |
+| Plex    | No       | Captures each user's listening history and ratings           |
 | slskd   | No       | Soulseek downloads via Lidarr (see below)                    |
 
 MusicBrainz, Deezer (album artwork), and ListenBrainz are used automatically and need no configuration.

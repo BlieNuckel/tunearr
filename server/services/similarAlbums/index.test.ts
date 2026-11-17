@@ -4,7 +4,6 @@ const mockGetAlbumDetails = vi.fn();
 const mockSearchReleaseGroups = vi.fn();
 const mockCollectTagCandidates = vi.fn();
 const mockCollectArtistCandidates = vi.fn();
-const mockGetConfigValue = vi.fn();
 
 vi.mock("../../api/musicbrainz/releaseGroups", () => ({
   getAlbumDetails: (...args: unknown[]) => mockGetAlbumDetails(...args),
@@ -19,10 +18,6 @@ vi.mock("./tagLeg", () => ({
 vi.mock("./artistLeg", () => ({
   collectArtistCandidates: (...args: unknown[]) =>
     mockCollectArtistCandidates(...args),
-}));
-
-vi.mock("../../config", () => ({
-  getConfigValue: (...args: unknown[]) => mockGetConfigValue(...args),
 }));
 
 import { getSimilarAlbums } from "./index";
@@ -72,7 +67,6 @@ function searchHit(artistName: string, title: string, id: string) {
 beforeEach(() => {
   vi.clearAllMocks();
   getSimilarAlbums.clearCache();
-  mockGetConfigValue.mockReturnValue({ genericTags: ["seen live"] });
   mockGetAlbumDetails.mockResolvedValue(seedDetails);
   mockCollectTagCandidates.mockResolvedValue([]);
   mockCollectArtistCandidates.mockResolvedValue([]);
@@ -91,9 +85,7 @@ describe("getSimilarAlbums", () => {
     expect(mockCollectTagCandidates).not.toHaveBeenCalled();
   });
 
-  it("passes lowercased generic tags to the tag leg", async () => {
-    mockGetConfigValue.mockReturnValue({ genericTags: ["Seen Live"] });
-
+  it("passes the generic tags to the tag leg", async () => {
     await getSimilarAlbums("seed-rg");
 
     const genericTags = mockCollectTagCandidates.mock.calls[0][1];
