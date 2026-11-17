@@ -5,7 +5,7 @@ describe("LastfmStep", () => {
   it("renders description", () => {
     render(<LastfmStep apiKey="" onApiKeyChange={vi.fn()} />);
     expect(
-      screen.getByText(/Last.fm powers the Discover page/)
+      screen.getByText(/Last.fm powers similar artists and similar albums/)
     ).toBeInTheDocument();
   });
 

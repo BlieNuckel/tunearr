@@ -5,7 +5,7 @@ function makeDefinition(
   overrides: Partial<SectionDefinition> = {}
 ): SectionDefinition {
   return {
-    id: "spotlight",
+    id: "newReleases",
     span: { cols: 6, rows: 1 },
     desktopOrder: 1,
     mobileOrder: 1,
@@ -17,14 +17,14 @@ function makeDefinition(
 
 describe("resolveLayout", () => {
   it("sorts sections by desktopOrder", () => {
-    const first = makeDefinition({ id: "artists", desktopOrder: 2 });
-    const second = makeDefinition({ id: "spotlight", desktopOrder: 1 });
+    const first = makeDefinition({ id: "liveBanner", desktopOrder: 2 });
+    const second = makeDefinition({ id: "newReleases", desktopOrder: 1 });
 
     const resolved = resolveLayout([first, second], {});
 
     expect(resolved.map((r) => r.definition.id)).toEqual([
-      "spotlight",
-      "artists",
+      "newReleases",
+      "liveBanner",
     ]);
   });
 
@@ -34,25 +34,29 @@ describe("resolveLayout", () => {
   });
 
   it("hides an empty section when whenEmpty is hide", () => {
-    const resolved = resolveLayout([makeDefinition()], { spotlight: "empty" });
+    const resolved = resolveLayout([makeDefinition()], {
+      newReleases: "empty",
+    });
     expect(resolved[0].hidden).toBe(true);
   });
 
   it("hides an errored section when whenEmpty is hide", () => {
-    const resolved = resolveLayout([makeDefinition()], { spotlight: "error" });
+    const resolved = resolveLayout([makeDefinition()], {
+      newReleases: "error",
+    });
     expect(resolved[0].hidden).toBe(true);
   });
 
   it("keeps an errored section visible when whenError is keep", () => {
     const resolved = resolveLayout([makeDefinition({ whenError: "keep" })], {
-      spotlight: "error",
+      newReleases: "error",
     });
     expect(resolved[0].hidden).toBe(false);
   });
 
   it("still hides an empty section when only errors are kept", () => {
     const resolved = resolveLayout([makeDefinition({ whenError: "keep" })], {
-      spotlight: "empty",
+      newReleases: "empty",
     });
     expect(resolved[0].hidden).toBe(true);
   });
@@ -60,32 +64,34 @@ describe("resolveLayout", () => {
   it("hides an errored section when whenError overrides a kept whenEmpty", () => {
     const resolved = resolveLayout(
       [makeDefinition({ whenEmpty: "keep", whenError: "hide" })],
-      { spotlight: "error" }
+      { newReleases: "error" }
     );
     expect(resolved[0].hidden).toBe(true);
   });
 
   it("keeps an empty section visible when whenEmpty is keep", () => {
     const resolved = resolveLayout([makeDefinition({ whenEmpty: "keep" })], {
-      spotlight: "empty",
+      newReleases: "empty",
     });
     expect(resolved[0].hidden).toBe(false);
   });
 
   it("keeps ready sections visible", () => {
-    const resolved = resolveLayout([makeDefinition()], { spotlight: "ready" });
+    const resolved = resolveLayout([makeDefinition()], {
+      newReleases: "ready",
+    });
     expect(resolved[0].hidden).toBe(false);
   });
 
   it("does not mutate the definitions array", () => {
     const definitions = [
-      makeDefinition({ id: "artists", desktopOrder: 2 }),
-      makeDefinition({ id: "spotlight", desktopOrder: 1 }),
+      makeDefinition({ id: "liveBanner", desktopOrder: 2 }),
+      makeDefinition({ id: "newReleases", desktopOrder: 1 }),
     ];
 
     resolveLayout(definitions, {});
 
-    expect(definitions[0].id).toBe("artists");
+    expect(definitions[0].id).toBe("liveBanner");
   });
 });
 

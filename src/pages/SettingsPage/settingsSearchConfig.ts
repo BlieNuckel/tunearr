@@ -3,22 +3,18 @@ import { hasPermission, Permission } from "@shared/permissions";
 export type SettingsTab =
   | "general"
   | "integrations"
-  | "recommendations"
   | "purchaseDecision"
   | "notifications"
   | "admin"
-  | "logs"
-  | "tasteProfiles";
+  | "logs";
 
 export const TAB_LABELS: Record<SettingsTab, string> = {
   general: "General",
   integrations: "Integrations",
-  recommendations: "Recommendations",
   purchaseDecision: "Purchase",
   notifications: "Notifications",
   admin: "Users",
   logs: "Logs",
-  tasteProfiles: "Profiles",
 };
 
 export type SettingsSection =
@@ -32,12 +28,10 @@ export type SettingsSection =
   | "livePreferences"
   | "plex"
   | "slskd"
-  | "recommendations"
   | "purchaseDecision"
   | "users"
   | "myNotifications"
-  | "logs"
-  | "tasteProfiles";
+  | "logs";
 
 type SectionMeta = {
   label: string;
@@ -119,7 +113,6 @@ export const SECTION_META: Record<SettingsSection, SectionMeta> = {
       "banner",
       "radius",
       "countries",
-      "nearby",
     ],
   },
   lastfm: {
@@ -147,26 +140,6 @@ export const SECTION_META: Record<SettingsSection, SectionMeta> = {
       "indexer",
       "torznab",
       "sabnzbd",
-    ],
-    permission: Permission.ADMIN,
-  },
-  recommendations: {
-    label: "Recommendations",
-    tab: "recommendations",
-    keywords: [
-      "recommendation",
-      "promoted",
-      "algorithm",
-      "cache",
-      "tags",
-      "discovery",
-      "artist",
-      "library",
-      "preference",
-      "generic",
-      "plays",
-      "one-hit",
-      "listening time",
     ],
     permission: Permission.ADMIN,
   },
@@ -222,32 +195,14 @@ export const SECTION_META: Record<SettingsSection, SectionMeta> = {
     keywords: ["logs", "log", "debug", "error", "history", "system"],
     permission: Permission.ADMIN,
   },
-  tasteProfiles: {
-    label: "Taste profiles",
-    tab: "tasteProfiles",
-    keywords: [
-      "taste",
-      "profile",
-      "profiles",
-      "signals",
-      "plays",
-      "ratings",
-      "genres",
-      "debug",
-      "plex",
-    ],
-    permission: Permission.ADMIN,
-  },
 };
 
 const TAB_ORDER: SettingsTab[] = [
   "general",
   "integrations",
-  "recommendations",
   "purchaseDecision",
   "notifications",
   "logs",
-  "tasteProfiles",
   "admin",
 ];
 

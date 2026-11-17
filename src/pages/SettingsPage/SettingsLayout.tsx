@@ -18,12 +18,6 @@ const settingsRoutes: SettingsRoute[] = [
     skipMobileHeader: true,
   },
   {
-    text: "Recommendations",
-    route: "/settings/recommendations",
-    regex: /^\/settings\/recommendations/,
-    requiredPermission: Permission.ADMIN,
-  },
-  {
     text: "Purchase",
     route: "/settings/purchase-decision",
     regex: /^\/settings\/purchase-decision/,
@@ -45,12 +39,6 @@ const settingsRoutes: SettingsRoute[] = [
     text: "Logs",
     route: "/settings/logs",
     regex: /^\/settings\/logs/,
-    requiredPermission: Permission.ADMIN,
-  },
-  {
-    text: "Profiles",
-    route: "/settings/taste-profiles",
-    regex: /^\/settings\/taste-profiles/,
     requiredPermission: Permission.ADMIN,
   },
 ];

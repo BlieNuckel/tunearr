@@ -6,7 +6,7 @@ import type { SettingsTab } from "../settingsSearchConfig";
 const ALL_TABS: SettingsTab[] = [
   "general",
   "integrations",
-  "recommendations",
+  "purchaseDecision",
   "admin",
 ];
 
@@ -31,7 +31,7 @@ describe("SettingsTabs", () => {
     renderSettingsTabs("general", vi.fn(), ALL_TABS);
     expect(screen.getByText("General")).toBeInTheDocument();
     expect(screen.getByText("Integrations")).toBeInTheDocument();
-    expect(screen.getByText("Recommendations")).toBeInTheDocument();
+    expect(screen.getByText("Purchase")).toBeInTheDocument();
     expect(screen.getByText("Users")).toBeInTheDocument();
   });
 

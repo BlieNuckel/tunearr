@@ -5,7 +5,6 @@ import {
   type LidarrOptions,
   type SettingsContextValue,
 } from "./settingsContextDef";
-import { DEFAULT_PROMOTED_ALBUM } from "./promotedAlbumDefaults";
 import { DEFAULT_PURCHASE_DECISION } from "./purchaseDecisionDefaults";
 import { DEFAULT_SPENDING } from "./spendingDefaults";
 import { DEFAULT_LIVE_EVENTS } from "@shared/settingsDefaults";
@@ -42,7 +41,6 @@ const EMPTY_SETTINGS: AppSettings = {
   slskdApiKey: "",
   slskdDownloadPath: "",
   torznabApiKey: "",
-  promotedAlbum: DEFAULT_PROMOTED_ALBUM,
   purchaseDecision: DEFAULT_PURCHASE_DECISION,
   spending: DEFAULT_SPENDING,
   liveEvents: DEFAULT_LIVE_EVENTS,
@@ -72,10 +70,6 @@ function normalizeSettings(data: Record<string, unknown>): AppSettings {
     slskdApiKey: (data.slskdApiKey as string) ?? "",
     slskdDownloadPath: (data.slskdDownloadPath as string) ?? "",
     torznabApiKey: (data.torznabApiKey as string) ?? "",
-    promotedAlbum: {
-      ...DEFAULT_PROMOTED_ALBUM,
-      ...((data.promotedAlbum as object) ?? {}),
-    },
     purchaseDecision: {
       ...DEFAULT_PURCHASE_DECISION,
       ...((data.purchaseDecision as object) ?? {}),
