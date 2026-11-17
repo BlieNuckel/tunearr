@@ -7,21 +7,6 @@ export type SignalIngestionUser = {
   plexToken: string;
 };
 
-export async function appendSignalEvent(
-  userId: number,
-  kind: string,
-  payload: unknown
-): Promise<UserSignalEvent> {
-  const repo = getDataSource().getRepository(UserSignalEvent);
-  const entity = repo.create({
-    user_id: userId,
-    kind,
-    payload: JSON.stringify(payload),
-    recorded_at: new Date().toISOString(),
-  });
-  return repo.save(entity);
-}
-
 /**
  * Append many events of one kind in a single insert. Rows share a `recorded_at`, and
  * `getSignalEvents` breaks that tie on `id`, so insertion order is preserved on read —

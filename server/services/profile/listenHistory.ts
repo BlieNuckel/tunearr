@@ -5,7 +5,6 @@ import {
   foldEvents,
   reconstructTrackPlayCounts,
 } from "./signalIngestion";
-import type { AlbumPlayRollup } from "./signalIngestion";
 import type { PlexHistoryEntry } from "../../api/plex/playHistory";
 import type { UserSignalEvent } from "../../db/entity/UserSignalEvent";
 
@@ -50,16 +49,6 @@ export type ListenEpisode = {
 /** Payload of a `kind = "plex_listen_history"` event: a batch of episodes, appended in order. */
 export type PlexListenHistoryPayload = {
   episodes: ListenEpisode[];
-};
-
-/** Per-artist listening accumulated from episodes inside a window. */
-export type ArtistListenRollup = {
-  artistKey: string;
-  name: string;
-  plays: number;
-  listenedMs: number;
-  topTrackKey: string;
-  topTrackListenedMs: number;
 };
 
 /**
@@ -133,36 +122,6 @@ export function historyWatermark(stored: Map<string, ListenEpisode>): number {
   return latest;
 }
 
-/**
- * When history stops being authoritative, in epoch ms — the oldest listening it covers.
- * Before this, the cumulative count series is the only record: history can be purged by the
- * user under Privacy settings, and predates nothing on a library older than the log.
- */
-export function historyCoverageStart(
-  episodes: Map<string, ListenEpisode>
-): number | null {
-  let earliest: number | null = null;
-  for (const episode of episodes.values()) {
-    if (earliest === null || episode.startedAt < earliest) {
-      earliest = episode.startedAt;
-    }
-  }
-  return earliest;
-}
-
-/**
- * Whether history is authoritative for everything from `fromMs` onwards. Both series now
- * describe the same plays, so a read layer must pick one per window or count every play
- * twice: history where it reaches, the cumulative count deltas outside it.
- */
-export function historyCovers(
-  episodes: Map<string, ListenEpisode>,
-  fromMs: number
-): boolean {
-  const start = historyCoverageStart(episodes);
-  return start !== null && start <= fromMs;
-}
-
 function toEpisode(
   entry: PlexHistoryEntry,
   durations: Map<string, number>
@@ -197,136 +156,6 @@ function trackDurations(events: UserSignalEvent[]): Map<string, number> {
     if (track.durationMs) durations.set(ratingKey, track.durationMs);
   }
   return durations;
-}
-
-/** One episode's contribution under the caller's per-play ceiling; `0` is uncapped. */
-const creditedMs = (episode: ListenEpisode, capMs: number): number =>
-  capMs > 0 ? Math.min(episode.listenedMs, capMs) : episode.listenedMs;
-
-/**
- * Per-artist listening from the episodes started inside `[fromMs, toMs)`. Windowed on
- * `startedAt`, not `viewedAt`, so a long set counts against the window it was actually
- * played in rather than the one its play happened to commit in.
- *
- * Grouped by `artistKey` so a Plex rename keeps one bucket and two same-named artists stay
- * separate; episodes carrying no key fall back to grouping by name.
- */
-export function rollupEpisodesToArtists(
-  episodes: Map<string, ListenEpisode>,
-  fromMs = -Infinity,
-  toMs = Infinity,
-  capMs = 0
-): ArtistListenRollup[] {
-  const byArtist = new Map<string, ArtistListenRollup>();
-
-  for (const episode of episodes.values()) {
-    if (episode.startedAt < fromMs || episode.startedAt >= toMs) continue;
-    const key = episode.artistKey || episode.artistName;
-    if (!key) continue;
-
-    const listenedMs = creditedMs(episode, capMs);
-    const existing = byArtist.get(key);
-    if (!existing) {
-      byArtist.set(key, {
-        artistKey: key,
-        name: episode.artistName,
-        plays: 1,
-        listenedMs,
-        topTrackKey: episode.ratingKey,
-        topTrackListenedMs: listenedMs,
-      });
-      continue;
-    }
-    existing.plays += 1;
-    existing.listenedMs += listenedMs;
-    if (!existing.name) existing.name = episode.artistName;
-  }
-
-  applyTopTracks(byArtist, episodes, fromMs, toMs, capMs);
-  return Array.from(byArtist.values());
-}
-
-/**
- * Per-album listening from the episodes started inside `[fromMs, toMs)`, windowed the same
- * way {@link rollupEpisodesToArtists} is. Returns the shape the count-delta rollup returns,
- * because the caller picks one source or the other for a window and everything downstream
- * reads whichever it got.
- *
- * Episodes with no album at all are dropped rather than pooled under an empty key: an album
- * share is only meaningful against an album.
- */
-export function rollupEpisodesToAlbums(
-  episodes: Map<string, ListenEpisode>,
-  fromMs = -Infinity,
-  toMs = Infinity,
-  capMs = 0
-): AlbumPlayRollup[] {
-  const byAlbum = new Map<string, AlbumPlayRollup>();
-
-  for (const episode of episodes.values()) {
-    if (episode.startedAt < fromMs || episode.startedAt >= toMs) continue;
-    if (!episode.albumKey && !episode.albumTitle) continue;
-    const key =
-      episode.albumKey || `${episode.artistName}:${episode.albumTitle}`;
-
-    const listenedMs = creditedMs(episode, capMs);
-    const existing = byAlbum.get(key);
-    if (!existing) {
-      byAlbum.set(key, {
-        albumKey: key,
-        title: episode.albumTitle,
-        artistKey: episode.artistKey,
-        artistName: episode.artistName,
-        playCount: 1,
-        listenedMs,
-      });
-      continue;
-    }
-    existing.playCount += 1;
-    existing.listenedMs += listenedMs;
-    if (!existing.title) existing.title = episode.albumTitle;
-    if (!existing.artistName) existing.artistName = episode.artistName;
-    if (!existing.artistKey) existing.artistKey = episode.artistKey;
-  }
-
-  return Array.from(byAlbum.values());
-}
-
-/**
- * The most-listened track per artist, summed across that track's own episodes — a track
- * heard ten times is what dominates an artist's listening, not whichever single episode was
- * longest.
- */
-function applyTopTracks(
-  byArtist: Map<string, ArtistListenRollup>,
-  episodes: Map<string, ListenEpisode>,
-  fromMs: number,
-  toMs: number,
-  capMs: number
-): void {
-  const perTrack = new Map<string, { artist: string; listenedMs: number }>();
-
-  for (const episode of episodes.values()) {
-    if (episode.startedAt < fromMs || episode.startedAt >= toMs) continue;
-    const artist = episode.artistKey || episode.artistName;
-    if (!artist) continue;
-
-    const listenedMs = creditedMs(episode, capMs);
-    const existing = perTrack.get(episode.ratingKey);
-    if (existing) {
-      existing.listenedMs += listenedMs;
-    } else {
-      perTrack.set(episode.ratingKey, { artist, listenedMs });
-    }
-  }
-
-  for (const rollup of byArtist.values()) rollup.topTrackListenedMs = 0;
-  for (const [ratingKey, track] of perTrack) {
-    const rollup = byArtist.get(track.artist);
-    if (!rollup || track.listenedMs <= rollup.topTrackListenedMs) continue;
-    rollup.topTrackKey = ratingKey;
-    rollup.topTrackListenedMs = track.listenedMs;
-  }
 }
 
 /**

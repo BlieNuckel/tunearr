@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { initializeDatabase, getDataSource, closeDatabase } from "./index";
 import {
-  appendSignalEvent,
   appendSignalEvents,
   getSignalEvents,
   getSignalIngestionUsers,
@@ -26,10 +25,10 @@ afterEach(async () => {
   await closeDatabase();
 });
 
-describe("appendSignalEvent / getSignalEvents", () => {
+describe("appendSignalEvents / getSignalEvents", () => {
   it("appends and reads back events for a user", async () => {
     const userId = await createUser("alice");
-    await appendSignalEvent(userId, "plex_track_plays", { artists: 3 });
+    await appendSignalEvents(userId, "plex_track_plays", [{ artists: 3 }]);
 
     const events = await getSignalEvents(userId);
     expect(events).toHaveLength(1);
@@ -39,9 +38,9 @@ describe("appendSignalEvent / getSignalEvents", () => {
 
   it("filters by kind", async () => {
     const userId = await createUser("alice");
-    await appendSignalEvent(userId, "plex_track_plays", {});
-    await appendSignalEvent(userId, "plex_rating", { rating: 8 });
-    await appendSignalEvent(userId, "plex_track_plays", {});
+    await appendSignalEvents(userId, "plex_track_plays", [{}]);
+    await appendSignalEvents(userId, "plex_rating", [{ rating: 8 }]);
+    await appendSignalEvents(userId, "plex_track_plays", [{}]);
 
     expect(await getSignalEvents(userId, "plex_track_plays")).toHaveLength(2);
     expect(await getSignalEvents(userId, "plex_rating")).toHaveLength(1);
@@ -50,8 +49,8 @@ describe("appendSignalEvent / getSignalEvents", () => {
   it("scopes events to the owning user", async () => {
     const alice = await createUser("alice");
     const bob = await createUser("bob");
-    await appendSignalEvent(alice, "plex_track_plays", {});
-    await appendSignalEvent(bob, "plex_track_plays", {});
+    await appendSignalEvents(alice, "plex_track_plays", [{}]);
+    await appendSignalEvents(bob, "plex_track_plays", [{}]);
 
     expect(await getSignalEvents(alice)).toHaveLength(1);
     expect(await getSignalEvents(bob)).toHaveLength(1);
