@@ -6,7 +6,6 @@ import type {
 } from "@shared/settingsDefaults";
 
 export type {
-  LibraryPreference,
   LiveEventsSettings,
   PurchaseDecisionSettings,
   SpendingSettings,
@@ -25,6 +24,7 @@ export interface AppSettings {
   slskdApiKey: string;
   slskdDownloadPath: string;
   torznabApiKey: string;
+  listeningCaptureEnabled?: boolean;
   purchaseDecision?: PurchaseDecisionSettings;
   spending?: SpendingSettings;
   liveEvents?: LiveEventsSettings;

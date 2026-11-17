@@ -18,7 +18,6 @@ export type SweptPerformer = {
   artist_name: string;
   is_headliner: boolean;
   performance_rank: number | null;
-  genres: string[] | null;
 };
 
 export type SweptEvent = {
@@ -55,12 +54,6 @@ export type EventWindow = {
   to: string;
 };
 
-export type NearbyQuery = EventWindow & {
-  lat: number;
-  lon: number;
-  radiusKm: number;
-};
-
 export type FollowedEventsQuery = EventWindow & {
   countries?: readonly string[] | null;
 };
@@ -79,7 +72,6 @@ export type UserLivePreferences = {
 export type HydratedLiveEvent = LiveEvent & {
   performers: LiveEventPerformer[];
   state: UserLiveEventState | null;
-  distanceKm: number | null;
 };
 
 /**
@@ -164,22 +156,6 @@ export function serializeLiveRegions(codes: string[] | null): string | null {
   return codes === null ? null : JSON.stringify(codes);
 }
 
-export function serializeGenres(genres: string[] | null): string | null {
-  return genres === null || genres.length === 0 ? null : JSON.stringify(genres);
-}
-
-export function parseGenres(json: string | null): string[] {
-  if (!json) return [];
-  try {
-    const parsed = JSON.parse(json) as unknown;
-    return Array.isArray(parsed)
-      ? parsed.filter((genre): genre is string => typeof genre === "string")
-      : [];
-  } catch {
-    return [];
-  }
-}
-
 function assignEventFields(row: LiveEvent, event: SweptEvent): void {
   row.name = event.name;
   row.event_date = event.event_date;
@@ -247,7 +223,6 @@ export async function upsertSweptEvents(
             artist_name: performer.artist_name,
             is_headliner: performer.is_headliner,
             performance_rank: performer.performance_rank,
-            genres: serializeGenres(performer.genres),
           }))
         );
       }
@@ -259,43 +234,6 @@ export async function upsertSweptEvents(
   });
 
   return outcome;
-}
-
-/**
- * Event keys we already hold inside a window, so a caller that fully enumerated
- * that same window can diff and reconcile. Scoping lives with the caller because
- * only it knows what its sweep actually covered.
- */
-export async function findEventKeysInWindow(
-  window: EventWindow,
-  bounds?: { minLat: number; maxLat: number; minLon: number; maxLon: number }
-): Promise<string[]> {
-  const query = eventRepo()
-    .createQueryBuilder("e")
-    .select("e.event_key", "event_key")
-    .where("e.event_date >= :from AND e.event_date <= :to", window)
-    .andWhere("e.deletion_status IS NULL");
-
-  if (bounds) {
-    query
-      .andWhere("e.venue_lat BETWEEN :minLat AND :maxLat", bounds)
-      .andWhere("e.venue_lon BETWEEN :minLon AND :maxLon", bounds);
-  }
-
-  const rows = await query.getRawMany<{ event_key: string }>();
-  return rows.map((row) => row.event_key);
-}
-
-export async function markDisappeared(
-  eventKeys: readonly string[],
-  at: string
-): Promise<number> {
-  if (eventKeys.length === 0) return 0;
-  const result = await eventRepo().update(
-    { event_key: In([...eventKeys]) },
-    { disappeared_at: at }
-  );
-  return result.affected ?? 0;
 }
 
 /**
@@ -329,8 +267,7 @@ export async function applyTombstones(
 
 async function hydrate(
   events: LiveEvent[],
-  userId: number,
-  origin?: { lat: number | null; lon: number | null }
+  userId: number
 ): Promise<HydratedLiveEvent[]> {
   if (events.length === 0) return [];
   const ids = events.map((event) => event.id);
@@ -352,13 +289,6 @@ async function hydrate(
     ...event,
     performers: performersByEvent.get(event.id) ?? [],
     state: stateByEvent.get(event.id) ?? null,
-    distanceKm:
-      origin?.lat != null &&
-      origin.lon != null &&
-      event.venue_lat != null &&
-      event.venue_lon != null
-        ? distanceKm(origin.lat, origin.lon, event.venue_lat, event.venue_lon)
-        : null,
   }));
 }
 
@@ -395,46 +325,6 @@ export async function findFollowedUpcomingEvents(
     .getMany();
 
   return hydrate(events, userId);
-}
-
-/**
- * Events near a point. SQLite has no trig, so a bounding box narrows in SQL and
- * the great-circle refine happens here; the box is a superset, never a filter.
- */
-export async function findNearbyEvents(
-  userId: number,
-  query: NearbyQuery
-): Promise<HydratedLiveEvent[]> {
-  const latDelta = query.radiusKm / 111;
-  const lonDelta =
-    query.radiusKm / (111 * Math.max(Math.cos(toRadians(query.lat)), 0.01));
-
-  const events = await eventRepo()
-    .createQueryBuilder("e")
-    .where("e.event_date >= :from AND e.event_date <= :to", {
-      from: query.from,
-      to: query.to,
-    })
-    .andWhere("e.deletion_status IS NULL")
-    .andWhere("e.disappeared_at IS NULL")
-    .andWhere("e.venue_lat BETWEEN :minLat AND :maxLat", {
-      minLat: query.lat - latDelta,
-      maxLat: query.lat + latDelta,
-    })
-    .andWhere("e.venue_lon BETWEEN :minLon AND :maxLon", {
-      minLon: query.lon - lonDelta,
-      maxLon: query.lon + lonDelta,
-    })
-    .orderBy("e.event_date", "ASC")
-    .getMany();
-
-  const hydrated = await hydrate(events, userId, {
-    lat: query.lat,
-    lon: query.lon,
-  });
-  return hydrated.filter(
-    (event) => event.distanceKm !== null && event.distanceKm <= query.radiusKm
-  );
 }
 
 export async function findEventsForArtist(

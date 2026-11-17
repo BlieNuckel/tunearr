@@ -39,7 +39,7 @@ import {
   NOMINAL_TRACK_MS,
 } from "./signalIngestion";
 import { initializeDatabase, closeDatabase, getDataSource } from "../../db";
-import { appendSignalEvents, getSignalEvents } from "../../db/userProfile";
+import { appendSignalEvents, getSignalEvents } from "../../db/signalEvents";
 import type { UserSignalEvent } from "../../db/entity/UserSignalEvent";
 
 function ratingEvent(

@@ -10,7 +10,7 @@ import {
   watchKey,
 } from "./listenSessions";
 import { initializeDatabase, closeDatabase, getDataSource } from "../../db";
-import { getSignalEvents } from "../../db/userProfile";
+import { getSignalEvents } from "../../db/signalEvents";
 import type { PlexTrackSession } from "../../api/plex/sessions";
 import type { ListenEpisode } from "./listenHistory";
 import type { UserSignalEvent } from "../../db/entity/UserSignalEvent";

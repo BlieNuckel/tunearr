@@ -6,11 +6,8 @@ import {
   parseLiveRegions,
   serializeLiveRegions,
   upsertSweptEvents,
-  findEventKeysInWindow,
-  markDisappeared,
   applyTombstones,
   findFollowedUpcomingEvents,
-  findNearbyEvents,
   findEventsForArtist,
   findAllForUser,
   setUserResponse,
@@ -34,13 +31,19 @@ const BERLIN = { lat: 52.52, lon: 13.405 };
 const SWEPT_AT = "2026-08-17T09:00:00.000Z";
 const WINDOW = { from: "2026-08-17", to: "2026-12-31" };
 
+async function markDisappeared(eventKey: string, at: string): Promise<void> {
+  await getDataSource().query(
+    "UPDATE live_events SET disappeared_at = ? WHERE event_key = ?",
+    [at, eventKey]
+  );
+}
+
 function performer(overrides: Partial<SweptPerformer> = {}): SweptPerformer {
   return {
     artist_jambase_id: "jambase:1",
     artist_name: "Yves Tumor",
     is_headliner: true,
     performance_rank: 1,
-    genres: ["indie", "art-pop"],
     ...overrides,
   };
 }
@@ -235,7 +238,7 @@ describe("upsertSweptEvents", () => {
 
   it("clears disappeared_at when an event is seen again", async () => {
     await upsertSweptEvents([event()], SWEPT_AT);
-    await markDisappeared(["jambase:100"], SWEPT_AT);
+    await markDisappeared("jambase:100", SWEPT_AT);
 
     await upsertSweptEvents([event()], "2026-08-18T09:00:00.000Z");
     const rows = await getDataSource().query(
@@ -255,75 +258,6 @@ describe("upsertSweptEvents", () => {
       "SELECT * FROM live_event_performers"
     );
     expect(performers).toHaveLength(0);
-  });
-});
-
-describe("findEventKeysInWindow", () => {
-  beforeEach(async () => {
-    await upsertSweptEvents(
-      [
-        event(),
-        event({
-          event_key: "jambase:200",
-          event_date: "2027-06-01",
-          venue_lat: BERLIN.lat,
-          venue_lon: BERLIN.lon,
-          venue_country: "DE",
-        }),
-      ],
-      SWEPT_AT
-    );
-  });
-
-  it("returns keys inside the date window only", async () => {
-    expect(await findEventKeysInWindow(WINDOW)).toEqual(["jambase:100"]);
-  });
-
-  it("narrows by bounding box so a distant event is never a candidate", async () => {
-    const keys = await findEventKeysInWindow(
-      { from: "2026-08-17", to: "2027-12-31" },
-      { minLat: 55, maxLat: 56, minLon: 12, maxLon: 14 }
-    );
-    expect(keys).toEqual(["jambase:100"]);
-  });
-
-  it("excludes tombstoned events", async () => {
-    await applyTombstones([
-      {
-        event_key: "jambase:100",
-        deletion_status: "deleted",
-        deleted_at: SWEPT_AT,
-        merged_into: null,
-      },
-    ]);
-    expect(await findEventKeysInWindow(WINDOW)).toEqual([]);
-  });
-});
-
-describe("markDisappeared", () => {
-  it("marks the given keys and leaves others alone", async () => {
-    await upsertSweptEvents(
-      [event(), event({ event_key: "jambase:101" })],
-      SWEPT_AT
-    );
-
-    const affected = await markDisappeared(["jambase:100"], SWEPT_AT);
-    expect(affected).toBe(1);
-
-    const rows = await getDataSource().query(
-      "SELECT event_key, disappeared_at FROM live_events ORDER BY event_key"
-    );
-    expect(rows[0].disappeared_at).toBe(SWEPT_AT);
-    expect(rows[1].disappeared_at).toBeNull();
-  });
-
-  it("is a no-op for an empty list", async () => {
-    await upsertSweptEvents([event()], SWEPT_AT);
-    expect(await markDisappeared([], SWEPT_AT)).toBe(0);
-    const rows = await getDataSource().query(
-      "SELECT disappeared_at FROM live_events"
-    );
-    expect(rows[0].disappeared_at).toBeNull();
   });
 });
 
@@ -431,7 +365,7 @@ describe("findFollowedUpcomingEvents", () => {
   });
 
   it("excludes disappeared and tombstoned events", async () => {
-    await markDisappeared(["jambase:100"], SWEPT_AT);
+    await markDisappeared("jambase:100", SWEPT_AT);
     await applyTombstones([
       {
         event_key: "jambase:200",
@@ -476,83 +410,6 @@ describe("findFollowedUpcomingEvents", () => {
     const target = events.find((e) => e.event_key === "jambase:100");
     expect(target?.performers).toHaveLength(1);
     expect(target?.state?.response).toBe("going");
-  });
-});
-
-describe("findNearbyEvents", () => {
-  let userId: number;
-
-  beforeEach(async () => {
-    userId = await createUser("lasse");
-    await upsertSweptEvents(
-      [
-        event(),
-        event({
-          event_key: "jambase:200",
-          venue_city: "Copenhagen",
-          venue_country: "DK",
-          venue_lat: COPENHAGEN.lat,
-          venue_lon: COPENHAGEN.lon,
-        }),
-        event({
-          event_key: "jambase:300",
-          venue_city: "Berlin",
-          venue_country: "DE",
-          venue_lat: BERLIN.lat,
-          venue_lon: BERLIN.lon,
-        }),
-      ],
-      SWEPT_AT
-    );
-  });
-
-  it("includes events inside the radius and excludes those outside", async () => {
-    const events = await findNearbyEvents(userId, {
-      ...WINDOW,
-      lat: MALMO.lat,
-      lon: MALMO.lon,
-      radiusKm: 100,
-    });
-    expect(events.map((e) => e.event_key).sort()).toEqual([
-      "jambase:100",
-      "jambase:200",
-    ]);
-  });
-
-  it("refines past the bounding box so a corner event is not included", async () => {
-    const events = await findNearbyEvents(userId, {
-      ...WINDOW,
-      lat: MALMO.lat,
-      lon: MALMO.lon,
-      radiusKm: 10,
-    });
-    expect(events.map((e) => e.event_key)).toEqual(["jambase:100"]);
-  });
-
-  it("reports distance from the query origin", async () => {
-    const events = await findNearbyEvents(userId, {
-      ...WINDOW,
-      lat: MALMO.lat,
-      lon: MALMO.lon,
-      radiusKm: 100,
-    });
-    const copenhagen = events.find((e) => e.event_key === "jambase:200");
-    expect(copenhagen?.distanceKm).toBeGreaterThan(25);
-    expect(copenhagen?.distanceKm).toBeLessThan(32);
-  });
-
-  it("skips events with no coordinates", async () => {
-    await upsertSweptEvents(
-      [event({ event_key: "jambase:400", venue_lat: null, venue_lon: null })],
-      SWEPT_AT
-    );
-    const events = await findNearbyEvents(userId, {
-      ...WINDOW,
-      lat: MALMO.lat,
-      lon: MALMO.lon,
-      radiusKm: 100,
-    });
-    expect(events.map((e) => e.event_key)).not.toContain("jambase:400");
   });
 });
 
@@ -640,8 +497,8 @@ describe("findAllForUser", () => {
     ).toEqual([]);
   });
 
-  it("includes disappeared events, unlike the banner and shelf reads", async () => {
-    await markDisappeared(["jambase:future"], SWEPT_AT);
+  it("includes disappeared events, unlike the banner read", async () => {
+    await markDisappeared("jambase:future", SWEPT_AT);
     const upcoming = await findAllForUser(userId, { now: "2026-08-17" });
     expect(upcoming.map((e) => e.event_key)).toEqual(["jambase:future"]);
   });

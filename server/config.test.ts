@@ -2,9 +2,8 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import fs from "fs";
 import path from "path";
 import os from "os";
-import { initializeDatabase, closeDatabase } from "./db/index";
+import { initializeDatabase, closeDatabase, getDataSource } from "./db/index";
 import {
-  DEFAULT_PROMOTED_ALBUM as SHARED_PROMOTED_ALBUM,
   DEFAULT_PURCHASE_DECISION as SHARED_PURCHASE_DECISION,
   DEFAULT_SPENDING as SHARED_SPENDING,
 } from "../shared/settingsDefaults";
@@ -13,7 +12,6 @@ import {
   setConfig,
   getConfigValue,
   initializeConfig,
-  DEFAULT_PROMOTED_ALBUM,
   DEFAULT_LIVE_EVENTS,
   DEFAULT_NOTIFICATIONS,
 } from "./config";
@@ -42,7 +40,7 @@ describe("initializeConfig", () => {
 
     expect(config.lidarrUrl).toBe("");
     expect(config.lidarrApiKey).toBe("");
-    expect(config.promotedAlbum).toEqual(DEFAULT_PROMOTED_ALBUM);
+    expect(config.listeningCaptureEnabled).toBe(true);
   });
 
   it("migrates data from config.json on first run", () => {
@@ -83,22 +81,19 @@ describe("initializeConfig", () => {
     expect(config.lidarrUrl).toBe("http://updated:8686");
   });
 
-  it("deep merges promotedAlbum from config.json", () => {
+  it("carries the legacy capture switch over from config.json", () => {
     fs.writeFileSync(
       path.join(tmpDir, "config.json"),
       JSON.stringify({
-        promotedAlbum: { topArtistsCount: 20, cacheDurationMinutes: 60 },
+        promotedAlbum: { ratingsBackupEnabled: false, topArtistsCount: 20 },
       })
     );
 
     initializeConfig();
     const config = getConfig();
 
-    expect(config.promotedAlbum.topArtistsCount).toBe(20);
-    expect(config.promotedAlbum.cacheDurationMinutes).toBe(60);
-    expect(config.promotedAlbum.pickedArtistsCount).toBe(
-      DEFAULT_PROMOTED_ALBUM.pickedArtistsCount
-    );
+    expect(config.listeningCaptureEnabled).toBe(false);
+    expect(config).not.toHaveProperty("promotedAlbum");
   });
 });
 
@@ -192,101 +187,63 @@ describe("getConfigValue", () => {
   });
 });
 
-describe("promotedAlbum config", () => {
+describe("listening capture config", () => {
   beforeEach(() => {
     initializeConfig();
   });
 
-  it("returns full defaults when no promotedAlbum has been set", () => {
-    const config = getConfig();
-    expect(config.promotedAlbum).toEqual(DEFAULT_PROMOTED_ALBUM);
+  it("is on by default", () => {
+    expect(getConfig().listeningCaptureEnabled).toBe(true);
   });
 
-  it("deep merges promotedAlbum on setConfig", () => {
-    setConfig({ promotedAlbum: { topArtistsCount: 25 } as never });
-    const config = getConfig();
-
-    expect(config.promotedAlbum.topArtistsCount).toBe(25);
-    expect(config.promotedAlbum.pickedArtistsCount).toBe(3);
+  it("can be turned off", () => {
+    setConfig({ listeningCaptureEnabled: false });
+    expect(getConfigValue("listeningCaptureEnabled")).toBe(false);
   });
 
-  it("validates positive integers", () => {
+  it("rejects a non-boolean", () => {
     expect(() =>
-      setConfig({ promotedAlbum: { topArtistsCount: 0 } as never })
-    ).toThrow("topArtistsCount must be a positive integer");
-
-    expect(() =>
-      setConfig({ promotedAlbum: { pickedArtistsCount: -1 } as never })
-    ).toThrow("pickedArtistsCount must be a positive integer");
+      setConfig({ listeningCaptureEnabled: "yes" as never })
+    ).toThrow("listeningCaptureEnabled must be a boolean");
   });
 
-  it("validates deepPageMax >= deepPageMin", () => {
-    expect(() =>
-      setConfig({
-        promotedAlbum: { deepPageMin: 5, deepPageMax: 3 } as never,
-      })
-    ).toThrow("deepPageMax must be >= deepPageMin");
-  });
-
-  it("validates cacheDurationMinutes is non-negative", () => {
-    expect(() =>
-      setConfig({ promotedAlbum: { cacheDurationMinutes: -1 } as never })
-    ).toThrow("cacheDurationMinutes must be a non-negative number");
-  });
-
-  it("validates profileTtlMinutes is non-negative", () => {
-    expect(() =>
-      setConfig({ promotedAlbum: { profileTtlMinutes: -1 } as never })
-    ).toThrow("profileTtlMinutes must be a non-negative number");
-  });
-
-  it("validates libraryPreference enum", () => {
-    expect(() =>
-      setConfig({ promotedAlbum: { libraryPreference: "invalid" } as never })
-    ).toThrow("libraryPreference must be one of");
-  });
-
-  it("validates genericTags is an array", () => {
-    expect(() =>
-      setConfig({ promotedAlbum: { genericTags: "not-array" } as never })
-    ).toThrow("genericTags must be an array");
-  });
-
-  it("validates ratingsBackupEnabled is a boolean", () => {
-    expect(() =>
-      setConfig({ promotedAlbum: { ratingsBackupEnabled: "yes" } as never })
-    ).toThrow("ratingsBackupEnabled must be a boolean");
-  });
-
-  it("validates playTrendWindowDays is a positive integer", () => {
-    expect(() =>
-      setConfig({ promotedAlbum: { playTrendWindowDays: 0 } as never })
-    ).toThrow("playTrendWindowDays must be a positive integer");
-  });
-
-  it("validates ratingWeight is non-negative", () => {
-    expect(() =>
-      setConfig({ promotedAlbum: { ratingWeight: -1 } as never })
-    ).toThrow("ratingWeight must be a non-negative number");
-  });
-
-  it("allows valid promotedAlbum config", () => {
-    setConfig({
-      promotedAlbum: {
-        cacheDurationMinutes: 0,
-        topArtistsCount: 5,
-        pickedArtistsCount: 2,
-        tagsPerArtist: 3,
-        deepPageMin: 1,
-        deepPageMax: 5,
-        genericTags: ["rock"],
-        libraryPreference: "prefer_library",
-      },
-    });
+  it("reads the switch from a stored legacy promotedAlbum section", async () => {
+    await getDataSource().query("UPDATE config SET data = ? WHERE id = 1", [
+      JSON.stringify({
+        lidarrUrl: "http://lidarr:8686",
+        promotedAlbum: { ratingsBackupEnabled: false, topArtistsCount: 20 },
+      }),
+    ]);
 
     const config = getConfig();
-    expect(config.promotedAlbum.cacheDurationMinutes).toBe(0);
-    expect(config.promotedAlbum.libraryPreference).toBe("prefer_library");
+    expect(config.listeningCaptureEnabled).toBe(false);
+    expect(config).not.toHaveProperty("promotedAlbum");
+  });
+
+  it("prefers an explicit top-level switch over the legacy one", async () => {
+    await getDataSource().query("UPDATE config SET data = ? WHERE id = 1", [
+      JSON.stringify({
+        listeningCaptureEnabled: true,
+        promotedAlbum: { ratingsBackupEnabled: false },
+      }),
+    ]);
+
+    expect(getConfig().listeningCaptureEnabled).toBe(true);
+  });
+
+  it("drops the legacy section on the next save", async () => {
+    await getDataSource().query("UPDATE config SET data = ? WHERE id = 1", [
+      JSON.stringify({ promotedAlbum: { ratingsBackupEnabled: false } }),
+    ]);
+
+    setConfig({ lidarrUrl: "http://lidarr:8686" });
+
+    const [{ data }] = (await getDataSource().query(
+      "SELECT data FROM config WHERE id = 1"
+    )) as { data: string }[];
+    const stored = JSON.parse(data);
+    expect(stored).not.toHaveProperty("promotedAlbum");
+    expect(stored.listeningCaptureEnabled).toBe(false);
   });
 });
 
@@ -363,22 +320,23 @@ describe("shared settings defaults", () => {
   it("seeds every shared default section verbatim", () => {
     const config = getConfig();
 
-    expect(config.promotedAlbum).toEqual(SHARED_PROMOTED_ALBUM);
     expect(config.purchaseDecision).toEqual(SHARED_PURCHASE_DECISION);
     expect(config.spending).toEqual(SHARED_SPENDING);
   });
 
   it("treats a null nested section as 'no change' rather than wiping it", () => {
-    setConfig({ promotedAlbum: { topArtistsCount: 25 } as never });
-    setConfig({ promotedAlbum: null as never });
+    setConfig({ spending: { monthlyLimit: 25 } as never });
+    setConfig({ spending: null as never });
 
-    expect(getConfig().promotedAlbum.topArtistsCount).toBe(25);
+    expect(getConfig().spending.monthlyLimit).toBe(25);
   });
 
   it("still validates a nested section supplied as null-valued keys", () => {
     expect(() =>
-      setConfig({ promotedAlbum: { topArtistsCount: null } as never })
-    ).toThrow("topArtistsCount must be a positive integer");
+      setConfig({
+        purchaseDecision: { oldReleaseThresholdYears: null } as never,
+      })
+    ).toThrow("oldReleaseThresholdYears must be a non-negative number");
   });
 
   it("does not let a partial nested write drop the other keys", () => {
@@ -485,14 +443,5 @@ describe("liveEvents config", () => {
     expect(() =>
       setConfig({ liveEvents: { maxPagesPerRun: 0 } as never })
     ).toThrow();
-  });
-
-  it("keeps shelfMinAffinity a ratio", () => {
-    expect(() =>
-      setConfig({ liveEvents: { shelfMinAffinity: 1.5 } as never })
-    ).toThrow();
-    expect(() =>
-      setConfig({ liveEvents: { shelfMinAffinity: 0.4 } as never })
-    ).not.toThrow();
   });
 });

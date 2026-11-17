@@ -13,7 +13,7 @@ vi.mock("../../api/plex/sessions", () => ({
 import { runListenSessionPollOnce } from "./sessionPoller";
 import { resetWatches } from "./listenSessions";
 import { initializeDatabase, closeDatabase, getDataSource } from "../../db";
-import { getSignalEvents } from "../../db/userProfile";
+import { getSignalEvents } from "../../db/signalEvents";
 
 const T0 = 1_770_000_000_000;
 
@@ -53,7 +53,7 @@ async function storedEpisodes(userId: number) {
 beforeEach(async () => {
   await initializeDatabase(":memory:");
   resetWatches();
-  mockGetConfigValue.mockReturnValue({ ratingsBackupEnabled: true });
+  mockGetConfigValue.mockReturnValue(true);
 });
 afterEach(async () => {
   vi.clearAllMocks();
@@ -90,7 +90,7 @@ describe("runListenSessionPollOnce", () => {
   });
 
   it("does nothing when the signal backup is disabled", async () => {
-    mockGetConfigValue.mockReturnValue({ ratingsBackupEnabled: false });
+    mockGetConfigValue.mockReturnValue(false);
     await createUser("alice", "tok-a");
 
     await runListenSessionPollOnce(T0);

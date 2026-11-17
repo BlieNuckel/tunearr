@@ -10,6 +10,10 @@ export default function PlexIntegrationPage() {
       onUrlChange={(v) => updateField("plexUrl", v)}
       onSignOut={() => updateFields({ plexUrl: "" })}
       onLoginComplete={(serverUrl) => updateFields({ plexUrl: serverUrl })}
+      captureEnabled={fields.listeningCaptureEnabled ?? true}
+      onCaptureEnabledChange={(enabled) =>
+        updateField("listeningCaptureEnabled", enabled)
+      }
     />
   );
 }

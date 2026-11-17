@@ -1,5 +1,5 @@
 import { getPlayHistory } from "../../api/plex/playHistory";
-import { appendSignalEvents, getSignalEvents } from "../../db/userProfile";
+import { appendSignalEvents, getSignalEvents } from "../../db/signalEvents";
 import {
   NOMINAL_TRACK_MS,
   foldEvents,

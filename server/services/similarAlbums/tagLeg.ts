@@ -17,7 +17,7 @@ const log = createLogger("similarAlbums");
  */
 export async function selectSeedTags(
   seed: SeedAlbum,
-  genericTags: Set<string>
+  genericTags: ReadonlySet<string>
 ): Promise<string[]> {
   let tags: { name: string; count: number }[];
   try {
@@ -67,7 +67,7 @@ async function candidatesForTag(
  */
 export async function collectTagCandidates(
   seed: SeedAlbum,
-  genericTags: Set<string>
+  genericTags: ReadonlySet<string>
 ): Promise<AlbumCandidate[]> {
   const tags = await selectSeedTags(seed, genericTags);
   if (tags.length === 0) return [];

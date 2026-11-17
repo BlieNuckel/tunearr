@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
   isPlaceholderArtist,
-  hasPlaceholderArtist,
   VARIOUS_ARTISTS_MBID,
   UNKNOWN_ARTIST_MBID,
   NO_ARTIST_MBID,
@@ -34,16 +33,5 @@ describe("isPlaceholderArtist", () => {
     expect(isPlaceholderArtist(null)).toBe(false);
     expect(isPlaceholderArtist(undefined, null)).toBe(false);
     expect(isPlaceholderArtist("")).toBe(false);
-  });
-});
-
-describe("hasPlaceholderArtist", () => {
-  it("is true when any credited MBID is a placeholder", () => {
-    expect(hasPlaceholderArtist(["mbid-a", VARIOUS_ARTISTS_MBID])).toBe(true);
-  });
-
-  it("is false for an all-real credit list", () => {
-    expect(hasPlaceholderArtist(["mbid-a", "mbid-b"])).toBe(false);
-    expect(hasPlaceholderArtist([])).toBe(false);
   });
 });

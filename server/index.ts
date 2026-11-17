@@ -13,11 +13,8 @@ import authRoutes from "./routes/auth";
 import lastfmRoutes from "./routes/lastfm";
 import lidarrRoutes from "./routes/lidarr";
 import logsRoutes from "./routes/logs";
-import profileRoutes from "./routes/profile";
 import musicbrainzRoutes from "./routes/musicbrainz";
 import plexRoutes from "./routes/plex";
-import promotedAlbumRoutes from "./routes/promotedAlbum";
-import promotedArtistsRoutes from "./routes/promotedArtists";
 import requestsRoutes from "./routes/requests";
 import sabnzbdRoutes from "./routes/sabnzbd";
 import settingsRoutes from "./routes/settings";
@@ -27,7 +24,6 @@ import purchasesRoutes from "./routes/purchases";
 import wantedRoutes from "./routes/wanted";
 import followedRoutes from "./routes/followed";
 import discoverRoutes from "./routes/discover";
-import recommendationsRoutes from "./routes/recommendations";
 import liveRoutes from "./routes/live";
 import similarAlbumsRoutes from "./routes/similarAlbums";
 import notificationsRoutes from "./routes/notifications";
@@ -36,10 +32,8 @@ import { startFollowedArtistPoller } from "./services/followed/poller";
 import { startLiveEventsPoller } from "./services/liveEvents/poller";
 import { installQuotaTracking } from "./services/liveEvents/quota";
 import { startRequestStatusPoller } from "./services/requests/statusPoller";
-import { startProfileRegenPoller } from "./services/profile/regenPoller";
 import { startSignalIngestionPoller } from "./services/profile/signalPoller";
 import { startListenSessionPoller } from "./services/profile/sessionPoller";
-import { startSpotlightWarmer } from "./promotedAlbum/warmer";
 import { getConfig } from "./config";
 
 const log = createLogger("Server");
@@ -67,12 +61,6 @@ app.use(
   requirePermission(Permission.ADMIN),
   logsRoutes
 );
-app.use(
-  "/api/profile",
-  requireAuth,
-  requirePermission(Permission.ADMIN),
-  profileRoutes
-);
 
 app.use("/api/settings", settingsRoutes);
 app.use("/api/users", usersRoutes);
@@ -80,14 +68,11 @@ app.use("/api/musicbrainz", requireAuth, musicbrainzRoutes);
 app.use("/api/lidarr", requireAuth, lidarrRoutes);
 app.use("/api/lastfm", requireAuth, lastfmRoutes);
 app.use("/api/plex", requireAuth, plexRoutes);
-app.use("/api/promoted-album", requireAuth, promotedAlbumRoutes);
-app.use("/api/promoted-artists", requireAuth, promotedArtistsRoutes);
 app.use("/api/requests", requestsRoutes);
 app.use("/api/purchases", purchasesRoutes);
 app.use("/api/wanted", wantedRoutes);
 app.use("/api/followed", followedRoutes);
 app.use("/api/discover", requireAuth, discoverRoutes);
-app.use("/api/recommendations", recommendationsRoutes);
 app.use("/api/live", liveRoutes);
 app.use("/api/similar-albums", requireAuth, similarAlbumsRoutes);
 app.use("/api/notifications", notificationsRoutes);
@@ -123,19 +108,11 @@ const requestStatusPollIntervalMs =
   getConfig().requestStatusPollIntervalMs ?? 2 * 60 * 1000;
 startRequestStatusPoller(requestStatusPollIntervalMs);
 
-const profileRegenIntervalMs =
-  getConfig().promotedAlbum.backgroundRegenIntervalMinutes * 60 * 1000;
-startProfileRegenPoller(profileRegenIntervalMs);
-
 startSignalIngestionPoller();
 startListenSessionPoller(getConfig().listenSessionPollIntervalMs);
 
 installQuotaTracking();
 startLiveEventsPoller();
-
-const spotlightWarmIntervalMs =
-  getConfig().promotedAlbum.cacheDurationMinutes * 60 * 1000;
-startSpotlightWarmer(spotlightWarmIntervalMs);
 
 app.listen(PORT, () => {
   log.info(`Listening on port ${PORT}`);

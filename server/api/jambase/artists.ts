@@ -7,7 +7,6 @@ import type { JambaseArtistResponse } from "./types";
 export type ResolvedArtist = {
   jambaseArtistId: string;
   name: string;
-  genres: string[];
   numUpcomingEvents: number | null;
   events: SweptEvent[];
 };
@@ -44,7 +43,6 @@ export async function resolveArtistByMbid(
   return {
     jambaseArtistId: artist.identifier,
     name: artist.name ?? "Unknown artist",
-    genres: artist.genre ?? [],
     numUpcomingEvents: artist["x-numUpcomingEvents"] ?? null,
     events: normalizeEvents(artist.events).events,
   };

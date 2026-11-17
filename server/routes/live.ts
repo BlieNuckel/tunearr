@@ -13,7 +13,6 @@ import {
 import type { HydratedLiveEvent } from "../db/liveEvents";
 import type { LiveEventResponse } from "../db/index";
 import { selectNotice } from "../services/liveEvents/notice";
-import { getNearbyShows } from "../services/liveEvents/nearby";
 import {
   readLivePreferences,
   writeLivePreferences,
@@ -45,7 +44,6 @@ function serializeEvent(event: HydratedLiveEvent) {
     venueCountry: event.venue_country,
     ticketUrl: event.ticket_url,
     imageUrl: event.image_url,
-    distanceKm: event.distanceKm,
     performers: event.performers.map((performer) => ({
       jambaseId: performer.artist_jambase_id,
       name: performer.artist_name,
@@ -115,19 +113,6 @@ router.get("/notice", async (req: Request, res: Response) => {
   res.json({
     notice: notice ? serializeNotice(notice) : null,
     additionalCount,
-  });
-});
-
-router.get("/nearby", async (req: Request, res: Response) => {
-  const entries = await getNearbyShows(req.user!.id);
-  res.json({
-    events: entries.map((entry) => ({
-      ...serializeEvent(entry.event),
-      affinity: entry.affinity,
-      matchedGenres: entry.matchedGenres,
-      following: entry.following,
-      artistImageUrl: entry.artistImageUrl,
-    })),
   });
 });
 

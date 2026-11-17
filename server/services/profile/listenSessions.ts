@@ -1,4 +1,4 @@
-import { appendSignalEvents, getSignalEvents } from "../../db/userProfile";
+import { appendSignalEvents, getSignalEvents } from "../../db/signalEvents";
 import { foldEpisodes, reconstructListenEpisodes } from "./listenHistory";
 import type { PlexTrackSession } from "../../api/plex/sessions";
 import type { ListenEpisode, PlexListenHistoryPayload } from "./listenHistory";

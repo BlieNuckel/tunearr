@@ -104,9 +104,9 @@ async function notifyUserEvents(
 }
 
 /**
- * Banner-worthy means notification-worthy. The shelf never notifies, so there
- * is no separate notification configuration to reason about: this reuses the
- * notice service's own evaluation rather than duplicating the windows.
+ * Banner-worthy means notification-worthy, so there is no separate
+ * notification configuration to reason about: this reuses the notice
+ * service's own evaluation rather than duplicating the windows.
  */
 export async function notifyLiveUpdates(
   now: number = Date.now()

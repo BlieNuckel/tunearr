@@ -136,8 +136,6 @@ export interface FollowedArtistItem {
   liveTracking: LiveTrackingState;
 }
 
-export type NewReleaseSource = "followed" | "library" | "similar";
-
 export type NewReleaseLidarrStatus = "downloading" | "wanted" | "imported";
 
 export interface NewReleaseItem {
@@ -146,7 +144,6 @@ export interface NewReleaseItem {
   artistName: string;
   artistMbid: string | null;
   releaseDate: string | null;
-  source: NewReleaseSource;
   coverUrl: string | null;
   lidarrStatus: NewReleaseLidarrStatus | null;
   followedReleaseId: number | null;

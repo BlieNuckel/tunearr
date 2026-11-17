@@ -20,7 +20,7 @@ import {
 } from "./listenHistory";
 import { NOMINAL_TRACK_MS } from "./signalIngestion";
 import { initializeDatabase, closeDatabase, getDataSource } from "../../db";
-import { appendSignalEvent, getSignalEvents } from "../../db/userProfile";
+import { appendSignalEvent, getSignalEvents } from "../../db/signalEvents";
 import type { UserSignalEvent } from "../../db/entity/UserSignalEvent";
 
 const HOUR_MS = 60 * 60 * 1000;

@@ -4,7 +4,6 @@ const mockGetConfig = vi.fn();
 const mockSetConfig = vi.fn();
 const mockValidateWritableDirectory = vi.fn();
 const mockListDirectorySuggestions = vi.fn();
-const mockClearPromotedAlbumCache = vi.fn();
 const mockTestLidarrConnection = vi.fn();
 const mockTestSlskdConnection = vi.fn();
 const mockSnapshotLiveEvents = vi.fn();
@@ -20,11 +19,6 @@ vi.mock("../services/pathValidation", () => ({
     mockValidateWritableDirectory(...args),
   listDirectorySuggestions: (...args: unknown[]) =>
     mockListDirectorySuggestions(...args),
-}));
-
-vi.mock("../promotedAlbum/getPromotedAlbum", () => ({
-  clearPromotedAlbumCache: (...args: unknown[]) =>
-    mockClearPromotedAlbumCache(...args),
 }));
 
 vi.mock("../services/settings", () => ({

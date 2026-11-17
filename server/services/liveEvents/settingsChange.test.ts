@@ -96,7 +96,7 @@ describe("onLiveEventsSettingsSaved", () => {
   it("does not sweep for an unrelated field change", () => {
     save(
       { ...CONFIGURED, originLat: 55.6, originLon: 13.0 },
-      { ...CONFIGURED, originLat: 55.6, originLon: 13.0, shelfHorizonDays: 60 }
+      { ...CONFIGURED, originLat: 55.6, originLon: 13.0, bannerHorizonDays: 60 }
     );
     expect(mockRunLivePollOnce).not.toHaveBeenCalled();
   });

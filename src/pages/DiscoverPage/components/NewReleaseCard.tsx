@@ -6,23 +6,11 @@ import ImageWithShimmer from "@/components/ImageWithShimmer";
 import AlbumLibraryBadge from "@/components/AlbumLibraryBadge";
 import type { AlbumLibraryState } from "@shared/albumLibrary";
 import { formatRelativeReleaseDate } from "@/utils/relativeDate";
-import type { NewReleaseItem, NewReleaseSource } from "@/types";
+import type { NewReleaseItem } from "@/types";
 
 interface NewReleaseCardProps {
   item: NewReleaseItem;
 }
-
-const SOURCE_LABELS: Record<NewReleaseSource, string> = {
-  followed: "Following",
-  library: "Library artist",
-  similar: "Similar artist",
-};
-
-const SOURCE_DOT_CLASSES: Record<NewReleaseSource, string> = {
-  followed: "bg-violet-500",
-  library: "bg-emerald-500",
-  similar: "bg-sky-500",
-};
 
 const LIDARR_STATUS_LABELS = {
   downloading: "Downloading",
@@ -101,16 +89,6 @@ export default function NewReleaseCard({ item }: NewReleaseCardProps) {
       <p className="text-gray-500 dark:text-gray-400 text-[11px] truncate">
         {item.artistName}
         {releasedAgo ? ` · ${releasedAgo}` : ""}
-      </p>
-      <p
-        className="flex items-center gap-1 text-gray-400 dark:text-gray-500 text-[10px] truncate"
-        title={SOURCE_LABELS[item.source]}
-      >
-        <span
-          className={`inline-block w-1.5 h-1.5 rounded-full flex-shrink-0 ${SOURCE_DOT_CLASSES[item.source]}`}
-          aria-hidden="true"
-        />
-        {SOURCE_LABELS[item.source]}
       </p>
     </Link>
   );

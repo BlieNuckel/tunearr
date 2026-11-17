@@ -7,7 +7,7 @@ import {
   getAllTrackPlayCounts,
   type TrackPlayCount,
 } from "../../api/plex/trackPlayCounts";
-import { appendSignalEvents, getSignalEvents } from "../../db/userProfile";
+import { appendSignalEvents, getSignalEvents } from "../../db/signalEvents";
 import { createLogger } from "../../logger";
 import type { UserSignalEvent } from "../../db/entity/UserSignalEvent";
 import type { PlexRatedItem } from "../../api/plex/types";

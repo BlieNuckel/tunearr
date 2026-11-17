@@ -37,8 +37,3 @@ export function isPlaceholderArtist(
   if (!name) return false;
   return PLACEHOLDER_NAMES.has(name.trim().toLowerCase());
 }
-
-/** True when any credited artist MBID is a placeholder (multi-artist credits). */
-export function hasPlaceholderArtist(mbids: readonly string[]): boolean {
-  return mbids.some((mbid) => PLACEHOLDER_MBIDS.has(mbid.toLowerCase()));
-}

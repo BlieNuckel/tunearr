@@ -1,26 +1,11 @@
-import { getCachedFreshReleases } from "./feedCache";
 import { isAllowedReleaseType } from "./typeFilter";
 import {
   getFollowedReleasesForUser,
   parseSecondaryTypes,
   type FollowedReleaseWithArtist,
 } from "../followed/followedService";
-import {
-  buildReleaseKey,
-  coverArtUrlForReleaseGroup,
-} from "../followed/releaseAggregator";
-import { getArtistList } from "../lidarr/artists";
 import { enrichRequestsWithLidarr } from "../requests/lidarrEnrichment";
-import { getUserProfile } from "../../db/userProfile";
-import { parseDerivedProfile } from "../../db/userProfile";
-import {
-  hasPlaceholderArtist,
-  isPlaceholderArtist,
-} from "../../utils/artistFilter";
-import type { ListenBrainzFreshRelease } from "../../api/listenbrainz/types";
-import { createLogger } from "../../logger";
-
-export type NewReleaseSource = "followed" | "library" | "similar";
+import { isPlaceholderArtist } from "../../utils/artistFilter";
 
 export type NewReleaseItem = {
   releaseGroupMbid: string | null;
@@ -28,7 +13,6 @@ export type NewReleaseItem = {
   artistName: string;
   artistMbid: string | null;
   releaseDate: string | null;
-  source: NewReleaseSource;
   coverUrl: string | null;
   lidarrStatus: "downloading" | "wanted" | "imported" | null;
   followedReleaseId: number | null;
@@ -46,20 +30,14 @@ type Candidate = Omit<NewReleaseItem, "lidarrStatus"> & {
 export const RELEASE_WINDOWS_DAYS = [30, 60, 90] as const;
 /**
  * One full row of the Discover shelf. Cover art is square and therefore
- * width-driven, so the column count is what makes a card tall enough to fill
- * the tile: four wide columns fill it, six narrow ones leave it half empty.
+ * width-driven, so the column count is what sizes a card to the tile: the
+ * shelf spans the full grid, and six columns keep each card as tall as the
+ * tile's three rows.
  */
-export const TARGET_ITEM_COUNT = 4;
+export const TARGET_ITEM_COUNT = 6;
 
 const FOLLOWED_FETCH_LIMIT = 200;
 const DAY_MS = 24 * 60 * 60 * 1000;
-const SOURCE_PRECEDENCE: Record<NewReleaseSource, number> = {
-  followed: 0,
-  library: 1,
-  similar: 2,
-};
-
-const log = createLogger("discover-new-releases");
 
 function followedToCandidate(row: FollowedReleaseWithArtist): Candidate {
   return {
@@ -68,27 +46,9 @@ function followedToCandidate(row: FollowedReleaseWithArtist): Candidate {
     artistName: row.artist_name,
     artistMbid: row.artist_mbid,
     releaseDate: row.release_date,
-    source: "followed",
     coverUrl: row.cover_url,
     followedReleaseId: row.id,
     unseen: row.viewed_at === null,
-  };
-}
-
-function feedToCandidate(
-  release: ListenBrainzFreshRelease,
-  source: NewReleaseSource
-): Candidate {
-  return {
-    releaseGroupMbid: release.releaseGroupMbid,
-    title: release.releaseName,
-    artistName: release.artistName,
-    artistMbid: release.artistMbids[0] ?? null,
-    releaseDate: release.releaseDate,
-    source,
-    coverUrl: coverArtUrlForReleaseGroup(release.releaseGroupMbid),
-    followedReleaseId: null,
-    unseen: false,
   };
 }
 
@@ -100,59 +60,18 @@ function isFollowedRowAllowed(row: FollowedReleaseWithArtist): boolean {
   );
 }
 
-function isFeedReleaseAllowed(release: ListenBrainzFreshRelease): boolean {
-  if (
-    isPlaceholderArtist(release.artistName) ||
-    hasPlaceholderArtist(release.artistMbids)
-  ) {
-    return false;
-  }
-  return isAllowedReleaseType(
-    release.primaryType,
-    release.secondaryType === null ? [] : [release.secondaryType]
-  );
-}
-
-function matchesArtistSet(
-  release: ListenBrainzFreshRelease,
-  mbids: ReadonlySet<string>
-): boolean {
-  return release.artistMbids.some((mbid) => mbids.has(mbid));
-}
-
 /**
- * Artist-scoped title+month key so a pre-backfill followed item (no MBID yet)
- * still suppresses its feed twin without colliding across artists.
- */
-function titleDedupKey(candidate: Candidate): string {
-  return buildReleaseKey(
-    `${candidate.artistName} ${candidate.title}`,
-    candidate.releaseDate
-  );
-}
-
-/**
- * Dedup across tiers: followed > library > similar. Every candidate registers
- * under its release-group MBID (when known) and an artist-scoped title key,
- * so the same release keeps only its highest-precedence entry.
+ * A collaboration followed through two of its artists is stored once per
+ * artist, so the same release group can arrive twice. The first one seen wins.
  */
 function dedupeCandidates(candidates: Candidate[]): Candidate[] {
-  const byKey = new Map<string, Candidate>();
-  for (const candidate of candidates) {
-    const keys = [titleDedupKey(candidate)];
-    if (candidate.releaseGroupMbid !== null) {
-      keys.push(candidate.releaseGroupMbid);
-    }
-    const existing = keys.map((k) => byKey.get(k)).find((c) => c !== undefined);
-    if (
-      existing &&
-      SOURCE_PRECEDENCE[existing.source] <= SOURCE_PRECEDENCE[candidate.source]
-    ) {
-      continue;
-    }
-    for (const key of keys) byKey.set(key, candidate);
-  }
-  return Array.from(new Set(byKey.values()));
+  const seen = new Set<string>();
+  return candidates.filter((candidate) => {
+    if (candidate.releaseGroupMbid === null) return true;
+    if (seen.has(candidate.releaseGroupMbid)) return false;
+    seen.add(candidate.releaseGroupMbid);
+    return true;
+  });
 }
 
 function withinWindow(
@@ -167,32 +86,10 @@ function withinWindow(
 }
 
 function compareCandidates(a: Candidate, b: Candidate): number {
-  const aPriority = a.source === "followed" && a.unseen ? 0 : 1;
-  const bPriority = b.source === "followed" && b.unseen ? 0 : 1;
+  const aPriority = a.unseen ? 0 : 1;
+  const bPriority = b.unseen ? 0 : 1;
   if (aPriority !== bPriority) return aPriority - bPriority;
   return (b.releaseDate ?? "").localeCompare(a.releaseDate ?? "");
-}
-
-async function loadLibraryArtistMbids(): Promise<Set<string>> {
-  const result = await getArtistList();
-  if (!result.ok) {
-    log.warn(`Lidarr artist list unavailable: ${result.error}`);
-    return new Set();
-  }
-  return new Set(result.data.map((a) => a.foreignArtistId).filter(Boolean));
-}
-
-async function loadSimilarArtistMbids(userId: number): Promise<Set<string>> {
-  const profile = await getUserProfile(userId);
-  if (!profile) return new Set();
-  const derived = parseDerivedProfile(profile.profile_json);
-  const mbids = new Set<string>();
-  for (const seed of derived.similarGraph) {
-    for (const candidate of seed.candidates) {
-      if (candidate.artistMbid) mbids.add(candidate.artistMbid);
-    }
-  }
-  return mbids;
 }
 
 async function enrichWithLidarrStatus(
@@ -216,32 +113,21 @@ async function enrichWithLidarrStatus(
 }
 
 /**
- * The blended new-releases shelf: followed releases (poller pipeline) plus
- * library and similar artists intersected against the cached ListenBrainz
- * feed. One shared window widens 30 → 60 → 90 days until the target count
- * exists; unseen followed releases claim slots first, then newest wins.
+ * The new-releases shelf: releases by artists the user follows, recorded by
+ * the followed-artist poller. The window widens 30 → 60 → 90 days until the
+ * target count exists; unseen releases claim slots first, then newest wins.
  */
 export async function getNewReleases(
   userId: number,
   now: number = Date.now()
 ): Promise<NewReleasesResult> {
-  const [followedRows, feed, libraryMbids, similarMbids] = await Promise.all([
-    getFollowedReleasesForUser(userId, FOLLOWED_FETCH_LIMIT),
-    getCachedFreshReleases(),
-    loadLibraryArtistMbids(),
-    loadSimilarArtistMbids(userId),
-  ]);
-
-  const allowedFeed = feed.filter(isFeedReleaseAllowed);
-  const candidates = dedupeCandidates([
-    ...followedRows.filter(isFollowedRowAllowed).map(followedToCandidate),
-    ...allowedFeed
-      .filter((r) => matchesArtistSet(r, libraryMbids))
-      .map((r) => feedToCandidate(r, "library")),
-    ...allowedFeed
-      .filter((r) => matchesArtistSet(r, similarMbids))
-      .map((r) => feedToCandidate(r, "similar")),
-  ]);
+  const followedRows = await getFollowedReleasesForUser(
+    userId,
+    FOLLOWED_FETCH_LIMIT
+  );
+  const candidates = dedupeCandidates(
+    followedRows.filter(isFollowedRowAllowed).map(followedToCandidate)
+  );
 
   let windowDays: number =
     RELEASE_WINDOWS_DAYS[RELEASE_WINDOWS_DAYS.length - 1];

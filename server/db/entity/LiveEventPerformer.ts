@@ -43,8 +43,4 @@ export class LiveEventPerformer {
 
   @Column({ type: "integer", nullable: true })
   performance_rank!: number | null;
-
-  /** JSON-encoded genre slugs from JamBase, used to score shelf affinity. */
-  @Column({ type: "text", nullable: true })
-  genres!: string | null;
 }

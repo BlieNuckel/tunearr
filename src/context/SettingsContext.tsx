@@ -41,6 +41,7 @@ const EMPTY_SETTINGS: AppSettings = {
   slskdApiKey: "",
   slskdDownloadPath: "",
   torznabApiKey: "",
+  listeningCaptureEnabled: true,
   purchaseDecision: DEFAULT_PURCHASE_DECISION,
   spending: DEFAULT_SPENDING,
   liveEvents: DEFAULT_LIVE_EVENTS,
@@ -70,6 +71,8 @@ function normalizeSettings(data: Record<string, unknown>): AppSettings {
     slskdApiKey: (data.slskdApiKey as string) ?? "",
     slskdDownloadPath: (data.slskdDownloadPath as string) ?? "",
     torznabApiKey: (data.torznabApiKey as string) ?? "",
+    listeningCaptureEnabled:
+      (data.listeningCaptureEnabled as boolean | undefined) ?? true,
     purchaseDecision: {
       ...DEFAULT_PURCHASE_DECISION,
       ...((data.purchaseDecision as object) ?? {}),

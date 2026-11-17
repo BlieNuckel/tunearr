@@ -13,14 +13,12 @@ export type SeedFollowedArtist = {
   mbid: string;
   name: string;
   jambaseId: string;
-  genres: string[];
 };
 
 export type SeedLivePerformer = {
   jambaseId: string;
   name: string;
   isHeadliner: boolean;
-  genres: string[];
 };
 
 export type SeedLiveEvent = {
@@ -84,31 +82,26 @@ export const SEED_FOLLOWED_ARTISTS: SeedFollowedArtist[] = [
     mbid: "b675f327-4738-4af4-bb83-1adb0003f2d3",
     name: "Yves Tumor",
     jambaseId: "jambase:seed-yves",
-    genres: ["art-pop", "experimental"],
   },
   {
     mbid: "7230b2f8-96da-4242-8d57-2a8c1c3d71e4",
     name: "Jockstrap",
     jambaseId: "jambase:seed-jockstrap",
-    genres: ["art-pop", "electronic"],
   },
   {
     mbid: "fc6fe95d-ab24-44fd-a086-f33a505ad518",
     name: "bar italia",
     jambaseId: "jambase:seed-bar-italia",
-    genres: ["indie-rock", "shoegaze"],
   },
   {
     mbid: "6420dd6b-8232-42db-9cb9-90bec8f40e91",
     name: "Nourished by Time",
     jambaseId: "jambase:seed-nourished",
-    genres: ["indie-pop", "r-and-b"],
   },
   {
     mbid: "a74b1b7f-71a5-4011-9441-d0b5e4122711",
     name: "Radiohead",
     jambaseId: "jambase:seed-radiohead",
-    genres: ["indie-rock", "alternative"],
   },
 ];
 
@@ -120,7 +113,6 @@ function performer(
     jambaseId: artist.jambaseId,
     name: artist.name,
     isHeadliner,
-    genres: artist.genres,
   };
 }
 
@@ -243,51 +235,15 @@ export const SEED_LIVE_EVENTS: SeedLiveEvent[] = [
     note: "/library/live Past tab",
   },
   {
-    key: "jambase:seed-10",
-    name: "Skygaze at Plan B",
-    dayOffset: 5,
-    seenDaysAgo: 3,
-    status: "scheduled",
-    ...PLAN_B,
-    ticketUrl: "https://example.test/tickets/skygaze",
-    performers: [
-      {
-        jambaseId: "jambase:seed-skygaze",
-        name: "Skygaze",
-        isHeadliner: true,
-        genres: ["shoegaze", "dream-pop"],
-      },
-    ],
-    note: "nearby shelf: nobody follows this one",
-  },
-  {
-    key: "jambase:seed-11",
-    name: "Kollektiv Nord at Amiralen",
-    dayOffset: 9,
-    seenDaysAgo: 4,
-    status: "scheduled",
-    ...AMIRALEN,
-    ticketUrl: null,
-    performers: [
-      {
-        jambaseId: "jambase:seed-kollektiv",
-        name: "Kollektiv Nord",
-        isHeadliner: true,
-        genres: ["krautrock", "experimental"],
-      },
-    ],
-    note: "nearby shelf: unfollowed, no ticket link",
-  },
-  {
     key: "jambase:seed-12",
     name: "bar italia at Plan B (late show)",
     dayOffset: 14,
     seenDaysAgo: 5,
     status: "scheduled",
     ...PLAN_B,
-    ticketUrl: "https://example.test/tickets/bar-italia-late",
+    ticketUrl: null,
     performers: [performer(BAR_ITALIA)],
-    note: "nearby shelf: followed, so it carries the Following badge",
+    note: "second date for the same artist, no ticket link",
   },
 ];
 
@@ -405,7 +361,6 @@ async function seedOneEvent(
       artist_name: p.name,
       is_headliner: p.isHeadliner,
       performance_rank: index + 1,
-      genres: JSON.stringify(p.genres),
     }))
   );
 
