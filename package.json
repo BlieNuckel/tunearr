@@ -21,7 +21,7 @@
     "react-router-dom": "^7.18.5",
     "reflect-metadata": "^0.2.2",
     "typeorm": "^1.1.3",
-    "undici": "^7.30.2",
+    "undici": "^8.12.4",
     "web-haptics": "^0.0.6",
     "web-push": "^3.6.7",
     "winston": "^3.19.0",
@@ -80,7 +80,7 @@
     "vitest": "^5.1.0"
   },
   "engines": {
-    "node": ">=22.13.0",
+    "node": ">=22.19.0",
     "pnpm": ">=10.0.0"
   }
 }
