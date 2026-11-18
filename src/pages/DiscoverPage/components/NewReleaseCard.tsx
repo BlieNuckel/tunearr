@@ -7,6 +7,11 @@ import AlbumLibraryBadge from "@/components/AlbumLibraryBadge";
 import type { AlbumLibraryState } from "@shared/albumLibrary";
 import { formatRelativeReleaseDate } from "@/utils/relativeDate";
 import type { NewReleaseItem } from "@/types";
+import {
+  albumNavState,
+  albumPreviewFromNewRelease,
+  type NavPreviewState,
+} from "@/utils/navPreview";
 
 interface NewReleaseCardProps {
   item: NewReleaseItem;
@@ -33,6 +38,16 @@ function cardHref(item: NewReleaseItem): string {
   return `/search?q=${encodeURIComponent(query)}`;
 }
 
+function cardState(item: NewReleaseItem): NavPreviewState | undefined {
+  if (!item.releaseGroupMbid) return undefined;
+  return albumNavState(
+    albumPreviewFromNewRelease({
+      ...item,
+      releaseGroupMbid: item.releaseGroupMbid,
+    })
+  );
+}
+
 function markViewed(followedReleaseId: number): void {
   void fetch(`/api/followed/releases/${followedReleaseId}/viewed`, {
     method: "POST",
@@ -56,6 +71,7 @@ export default function NewReleaseCard({ item }: NewReleaseCardProps) {
   return (
     <Link
       to={cardHref(item)}
+      state={cardState(item)}
       onClick={handleClick}
       className="group flex flex-col w-full text-left"
       aria-label={`${item.title} by ${item.artistName}`}

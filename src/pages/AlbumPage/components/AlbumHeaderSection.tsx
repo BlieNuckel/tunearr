@@ -6,6 +6,8 @@ import type { AlbumLibraryInfo } from "@shared/albumLibrary";
 
 interface AlbumHeaderSectionProps {
   album: AlbumDetails | null;
+  /** The header is drawn from the card the user came from, not from fetched details. */
+  fromPreview: boolean;
   details: SectionState;
   label: AlbumLabel | null;
   labelState: SectionState;
@@ -20,6 +22,7 @@ interface AlbumHeaderSectionProps {
  */
 export default function AlbumHeaderSection({
   album,
+  fromPreview,
   details,
   label,
   labelState,
@@ -51,6 +54,16 @@ export default function AlbumHeaderSection({
         initialWanted={initialWanted}
         library={library}
       />
+      {fromPreview && (
+        <SectionStatus
+          className="-mt-6 mb-6"
+          subject="the rest of this album's details"
+          error={details.error}
+          errorKind={details.errorKind}
+          retrying={details.retrying}
+          onRetry={() => void details.refresh()}
+        />
+      )}
       <SectionStatus
         className="-mt-6 mb-6"
         subject="the label"

@@ -5,6 +5,7 @@ import { pastelColorFromId } from "@/utils/color";
 import AlbumActions from "./AlbumActions";
 import { AlbumLibraryPill } from "@/components/AlbumLibraryBadge";
 import type { AlbumDetails, AlbumLabel, ReleaseGroup } from "@/types";
+import { artistNavState } from "@/utils/navPreview";
 import type { AlbumLibraryInfo } from "@shared/albumLibrary";
 
 interface AlbumHeaderProps {
@@ -76,6 +77,10 @@ export default function AlbumHeader({
         {album.artistMbid ? (
           <Link
             to={`/artist/${album.artistMbid}`}
+            state={artistNavState({
+              mbid: album.artistMbid,
+              name: album.artistName,
+            })}
             className="text-gray-600 dark:text-gray-300 text-base mt-1 inline-block hover:underline truncate"
           >
             {album.artistName}

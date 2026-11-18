@@ -7,6 +7,10 @@ import AlbumActionModals from "./AlbumActionModals";
 import useHaptics from "../hooks/useHaptics";
 import useAlbumActions from "../hooks/useAlbumActions";
 import { pastelColorFromId } from "../utils/color";
+import {
+  albumNavState,
+  albumPreviewFromReleaseGroup,
+} from "../utils/navPreview";
 import type { ReleaseGroup } from "../types";
 
 interface WantedCardProps {
@@ -42,7 +46,9 @@ export default function WantedCard({
 
   const handleNavigate = () => {
     haptics.light();
-    navigate(`/album/${albumMbid}`);
+    navigate(`/album/${albumMbid}`, {
+      state: albumNavState(albumPreviewFromReleaseGroup(releaseGroup)),
+    });
   };
 
   return (

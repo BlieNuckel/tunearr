@@ -86,9 +86,9 @@ const makeRg = (overrides: Partial<ReleaseGroup>): ReleaseGroup => ({
   ...overrides,
 });
 
-function renderPage() {
+function renderPage(state?: unknown) {
   return render(
-    <MemoryRouter initialEntries={["/artist/a1"]}>
+    <MemoryRouter initialEntries={[{ pathname: "/artist/a1", state }]}>
       <Routes>
         <Route path="/artist/:mbid" element={<ArtistPage />} />
       </Routes>
@@ -292,5 +292,24 @@ describe("ArtistPage", () => {
     mockSimilar = { artists: [], loading: false };
     renderPage();
     expect(screen.queryByText("Similar artists")).not.toBeInTheDocument();
+  });
+
+  describe("from a card", () => {
+    it("draws the header from the card while details load", () => {
+      mockState.loading = true;
+      renderPage({ artistPreview: { mbid: "a1", name: "Radiohead (card)" } });
+
+      expect(
+        screen.getByRole("heading", { name: "Radiohead (card)" })
+      ).toBeInTheDocument();
+      expect(screen.queryByTestId("artist-header-skeleton")).toBeNull();
+    });
+
+    it("shows the skeleton on a deep link without card state", () => {
+      mockState.loading = true;
+      renderPage();
+
+      expect(screen.getByTestId("artist-header-skeleton")).toBeInTheDocument();
+    });
   });
 });

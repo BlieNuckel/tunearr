@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import useArtistDetails from "@/hooks/useArtistDetails";
 import useArtistReleaseGroups from "@/hooks/useArtistReleaseGroups";
 import useLibraryAlbums from "@/hooks/useLibraryAlbums";
@@ -7,6 +7,7 @@ import useLibraryArtists from "@/hooks/useLibraryArtists";
 import useSimilarArtists from "@/hooks/useSimilarArtists";
 import useArtistLiveDates from "@/hooks/useArtistLiveDates";
 import { groupArtistReleases } from "@/utils/groupArtistReleases";
+import { readArtistPreview } from "@/utils/navPreview";
 import ArtistHeaderSection from "./components/ArtistHeaderSection";
 import ArtistDiscography from "./components/ArtistDiscography";
 import SimilarArtists from "./components/SimilarArtists";
@@ -15,8 +16,10 @@ import ArtistLiveDates from "./components/ArtistLiveDates";
 /** The header waits on artist details; the discography and the rest load and fail on their own. */
 export default function ArtistPage() {
   const { mbid } = useParams<{ mbid: string }>();
+  const location = useLocation();
   const details = useArtistDetails(mbid);
-  const artist = details.artist;
+  const preview = readArtistPreview(location.state, mbid);
+  const artist = details.artist ?? preview;
   const releases = useArtistReleaseGroups(mbid);
   const releaseGroups = releases.releaseGroups;
   const { getAlbumLibrary } = useLibraryAlbums();
@@ -34,6 +37,7 @@ export default function ArtistPage() {
     <div>
       <ArtistHeaderSection
         artist={artist}
+        fromPreview={details.artist === null && preview !== null}
         details={details}
         inLibrary={artist ? isArtistInLibrary(mbid ?? "", artist.name) : false}
       />

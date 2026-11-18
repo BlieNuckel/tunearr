@@ -1,9 +1,12 @@
 import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { artistNavState } from "@/utils/navPreview";
 
 interface ArtistTarget {
   mbid?: string;
   name: string;
+  /** Shown in the artist header while its details load. */
+  imageUrl?: string;
 }
 
 /**
@@ -15,9 +18,11 @@ export default function useNavigateToArtist() {
   const [resolving, setResolving] = useState(false);
 
   const go = useCallback(
-    async ({ mbid, name }: ArtistTarget) => {
+    async ({ mbid, name, imageUrl }: ArtistTarget) => {
       if (mbid) {
-        navigate(`/artist/${mbid}`);
+        navigate(`/artist/${mbid}`, {
+          state: artistNavState({ mbid, name, imageUrl }),
+        });
         return;
       }
       if (resolving) return;
@@ -29,7 +34,11 @@ export default function useNavigateToArtist() {
         );
         if (!res.ok) return;
         const data: { mbid: string | null } = await res.json();
-        if (data.mbid) navigate(`/artist/${data.mbid}`);
+        if (data.mbid) {
+          navigate(`/artist/${data.mbid}`, {
+            state: artistNavState({ mbid: data.mbid, name, imageUrl }),
+          });
+        }
       } finally {
         setResolving(false);
       }

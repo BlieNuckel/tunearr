@@ -7,6 +7,10 @@ import AlbumLibraryBadge from "./AlbumLibraryBadge";
 import useHaptics from "../hooks/useHaptics";
 import useAlbumActions from "../hooks/useAlbumActions";
 import { pastelColorFromId } from "../utils/color";
+import {
+  albumNavState,
+  albumPreviewFromReleaseGroup,
+} from "../utils/navPreview";
 import { ReleaseGroup } from "../types";
 import { albumLibraryTitle, type AlbumLibraryInfo } from "@shared/albumLibrary";
 
@@ -35,7 +39,9 @@ export default function ReleaseGroupCard({
 
   const handleClick = () => {
     haptics.light();
-    navigate(`/album/${albumMbid}`);
+    navigate(`/album/${albumMbid}`, {
+      state: albumNavState(albumPreviewFromReleaseGroup(releaseGroup)),
+    });
   };
 
   const coverImage = !coverError ? (

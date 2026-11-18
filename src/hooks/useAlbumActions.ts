@@ -10,6 +10,7 @@ import useFollowedArtists from "./useFollowedArtists";
 import useHaptics from "./useHaptics";
 import type { Option } from "../components/OptionSelect";
 import type { MonitorState, ReleaseGroup } from "../types";
+import { artistNavState } from "../utils/navPreview";
 
 interface UseAlbumActionsParams {
   releaseGroup: ReleaseGroup;
@@ -142,7 +143,10 @@ export default function useAlbumActions({
   const goToArtistOption: Option | null = artistMbid
     ? {
         label: "Go to artist",
-        onClick: () => navigate(`/artist/${artistMbid}`),
+        onClick: () =>
+          navigate(`/artist/${artistMbid}`, {
+            state: artistNavState({ mbid: artistMbid, name: artistName }),
+          }),
       }
     : null;
 

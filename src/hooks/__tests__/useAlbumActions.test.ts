@@ -97,7 +97,11 @@ describe("useAlbumActions contextOptions", () => {
       (o) => o.label === "Go to artist"
     );
     goToArtist?.onClick();
-    expect(mockNavigate).toHaveBeenCalledWith("/artist/a1");
+    expect(mockNavigate).toHaveBeenCalledWith("/artist/a1", {
+      state: {
+        artistPreview: expect.objectContaining({ mbid: "a1" }),
+      },
+    });
   });
 
   it("omits go-to-artist when the release has no artist MBID", () => {

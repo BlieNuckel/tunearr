@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import useReleaseGroupDetails from "@/hooks/useReleaseGroupDetails";
 import useReleaseGroupLabel from "@/hooks/useReleaseGroupLabel";
 import useArtistReleaseGroups from "@/hooks/useArtistReleaseGroups";
@@ -9,16 +9,21 @@ import useSimilarAlbums from "@/hooks/useSimilarAlbums";
 import ReleaseSectionWithStatus from "@/pages/ArtistPage/components/ReleaseSectionWithStatus";
 import AlbumHeaderSection from "./components/AlbumHeaderSection";
 import AlbumTracklist from "./components/AlbumTracklist";
+import { readAlbumPreview } from "@/utils/navPreview";
 
 /**
  * Every section loads and fails on its own: the header waits on album details,
  * and a busy MusicBrainz costs one section its content, not the whole page.
+ * Coming from a card, the header and the sections that need the artist start
+ * from what the card showed, and swap in the fetched details when they land.
  */
 export default function AlbumPage() {
   const { mbid } = useParams<{ mbid: string }>();
+  const location = useLocation();
   const details = useReleaseGroupDetails(mbid);
   const label = useReleaseGroupLabel(mbid);
-  const album = details.album;
+  const preview = readAlbumPreview(location.state, mbid);
+  const album = details.album ?? preview;
   const more = useArtistReleaseGroups(album?.artistMbid);
   const { isAlbumInLibrary, getAlbumLibrary } = useLibraryAlbums();
   const { isAlbumWanted } = useWantedAlbums();
@@ -29,12 +34,13 @@ export default function AlbumPage() {
     [more.releaseGroups, album?.mbid]
   );
 
-  const waitingForArtistName = details.loading && !details.retrying;
+  const waitingForArtistName = !album && details.loading && !details.retrying;
 
   return (
     <div>
       <AlbumHeaderSection
         album={album}
+        fromPreview={details.album === null && preview !== null}
         details={details}
         label={label.label}
         labelState={label}

@@ -19,9 +19,23 @@ afterEach(() => {
 describe("useNavigateToArtist", () => {
   it("navigates directly when an mbid is provided", async () => {
     const { result } = renderHook(() => useNavigateToArtist());
-    await act(() => result.current.go({ mbid: "a1", name: "Radiohead" }));
+    await act(() =>
+      result.current.go({
+        mbid: "a1",
+        name: "Radiohead",
+        imageUrl: "https://img/rh.jpg",
+      })
+    );
 
-    expect(mockNavigate).toHaveBeenCalledWith("/artist/a1");
+    expect(mockNavigate).toHaveBeenCalledWith("/artist/a1", {
+      state: {
+        artistPreview: {
+          mbid: "a1",
+          name: "Radiohead",
+          imageUrl: "https://img/rh.jpg",
+        },
+      },
+    });
     expect(fetch).not.toHaveBeenCalled();
   });
 
@@ -36,7 +50,11 @@ describe("useNavigateToArtist", () => {
     expect(vi.mocked(fetch).mock.calls[0][0]).toBe(
       "/api/musicbrainz/artist/id?name=Radiohead"
     );
-    expect(mockNavigate).toHaveBeenCalledWith("/artist/resolved-1");
+    expect(mockNavigate).toHaveBeenCalledWith("/artist/resolved-1", {
+      state: {
+        artistPreview: { mbid: "resolved-1", name: "Radiohead" },
+      },
+    });
   });
 
   it("does not navigate when the name cannot be resolved", async () => {
