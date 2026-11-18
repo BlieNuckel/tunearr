@@ -21,7 +21,7 @@ function jsonResponse(data: unknown) {
 }
 
 describe("getTopAlbumsByTag", () => {
-  it("maps response to album objects with pagination", async () => {
+  it("maps response to album objects", async () => {
     mockFetch.mockResolvedValue(
       jsonResponse({
         albums: {
@@ -37,7 +37,6 @@ describe("getTopAlbumsByTag", () => {
               artist: { name: "Radiohead", mbid: "artist-1" },
             },
           ],
-          "@attr": { page: "1", totalPages: "3" },
         },
       })
     );
@@ -51,7 +50,6 @@ describe("getTopAlbumsByTag", () => {
       artistMbid: "artist-1",
       imageUrl: "",
     });
-    expect(result.pagination).toEqual({ page: 1, totalPages: 3 });
   });
 
   it("throws on API error response", async () => {
@@ -69,13 +67,6 @@ describe("getTopAlbumsByTag", () => {
 
     const result = await getTopAlbumsByTag("niche");
     expect(result.albums).toEqual([]);
-  });
-
-  it("defaults pagination to page 1 of 1", async () => {
-    mockFetch.mockResolvedValue(jsonResponse({ albums: { album: [] } }));
-
-    const result = await getTopAlbumsByTag("niche");
-    expect(result.pagination).toEqual({ page: 1, totalPages: 1 });
   });
 
   it("throws with default message when API error has no message", async () => {

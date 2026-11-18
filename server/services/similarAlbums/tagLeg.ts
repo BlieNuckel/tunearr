@@ -42,7 +42,7 @@ async function candidatesForTag(
 ): Promise<AlbumCandidate[]> {
   let albums: Awaited<ReturnType<typeof getTopAlbumsByTag>>["albums"];
   try {
-    albums = (await getTopAlbumsByTag(tag, "1")).albums;
+    albums = (await getTopAlbumsByTag(tag)).albums;
   } catch (err) {
     log.warn(`tag.getTopAlbums failed for ${tag}`, {
       error: err instanceof Error ? err.message : String(err),
