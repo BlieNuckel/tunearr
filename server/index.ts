@@ -3,6 +3,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { initializeConfig } from "./config";
 import { initializeDatabase } from "./db/index";
+import { defaultMbCachePath, openMbCacheStore } from "./api/musicbrainz/store";
 import { createLogger } from "./logger";
 import { errorHandler } from "./middleware/errorHandler";
 import { requireAuth } from "./middleware/requireAuth";
@@ -98,6 +99,7 @@ app.use(errorHandler);
 
 await initializeDatabase();
 initializeConfig();
+openMbCacheStore(defaultMbCachePath());
 initializeNotifications();
 
 const followedPollIntervalMs =
