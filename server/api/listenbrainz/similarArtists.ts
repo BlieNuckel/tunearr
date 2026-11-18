@@ -1,4 +1,5 @@
 import { resilientFetch } from "../resilientFetch";
+import { TUNEARR_USER_AGENT } from "../userAgent";
 import {
   LISTENBRAINZ_LABS_BASE,
   DEFAULT_SIMILAR_ARTISTS_ALGORITHM,
@@ -19,7 +20,9 @@ export async function getSimilarArtists(
   )}&algorithm=${encodeURIComponent(algorithm)}`;
 
   try {
-    const response = await resilientFetch(url);
+    const response = await resilientFetch(url, {
+      headers: { "User-Agent": TUNEARR_USER_AGENT },
+    });
     if (!response.ok) return [];
 
     const data = (await response.json()) as ListenBrainzSimilarArtist[];

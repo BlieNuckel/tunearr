@@ -7,6 +7,7 @@ vi.mock("../resilientFetch", () => ({
 }));
 
 import { getSimilarArtists } from "./similarArtists";
+import { TUNEARR_USER_AGENT } from "../userAgent";
 
 const sampleResponse = [
   {
@@ -54,6 +55,18 @@ describe("getSimilarArtists", () => {
     const url = mockResilientFetch.mock.calls[0][0] as string;
     expect(url).toContain("artist_mbids=mbid-seed");
     expect(url).toContain("algorithm=custom_algo");
+  });
+
+  it("identifies Tunearr to ListenBrainz", async () => {
+    mockResilientFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve([]),
+    });
+
+    await getSimilarArtists("mbid-seed");
+    expect(mockResilientFetch.mock.calls[0][1]).toEqual({
+      headers: { "User-Agent": TUNEARR_USER_AGENT },
+    });
   });
 
   it("filters out the seed artist and unnamed entries", async () => {

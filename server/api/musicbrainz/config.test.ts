@@ -46,6 +46,7 @@ import {
   MB_INTERACTIVE_DEADLINE_MS,
 } from "./config";
 import { MbUnavailableError } from "./errors";
+import { TUNEARR_USER_AGENT } from "../userAgent";
 
 const MB_BASE = "https://musicbrainz.org/ws/2";
 
@@ -132,6 +133,10 @@ describe("mbFetch", () => {
       { headers: MB_HEADERS },
       expect.objectContaining({ retry: false })
     );
+  });
+
+  it("identifies Tunearr with the shared User-Agent", () => {
+    expect(MB_HEADERS["User-Agent"]).toBe(TUNEARR_USER_AGENT);
   });
 
   it("sends the request to the server it is given", async () => {
