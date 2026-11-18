@@ -8,26 +8,6 @@
   --shadow-cartoon-lg: 6px 6px 0 0 black;
   --shadow-cartoon-pressed: 1px 1px 0 0 black;
   --shadow-cartoon-md-flip: -4px 4px 0 0 black;
-
-  /*
-   * One row of the Discover bento grid. Widgets are designed to this: a tile
-   * spanning N rows is N units tall plus the gaps between them. Without it,
-   * row-span only means "cover N content-sized rows", so the tallest tile in a
-   * row silently dictates the height of everything beside it.
-   *
-   * Deliberately small. A coarse unit forces every widget up to the size of the
-   * largest one, which left the announcement banner four times taller than its
-   * single line of content.
-   */
-  --bento-row-height: 5rem;
-
-  /*
-   * How far a widget's drop shadow reaches past its own box. A bento slot clips
-   * at its padding box, so it insets its content by this much on the shadowed
-   * sides; without it `overflow-hidden` shaves the shadow off every tile.
-   * Matches --shadow-cartoon-md, the shadow the widgets themselves use.
-   */
-  --bento-shadow-reach: 4px;
 }
 
 @layer base {

@@ -139,24 +139,6 @@ export interface FollowedArtistItem {
   liveTracking: LiveTrackingState;
 }
 
-export type NewReleaseLidarrStatus = "downloading" | "wanted" | "imported";
-
-export interface NewReleaseItem {
-  releaseGroupMbid: string | null;
-  title: string;
-  artistName: string;
-  artistMbid: string | null;
-  releaseDate: string | null;
-  coverUrl: string | null;
-  lidarrStatus: NewReleaseLidarrStatus | null;
-  followedReleaseId: number | null;
-}
-
-export interface NewReleasesData {
-  items: NewReleaseItem[];
-  windowDays: number;
-}
-
 export interface FollowedReleaseItem {
   id: number;
   followedArtistId: number;
@@ -211,9 +193,32 @@ export interface LiveNotice extends LiveEventSummary {
   reason: LiveNoticeReason;
 }
 
-export interface LiveNoticeData {
-  notice: LiveNotice | null;
-  additionalCount: number;
+export type ReleaseLidarrStatus = "downloading" | "wanted" | "imported";
+
+export interface ReleaseHighlight {
+  kind: "release";
+  key: string;
+  followedReleaseId: number;
+  releaseGroupMbid: string | null;
+  title: string;
+  artistName: string;
+  artistMbid: string;
+  releaseDate: string;
+  releaseType: string | null;
+  coverUrl: string | null;
+  lidarrStatus: ReleaseLidarrStatus | null;
+  unseen: boolean;
+}
+
+export interface LiveHighlight extends LiveNotice {
+  kind: "live";
+  key: string;
+}
+
+export type Highlight = ReleaseHighlight | LiveHighlight;
+
+export interface HighlightsData {
+  items: Highlight[];
 }
 
 export interface LiveUserPreferences {

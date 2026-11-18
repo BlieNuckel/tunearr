@@ -12,6 +12,7 @@ import {
 import { hashPassword } from "../auth/password";
 import { initializeConfig } from "../config";
 import { seedLiveEvents } from "./seedLiveEvents";
+import { seedFollowedReleases } from "./seedFollowedReleases";
 import { Permission } from "../../shared/permissions";
 
 type SeedUser = {
@@ -534,6 +535,9 @@ async function seed() {
   console.log("\nCreating live events...");
   await seedLiveEvents(admin.id);
 
+  console.log("\nCreating followed releases...");
+  await seedFollowedReleases(admin.id);
+
   console.log(
     `\nDone! Created ${created} requests (skipped ${skipped}), ${wantedCreated} wanted items (skipped ${wantedSkipped}), ${purchaseCreated} purchases (skipped ${purchaseSkipped}).`
   );
@@ -551,12 +555,19 @@ async function seed() {
   }
   console.log("\nTo see mock Lidarr lifecycle states, run the server with:");
   console.log("  MOCK_LIDARR=true pnpm dev");
-  console.log("\nLive events are seeded for the admin account:");
-  console.log("  Discover      banner (just-announced local show)");
+  console.log(
+    "\nLive events and followed releases are seeded for the admin account:"
+  );
+  console.log(
+    "  Home          highlights (new releases and just-announced local shows)"
+  );
   console.log("  /library/live Upcoming, Going, Dismissed and Past tabs");
   console.log("  /artist/:mbid live dates on the five followed artists");
   console.log(
     "  Nothing calls JamBase: liveEvents stays disabled and keyless in dev."
+  );
+  console.log(
+    "  Release dates are relative to today; seed again to reset them and undo dismissals."
   );
 
   await closeDatabase();

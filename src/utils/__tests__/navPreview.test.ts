@@ -1,12 +1,12 @@
 import {
   albumNavState,
-  albumPreviewFromNewRelease,
+  albumPreviewFromReleaseHighlight,
   albumPreviewFromReleaseGroup,
   artistNavState,
   readAlbumPreview,
   readArtistPreview,
 } from "../navPreview";
-import type { NewReleaseItem, ReleaseGroup } from "@/types";
+import type { ReleaseHighlight, ReleaseGroup } from "@/types";
 
 const rg: ReleaseGroup = {
   id: "rg-1",
@@ -39,27 +39,31 @@ describe("albumPreviewFromReleaseGroup", () => {
   });
 });
 
-describe("albumPreviewFromNewRelease", () => {
-  it("builds album details from a new-release item", () => {
-    const item: NewReleaseItem = {
+describe("albumPreviewFromReleaseHighlight", () => {
+  it("builds album details from a release highlight", () => {
+    const item: ReleaseHighlight = {
+      kind: "release",
+      key: "release:1",
+      followedReleaseId: 1,
       releaseGroupMbid: "rg-2",
       title: "Kid A",
       artistName: "Radiohead",
       artistMbid: "a1",
       releaseDate: "2000-10-02",
+      releaseType: "Album",
       coverUrl: null,
       lidarrStatus: null,
-      followedReleaseId: null,
+      unseen: true,
     };
     expect(
-      albumPreviewFromNewRelease({ ...item, releaseGroupMbid: "rg-2" })
+      albumPreviewFromReleaseHighlight({ ...item, releaseGroupMbid: "rg-2" })
     ).toEqual({
       mbid: "rg-2",
       title: "Kid A",
       artistName: "Radiohead",
       artistMbid: "a1",
       firstReleaseDate: "2000-10-02",
-      primaryType: null,
+      primaryType: "Album",
       secondaryTypes: [],
     });
   });

@@ -1,7 +1,7 @@
 import type {
   AlbumDetails,
   ArtistDetails,
-  NewReleaseItem,
+  ReleaseHighlight,
   ReleaseGroup,
 } from "@/types";
 
@@ -27,8 +27,8 @@ export function albumPreviewFromReleaseGroup(rg: ReleaseGroup): AlbumDetails {
   };
 }
 
-export function albumPreviewFromNewRelease(
-  item: NewReleaseItem & { releaseGroupMbid: string }
+export function albumPreviewFromReleaseHighlight(
+  item: ReleaseHighlight & { releaseGroupMbid: string }
 ): AlbumDetails {
   return {
     mbid: item.releaseGroupMbid,
@@ -36,7 +36,7 @@ export function albumPreviewFromNewRelease(
     artistName: item.artistName,
     artistMbid: item.artistMbid,
     firstReleaseDate: item.releaseDate,
-    primaryType: null,
+    primaryType: item.releaseType,
     secondaryTypes: [],
   };
 }

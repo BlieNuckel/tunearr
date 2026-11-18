@@ -176,8 +176,7 @@ export async function markAllReleasesViewed(userId: number): Promise<void> {
   );
 }
 
-/** Marks a single release viewed; returns false when the row isn't the user's. */
-export async function markReleaseViewed(
+async function isReleaseOwnedBy(
   userId: number,
   releaseId: number
 ): Promise<boolean> {
@@ -188,12 +187,54 @@ export async function markReleaseViewed(
      WHERE fr.id = ? AND fa.user_id = ?`,
     [releaseId, userId]
   )) as { id: number }[];
+  return rows.length > 0;
+}
 
-  if (rows.length === 0) return false;
+/** Marks a single release viewed; returns false when the row isn't the user's. */
+export async function markReleaseViewed(
+  userId: number,
+  releaseId: number
+): Promise<boolean> {
+  if (!(await isReleaseOwnedBy(userId, releaseId))) return false;
 
   await releaseRepo().update(
     { id: releaseId },
     { viewed_at: new Date().toISOString() }
   );
   return true;
+}
+
+/** Hides a release from Home highlights; returns false when the row isn't the user's. */
+export async function dismissRelease(
+  userId: number,
+  releaseId: number
+): Promise<boolean> {
+  if (!(await isReleaseOwnedBy(userId, releaseId))) return false;
+
+  await releaseRepo().update(
+    { id: releaseId },
+    { dismissed_at: new Date().toISOString() }
+  );
+  return true;
+}
+
+/**
+ * Undismissed releases dated inside `[from, to]` (ISO dates, inclusive). Only a
+ * full day counts: a release known by year or month alone is never recent.
+ */
+export async function listRecentReleasesForUser(
+  userId: number,
+  range: { from: string; to: string }
+): Promise<FollowedReleaseWithArtist[]> {
+  return (await getDataSource().query(
+    `SELECT fr.*, fa.artist_name as artist_name, fa.artist_mbid as artist_mbid
+     FROM followed_releases fr
+     INNER JOIN followed_artists fa ON fr.followed_artist_id = fa.id
+     WHERE fa.user_id = ?
+       AND fr.dismissed_at IS NULL
+       AND length(fr.release_date) = 10
+       AND fr.release_date BETWEEN ? AND ?
+     ORDER BY fr.release_date DESC, fr.notified_at DESC`,
+    [userId, range.from, range.to]
+  )) as FollowedReleaseWithArtist[];
 }

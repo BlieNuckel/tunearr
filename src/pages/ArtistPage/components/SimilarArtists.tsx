@@ -1,4 +1,4 @@
-import ArtistCard from "@/pages/DiscoverPage/components/ArtistCard";
+import ArtistCard from "@/components/ArtistCard";
 import Skeleton from "@/components/Skeleton";
 import type { SimilarArtist } from "@/hooks/useSimilarArtists";
 

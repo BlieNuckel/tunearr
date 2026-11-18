@@ -133,7 +133,7 @@ export const SEED_LIVE_EVENTS: SeedLiveEvent[] = [
     ...AMIRALEN,
     ticketUrl: "https://example.test/tickets/yves",
     performers: [performer(YVES), performer(JOCKSTRAP, false)],
-    note: "banner: just announced, local",
+    note: "highlights: just announced, local",
   },
   {
     key: "jambase:seed-2",
@@ -144,7 +144,7 @@ export const SEED_LIVE_EVENTS: SeedLiveEvent[] = [
     ...PLAN_B,
     ticketUrl: "https://example.test/tickets/bar-italia",
     performers: [performer(BAR_ITALIA)],
-    note: "banner: coming up soon, local (announce window long gone)",
+    note: "highlights: coming up soon, local (announce window long gone)",
   },
   {
     key: "jambase:seed-3",
@@ -155,7 +155,7 @@ export const SEED_LIVE_EVENTS: SeedLiveEvent[] = [
     ...VEGA,
     ticketUrl: "https://example.test/tickets/jockstrap",
     performers: [performer(JOCKSTRAP)],
-    note: "banner: regional, inside the longer travel window",
+    note: "highlights: regional, inside the longer travel window",
   },
   {
     key: "jambase:seed-4",
@@ -174,13 +174,13 @@ export const SEED_LIVE_EVENTS: SeedLiveEvent[] = [
     dayOffset: 20,
     seenDaysAgo: 45,
     status: "cancelled",
-    // Old enough not to hijack the banner. Drop this to 1 to see that state.
+    // Old enough not to lead Home highlights. Drop this to 1 to see that state.
     statusChangedDaysAgo: 40,
     ...PLAN_B,
     ticketUrl: null,
     performers: [performer(NOURISHED)],
     adminNotified: true,
-    note: "cancelled pill (raise statusChangedDaysAgo above announceDays to hijack the banner)",
+    note: "cancelled pill (raise statusChangedDaysAgo above announceDays to lead Home highlights)",
   },
   {
     key: "jambase:seed-6",
