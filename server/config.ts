@@ -12,17 +12,26 @@ import {
   type SpendingSettings,
   type LiveEventsSettings,
 } from "../shared/settingsDefaults";
+import {
+  DEFAULT_MUSICBRAINZ,
+  mbRequestsPerSecondError,
+  mbServerUrlError,
+  normalizeMbServerUrl,
+  type MusicBrainzSettings,
+} from "../shared/musicbrainzServer";
 
 export {
   DEFAULT_PURCHASE_DECISION,
   DEFAULT_SPENDING,
   DEFAULT_LIVE_EVENTS,
 } from "../shared/settingsDefaults";
+export { DEFAULT_MUSICBRAINZ } from "../shared/musicbrainzServer";
 
 /** Server-side aliases for the shared settings shapes. */
 export type PurchaseDecisionConfig = PurchaseDecisionSettings;
 export type SpendingConfig = SpendingSettings;
 export type LiveEventsConfig = LiveEventsSettings;
+export type MusicBrainzConfig = MusicBrainzSettings;
 
 const log = createLogger("Config");
 
@@ -67,6 +76,7 @@ export type IConfig = {
   spending: SpendingConfig;
   notifications: NotificationsConfig;
   liveEvents: LiveEventsConfig;
+  musicbrainz: MusicBrainzConfig;
   followedArtistPollIntervalMs: number;
   requestStatusPollIntervalMs: number;
   /**
@@ -82,11 +92,16 @@ export type IConfig = {
 /** Input type for setConfig — nested objects are optional since defaults are deep-merged */
 export type IConfigInput = Omit<
   IConfig,
-  "purchaseDecision" | "spending" | "notifications" | "liveEvents"
+  | "purchaseDecision"
+  | "spending"
+  | "notifications"
+  | "liveEvents"
+  | "musicbrainz"
 > & {
   purchaseDecision?: Partial<PurchaseDecisionConfig>;
   spending?: Partial<SpendingConfig>;
   liveEvents?: Partial<LiveEventsConfig>;
+  musicbrainz?: Partial<MusicBrainzConfig>;
   notifications?: Partial<Omit<NotificationsConfig, "webPush">> & {
     webPush?: Partial<WebPushConfig>;
   };
@@ -124,6 +139,7 @@ const DEFAULT_CONFIG: IConfig = {
   spending: DEFAULT_SPENDING,
   notifications: DEFAULT_NOTIFICATIONS,
   liveEvents: DEFAULT_LIVE_EVENTS,
+  musicbrainz: DEFAULT_MUSICBRAINZ,
   followedArtistPollIntervalMs: DEFAULT_FOLLOWED_POLL_INTERVAL_MS,
   requestStatusPollIntervalMs: DEFAULT_REQUEST_STATUS_POLL_INTERVAL_MS,
   listenSessionPollIntervalMs: DEFAULT_LISTEN_SESSION_POLL_INTERVAL_MS,
@@ -181,6 +197,10 @@ function mergeWithDefaults(raw: Record<string, unknown>): IConfig {
       ...DEFAULT_LIVE_EVENTS,
       ...((saved.liveEvents as Record<string, unknown>) ?? {}),
     },
+    musicbrainz: {
+      ...DEFAULT_MUSICBRAINZ,
+      ...((saved.musicbrainz as Record<string, unknown>) ?? {}),
+    },
     notifications: {
       ...DEFAULT_NOTIFICATIONS,
       ...((saved.notifications as Record<string, unknown>) ?? {}),
@@ -205,6 +225,7 @@ export const getConfig = (): IConfig => {
       spending: { ...DEFAULT_SPENDING },
       notifications: { ...DEFAULT_NOTIFICATIONS },
       liveEvents: { ...DEFAULT_LIVE_EVENTS },
+      musicbrainz: { ...DEFAULT_MUSICBRAINZ },
     };
   }
 
@@ -367,6 +388,17 @@ function validateLiveEventsConfig(config: LiveEventsConfig) {
   }
 }
 
+function validateMusicBrainzConfig(config: MusicBrainzConfig) {
+  if (typeof config.serverUrl !== "string") {
+    throw new Error("musicbrainz.serverUrl must be a string");
+  }
+  const urlError = mbServerUrlError(config.serverUrl);
+  if (urlError) throw new Error(`musicbrainz.serverUrl: ${urlError}`);
+
+  const paceError = mbRequestsPerSecondError(config.requestsPerSecond);
+  if (paceError) throw new Error(`musicbrainz.requestsPerSecond: ${paceError}`);
+}
+
 function validateConfig(mergedConfig: IConfig) {
   if (typeof mergedConfig.lidarrUrl !== "string") {
     throw new Error("lidarrUrl must be a string");
@@ -458,6 +490,10 @@ export const setConfig = (newConfig: Partial<IConfigInput>) => {
       ...currentConfig.liveEvents,
       ...(newConfig.liveEvents ?? {}),
     },
+    musicbrainz: {
+      ...currentConfig.musicbrainz,
+      ...(newConfig.musicbrainz ?? {}),
+    },
   };
 
   validateConfig(mergedConfig);
@@ -476,6 +512,13 @@ export const setConfig = (newConfig: Partial<IConfigInput>) => {
 
   if (newConfig.liveEvents !== undefined) {
     validateLiveEventsConfig(mergedConfig.liveEvents);
+  }
+
+  if (newConfig.musicbrainz !== undefined) {
+    validateMusicBrainzConfig(mergedConfig.musicbrainz);
+    mergedConfig.musicbrainz.serverUrl = normalizeMbServerUrl(
+      mergedConfig.musicbrainz.serverUrl
+    );
   }
 
   const db = getRawDb();
@@ -507,6 +550,7 @@ export const initializeConfig = () => {
     purchaseDecision: { ...DEFAULT_PURCHASE_DECISION },
     spending: { ...DEFAULT_SPENDING },
     notifications: { ...DEFAULT_NOTIFICATIONS },
+    musicbrainz: { ...DEFAULT_MUSICBRAINZ },
   };
 
   const configJsonPath = getConfigJsonPath();
