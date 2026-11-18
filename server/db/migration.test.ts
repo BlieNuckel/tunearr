@@ -5,6 +5,7 @@ import { FollowedReleases1718000000000 } from "./migration/10_FollowedReleases";
 import { LiveEvents1721000000000 } from "./migration/13_LiveEvents";
 import { RemoveRecommendations1725000000000 } from "./migration/17_RemoveRecommendations";
 import { UserSpending1726000000000 } from "./migration/18_UserSpending";
+import { FollowedReleaseDismissed1727000000000 } from "./migration/19_FollowedReleaseDismissed";
 import type { DataSource } from "typeorm";
 
 let ds: DataSource | null = null;
@@ -222,6 +223,7 @@ describe("FollowedArtists migration", () => {
       "release_type",
       "secondary_types",
       "viewed_at",
+      "dismissed_at",
     ]);
   });
 
@@ -803,5 +805,26 @@ describe("UserSpending migration", () => {
     await rewind(db);
 
     expect(await configData(db)).toEqual({});
+  });
+});
+
+describe("FollowedReleaseDismissed migration", () => {
+  it("drops dismissed_at on down and restores it on up", async () => {
+    const db = await initTestDb();
+    const runner = db.createQueryRunner();
+
+    await new FollowedReleaseDismissed1727000000000().down(runner);
+    const afterDown = (await db.query(
+      "PRAGMA table_info(followed_releases)"
+    )) as { name: string }[];
+    expect(afterDown.map((c) => c.name)).not.toContain("dismissed_at");
+
+    await new FollowedReleaseDismissed1727000000000().up(runner);
+    const afterUp = (await db.query(
+      "PRAGMA table_info(followed_releases)"
+    )) as { name: string }[];
+    expect(afterUp.map((c) => c.name)).toContain("dismissed_at");
+
+    await runner.release();
   });
 });

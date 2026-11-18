@@ -34,11 +34,6 @@ export type NoticeCandidate = {
 /** Why this event is on screen, which is also the top of the ranking order. */
 export type NoticeReason = "status-changed" | "just-announced" | "coming-up";
 
-export type NoticeResult = {
-  notice: NoticeCandidate | null;
-  additionalCount: number;
-};
-
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** A status change outranks everything, including a user's own dismissal. */
@@ -189,13 +184,16 @@ export function rankNotices(
   });
 }
 
-/** The banner payload: the single most urgent notice, plus how many others. */
-export async function selectNotice(
+/**
+ * Every live date worth surfacing on Home for this user, most urgent first.
+ * Empty when the user turned live dates off for Home.
+ */
+export async function listNoticeCandidates(
   userId: number,
   now: number = Date.now()
-): Promise<NoticeResult> {
+): Promise<NoticeCandidate[]> {
   const prefs = resolvePreferences(await getUserLivePreferences(userId));
-  if (!prefs.bannerEnabled) return { notice: null, additionalCount: 0 };
+  if (!prefs.bannerEnabled) return [];
 
   const from = new Date(now).toISOString().slice(0, 10);
   const to = new Date(now + prefs.bannerHorizonDays * DAY_MS)
@@ -208,14 +206,9 @@ export async function selectNotice(
     countries: null,
   });
 
-  const ranked = rankNotices(
+  return rankNotices(
     events
       .map((event) => evaluate(event, prefs, now))
       .filter((candidate): candidate is NoticeCandidate => candidate !== null)
   );
-
-  return {
-    notice: ranked[0] ?? null,
-    additionalCount: Math.max(0, ranked.length - 1),
-  };
 }

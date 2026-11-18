@@ -49,6 +49,9 @@ export class FollowedRelease {
   @Column({ type: "text", nullable: true })
   viewed_at!: string | null;
 
+  @Column({ type: "text", nullable: true })
+  dismissed_at!: string | null;
+
   @CreateDateColumn({ type: "text" })
   notified_at!: string;
 }

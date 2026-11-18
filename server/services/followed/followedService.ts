@@ -2,11 +2,13 @@ import type { FollowedArtist } from "../../db/index";
 import {
   countUnseenReleases,
   deleteFollowedArtist,
+  dismissRelease,
   findFollowedArtist,
   insertFollowedArtist,
   listAllFollowedArtists,
   listFollowedArtists,
   listFollowedReleasesForUser,
+  listRecentReleasesForUser,
   markAllReleasesViewed,
   markReleaseViewed,
   type FollowedReleaseWithArtist,
@@ -93,4 +95,18 @@ export async function markFollowedReleaseViewed(
   releaseId: number
 ): Promise<boolean> {
   return markReleaseViewed(userId, releaseId);
+}
+
+export async function getRecentReleasesForUser(
+  userId: number,
+  range: { from: string; to: string }
+): Promise<FollowedReleaseWithArtist[]> {
+  return listRecentReleasesForUser(userId, range);
+}
+
+export async function dismissFollowedRelease(
+  userId: number,
+  releaseId: number
+): Promise<boolean> {
+  return dismissRelease(userId, releaseId);
 }

@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const mockSelectNotice = vi.fn();
 const mockFindAllForUser = vi.fn();
 const mockSetUserResponse = vi.fn();
 const mockMarkViewed = vi.fn();
@@ -11,10 +10,6 @@ const mockWritePreferences = vi.fn();
 const mockSearchPlaces = vi.fn();
 const mockCountLiveTracking = vi.fn();
 const mockGetArtistLiveTracking = vi.fn();
-
-vi.mock("../services/liveEvents/notice", () => ({
-  selectNotice: (...args: unknown[]) => mockSelectNotice(...args),
-}));
 
 vi.mock("../db/liveEvents", () => ({
   findAllForUser: (...args: unknown[]) => mockFindAllForUser(...args),
@@ -96,7 +91,6 @@ function storedEvent(overrides: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockSelectNotice.mockResolvedValue({ notice: null, additionalCount: 0 });
   mockFindAllForUser.mockResolvedValue([]);
   mockSetUserResponse.mockResolvedValue({});
   mockMarkViewed.mockResolvedValue({});
@@ -110,72 +104,6 @@ beforeEach(() => {
   });
   mockReadPreferences.mockResolvedValue({ preferences: {}, coverage: {} });
   mockWritePreferences.mockResolvedValue({ preferences: {}, coverage: {} });
-});
-
-describe("GET /notice", () => {
-  it("returns null with no count when nothing qualifies", async () => {
-    const res = await request(app).get("/notice");
-
-    expect(res.status).toBe(200);
-    expect(res.body).toEqual({ notice: null, additionalCount: 0 });
-  });
-
-  it("serializes the notice with its tier and reason", async () => {
-    mockSelectNotice.mockResolvedValue({
-      notice: {
-        event: storedEvent(),
-        tier: "local",
-        reason: "coming-up",
-        distanceKm: 2.4,
-        score: 1200,
-      },
-      additionalCount: 2,
-    });
-
-    const res = await request(app).get("/notice");
-
-    expect(res.status).toBe(200);
-    expect(res.body.additionalCount).toBe(2);
-    expect(res.body.notice).toMatchObject({
-      id: 1,
-      name: "Yves Tumor at Amiralen",
-      venueCity: "Malmö",
-      ticketUrl: "https://tickets.test/100",
-      tier: "local",
-      reason: "coming-up",
-      distanceKm: 2.4,
-    });
-    expect(res.body.notice.performers).toEqual([
-      { jambaseId: "jambase:1", name: "Yves Tumor", isHeadliner: true },
-    ]);
-  });
-
-  it("exposes the status fields the banner needs", async () => {
-    mockSelectNotice.mockResolvedValue({
-      notice: {
-        event: storedEvent({
-          event_status: "rescheduled",
-          previous_start_date: "2026-07-01",
-          status_changed_at: "2026-08-16T00:00:00.000Z",
-        }),
-        tier: "local",
-        reason: "status-changed",
-        distanceKm: 2.4,
-        score: 11200,
-      },
-      additionalCount: 0,
-    });
-
-    const res = await request(app).get("/notice");
-
-    expect(res.body.notice.status).toBe("rescheduled");
-    expect(res.body.notice.previousStartDate).toBe("2026-07-01");
-  });
-
-  it("asks only for the signed-in user's notice", async () => {
-    await request(app).get("/notice");
-    expect(mockSelectNotice).toHaveBeenCalledWith(7);
-  });
 });
 
 describe("GET /events", () => {

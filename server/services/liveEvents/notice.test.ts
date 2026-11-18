@@ -26,7 +26,7 @@ const {
   evaluate,
   rankNotices,
   resolvePreferences,
-  selectNotice,
+  listNoticeCandidates,
 } = await import("./notice");
 
 const MALMO = { lat: 55.605, lon: 13.0038 };
@@ -381,18 +381,17 @@ describe("ranking", () => {
   });
 });
 
-describe("selectNotice", () => {
-  it("returns the top notice and a count of the rest", async () => {
+describe("listNoticeCandidates", () => {
+  it("returns every qualifying notice, most urgent first", async () => {
     mockFindFollowed.mockResolvedValue([
       event({ id: 1, event_key: "a", event_date: day(12) }),
       event({ id: 2, event_key: "b", event_date: day(3) }),
       event({ id: 3, event_key: "c", event_date: day(400) }),
     ]);
 
-    const result = await selectNotice(1, NOW);
+    const result = await listNoticeCandidates(1, NOW);
 
-    expect(result.notice?.event.event_key).toBe("b");
-    expect(result.additionalCount).toBe(1);
+    expect(result.map((c) => c.event.event_key)).toEqual(["b", "a"]);
   });
 
   it("returns nothing when nothing qualifies", async () => {
@@ -403,13 +402,10 @@ describe("selectNotice", () => {
       }),
     ]);
 
-    expect(await selectNotice(1, NOW)).toEqual({
-      notice: null,
-      additionalCount: 0,
-    });
+    expect(await listNoticeCandidates(1, NOW)).toEqual([]);
   });
 
-  it("respects a user who turned the banner off", async () => {
+  it("respects a user who turned live dates off for Home", async () => {
     mockGetPrefs.mockResolvedValue({
       live_banner_enabled: false,
       live_radius_km: null,
@@ -422,13 +418,12 @@ describe("selectNotice", () => {
     });
     mockFindFollowed.mockResolvedValue([event()]);
 
-    const result = await selectNotice(1, NOW);
-    expect(result.notice).toBeNull();
+    expect(await listNoticeCandidates(1, NOW)).toEqual([]);
     expect(mockFindFollowed).not.toHaveBeenCalled();
   });
 
   it("queries the horizon window rather than everything stored", async () => {
-    await selectNotice(1, NOW);
+    await listNoticeCandidates(1, NOW);
     const query = mockFindFollowed.mock.calls[0][1] as {
       from: string;
       to: string;
