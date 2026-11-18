@@ -2,7 +2,8 @@ import type { Highlight, LiveHighlight, ReleaseHighlight } from "@/types";
 import type { AlbumLibraryState } from "@shared/albumLibrary";
 
 /** Colour family a highlight is drawn in; also tells urgent news apart. */
-export type HighlightTone = "release" | "live" | "alert" | "warning";
+export type HighlightTone =
+  "release" | "request" | "live" | "alert" | "warning";
 
 export type HighlightView = {
   eyebrow: string;

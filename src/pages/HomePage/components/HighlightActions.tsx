@@ -1,10 +1,16 @@
 import { Link } from "react-router-dom";
 import useHaptics from "@/hooks/useHaptics";
 import { TicketIcon } from "@/components/icons";
-import type { Highlight, LiveHighlight, ReleaseHighlight } from "@/types";
+import type {
+  Highlight,
+  LiveHighlight,
+  ReleaseHighlight,
+  RequestHighlight,
+} from "@/types";
 import {
   albumNavState,
   albumPreviewFromReleaseHighlight,
+  albumPreviewFromRequestHighlight,
   type NavPreviewState,
 } from "@/utils/navPreview";
 import { PRIMARY_BUTTON, SECONDARY_BUTTON, TICKET_BUTTON } from "../styles";
@@ -52,6 +58,20 @@ function ReleaseActions({
       className={PRIMARY_BUTTON}
     >
       {highlight.releaseGroupMbid ? "View album" : "Find album"}
+    </Link>
+  );
+}
+
+function RequestActions({ highlight }: { highlight: RequestHighlight }) {
+  const haptics = useHaptics();
+  return (
+    <Link
+      to={`/album/${highlight.albumMbid}`}
+      state={albumNavState(albumPreviewFromRequestHighlight(highlight))}
+      onClick={() => haptics.light()}
+      className={PRIMARY_BUTTON}
+    >
+      View album
     </Link>
   );
 }
@@ -115,9 +135,11 @@ export default function HighlightActions({
 }: HighlightActionsProps) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      {highlight.kind === "release" ? (
+      {highlight.kind === "release" && (
         <ReleaseActions highlight={highlight} handlers={handlers} />
-      ) : (
+      )}
+      {highlight.kind === "request" && <RequestActions highlight={highlight} />}
+      {highlight.kind === "live" && (
         <LiveActions highlight={highlight} handlers={handlers} />
       )}
     </div>

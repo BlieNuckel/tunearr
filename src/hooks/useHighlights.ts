@@ -17,9 +17,9 @@ async function fetchHighlights({
 }
 
 function sourceId(highlight: Highlight): number {
-  return highlight.kind === "release"
-    ? highlight.followedReleaseId
-    : highlight.id;
+  if (highlight.kind === "release") return highlight.followedReleaseId;
+  if (highlight.kind === "request") return highlight.requestId;
+  return highlight.id;
 }
 
 function withoutHighlight(prev: HighlightsData, key: string): HighlightsData {

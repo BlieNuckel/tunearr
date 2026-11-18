@@ -3,6 +3,7 @@ import useHighlights from "../useHighlights";
 import {
   liveHighlight,
   releaseHighlight,
+  requestHighlight,
 } from "@/pages/HomePage/__tests__/fixtures";
 
 const mockFetch = vi.fn();
@@ -13,6 +14,7 @@ function jsonResponse(body: unknown) {
 
 const RELEASE = releaseHighlight({ key: "release:1", followedReleaseId: 1 });
 const LIVE = liveHighlight({ key: "live:5", id: 5 });
+const REQUEST = requestHighlight({ key: "request:9", requestId: 9 });
 
 async function renderLoaded() {
   const hook = renderHook(() => useHighlights());
@@ -85,6 +87,17 @@ describe("useHighlights", () => {
     expect(mockFetch).toHaveBeenCalledWith("/api/highlights/live/5/dismiss", {
       method: "POST",
     });
+  });
+
+  it("dismisses an arrived request by its request id", async () => {
+    const { result } = await renderLoaded();
+
+    await act(() => result.current.dismiss(REQUEST));
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      "/api/highlights/request/9/dismiss",
+      { method: "POST" }
+    );
   });
 
   it("removes a dismissed highlight before the server answers", async () => {

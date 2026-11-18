@@ -215,7 +215,19 @@ export interface LiveHighlight extends LiveNotice {
   key: string;
 }
 
-export type Highlight = ReleaseHighlight | LiveHighlight;
+/** An album the user asked for that is now in the library. */
+export interface RequestHighlight {
+  kind: "request";
+  key: string;
+  requestId: number;
+  albumMbid: string;
+  title: string;
+  artistName: string;
+  coverUrl: string;
+  availableAt: string;
+}
+
+export type Highlight = ReleaseHighlight | LiveHighlight | RequestHighlight;
 
 export interface HighlightsData {
   items: Highlight[];

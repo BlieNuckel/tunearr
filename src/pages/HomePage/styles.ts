@@ -3,6 +3,7 @@ import type { HighlightTone } from "./types";
 
 export const TONE_SURFACE: Record<HighlightTone, string> = {
   release: "bg-amber-100 dark:bg-gray-800",
+  request: "bg-sky-100 dark:bg-gray-800",
   live: "bg-emerald-100 dark:bg-gray-800",
   alert: "bg-rose-100 dark:bg-gray-800",
   warning: "bg-orange-100 dark:bg-gray-800",
@@ -10,6 +11,7 @@ export const TONE_SURFACE: Record<HighlightTone, string> = {
 
 export const TONE_FILL: Record<HighlightTone, string> = {
   release: "bg-amber-200 dark:bg-amber-900/40",
+  request: "bg-sky-200 dark:bg-sky-900/40",
   live: "bg-emerald-200 dark:bg-emerald-900/40",
   alert: "bg-rose-200 dark:bg-rose-900/40",
   warning: "bg-orange-200 dark:bg-orange-900/40",
@@ -17,6 +19,7 @@ export const TONE_FILL: Record<HighlightTone, string> = {
 
 export const TONE_DOT: Record<HighlightTone, string> = {
   release: "bg-amber-400",
+  request: "bg-sky-500",
   live: "bg-emerald-500",
   alert: "bg-rose-500",
   warning: "bg-orange-400",
