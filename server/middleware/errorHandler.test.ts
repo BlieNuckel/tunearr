@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { errorHandler } from "./errorHandler";
 import { ApiError } from "./ApiError";
+import { MbUnavailableError } from "../api/musicbrainz/errors";
 import type { Request, Response, NextFunction } from "express";
 
 function createMockRes() {
@@ -72,5 +73,50 @@ describe("errorHandler", () => {
 
     expect(res.status).toHaveBeenCalledWith(500);
     expect(res.json).toHaveBeenCalledWith({ error: "root cause" });
+  });
+
+  it("marks a retryable error and says when to retry", () => {
+    const res = createMockRes();
+    const err = new ApiError(503, "MusicBrainz is busy (returned 503)", {
+      retryable: true,
+      retryAfterMs: 1000,
+    });
+    errorHandler(err, {} as Request, res, vi.fn() as NextFunction);
+
+    expect(res.status).toHaveBeenCalledWith(503);
+    expect(res.json).toHaveBeenCalledWith({
+      error: "MusicBrainz is busy (returned 503)",
+      retryable: true,
+      retryAfterMs: 1000,
+    });
+  });
+
+  it("returns a MusicBrainz refusal as a retryable 503, not a 500", () => {
+    const res = createMockRes();
+    errorHandler(
+      new MbUnavailableError("MusicBrainz is busy right now", 250),
+      {} as Request,
+      res,
+      vi.fn() as NextFunction
+    );
+
+    expect(res.status).toHaveBeenCalledWith(503);
+    expect(res.json).toHaveBeenCalledWith({
+      error: "MusicBrainz is busy right now",
+      retryable: true,
+      retryAfterMs: 1000,
+    });
+  });
+
+  it("leaves retry fields off an ordinary error", () => {
+    const res = createMockRes();
+    errorHandler(
+      new ApiError(400, "Bad"),
+      {} as Request,
+      res,
+      vi.fn() as NextFunction
+    );
+
+    expect(res.json).toHaveBeenCalledWith({ error: "Bad" });
   });
 });

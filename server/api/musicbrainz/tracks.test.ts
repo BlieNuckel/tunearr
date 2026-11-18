@@ -20,7 +20,8 @@ vi.mock("../resilientFetch", () => ({
 vi.mock("./queue", () => ({
   acquireMbSlot: (...args: unknown[]) => mockAcquireMbSlot(...args),
   reportMbSuccess: () => {},
-  reportMbThrottled: () => {},
+  reportMbRefused: () => {},
+  getMbPauseRemainingMs: () => 0,
 }));
 
 import { clearMbCache } from "./cache";
@@ -94,7 +95,7 @@ describe("getReleaseTracks", () => {
     mockFetch.mockResolvedValue({ ok: false, status: 503 });
 
     await expect(getReleaseTracks("rg-1")).rejects.toThrow(
-      "MusicBrainz returned 503"
+      "MusicBrainz is busy (returned 503)"
     );
   });
 

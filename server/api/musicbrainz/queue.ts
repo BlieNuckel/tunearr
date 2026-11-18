@@ -1,8 +1,15 @@
 import { createLogger } from "../../logger";
 import { getMbServer, type MbServer } from "./server";
+import { MbUnavailableError } from "./errors";
 
 /** Which lane a MusicBrainz request waits in. */
 export type MbPriority = "interactive" | "background";
+
+/**
+ * How a refusal is read. "rate" is a load signal that clears in about a second;
+ * "block" is the MetaBrainz gateway refusing our address, which takes minutes.
+ */
+export type MbRefusalKind = "rate" | "block";
 
 type Waiter = { grant: () => void };
 
@@ -13,10 +20,15 @@ type Waiter = { grant: () => void };
  */
 const MAX_CONSECUTIVE_INTERACTIVE = 8;
 
-/** First pause after MusicBrainz throttles us; it doubles while throttling continues. */
-const THROTTLE_BASE_PAUSE_MS = 2000;
+/** Rest after a rate refusal that names no Retry-After. Every refusal seen so far asked for 1s. */
+const RATE_PAUSE_MS = 1000;
 
-const THROTTLE_MAX_PAUSE_MS = 60_000;
+const RATE_MAX_PAUSE_MS = 60_000;
+
+/** An address block doesn't clear in seconds: start at a minute and double. */
+const BLOCK_BASE_PAUSE_MS = 60_000;
+
+const BLOCK_MAX_PAUSE_MS = 15 * 60_000;
 
 /** A long pause is slept in steps this size, so a server switch can cut it short. */
 const PAUSE_CHECK_MS = 1000;
@@ -30,7 +42,7 @@ const lanes: Record<MbPriority, Waiter[]> = {
 
 let pumping = false;
 let consecutiveInteractive = 0;
-let consecutiveThrottles = 0;
+let consecutiveBlocks = 0;
 let pausedUntil = 0;
 let activeServerRoot: string | null = null;
 
@@ -57,7 +69,7 @@ function takeNextWaiter(): Waiter | undefined {
 }
 
 function clearThrottleState(): void {
-  consecutiveThrottles = 0;
+  consecutiveBlocks = 0;
   pausedUntil = 0;
 }
 
@@ -112,16 +124,54 @@ async function pump(): Promise<void> {
   }
 }
 
+function deadlineError(): MbUnavailableError {
+  return new MbUnavailableError(
+    "MusicBrainz is busy right now",
+    getMbPauseRemainingMs()
+  );
+}
+
+function removeWaiter(priority: MbPriority, waiter: Waiter): void {
+  lanes[priority] = lanes[priority].filter((w) => w !== waiter);
+}
+
 /**
  * Wait for permission to send one MusicBrainz request. Resolves when the caller
  * may fetch; the slot is spent at that moment, so the response time of one
  * request never blocks the next.
+ *
+ * With a deadline, rejects with a retryable MbUnavailableError instead of
+ * waiting past it, and at once when the queue is paused beyond it, so a page
+ * fails fast rather than sitting out a backoff.
  */
 export function acquireMbSlot(
-  priority: MbPriority = "interactive"
+  priority: MbPriority = "interactive",
+  deadlineAt?: number
 ): Promise<void> {
-  return new Promise<void>((resolve) => {
-    lanes[priority].push({ grant: resolve });
+  if (deadlineAt !== undefined && pausedUntil >= deadlineAt) {
+    return Promise.reject(deadlineError());
+  }
+
+  return new Promise<void>((resolve, reject) => {
+    let timer: NodeJS.Timeout | undefined;
+    const waiter: Waiter = {
+      grant: () => {
+        clearTimeout(timer);
+        resolve();
+      },
+    };
+
+    if (deadlineAt !== undefined) {
+      timer = setTimeout(
+        () => {
+          removeWaiter(priority, waiter);
+          reject(deadlineError());
+        },
+        Math.max(deadlineAt - Date.now(), 0)
+      );
+    }
+
+    lanes[priority].push(waiter);
     if (!pumping) void pump();
   });
 }
@@ -134,23 +184,33 @@ export function reportMbSuccess(): void {
   clearThrottleState();
 }
 
+function pauseFor(kind: MbRefusalKind, retryAfterMs?: number): number {
+  if (kind === "rate") {
+    return Math.min(retryAfterMs ?? RATE_PAUSE_MS, RATE_MAX_PAUSE_MS);
+  }
+
+  consecutiveBlocks += 1;
+  const backoff = BLOCK_BASE_PAUSE_MS * Math.pow(2, consecutiveBlocks - 1);
+  return Math.min(Math.max(backoff, retryAfterMs ?? 0), BLOCK_MAX_PAUSE_MS);
+}
+
 /**
- * Record that MusicBrainz refused the request (429/503) and stop granting slots
- * for a while. Retrying into a service that is already shedding load is what
- * turns a brief throttle into a sustained one, so the whole queue waits — both
- * lanes, since the limit is per-client, not per-lane.
+ * Record that the server refused a request and stop granting slots for a
+ * while. Retrying into a server that is shedding load is what turns a brief
+ * refusal into a sustained one, so the whole queue waits — both lanes, since
+ * the limit is per-client, not per-lane.
  */
-export function reportMbThrottled(retryAfterSeconds?: number): void {
-  consecutiveThrottles += 1;
+export function reportMbRefused(
+  kind: MbRefusalKind,
+  retryAfterMs?: number
+): void {
+  const pause = pauseFor(kind, retryAfterMs);
+  const detail =
+    kind === "block"
+      ? `blocked our address (${consecutiveBlocks} in a row)`
+      : "is shedding load";
 
-  const backoff =
-    THROTTLE_BASE_PAUSE_MS * Math.pow(2, consecutiveThrottles - 1);
-  const requested = (retryAfterSeconds ?? 0) * 1000;
-  const pause = Math.min(Math.max(backoff, requested), THROTTLE_MAX_PAUSE_MS);
-
-  log.warn(
-    `MusicBrainz throttled us (${consecutiveThrottles} in a row) — pausing requests for ${pause}ms`
-  );
+  log.warn(`MusicBrainz ${detail}; pausing requests for ${pause}ms`);
   pausedUntil = Math.max(pausedUntil, Date.now() + pause);
 }
 

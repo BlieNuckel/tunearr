@@ -28,7 +28,8 @@ vi.mock("../resilientFetch", () => ({
 vi.mock("./queue", () => ({
   acquireMbSlot: (...args: unknown[]) => mockAcquireMbSlot(...args),
   reportMbSuccess: () => {},
-  reportMbThrottled: () => {},
+  reportMbRefused: () => {},
+  getMbPauseRemainingMs: () => 0,
 }));
 
 import { MB_HEADERS } from "./config";
@@ -75,7 +76,7 @@ describe("searchReleaseGroups", () => {
     mockFetch.mockResolvedValue(errorResponse(503));
 
     await expect(searchReleaseGroups("test")).rejects.toThrow(
-      "MusicBrainz returned 503"
+      "MusicBrainz is busy (returned 503)"
     );
   });
 });
@@ -100,7 +101,7 @@ describe("getReleaseGroupById", () => {
     expect(mockFetch).toHaveBeenCalledWith(
       `${MB_BASE}/release-group/rg-123?inc=artist-credits&fmt=json`,
       { headers: MB_HEADERS },
-      { retry: false }
+      expect.objectContaining({ retry: false })
     );
   });
 
@@ -156,7 +157,7 @@ describe("getAlbumDetails", () => {
     expect(mockFetch).toHaveBeenCalledWith(
       `${MB_BASE}/release-group/rg-123?inc=artist-credits&fmt=json`,
       { headers: MB_HEADERS },
-      { retry: false }
+      expect.objectContaining({ retry: false })
     );
   });
 
@@ -211,7 +212,7 @@ describe("getReleaseGroupIdFromRelease", () => {
     expect(mockFetch).toHaveBeenCalledWith(
       `${MB_BASE}/release/release-123?inc=release-groups&fmt=json`,
       { headers: MB_HEADERS },
-      { retry: false }
+      expect.objectContaining({ retry: false })
     );
   });
 
@@ -274,7 +275,7 @@ describe("getReleaseGroupLabel", () => {
     expect(mockFetch).toHaveBeenCalledWith(
       `${MB_BASE}/release?release-group=rg-123&inc=labels&limit=1&fmt=json`,
       { headers: MB_HEADERS },
-      { retry: false }
+      expect.objectContaining({ retry: false })
     );
   });
 
@@ -325,7 +326,7 @@ describe("getReleaseGroupLabel", () => {
     mockFetch.mockResolvedValue(errorResponse(503));
 
     await expect(getReleaseGroupLabel("rg-error")).rejects.toThrow(
-      "MusicBrainz returned 503"
+      "MusicBrainz is busy (returned 503)"
     );
   });
 });
@@ -341,7 +342,7 @@ describe("getReleaseGroupDate", () => {
     expect(mockFetch).toHaveBeenCalledWith(
       `${MB_BASE}/release-group/rg-123?fmt=json`,
       { headers: MB_HEADERS },
-      { retry: false }
+      expect.objectContaining({ retry: false })
     );
   });
 

@@ -19,7 +19,8 @@ vi.mock("../resilientFetch", () => ({
 vi.mock("./queue", () => ({
   acquireMbSlot: (...args: unknown[]) => mockAcquireMbSlot(...args),
   reportMbSuccess: () => {},
-  reportMbThrottled: () => {},
+  reportMbRefused: () => {},
+  getMbPauseRemainingMs: () => 0,
 }));
 
 import { getArtistMbidByName, getArtistById, searchArtists } from "./artists";
