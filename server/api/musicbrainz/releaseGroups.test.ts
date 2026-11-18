@@ -33,6 +33,7 @@ vi.mock("./queue", () => ({
 }));
 
 import { MB_HEADERS } from "./config";
+import { getReleaseTracks } from "./tracks";
 
 const MB_BASE = "https://musicbrainz.org/ws/2";
 import { clearMbCache } from "./cache";
@@ -273,7 +274,7 @@ describe("getReleaseGroupLabel", () => {
     const result = await getReleaseGroupLabel("rg-123");
     expect(result).toEqual({ name: "Warp Records", mbid: "label-1" });
     expect(mockFetch).toHaveBeenCalledWith(
-      `${MB_BASE}/release?release-group=rg-123&inc=labels&limit=1&fmt=json`,
+      `${MB_BASE}/release?release-group=rg-123&inc=labels+recordings+media&limit=1&fmt=json`,
       { headers: MB_HEADERS },
       expect.objectContaining({ retry: false })
     );
@@ -340,7 +341,7 @@ describe("getReleaseGroupDate", () => {
     const result = await getReleaseGroupDate("rg-123");
     expect(result).toBe("1997-06-16");
     expect(mockFetch).toHaveBeenCalledWith(
-      `${MB_BASE}/release-group/rg-123?fmt=json`,
+      `${MB_BASE}/release-group/rg-123?inc=artist-credits&fmt=json`,
       { headers: MB_HEADERS },
       expect.objectContaining({ retry: false })
     );
@@ -365,6 +366,74 @@ describe("getReleaseGroupDate", () => {
 
     const result = await getReleaseGroupDate("rg-notfound");
     expect(result).toBeNull();
+  });
+});
+
+describe("shared requests", () => {
+  const albumDoc = {
+    id: "rg-1",
+    title: "OK Computer",
+    "primary-type": "Album",
+    "first-release-date": "1997-05-21",
+    "artist-credit": [
+      { name: "Radiohead", artist: { id: "a1", name: "Radiohead" } },
+    ],
+  };
+
+  it("reads the summary and the date from album details without a request of their own", async () => {
+    mockFetch.mockResolvedValue(okResponse(albumDoc));
+
+    await getAlbumDetails("rg-1");
+    mockFetch.mockClear();
+
+    expect(await getReleaseGroupById("rg-1")).toEqual({
+      artistName: "Radiohead",
+      albumTitle: "OK Computer",
+    });
+    expect(await getReleaseGroupDate("rg-1")).toBe("1997-05-21");
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("serves the label and the tracks from one first-release request", async () => {
+    mockFetch.mockResolvedValue(
+      okResponse({
+        releases: [
+          {
+            id: "rel-1",
+            "label-info": [{ label: { id: "l1", name: "Parlophone" } }],
+            media: [
+              {
+                position: 1,
+                format: "CD",
+                title: "",
+                tracks: [
+                  {
+                    position: 1,
+                    title: "Airbag",
+                    length: 284000,
+                    recording: { title: "Airbag" },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      })
+    );
+
+    expect(await getReleaseGroupLabel("rg-1")).toEqual({
+      name: "Parlophone",
+      mbid: "l1",
+    });
+    expect(await getReleaseTracks("rg-1")).toEqual([
+      {
+        position: 1,
+        format: "CD",
+        title: "",
+        tracks: [{ position: 1, title: "Airbag", length: 284000 }],
+      },
+    ]);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 });
 
