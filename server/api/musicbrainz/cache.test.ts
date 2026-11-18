@@ -12,6 +12,7 @@ vi.mock("./server", () => ({
 }));
 import { mbCached, clearMbCache, getMbCacheStats, MB_TTL } from "./cache";
 import type { MbPriority } from "./queue";
+import { markLoadFailed, markLoadNotFound } from "./loadContext";
 
 function deferred<T>(): {
   promise: Promise<T>;
@@ -138,30 +139,24 @@ describe("mbCached", () => {
   });
 });
 
-describe("revalidate strategy", () => {
-  const options = {
-    key: "k",
-    ttlSeconds: 60,
-    strategy: "revalidate" as const,
-  };
+describe("past the fresh time", () => {
+  const options = { key: "k", ttlSeconds: 60 };
 
-  it("serves a stale value immediately and refreshes behind it", async () => {
+  it("returns the refreshed value when it arrives within the page wait", async () => {
     vi.useFakeTimers();
     const loader = vi
       .fn()
       .mockResolvedValueOnce("first")
       .mockResolvedValue("second");
 
-    expect(await mbCached(options, loader)).toBe("first");
-
+    await mbCached(options, loader);
     vi.advanceTimersByTime(61_000);
 
-    expect(await mbCached(options, loader)).toBe("first");
-    await vi.waitFor(() => expect(loader).toHaveBeenCalledTimes(2));
     expect(await mbCached(options, loader)).toBe("second");
+    expect(loader).toHaveBeenCalledTimes(2);
   });
 
-  it("refreshes on the background lane so it cannot delay a search", async () => {
+  it("refreshes on the caller's lane", async () => {
     vi.useFakeTimers();
     const lanes: MbPriority[] = [];
     const loader = vi.fn((priority: MbPriority) => {
@@ -172,24 +167,105 @@ describe("revalidate strategy", () => {
     await mbCached(options, loader);
     vi.advanceTimersByTime(61_000);
     await mbCached(options, loader);
-    await vi.waitFor(() => expect(loader).toHaveBeenCalledTimes(2));
+    vi.advanceTimersByTime(61_000);
+    await mbCached({ ...options, priority: "background" }, loader);
 
-    expect(lanes).toEqual(["interactive", "background"]);
+    expect(lanes).toEqual(["interactive", "interactive", "background"]);
   });
 
-  it("keeps serving the stale value when the refresh fails", async () => {
+  it("gives a page the kept value after about a second, and lets the refresh land", async () => {
+    vi.useFakeTimers();
+    const slow = deferred<string>();
+    const loader = vi
+      .fn()
+      .mockResolvedValueOnce("first")
+      .mockReturnValueOnce(slow.promise);
+
+    await mbCached(options, loader);
+    vi.advanceTimersByTime(61_000);
+
+    const result = mbCached(options, loader);
+    await vi.advanceTimersByTimeAsync(999);
+    let settled = false;
+    void result.then(() => {
+      settled = true;
+    });
+    await Promise.resolve();
+    expect(settled).toBe(false);
+
+    await vi.advanceTimersByTimeAsync(1);
+    expect(await result).toBe("first");
+
+    slow.resolve("second");
+    await vi.advanceTimersByTimeAsync(0);
+    expect(await mbCached(options, loader)).toBe("second");
+    expect(loader).toHaveBeenCalledTimes(2);
+  });
+
+  it("makes a background caller wait for the refresh", async () => {
+    vi.useFakeTimers();
+    const slow = deferred<string>();
+    const loader = vi
+      .fn()
+      .mockResolvedValueOnce("first")
+      .mockReturnValueOnce(slow.promise);
+    const background = { ...options, priority: "background" as const };
+
+    await mbCached(background, loader);
+    vi.advanceTimersByTime(61_000);
+
+    const result = mbCached(background, loader);
+    await vi.advanceTimersByTimeAsync(5000);
+    slow.resolve("second");
+
+    expect(await result).toBe("second");
+  });
+
+  it("serves the kept value when the refresh fails, on either lane", async () => {
     vi.useFakeTimers();
     const loader = vi
       .fn()
       .mockResolvedValueOnce("first")
-      .mockRejectedValue(new Error("503"));
+      .mockRejectedValue(new Error("MusicBrainz returned 503"));
 
     await mbCached(options, loader);
     vi.advanceTimersByTime(61_000);
 
     expect(await mbCached(options, loader)).toBe("first");
-    await vi.waitFor(() => expect(loader).toHaveBeenCalledTimes(2));
+    expect(await mbCached({ ...options, priority: "background" }, loader)).toBe(
+      "first"
+    );
+  });
+
+  it("keeps the value for 30 days past its fresh time, then forgets it", async () => {
+    vi.useFakeTimers();
+    const loader = vi
+      .fn()
+      .mockResolvedValueOnce("first")
+      .mockRejectedValue(new Error("MusicBrainz returned 503"));
+
+    await mbCached(options, loader);
+    vi.advanceTimersByTime(60_000 + 30 * 24 * 60 * 60 * 1000 - 1000);
     expect(await mbCached(options, loader)).toBe("first");
+
+    vi.advanceTimersByTime(2000);
+    await expect(mbCached(options, loader)).rejects.toThrow("503");
+  });
+
+  it("replaces the entry when the refresh finds nothing", async () => {
+    vi.useFakeTimers();
+    const loader = vi
+      .fn()
+      .mockResolvedValueOnce("first")
+      .mockImplementation(() => {
+        markLoadNotFound();
+        return Promise.resolve(null);
+      });
+
+    await mbCached(options, loader);
+    vi.advanceTimersByTime(61_000);
+
+    expect(await mbCached(options, loader)).toBeNull();
   });
 
   it("does not refresh while the value is still fresh", async () => {
@@ -201,6 +277,119 @@ describe("revalidate strategy", () => {
     await mbCached(options, loader);
 
     expect(loader).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("not found", () => {
+  it("is trusted for 10 minutes, not the full TTL", async () => {
+    vi.useFakeTimers();
+    const options = { key: "k", ttlSeconds: MB_TTL.immutable };
+    const loader = vi
+      .fn()
+      .mockImplementationOnce(() => {
+        markLoadNotFound();
+        return Promise.resolve(null);
+      })
+      .mockResolvedValue("added since");
+
+    expect(await mbCached(options, loader)).toBeNull();
+    vi.advanceTimersByTime(9 * 60 * 1000);
+    expect(await mbCached(options, loader)).toBeNull();
+
+    vi.advanceTimersByTime(2 * 60 * 1000);
+    expect(await mbCached(options, loader)).toBe("added since");
+  });
+});
+
+describe("composite loads", () => {
+  it("stores nothing when one of its calls failed", async () => {
+    const options = { key: "walk", ttlSeconds: MB_TTL.immutable };
+    const loader = vi
+      .fn()
+      .mockImplementationOnce(() => {
+        markLoadFailed();
+        return Promise.resolve(["partial"]);
+      })
+      .mockResolvedValue(["complete"]);
+
+    expect(await mbCached(options, loader)).toEqual(["partial"]);
+    expect(await mbCached(options, loader)).toEqual(["complete"]);
+    expect(await mbCached(options, loader)).toEqual(["complete"]);
+    expect(loader).toHaveBeenCalledTimes(2);
+  });
+
+  it("stores nothing when an inner call fell back to a kept value", async () => {
+    vi.useFakeTimers();
+    const inner = { key: "inner", ttlSeconds: 60 };
+    const innerLoader = vi
+      .fn()
+      .mockResolvedValueOnce("old")
+      .mockRejectedValue(new Error("503"));
+    await mbCached(inner, innerLoader);
+    vi.advanceTimersByTime(61_000);
+
+    const outer = { key: "outer", ttlSeconds: MB_TTL.immutable };
+    const outerLoader = vi.fn(async () => {
+      const part = await mbCached(inner, innerLoader);
+      return `built from ${part}`;
+    });
+
+    expect(await mbCached(outer, outerLoader)).toBe("built from old");
+    await mbCached(outer, outerLoader);
+    expect(outerLoader).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("in-flight sharing", () => {
+  it("does not make a page join a load queued on the background lane", async () => {
+    const slow = deferred<string>();
+    const loader = vi
+      .fn()
+      .mockReturnValueOnce(slow.promise)
+      .mockResolvedValue("page");
+    const options = { key: "k", ttlSeconds: MB_TTL.immutable };
+
+    const poller = mbCached({ ...options, priority: "background" }, loader);
+    const page = mbCached({ ...options, priority: "interactive" }, loader);
+
+    expect(await page).toBe("page");
+    expect(loader.mock.calls.map((c) => c[0])).toEqual([
+      "background",
+      "interactive",
+    ]);
+
+    slow.resolve("poller");
+    expect(await poller).toBe("poller");
+  });
+});
+
+describe("expiry spread", () => {
+  it("cuts up to 3 days off long fresh times", async () => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, "random").mockReturnValue(0.999);
+    const options = { key: "k", ttlSeconds: MB_TTL.immutable };
+    const loader = vi.fn().mockResolvedValue("value");
+
+    await mbCached(options, loader);
+    vi.advanceTimersByTime(27.01 * 24 * 60 * 60 * 1000);
+    await mbCached({ ...options, priority: "background" }, loader);
+
+    expect(loader).toHaveBeenCalledTimes(2);
+    vi.mocked(Math.random).mockRestore();
+  });
+
+  it("leaves short fresh times alone", async () => {
+    vi.useFakeTimers();
+    vi.spyOn(Math, "random").mockReturnValue(0.999);
+    const options = { key: "k", ttlSeconds: MB_TTL.volatile };
+    const loader = vi.fn().mockResolvedValue("value");
+
+    await mbCached(options, loader);
+    vi.advanceTimersByTime(MB_TTL.volatile * 1000 - 1000);
+    await mbCached(options, loader);
+
+    expect(loader).toHaveBeenCalledTimes(1);
+    vi.mocked(Math.random).mockRestore();
   });
 });
 

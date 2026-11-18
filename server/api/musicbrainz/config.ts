@@ -7,6 +7,7 @@ import {
   type MbPriority,
 } from "./queue";
 import { getMbServer, type MbServer } from "./server";
+import { markLoadFailed, markLoadNotFound } from "./loadContext";
 
 export const MB_HEADERS = {
   "User-Agent": "Tunearr/0.1.0 (github.com/tunearr)",
@@ -84,15 +85,29 @@ export async function mbFetch(
   throw lastError;
 }
 
-/** Fetch and parse a MusicBrainz JSON document. Returns null when it doesn't exist. */
+/**
+ * Fetch and parse a MusicBrainz JSON document. Returns null when it doesn't
+ * exist. Reports a miss or a failure to the cached load it runs in, so a load
+ * built from several calls knows not to cache an incomplete answer.
+ */
 export async function mbJson<T>(
   path: string,
   priority: MbPriority = "interactive"
 ): Promise<T | null> {
-  const response = await mbFetch(path, priority);
+  let response: Response;
+  try {
+    response = await mbFetch(path, priority);
+  } catch (error) {
+    markLoadFailed();
+    throw error;
+  }
 
-  if (NOT_FOUND_STATUSES.has(response.status)) return null;
+  if (NOT_FOUND_STATUSES.has(response.status)) {
+    markLoadNotFound();
+    return null;
+  }
   if (!response.ok) {
+    markLoadFailed();
     throw new Error(`MusicBrainz returned ${response.status}`);
   }
 

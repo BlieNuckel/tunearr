@@ -151,7 +151,6 @@ export function searchReleaseGroups(
       key: `rg-search:${query.toLowerCase()}`,
       ttlSeconds: MB_TTL.volatile,
       priority,
-      strategy: "revalidate",
     },
     (p) => loadReleaseGroupSearch(query, p)
   );
@@ -167,7 +166,6 @@ export function fetchReleaseGroupsForArtist(
       key: `artist-rgs:${artistId}`,
       ttlSeconds: MB_TTL.volatile,
       priority,
-      strategy: "revalidate",
     },
     (p) => loadArtistReleaseGroups(artistId, p)
   );

@@ -93,7 +93,6 @@ export function searchArtists(
       key: `artist-search:${query.toLowerCase()}`,
       ttlSeconds: MB_TTL.volatile,
       priority,
-      strategy: "revalidate",
     },
     (p) => loadArtistSearch(query, p)
   );
