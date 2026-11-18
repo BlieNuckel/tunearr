@@ -53,4 +53,23 @@ describe("useReleaseGroupDetails", () => {
     await waitFor(() => expect(result.current.error).toBe("Album not found"));
     expect(result.current.album).toBeNull();
   });
+
+  it("marks a busy MusicBrainz as retrying, with a typed error kind", async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          error: "MusicBrainz is busy (returned 503)",
+          retryable: true,
+          retryAfterMs: 1000,
+        }),
+        { status: 503 }
+      )
+    );
+
+    const { result } = renderHook(() => useReleaseGroupDetails("rg-1"));
+
+    await waitFor(() => expect(result.current.retrying).toBe(true));
+    expect(result.current.errorKind).toBe("busy");
+    expect(result.current.error).toBe("MusicBrainz is busy (returned 503)");
+  });
 });

@@ -1,6 +1,7 @@
 import useAsyncData from "./useAsyncData";
 import type { FetchContext } from "./useAsyncData";
 import type { ReleaseGroup } from "../types";
+import { responseError } from "@/utils/fetchError";
 
 interface ArtistReleaseGroupsResponse {
   releaseGroups: ReleaseGroup[];
@@ -13,17 +14,14 @@ async function fetchArtistReleaseGroups({
   const res = await fetch(`/api/musicbrainz/artist/${key}/release-groups`, {
     signal,
   });
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error(data.error || "Failed to load discography");
-  }
+  if (!res.ok) throw await responseError(res, "Failed to load discography");
   return res.json();
 }
 
 export default function useArtistReleaseGroups(
   artistMbid: string | null | undefined
 ) {
-  const { data, loading, error } = useAsyncData(
+  const { data, loading, error, errorKind, retrying, refresh } = useAsyncData(
     artistMbid ?? null,
     fetchArtistReleaseGroups
   );
@@ -32,5 +30,8 @@ export default function useArtistReleaseGroups(
     releaseGroups: data?.releaseGroups ?? [],
     loading,
     error,
+    errorKind,
+    retrying,
+    refresh,
   };
 }

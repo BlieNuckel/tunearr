@@ -1,6 +1,7 @@
 import useAsyncData from "./useAsyncData";
 import type { FetchContext } from "./useAsyncData";
 import type { ArtistDetails } from "../types";
+import { responseError } from "@/utils/fetchError";
 
 interface ArtistDetailsResponse {
   artist: ArtistDetails;
@@ -11,15 +12,12 @@ async function fetchArtistDetails({
   signal,
 }: FetchContext): Promise<ArtistDetailsResponse> {
   const res = await fetch(`/api/musicbrainz/artist/${key}`, { signal });
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error(data.error || "Failed to load artist");
-  }
+  if (!res.ok) throw await responseError(res, "Failed to load artist");
   return res.json();
 }
 
 export default function useArtistDetails(mbid: string | undefined) {
-  const { data, loading, error } = useAsyncData(
+  const { data, loading, error, errorKind, retrying, refresh } = useAsyncData(
     mbid ?? null,
     fetchArtistDetails
   );
@@ -28,5 +26,8 @@ export default function useArtistDetails(mbid: string | undefined) {
     artist: data?.artist ?? null,
     loading,
     error,
+    errorKind,
+    retrying,
+    refresh,
   };
 }

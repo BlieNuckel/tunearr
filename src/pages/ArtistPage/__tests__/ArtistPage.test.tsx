@@ -1,20 +1,30 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import ArtistPage from "../ArtistPage";
 import type { ArtistDetails, ReleaseGroup } from "@/types";
 
-let mockState: {
-  artist: ArtistDetails | null;
+type SectionFields = {
   loading: boolean;
   error: string | null;
+  errorKind: "notFound" | "busy" | "other" | null;
+  retrying: boolean;
+  refresh: () => Promise<void>;
 };
 
-let mockReleaseGroupsState: {
-  releaseGroups: ReleaseGroup[];
-  loading: boolean;
-  error: string | null;
-};
+let mockState: SectionFields & { artist: ArtistDetails | null };
+
+let mockReleaseGroupsState: SectionFields & { releaseGroups: ReleaseGroup[] };
+
+function idle(): SectionFields {
+  return {
+    loading: false,
+    error: null,
+    errorKind: null,
+    retrying: false,
+    refresh: vi.fn().mockResolvedValue(undefined),
+  };
+}
 
 vi.mock("@/hooks/useArtistDetails", () => ({
   default: () => mockState,
@@ -87,16 +97,8 @@ function renderPage() {
 }
 
 beforeEach(() => {
-  mockState = {
-    artist: null,
-    loading: false,
-    error: null,
-  };
-  mockReleaseGroupsState = {
-    releaseGroups: [],
-    loading: false,
-    error: null,
-  };
+  mockState = { ...idle(), artist: null };
+  mockReleaseGroupsState = { ...idle(), releaseGroups: [] };
   mockSimilar = { artists: [], loading: false };
   mockLibraryArtistMbids = ["sim-owned"];
 });
@@ -110,10 +112,52 @@ describe("ArtistPage", () => {
     ).toBeGreaterThan(0);
   });
 
-  it("shows an error state when the artist fails to load", () => {
+  it("says an artist doesn't exist without offering a retry", () => {
     mockState.error = "Artist not found";
+    mockState.errorKind = "notFound";
     renderPage();
-    expect(screen.getByText("Artist not found")).toBeInTheDocument();
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "MusicBrainz has no record of this artist."
+    );
+    expect(screen.queryByRole("button", { name: "Try again" })).toBeNull();
+  });
+
+  it("keeps the discography when the header fails, and retries the header", () => {
+    mockState.error = "MusicBrainz is busy (returned 503)";
+    mockState.errorKind = "busy";
+    mockReleaseGroupsState.releaseGroups = [
+      makeRg({ id: "1", title: "Kid A" }),
+    ];
+    renderPage();
+
+    expect(screen.getByText("Kid A")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(mockState.refresh).toHaveBeenCalled();
+  });
+
+  it("says MusicBrainz is busy while the discography is retried", () => {
+    mockState.artist = { mbid: "a1", name: "Radiohead", type: "Group" };
+    mockReleaseGroupsState.retrying = true;
+    mockReleaseGroupsState.error = "busy";
+    renderPage();
+
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "MusicBrainz is busy, retrying…"
+    );
+  });
+
+  it("offers a discography retry once retries run out", () => {
+    mockState.artist = { mbid: "a1", name: "Radiohead", type: "Group" };
+    mockReleaseGroupsState.error = "busy";
+    mockReleaseGroupsState.errorKind = "busy";
+    renderPage();
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "MusicBrainz is still busy, so we couldn't load this artist's releases."
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(mockReleaseGroupsState.refresh).toHaveBeenCalled();
   });
 
   it("renders sections with only the first one expanded", () => {
@@ -194,11 +238,7 @@ describe("ArtistPage", () => {
 
   it("renders the header while the discography is still loading", () => {
     mockState.artist = { mbid: "a1", name: "Radiohead" };
-    mockReleaseGroupsState = {
-      releaseGroups: [],
-      loading: true,
-      error: null,
-    };
+    mockReleaseGroupsState.loading = true;
     renderPage();
 
     expect(
@@ -214,11 +254,8 @@ describe("ArtistPage", () => {
 
   it("keeps the rest of the page when the discography fails to load", () => {
     mockState.artist = { mbid: "a1", name: "Radiohead" };
-    mockReleaseGroupsState = {
-      releaseGroups: [],
-      loading: false,
-      error: "Failed to load discography",
-    };
+    mockReleaseGroupsState.error = "Failed to load discography";
+    mockReleaseGroupsState.errorKind = "other";
     mockSimilar = {
       artists: [{ name: "Muse", mbid: "muse-1", imageUrl: "", match: 0.9 }],
       loading: false,

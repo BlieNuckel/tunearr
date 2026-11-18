@@ -1,6 +1,7 @@
 import useAsyncData from "./useAsyncData";
 import type { FetchContext } from "./useAsyncData";
 import type { AlbumDetails } from "../types";
+import { responseError } from "@/utils/fetchError";
 
 interface AlbumDetailsResponse {
   album: AlbumDetails;
@@ -11,15 +12,12 @@ async function fetchAlbumDetails({
   signal,
 }: FetchContext): Promise<AlbumDetailsResponse> {
   const res = await fetch(`/api/musicbrainz/album/${key}`, { signal });
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error(data.error || "Failed to load album");
-  }
+  if (!res.ok) throw await responseError(res, "Failed to load album");
   return res.json();
 }
 
 export default function useReleaseGroupDetails(mbid: string | undefined) {
-  const { data, loading, error } = useAsyncData(
+  const { data, loading, error, errorKind, retrying, refresh } = useAsyncData(
     mbid ?? null,
     fetchAlbumDetails
   );
@@ -28,5 +26,8 @@ export default function useReleaseGroupDetails(mbid: string | undefined) {
     album: data?.album ?? null,
     loading,
     error,
+    errorKind,
+    retrying,
+    refresh,
   };
 }
