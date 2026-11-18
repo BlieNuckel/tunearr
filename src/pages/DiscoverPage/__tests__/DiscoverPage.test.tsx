@@ -26,9 +26,9 @@ vi.mock("../components/sections/NewReleasesSection", () => ({
 }));
 
 describe("DiscoverPage", () => {
-  it("renders the Discover heading", () => {
+  it("renders the Home heading", () => {
     render(<DiscoverPage />);
-    expect(screen.getByText("Discover")).toBeInTheDocument();
+    expect(screen.getByText("Home")).toBeInTheDocument();
   });
 
   it("renders the live banner and new releases sections", () => {

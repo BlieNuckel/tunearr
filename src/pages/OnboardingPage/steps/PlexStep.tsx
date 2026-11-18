@@ -9,7 +9,7 @@ interface PlexStepProps {
 export default function PlexStep({ url, onUrlChange }: PlexStepProps) {
   return (
     <div className="space-y-4">
-      <StepDescription text="Connect Plex to show your most-played artists on the Discover page. You can skip this and add it later in Settings." />
+      <StepDescription text="Connect Plex to show your most-played artists on the Home page. You can skip this and add it later in Settings." />
       <PlexAuth serverUrl={url} onServerUrl={onUrlChange} />
     </div>
   );

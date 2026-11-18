@@ -11,7 +11,7 @@ import useHaptics from "../hooks/useHaptics";
 import LogoLockup from "./LogoLockup";
 
 const links = [
-  { to: "/", label: "Discover" },
+  { to: "/", label: "Home" },
   { to: "/search", label: "Search" },
   { to: "/status", label: "Status" },
   { to: "/settings", label: "Settings" },

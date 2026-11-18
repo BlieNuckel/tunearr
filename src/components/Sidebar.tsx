@@ -1,7 +1,7 @@
 import { useRef, useLayoutEffect, useState, useCallback } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
-  DiscoverIcon,
+  HomeIcon,
   SearchIcon,
   LibraryIcon,
   UserCircleIcon,
@@ -19,7 +19,7 @@ type NavItem = {
 };
 
 const links: NavItem[] = [
-  { to: "/", label: "Discover", icon: DiscoverIcon },
+  { to: "/", label: "Home", icon: HomeIcon },
   { to: "/search", label: "Search", icon: SearchIcon },
   { to: "/library", label: "Library", icon: LibraryIcon },
 ];

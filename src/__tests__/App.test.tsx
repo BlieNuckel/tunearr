@@ -104,7 +104,7 @@ describe("App", () => {
   it("renders discover page at /", () => {
     renderApp("/");
     expect(
-      screen.getByRole("heading", { level: 1, name: "Discover" })
+      screen.getByRole("heading", { level: 1, name: "Home" })
     ).toBeInTheDocument();
   });
 

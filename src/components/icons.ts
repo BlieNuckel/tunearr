@@ -10,7 +10,7 @@ export {
   CloudArrowUpIcon as CloudUploadIcon,
   MusicalNoteIcon,
   SparklesIcon,
-  Squares2X2Icon as DiscoverIcon,
+  HomeIcon,
   EyeSlashIcon,
   PlayIcon,
   PauseIcon,
