@@ -1,12 +1,12 @@
 import { useState } from "react";
 import Modal from "./Modal";
 import Spinner from "./Spinner";
-import { useSettings } from "@/context/useSettings";
-import { DEFAULT_SPENDING } from "@/context/spendingDefaults";
+import useSpendingSettings from "@/hooks/useSpendingSettings";
 import {
   toMinorUnits,
   getMinorUnitExponent,
   COMMON_CURRENCIES,
+  DEFAULT_SPENDING,
 } from "@shared/currency";
 
 interface PurchasePriceModalProps {
@@ -34,11 +34,13 @@ export default function PurchasePriceModal({
   onConfirm,
   saving = false,
 }: PurchasePriceModalProps) {
-  const { settings } = useSettings();
-  const spending = settings.spending ?? DEFAULT_SPENDING;
+  const { spending } = useSpendingSettings(isOpen);
 
   const [amount, setAmount] = useState("");
-  const [currency, setCurrency] = useState(spending.currency);
+  /** Null until the user picks one, so the modal follows their own currency once it loads. */
+  const [chosenCurrency, setCurrency] = useState<string | null>(null);
+  const currency =
+    chosenCurrency ?? spending?.currency ?? DEFAULT_SPENDING.currency;
 
   const exponent = getMinorUnitExponent(currency);
   const step = exponent > 0 ? `0.${"0".repeat(exponent - 1)}1` : "1";
@@ -50,11 +52,13 @@ export default function PurchasePriceModal({
     if (!isValid) return;
     onConfirm(toMinorUnits(parsed, currency), currency);
     setAmount("");
+    setCurrency(null);
     onClose();
   };
 
   const handleClose = () => {
     setAmount("");
+    setCurrency(null);
     onClose();
   };
 

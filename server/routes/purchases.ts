@@ -5,6 +5,8 @@ import {
   removePurchase,
   getPurchases,
   getSpendingSummary,
+  readSpendingSettings,
+  writeSpendingSettings,
 } from "../services/purchases/purchaseService";
 
 const router = express.Router();
@@ -30,6 +32,17 @@ router.get("/", async (req: Request, res: Response) => {
 router.get("/summary", async (req: Request, res: Response) => {
   const summary = await getSpendingSummary(req.user!.id);
   res.json(summary);
+});
+
+router.get("/spending", async (req: Request, res: Response) => {
+  res.json(await readSpendingSettings(req.user!.id));
+});
+
+router.patch("/spending", async (req: Request, res: Response) => {
+  const { currency, monthlyLimit } = req.body ?? {};
+  res.json(
+    await writeSpendingSettings(req.user!.id, { currency, monthlyLimit })
+  );
 });
 
 router.post("/", async (req: Request, res: Response) => {

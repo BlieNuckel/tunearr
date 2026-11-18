@@ -8,8 +8,6 @@ import type { SpendingSummary as SpendingSummaryType } from "@/types";
 
 interface SpendingSummaryProps {
   summary: SpendingSummaryType;
-  currency: string;
-  monthlyLimit: number | null;
 }
 
 function getStreamingComparison(
@@ -79,11 +77,8 @@ function StreamingBadge({ months }: { months: number }) {
   );
 }
 
-export default function SpendingSummary({
-  summary,
-  currency,
-  monthlyLimit,
-}: SpendingSummaryProps) {
+export default function SpendingSummary({ summary }: SpendingSummaryProps) {
+  const { currency, monthlyLimit } = summary;
   const streaming = getStreamingComparison(summary.allTime, currency);
   const hasLimit = monthlyLimit !== null && monthlyLimit > 0;
 

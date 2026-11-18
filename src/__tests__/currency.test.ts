@@ -4,6 +4,7 @@ import {
   toMajorUnits,
   formatCurrency,
   getSpotifyMonthlyMinor,
+  spendingSettingsError,
 } from "@shared/currency";
 
 describe("getMinorUnitExponent", () => {
@@ -74,5 +75,34 @@ describe("getSpotifyMonthlyMinor", () => {
 
   it("returns null for unsupported currency", () => {
     expect(getSpotifyMonthlyMinor("XYZ")).toBeNull();
+  });
+});
+
+describe("spendingSettingsError", () => {
+  it("accepts a full valid setup", () => {
+    expect(
+      spendingSettingsError({ currency: "SEK", monthlyLimit: 50000 })
+    ).toBeNull();
+  });
+
+  it("accepts an empty patch and a cleared limit", () => {
+    expect(spendingSettingsError({})).toBeNull();
+    expect(spendingSettingsError({ monthlyLimit: null })).toBeNull();
+  });
+
+  it("rejects a currency that isn't three upper-case letters", () => {
+    for (const currency of ["usd", "EURO", "", "U$D"]) {
+      expect(spendingSettingsError({ currency })).toBe(
+        "currency must be a 3-letter ISO 4217 code"
+      );
+    }
+  });
+
+  it("rejects a negative or fractional limit", () => {
+    for (const monthlyLimit of [-1, 1.5, Number.NaN]) {
+      expect(spendingSettingsError({ monthlyLimit })).toBe(
+        "monthlyLimit must be a non-negative integer or null"
+      );
+    }
   });
 });

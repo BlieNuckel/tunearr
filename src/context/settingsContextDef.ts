@@ -2,7 +2,6 @@ import { createContext } from "react";
 import type {
   LiveEventsSettings,
   PurchaseDecisionSettings,
-  SpendingSettings,
 } from "@shared/settingsDefaults";
 import type { MusicBrainzSettings } from "@shared/musicbrainzServer";
 
@@ -11,7 +10,6 @@ export type { MusicBrainzSettings } from "@shared/musicbrainzServer";
 export type {
   LiveEventsSettings,
   PurchaseDecisionSettings,
-  SpendingSettings,
 } from "@shared/settingsDefaults";
 
 export interface AppSettings {
@@ -29,7 +27,6 @@ export interface AppSettings {
   torznabApiKey: string;
   listeningCaptureEnabled?: boolean;
   purchaseDecision?: PurchaseDecisionSettings;
-  spending?: SpendingSettings;
   liveEvents?: LiveEventsSettings;
   musicbrainz?: MusicBrainzSettings;
 }

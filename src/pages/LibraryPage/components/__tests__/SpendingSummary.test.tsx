@@ -7,9 +7,7 @@ describe("SpendingSummary", () => {
   it("renders monthly and all-time amounts", () => {
     render(
       <SpendingSummary
-        summary={baseSummary}
-        currency="USD"
-        monthlyLimit={null}
+        summary={{ ...baseSummary, currency: "USD", monthlyLimit: null }}
       />
     );
 
@@ -24,9 +22,7 @@ describe("SpendingSummary", () => {
   it("shows album count", () => {
     render(
       <SpendingSummary
-        summary={baseSummary}
-        currency="USD"
-        monthlyLimit={null}
+        summary={{ ...baseSummary, currency: "USD", monthlyLimit: null }}
       />
     );
 
@@ -37,9 +33,13 @@ describe("SpendingSummary", () => {
   it("shows singular 'album' for count of 1", () => {
     render(
       <SpendingSummary
-        summary={{ month: 999, allTime: 999, albumCount: 1 }}
-        currency="USD"
-        monthlyLimit={null}
+        summary={{
+          month: 999,
+          allTime: 999,
+          albumCount: 1,
+          currency: "USD",
+          monthlyLimit: null,
+        }}
       />
     );
 
@@ -49,9 +49,7 @@ describe("SpendingSummary", () => {
   it("shows limit progress bar when limit is set", () => {
     render(
       <SpendingSummary
-        summary={baseSummary}
-        currency="USD"
-        monthlyLimit={5000}
+        summary={{ ...baseSummary, currency: "USD", monthlyLimit: 5000 }}
       />
     );
 
@@ -62,9 +60,7 @@ describe("SpendingSummary", () => {
   it("shows warning when over limit", () => {
     render(
       <SpendingSummary
-        summary={baseSummary}
-        currency="USD"
-        monthlyLimit={2000}
+        summary={{ ...baseSummary, currency: "USD", monthlyLimit: 2000 }}
       />
     );
 
@@ -76,9 +72,7 @@ describe("SpendingSummary", () => {
   it("shows no limit bar when limit is null", () => {
     render(
       <SpendingSummary
-        summary={baseSummary}
-        currency="USD"
-        monthlyLimit={null}
+        summary={{ ...baseSummary, currency: "USD", monthlyLimit: null }}
       />
     );
 
@@ -91,9 +85,13 @@ describe("SpendingSummary", () => {
   it("shows streaming comparison for large spend", () => {
     render(
       <SpendingSummary
-        summary={{ month: 0, allTime: 5997, albumCount: 5 }}
-        currency="USD"
-        monthlyLimit={null}
+        summary={{
+          month: 0,
+          allTime: 5997,
+          albumCount: 5,
+          currency: "USD",
+          monthlyLimit: null,
+        }}
       />
     );
 
@@ -104,9 +102,13 @@ describe("SpendingSummary", () => {
   it("shows 'less than 1 month' for small spend", () => {
     render(
       <SpendingSummary
-        summary={{ month: 0, allTime: 500, albumCount: 1 }}
-        currency="USD"
-        monthlyLimit={null}
+        summary={{
+          month: 0,
+          allTime: 500,
+          albumCount: 1,
+          currency: "USD",
+          monthlyLimit: null,
+        }}
       />
     );
 
@@ -118,9 +120,13 @@ describe("SpendingSummary", () => {
   it("hides streaming comparison when allTime is zero", () => {
     render(
       <SpendingSummary
-        summary={{ month: 0, allTime: 0, albumCount: 0 }}
-        currency="USD"
-        monthlyLimit={null}
+        summary={{
+          month: 0,
+          allTime: 0,
+          albumCount: 0,
+          currency: "USD",
+          monthlyLimit: null,
+        }}
       />
     );
 

@@ -13,19 +13,9 @@ export type PurchaseDecisionSettings = {
   oldReleaseThresholdYears: number;
 };
 
-export type SpendingSettings = {
-  currency: string;
-  monthlyLimit: number | null;
-};
-
 export const DEFAULT_PURCHASE_DECISION: PurchaseDecisionSettings = {
   labelBlocklist: [],
   oldReleaseThresholdYears: 50,
-};
-
-export const DEFAULT_SPENDING: SpendingSettings = {
-  currency: "USD",
-  monthlyLimit: null,
 };
 
 /**

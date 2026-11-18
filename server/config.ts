@@ -6,10 +6,8 @@ import { createLogger } from "./logger";
 import { countryCodeError } from "../shared/countries";
 import {
   DEFAULT_PURCHASE_DECISION,
-  DEFAULT_SPENDING,
   DEFAULT_LIVE_EVENTS,
   type PurchaseDecisionSettings,
-  type SpendingSettings,
   type LiveEventsSettings,
 } from "../shared/settingsDefaults";
 import {
@@ -22,14 +20,12 @@ import {
 
 export {
   DEFAULT_PURCHASE_DECISION,
-  DEFAULT_SPENDING,
   DEFAULT_LIVE_EVENTS,
 } from "../shared/settingsDefaults";
 export { DEFAULT_MUSICBRAINZ } from "../shared/musicbrainzServer";
 
 /** Server-side aliases for the shared settings shapes. */
 export type PurchaseDecisionConfig = PurchaseDecisionSettings;
-export type SpendingConfig = SpendingSettings;
 export type LiveEventsConfig = LiveEventsSettings;
 export type MusicBrainzConfig = MusicBrainzSettings;
 
@@ -73,7 +69,6 @@ export type IConfig = {
   /** Shared secret Lidarr sends to `/api/torznab` and `/api/sabnzbd`. Empty disables the check. */
   torznabApiKey: string;
   purchaseDecision: PurchaseDecisionConfig;
-  spending: SpendingConfig;
   notifications: NotificationsConfig;
   liveEvents: LiveEventsConfig;
   musicbrainz: MusicBrainzConfig;
@@ -92,14 +87,9 @@ export type IConfig = {
 /** Input type for setConfig — nested objects are optional since defaults are deep-merged */
 export type IConfigInput = Omit<
   IConfig,
-  | "purchaseDecision"
-  | "spending"
-  | "notifications"
-  | "liveEvents"
-  | "musicbrainz"
+  "purchaseDecision" | "notifications" | "liveEvents" | "musicbrainz"
 > & {
   purchaseDecision?: Partial<PurchaseDecisionConfig>;
-  spending?: Partial<SpendingConfig>;
   liveEvents?: Partial<LiveEventsConfig>;
   musicbrainz?: Partial<MusicBrainzConfig>;
   notifications?: Partial<Omit<NotificationsConfig, "webPush">> & {
@@ -136,7 +126,6 @@ const DEFAULT_CONFIG: IConfig = {
   slskdDownloadPath: "",
   torznabApiKey: "",
   purchaseDecision: DEFAULT_PURCHASE_DECISION,
-  spending: DEFAULT_SPENDING,
   notifications: DEFAULT_NOTIFICATIONS,
   liveEvents: DEFAULT_LIVE_EVENTS,
   musicbrainz: DEFAULT_MUSICBRAINZ,
@@ -164,11 +153,12 @@ function getRawDb(): RawDatabase {
 /**
  * Configs saved before the recommenders were removed hold the capture switch as
  * `promotedAlbum.ratingsBackupEnabled`, alongside knobs nothing reads any more.
+ * `spending` moved onto each user; a copy left in an old config.json is dropped.
  */
 function migrateLegacyKeys(
   saved: Record<string, unknown>
 ): Record<string, unknown> {
-  const { promotedAlbum, ...rest } = saved;
+  const { promotedAlbum, spending: _spending, ...rest } = saved;
   const legacyCapture = (promotedAlbum as { ratingsBackupEnabled?: unknown })
     ?.ratingsBackupEnabled;
   if (
@@ -188,10 +178,6 @@ function mergeWithDefaults(raw: Record<string, unknown>): IConfig {
     purchaseDecision: {
       ...DEFAULT_PURCHASE_DECISION,
       ...((saved.purchaseDecision as Record<string, unknown>) ?? {}),
-    },
-    spending: {
-      ...DEFAULT_SPENDING,
-      ...((saved.spending as Record<string, unknown>) ?? {}),
     },
     liveEvents: {
       ...DEFAULT_LIVE_EVENTS,
@@ -222,7 +208,6 @@ export const getConfig = (): IConfig => {
     return {
       ...DEFAULT_CONFIG,
       purchaseDecision: { ...DEFAULT_PURCHASE_DECISION },
-      spending: { ...DEFAULT_SPENDING },
       notifications: { ...DEFAULT_NOTIFICATIONS },
       liveEvents: { ...DEFAULT_LIVE_EVENTS },
       musicbrainz: { ...DEFAULT_MUSICBRAINZ },
@@ -260,20 +245,6 @@ function validatePurchaseDecisionConfig(config: PurchaseDecisionConfig) {
     config.oldReleaseThresholdYears < 0
   ) {
     throw new Error("oldReleaseThresholdYears must be a non-negative number");
-  }
-}
-
-function validateSpendingConfig(config: SpendingConfig) {
-  if (typeof config.currency !== "string" || config.currency.length !== 3) {
-    throw new Error("currency must be a 3-letter ISO 4217 code");
-  }
-  if (
-    config.monthlyLimit !== null &&
-    (typeof config.monthlyLimit !== "number" ||
-      !Number.isInteger(config.monthlyLimit) ||
-      config.monthlyLimit < 0)
-  ) {
-    throw new Error("monthlyLimit must be a non-negative integer or null");
   }
 }
 
@@ -474,10 +445,6 @@ export const setConfig = (newConfig: Partial<IConfigInput>) => {
       ...currentConfig.purchaseDecision,
       ...(newConfig.purchaseDecision ?? {}),
     },
-    spending: {
-      ...currentConfig.spending,
-      ...(newConfig.spending ?? {}),
-    },
     notifications: {
       ...currentConfig.notifications,
       ...(newConfig.notifications ?? {}),
@@ -500,10 +467,6 @@ export const setConfig = (newConfig: Partial<IConfigInput>) => {
 
   if (newConfig.purchaseDecision !== undefined) {
     validatePurchaseDecisionConfig(mergedConfig.purchaseDecision);
-  }
-
-  if (newConfig.spending !== undefined) {
-    validateSpendingConfig(mergedConfig.spending);
   }
 
   if (newConfig.notifications !== undefined) {
@@ -548,7 +511,6 @@ export const initializeConfig = () => {
   let initialConfig: IConfig = {
     ...DEFAULT_CONFIG,
     purchaseDecision: { ...DEFAULT_PURCHASE_DECISION },
-    spending: { ...DEFAULT_SPENDING },
     notifications: { ...DEFAULT_NOTIFICATIONS },
     musicbrainz: { ...DEFAULT_MUSICBRAINZ },
   };

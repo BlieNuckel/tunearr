@@ -7,8 +7,6 @@ import { useRequests } from "@/hooks/useRequests";
 import useWantedList from "@/hooks/useWantedList";
 import usePurchaseList from "@/hooks/usePurchaseList";
 import useIsMobile from "@/hooks/useIsMobile";
-import { useSettings } from "@/context/useSettings";
-import { DEFAULT_SPENDING } from "@/context/spendingDefaults";
 import SettingsTabs, { type SettingsRoute } from "@/components/SettingsTabs";
 import NotificationBadge from "@/components/NotificationBadge";
 import useUnseenReleaseCount from "@/hooks/useUnseenReleaseCount";
@@ -64,8 +62,6 @@ export default function LibraryPage() {
   const { user } = useAuth();
   const location = useLocation();
   const isMobile = useIsMobile();
-  const { settings } = useSettings();
-  const spending = settings.spending ?? DEFAULT_SPENDING;
   const { count: unseenCount, markViewed } = useUnseenReleaseCount();
   const [filters, setFilters] = useState<Record<string, string[]>>({
     requester: [],
@@ -266,13 +262,7 @@ export default function LibraryPage() {
           ))}
         </div>
       ) : (
-        purchaseSummary && (
-          <SpendingSummary
-            summary={purchaseSummary}
-            currency={spending.currency}
-            monthlyLimit={spending.monthlyLimit}
-          />
-        )
+        purchaseSummary && <SpendingSummary summary={purchaseSummary} />
       )}
 
       <SettingsTabs

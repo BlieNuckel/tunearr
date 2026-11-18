@@ -109,7 +109,10 @@ export interface PurchaseItem {
   purchasedAt: string;
 }
 
+/** Totals in the user's own currency, with the limit they are measured against. */
 export interface SpendingSummary {
+  currency: string;
+  monthlyLimit: number | null;
   month: number;
   allTime: number;
   albumCount: number;

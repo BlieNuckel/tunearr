@@ -3,13 +3,19 @@ import {
   countPurchases,
   deletePurchase,
   findPurchase,
+  getUserSpending,
   insertPurchase,
   listPurchases,
+  setUserSpending,
   sumSpend,
   updatePurchasePrice,
 } from "../../db/purchases";
 import { getReleaseGroupById } from "../../api/musicbrainz/releaseGroups";
-import { getConfig } from "../../config";
+import { ApiError } from "../../middleware/ApiError";
+import {
+  spendingSettingsError,
+  type SpendingSettings,
+} from "../../../shared/currency";
 import { createLogger } from "../../logger";
 
 type RecordPurchaseResult =
@@ -17,7 +23,8 @@ type RecordPurchaseResult =
 
 type RemovePurchaseResult = { status: "removed" } | { status: "not_found" };
 
-export type SpendingSummary = {
+/** Totals in the user's own currency, with the limit they are measured against. */
+export type SpendingSummary = SpendingSettings & {
   month: number;
   allTime: number;
   albumCount: number;
@@ -88,18 +95,37 @@ export async function getPurchases(userId: number): Promise<Purchase[]> {
   return listPurchases(userId);
 }
 
+export async function readSpendingSettings(
+  userId: number
+): Promise<SpendingSettings> {
+  const spending = await getUserSpending(userId);
+  if (!spending) throw new ApiError(404, "User not found");
+  return spending;
+}
+
+export async function writeSpendingSettings(
+  userId: number,
+  patch: Partial<SpendingSettings>
+): Promise<SpendingSettings> {
+  const error = spendingSettingsError(patch);
+  if (error) throw new ApiError(400, error);
+
+  await setUserSpending(userId, patch);
+  return readSpendingSettings(userId);
+}
+
 export async function getSpendingSummary(
   userId: number
 ): Promise<SpendingSummary> {
-  const { currency } = getConfig().spending;
+  const spending = await readSpendingSettings(userId);
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
   const [month, allTime, albumCount] = await Promise.all([
-    sumSpend(userId, currency, monthStart.toISOString()),
-    sumSpend(userId, currency, null),
-    countPurchases(userId, currency),
+    sumSpend(userId, spending.currency, monthStart.toISOString()),
+    sumSpend(userId, spending.currency, null),
+    countPurchases(userId, spending.currency),
   ]);
 
-  return { month, allTime, albumCount };
+  return { ...spending, month, allTime, albumCount };
 }
