@@ -19,7 +19,7 @@ import {
   getMbQueueDepth,
   getMbPauseRemainingMs,
   reportMbSuccess,
-  reportMbThrottled,
+  reportMbRefused,
   resetMbQueue,
   type MbPriority,
 } from "./queue";
@@ -140,78 +140,136 @@ describe("lane priority", () => {
   });
 });
 
-describe("throttle breaker", () => {
-  it("stops granting slots after MusicBrainz throttles us", async () => {
+describe("refusals", () => {
+  it("stops granting slots after a rate refusal", async () => {
     const granted: string[] = [];
     void track("interactive", "first", granted);
-    await vi.advanceTimersByTimeAsync(0);
+    await vi.advanceTimersByTimeAsync(INTERVAL_MS);
 
-    reportMbThrottled();
+    reportMbRefused("rate", 3000);
     void track("interactive", "second", granted);
 
-    await vi.advanceTimersByTimeAsync(INTERVAL_MS);
+    await vi.advanceTimersByTimeAsync(2999);
     expect(granted).toEqual(["first"]);
 
-    await vi.advanceTimersByTimeAsync(2000);
+    await vi.advanceTimersByTimeAsync(1);
     expect(granted).toEqual(["first", "second"]);
   });
 
-  it("pauses both lanes, not just the one that was throttled", async () => {
+  it("pauses both lanes, not just the one that was refused", async () => {
     const granted: string[] = [];
     void track("interactive", "warmup", granted);
-    await vi.advanceTimersByTimeAsync(0);
+    await vi.advanceTimersByTimeAsync(INTERVAL_MS);
 
-    reportMbThrottled();
+    reportMbRefused("rate", 3000);
     void track("background", "bg", granted);
 
-    await vi.advanceTimersByTimeAsync(INTERVAL_MS);
+    await vi.advanceTimersByTimeAsync(2000);
     expect(granted).toEqual(["warmup"]);
 
-    await vi.advanceTimersByTimeAsync(2000);
+    await vi.advanceTimersByTimeAsync(1000);
     expect(granted).toEqual(["warmup", "bg"]);
   });
 
-  it("doubles the pause while throttling continues", () => {
-    reportMbThrottled();
-    expect(getMbPauseRemainingMs()).toBe(2000);
+  it("rests 1s after a rate refusal that names no Retry-After, without doubling", () => {
+    reportMbRefused("rate");
+    expect(getMbPauseRemainingMs()).toBe(1000);
 
-    reportMbThrottled();
-    expect(getMbPauseRemainingMs()).toBe(4000);
-
-    reportMbThrottled();
-    expect(getMbPauseRemainingMs()).toBe(8000);
+    vi.advanceTimersByTime(1000);
+    reportMbRefused("rate");
+    expect(getMbPauseRemainingMs()).toBe(1000);
   });
 
-  it("waits at least as long as Retry-After asks", () => {
-    reportMbThrottled(30);
-    expect(getMbPauseRemainingMs()).toBe(30_000);
-  });
+  it("honors Retry-After on a rate refusal, up to a minute", () => {
+    reportMbRefused("rate", 5000);
+    expect(getMbPauseRemainingMs()).toBe(5000);
 
-  it("ignores a Retry-After shorter than its own backoff", () => {
-    reportMbThrottled();
-    reportMbThrottled();
-    reportMbThrottled();
-    expect(getMbPauseRemainingMs()).toBe(8000);
-
-    reportMbThrottled(1);
-    expect(getMbPauseRemainingMs()).toBe(16_000);
-  });
-
-  it("caps the pause", () => {
-    for (let i = 0; i < 20; i += 1) reportMbThrottled();
+    reportMbRefused("rate", 10 * 60_000);
     expect(getMbPauseRemainingMs()).toBe(60_000);
   });
 
+  it("treats an address block as minutes, doubling to 15", () => {
+    reportMbRefused("block");
+    expect(getMbPauseRemainingMs()).toBe(60_000);
+
+    reportMbRefused("block");
+    expect(getMbPauseRemainingMs()).toBe(120_000);
+
+    for (let i = 0; i < 10; i += 1) reportMbRefused("block");
+    expect(getMbPauseRemainingMs()).toBe(15 * 60_000);
+  });
+
+  it("waits longer than a block's backoff when Retry-After asks", () => {
+    reportMbRefused("block", 5 * 60_000);
+    expect(getMbPauseRemainingMs()).toBe(5 * 60_000);
+  });
+
   it("clears the pause as soon as MusicBrainz answers again", () => {
-    reportMbThrottled();
-    reportMbThrottled();
-    expect(getMbPauseRemainingMs()).toBe(4000);
+    reportMbRefused("block");
+    reportMbRefused("block");
+    expect(getMbPauseRemainingMs()).toBe(120_000);
 
     reportMbSuccess();
     expect(getMbPauseRemainingMs()).toBe(0);
 
-    reportMbThrottled();
-    expect(getMbPauseRemainingMs()).toBe(2000);
+    reportMbRefused("block");
+    expect(getMbPauseRemainingMs()).toBe(60_000);
+  });
+});
+
+describe("deadlines", () => {
+  it("rejects at once when the queue is paused past the deadline", async () => {
+    reportMbRefused("block");
+
+    await expect(
+      acquireMbSlot("interactive", Date.now() + 6000)
+    ).rejects.toMatchObject({
+      status: 503,
+      retryable: true,
+      retryAfterMs: 60_000,
+    });
+    expect(getMbQueueDepth().interactive).toBe(0);
+  });
+
+  it("waits out a pause that ends before the deadline", async () => {
+    reportMbRefused("rate", 1000);
+    let granted = false;
+    void acquireMbSlot("interactive", Date.now() + 6000).then(() => {
+      granted = true;
+    });
+
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(granted).toBe(true);
+  });
+
+  it("gives up a queued slot when the deadline passes and leaves the queue", async () => {
+    const granted: string[] = [];
+    for (let i = 0; i < 3; i += 1) void track("interactive", `r${i}`, granted);
+    await vi.advanceTimersByTimeAsync(0);
+
+    const late = acquireMbSlot("interactive", Date.now() + 1500);
+    const outcome = late.then(
+      () => "granted",
+      (error: { retryable?: boolean }) => (error.retryable ? "busy" : "other")
+    );
+
+    await vi.advanceTimersByTimeAsync(1500);
+    expect(await outcome).toBe("busy");
+    expect(getMbQueueDepth().interactive).toBe(1);
+
+    await vi.advanceTimersByTimeAsync(INTERVAL_MS * 3);
+    expect(granted).toEqual(["r0", "r1", "r2"]);
+  });
+
+  it("does not time out a background request", async () => {
+    reportMbRefused("block");
+    let granted = false;
+    void acquireMbSlot("background").then(() => {
+      granted = true;
+    });
+
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(granted).toBe(true);
   });
 });
 
@@ -260,8 +318,8 @@ describe("pace from the configured server", () => {
     void track("interactive", "first", granted);
     await vi.advanceTimersByTimeAsync(INTERVAL_MS);
 
-    for (let i = 0; i < 5; i += 1) reportMbThrottled();
-    expect(getMbPauseRemainingMs()).toBe(32_000);
+    reportMbRefused("block");
+    expect(getMbPauseRemainingMs()).toBe(60_000);
 
     void track("interactive", "second", granted);
     await vi.advanceTimersByTimeAsync(0);
