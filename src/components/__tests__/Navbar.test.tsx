@@ -18,7 +18,7 @@ describe("Navbar", () => {
 
   it("shows current page label in menu button", () => {
     renderNavbar("/");
-    expect(screen.getByRole("button")).toHaveTextContent("Discover");
+    expect(screen.getByRole("button")).toHaveTextContent("Home");
   });
 
   it("shows Search label on search page", () => {
@@ -37,7 +37,7 @@ describe("Navbar", () => {
 
     fireEvent.click(screen.getByRole("button"));
 
-    expect(screen.getByRole("link", { name: "Discover" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Home" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Search" })).toBeInTheDocument();
     expect(screen.getByText("Status")).toBeInTheDocument();
     expect(screen.getByText("Settings")).toBeInTheDocument();

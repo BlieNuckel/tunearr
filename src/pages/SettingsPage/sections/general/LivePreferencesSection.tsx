@@ -63,7 +63,7 @@ export default function LivePreferencesSection() {
           className="w-4 h-4 border-2 border-black rounded"
         />
         <span className="text-sm text-gray-900 dark:text-gray-100">
-          Show the announcement banner on Discover
+          Show the announcement banner on Home
         </span>
       </label>
 

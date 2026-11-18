@@ -43,7 +43,7 @@ describe("Sidebar", () => {
 
   it("renders shared navigation links for both mobile and desktop", () => {
     renderSidebar();
-    expect(screen.getAllByRole("link", { name: /Discover/ })).toHaveLength(2);
+    expect(screen.getAllByRole("link", { name: /Home/ })).toHaveLength(2);
     expect(screen.getAllByRole("link", { name: /Search/ })).toHaveLength(2);
     expect(screen.getAllByRole("link", { name: /Library/ })).toHaveLength(2);
   });
@@ -69,9 +69,9 @@ describe("Sidebar", () => {
     });
   });
 
-  it("highlights Discover link on home page in both mobile and desktop", () => {
+  it("highlights Home link on home page in both mobile and desktop", () => {
     renderSidebar("/");
-    const discoverLinks = screen.getAllByRole("link", { name: /Discover/ });
+    const discoverLinks = screen.getAllByRole("link", { name: /Home/ });
     expect(discoverLinks).toHaveLength(2);
     expect(discoverLinks[0]).toHaveClass("bg-amber-300");
     expect(discoverLinks[1]).toHaveClass("text-black");
