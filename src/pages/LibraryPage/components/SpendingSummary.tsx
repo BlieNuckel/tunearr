@@ -4,12 +4,16 @@ import {
   getSpotifyMonthlyMinor,
   SPOTIFY_MONTHLY_PRICE,
 } from "@shared/currency";
+import { Link } from "react-router-dom";
 import type { SpendingSummary as SpendingSummaryType } from "@/types";
 
 interface SpendingSummaryProps {
   summary: SpendingSummaryType;
+}
+
+interface SpendingTotalsProps {
+  summary: SpendingSummaryType;
   currency: string;
-  monthlyLimit: number | null;
 }
 
 function getStreamingComparison(
@@ -79,11 +83,33 @@ function StreamingBadge({ months }: { months: number }) {
   );
 }
 
-export default function SpendingSummary({
-  summary,
-  currency,
-  monthlyLimit,
-}: SpendingSummaryProps) {
+function SetupSpendingCard() {
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-xl border-2 border-black shadow-cartoon-md p-4 sm:p-5">
+      <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide">
+        Purchases
+      </p>
+      <p className="text-gray-600 dark:text-gray-300 text-sm mt-2">
+        Choose the currency you buy music in to start tracking what you spend on
+        artists.
+      </p>
+      <Link
+        to="/settings/general"
+        className="inline-block mt-3 bg-emerald-400 hover:bg-emerald-300 text-black font-bold py-2 px-4 rounded-xl border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md transition-all"
+      >
+        Set up purchases
+      </Link>
+    </div>
+  );
+}
+
+export default function SpendingSummary({ summary }: SpendingSummaryProps) {
+  if (summary.currency === null) return <SetupSpendingCard />;
+  return <SpendingTotals summary={summary} currency={summary.currency} />;
+}
+
+function SpendingTotals({ summary, currency }: SpendingTotalsProps) {
+  const { monthlyLimit } = summary;
   const streaming = getStreamingComparison(summary.allTime, currency);
   const hasLimit = monthlyLimit !== null && monthlyLimit > 0;
 

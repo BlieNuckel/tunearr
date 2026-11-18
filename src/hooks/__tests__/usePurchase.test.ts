@@ -29,7 +29,7 @@ describe("usePurchase", () => {
     );
 
     const { result } = renderHook(() => usePurchase());
-    await act(() => result.current.record("mbid-1", 999, "USD"));
+    await act(() => result.current.record("mbid-1", 999));
 
     expect(result.current.state).toBe("purchased");
     expect(fetch).toHaveBeenCalledWith("/api/purchases", {
@@ -38,7 +38,6 @@ describe("usePurchase", () => {
       body: JSON.stringify({
         albumMbid: "mbid-1",
         price: 999,
-        currency: "USD",
       }),
     });
   });
@@ -49,7 +48,7 @@ describe("usePurchase", () => {
     );
 
     const { result } = renderHook(() => usePurchase());
-    await act(() => result.current.record("mbid-1", 999, "USD"));
+    await act(() => result.current.record("mbid-1", 999));
 
     expect(result.current.state).toBe("error");
     expect(result.current.errorMsg).toBe("Server error");
@@ -87,7 +86,7 @@ describe("usePurchase", () => {
     );
 
     const { result } = renderHook(() => usePurchase());
-    await act(() => result.current.record("mbid-1", 999, "USD"));
+    await act(() => result.current.record("mbid-1", 999));
     expect(result.current.state).toBe("error");
 
     act(() => result.current.reset());

@@ -8,33 +8,30 @@ export default function usePurchase(initialPurchased = false) {
   );
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const record = useCallback(
-    async (albumMbid: string, price: number, currency: string) => {
-      setState("recording");
-      setErrorMsg(null);
+  const record = useCallback(async (albumMbid: string, price: number) => {
+    setState("recording");
+    setErrorMsg(null);
 
-      try {
-        const res = await fetch("/api/purchases", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ albumMbid, price, currency }),
-        });
+    try {
+      const res = await fetch("/api/purchases", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ albumMbid, price }),
+      });
 
-        if (!res.ok) {
-          const data = await res.json();
-          throw new Error(data.error || "Failed to record purchase");
-        }
-
-        setState("purchased");
-      } catch (err) {
-        setState("error");
-        setErrorMsg(
-          err instanceof Error ? err.message : "Failed to record purchase"
-        );
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to record purchase");
       }
-    },
-    []
-  );
+
+      setState("purchased");
+    } catch (err) {
+      setState("error");
+      setErrorMsg(
+        err instanceof Error ? err.message : "Failed to record purchase"
+      );
+    }
+  }, []);
 
   const remove = useCallback(async (albumMbid: string) => {
     setState("removing");

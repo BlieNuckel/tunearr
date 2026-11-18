@@ -33,6 +33,7 @@ import { LiveEventPerformerGenres1722000000000 } from "./migration/14_LiveEventP
 import { LiveQuotaUsage1723000000000 } from "./migration/15_LiveQuotaUsage";
 import { PromotedAlbumSnapshots1724000000000 } from "./migration/16_PromotedAlbumSnapshots";
 import { RemoveRecommendations1725000000000 } from "./migration/17_RemoveRecommendations";
+import { UserSpending1726000000000 } from "./migration/18_UserSpending";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -84,6 +85,7 @@ export function createDataSource(dbPath?: string): DataSource {
       LiveQuotaUsage1723000000000,
       PromotedAlbumSnapshots1724000000000,
       RemoveRecommendations1725000000000,
+      UserSpending1726000000000,
     ],
     synchronize: false,
     migrationsRun: true,

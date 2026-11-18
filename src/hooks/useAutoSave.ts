@@ -15,7 +15,6 @@ const IMMEDIATE_FIELDS: Set<keyof AppSettings> = new Set([
   "lidarrMetadataProfileId",
   "listeningCaptureEnabled",
   "purchaseDecision",
-  "spending",
 ]);
 
 function isImmediateField(key: keyof AppSettings): boolean {

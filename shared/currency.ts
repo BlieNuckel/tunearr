@@ -1,3 +1,11 @@
+/** A user's spending setup. */
+export type SpendingSettings = {
+  /** ISO 4217 code purchases are recorded in. Null until the user sets up purchases. */
+  currency: string | null;
+  /** Soft budget in minor units of `currency`. Null means no limit. */
+  monthlyLimit: number | null;
+};
+
 export function getMinorUnitExponent(currency: string): number {
   const { minimumFractionDigits } = new Intl.NumberFormat("en", {
     style: "currency",
@@ -78,4 +86,35 @@ export function getSpotifyMonthlyMinor(currency: string): number | null {
   const price = SPOTIFY_MONTHLY_PRICE[currency];
   if (price === undefined) return null;
   return toMinorUnits(price, currency);
+}
+
+/**
+ * Why a spending change can't be saved over `current`, or null when it can.
+ * Absent fields are left as they are. A currency can be changed but not
+ * cleared, and a limit needs a currency to be counted in.
+ */
+export function spendingSettingsError(
+  patch: Partial<SpendingSettings>,
+  current: SpendingSettings
+): string | null {
+  if (
+    patch.currency !== undefined &&
+    (typeof patch.currency !== "string" || !/^[A-Z]{3}$/.test(patch.currency))
+  ) {
+    return "currency must be a 3-letter ISO 4217 code";
+  }
+  const currency = patch.currency ?? current.currency;
+  if (patch.monthlyLimit != null && currency === null) {
+    return "Choose a currency before setting a limit";
+  }
+  if (
+    patch.monthlyLimit !== undefined &&
+    patch.monthlyLimit !== null &&
+    (typeof patch.monthlyLimit !== "number" ||
+      !Number.isInteger(patch.monthlyLimit) ||
+      patch.monthlyLimit < 0)
+  ) {
+    return "monthlyLimit must be a non-negative integer or null";
+  }
+  return null;
 }

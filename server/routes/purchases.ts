@@ -5,6 +5,8 @@ import {
   removePurchase,
   getPurchases,
   getSpendingSummary,
+  readSpendingSettings,
+  writeSpendingSettings,
 } from "../services/purchases/purchaseService";
 
 const router = express.Router();
@@ -32,8 +34,19 @@ router.get("/summary", async (req: Request, res: Response) => {
   res.json(summary);
 });
 
+router.get("/spending", async (req: Request, res: Response) => {
+  res.json(await readSpendingSettings(req.user!.id));
+});
+
+router.patch("/spending", async (req: Request, res: Response) => {
+  const { currency, monthlyLimit } = req.body ?? {};
+  res.json(
+    await writeSpendingSettings(req.user!.id, { currency, monthlyLimit })
+  );
+});
+
 router.post("/", async (req: Request, res: Response) => {
-  const { albumMbid, price, currency } = req.body;
+  const { albumMbid, price } = req.body;
 
   if (!albumMbid) {
     return res.status(400).json({ error: "albumMbid is required" });
@@ -43,13 +56,7 @@ router.post("/", async (req: Request, res: Response) => {
       .status(400)
       .json({ error: "price must be a non-negative integer (minor units)" });
   }
-  if (typeof currency !== "string" || currency.length !== 3) {
-    return res
-      .status(400)
-      .json({ error: "currency must be a 3-letter ISO 4217 code" });
-  }
-
-  const result = await recordPurchase(req.user!.id, albumMbid, price, currency);
+  const result = await recordPurchase(req.user!.id, albumMbid, price);
   res.json(result);
 });
 

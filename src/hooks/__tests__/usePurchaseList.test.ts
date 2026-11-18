@@ -30,7 +30,13 @@ const mockItems = [
   },
 ];
 
-const mockSummary = { month: 2499, allTime: 2499, albumCount: 2 };
+const mockSummary = {
+  currency: "USD",
+  monthlyLimit: null,
+  month: 2499,
+  allTime: 2499,
+  albumCount: 2,
+};
 
 describe("usePurchaseList", () => {
   it("fetches purchases and summary on mount", async () => {

@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { getPlexConfig } from "./config";
 import {
   DEFAULT_PURCHASE_DECISION,
-  DEFAULT_SPENDING,
   DEFAULT_NOTIFICATIONS,
   DEFAULT_LIVE_EVENTS,
   DEFAULT_MUSICBRAINZ,
@@ -35,7 +34,6 @@ const fullConfig = {
   torznabApiKey: "",
   theme: "system" as const,
   purchaseDecision: DEFAULT_PURCHASE_DECISION,
-  spending: DEFAULT_SPENDING,
   notifications: DEFAULT_NOTIFICATIONS,
   liveEvents: DEFAULT_LIVE_EVENTS,
   musicbrainz: DEFAULT_MUSICBRAINZ,

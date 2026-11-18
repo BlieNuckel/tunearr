@@ -4,6 +4,7 @@ import { RenamePlexPlays1717000000000 } from "./migration/9_RenamePlexPlays";
 import { FollowedReleases1718000000000 } from "./migration/10_FollowedReleases";
 import { LiveEvents1721000000000 } from "./migration/13_LiveEvents";
 import { RemoveRecommendations1725000000000 } from "./migration/17_RemoveRecommendations";
+import { UserSpending1726000000000 } from "./migration/18_UserSpending";
 import type { DataSource } from "typeorm";
 
 let ds: DataSource | null = null;
@@ -54,6 +55,8 @@ describe("InitialSchema migration", () => {
       "live_imminent_days_local",
       "live_imminent_days_regional",
       "live_banner_enabled",
+      "spending_currency",
+      "spending_monthly_limit",
     ]);
   });
 
@@ -659,5 +662,146 @@ describe("LiveEvents migration", () => {
       name: string;
     }[];
     expect(userCols.map((c) => c.name)).not.toContain("live_regions");
+  });
+});
+
+describe("UserSpending migration", () => {
+  type SpendingRow = {
+    username: string;
+    spending_currency: string | null;
+    spending_monthly_limit: number | null;
+  };
+
+  async function spendingRows(db: DataSource): Promise<SpendingRow[]> {
+    return (await db.query(
+      `SELECT username, spending_currency, spending_monthly_limit FROM users ORDER BY id`
+    )) as SpendingRow[];
+  }
+
+  async function configData(db: DataSource): Promise<Record<string, unknown>> {
+    const [row] = (await db.query("SELECT data FROM config WHERE id = 1")) as {
+      data: string;
+    }[];
+    return JSON.parse(row.data);
+  }
+
+  async function rewind(db: DataSource): Promise<void> {
+    const runner = db.createQueryRunner();
+    await new UserSpending1726000000000().down(runner);
+    await runner.release();
+  }
+
+  async function reapply(db: DataSource): Promise<void> {
+    const runner = db.createQueryRunner();
+    await new UserSpending1726000000000().up(runner);
+    await runner.release();
+  }
+
+  async function recordPurchase(db: DataSource, userId: number): Promise<void> {
+    await db.query(
+      `INSERT INTO purchases (user_id, album_mbid, artist_name, album_title, price, currency)
+       VALUES (?, 'rg-1', 'Artist', 'Album', 999, 'SEK')`,
+      [userId]
+    );
+  }
+
+  it("leaves a new user without a currency or limit", async () => {
+    const db = await initTestDb();
+    await insertUser(db, "erin");
+
+    expect(await spendingRows(db)).toEqual([
+      {
+        username: "erin",
+        spending_currency: null,
+        spending_monthly_limit: null,
+      },
+    ]);
+  });
+
+  it("copies the instance currency and limit onto users who already have purchases", async () => {
+    const db = await initTestDb();
+    await rewind(db);
+    const erin = await insertUser(db, "erin");
+    await insertUser(db, "sam");
+    await recordPurchase(db, erin);
+    await db.query("INSERT INTO config (id, data) VALUES (1, ?)", [
+      JSON.stringify({
+        lidarrUrl: "http://lidarr:8686",
+        spending: { currency: "SEK", monthlyLimit: 50000 },
+      }),
+    ]);
+
+    await reapply(db);
+
+    expect(await spendingRows(db)).toEqual([
+      {
+        username: "erin",
+        spending_currency: "SEK",
+        spending_monthly_limit: 50000,
+      },
+      {
+        username: "sam",
+        spending_currency: null,
+        spending_monthly_limit: null,
+      },
+    ]);
+    expect(await configData(db)).toEqual({ lidarrUrl: "http://lidarr:8686" });
+  });
+
+  it("falls back to USD for a purchaser when the instance never saved spending", async () => {
+    const db = await initTestDb();
+    await rewind(db);
+    await recordPurchase(db, await insertUser(db, "erin"));
+    await db.query("INSERT INTO config (id, data) VALUES (1, '{}')");
+
+    await reapply(db);
+
+    expect(await spendingRows(db)).toEqual([
+      {
+        username: "erin",
+        spending_currency: "USD",
+        spending_monthly_limit: null,
+      },
+    ]);
+  });
+
+  it("falls back to USD for a purchaser when there is no config row at all", async () => {
+    const db = await initTestDb();
+    await rewind(db);
+    await recordPurchase(db, await insertUser(db, "erin"));
+
+    await reapply(db);
+
+    expect((await spendingRows(db))[0].spending_currency).toBe("USD");
+  });
+
+  it("restores the first set-up user's values as the instance setting on down", async () => {
+    const db = await initTestDb();
+    await db.query(
+      `INSERT INTO users (username, spending_currency, spending_monthly_limit)
+       VALUES ('new', NULL, NULL), ('erin', 'EUR', 3000), ('sam', 'JPY', NULL)`
+    );
+    await db.query("INSERT INTO config (id, data) VALUES (1, '{}')");
+
+    await rewind(db);
+
+    expect(await configData(db)).toEqual({
+      spending: { currency: "EUR", monthlyLimit: 3000 },
+    });
+    const columns = (await db.query("PRAGMA table_info(users)")) as {
+      name: string;
+    }[];
+    expect(columns.map((c) => c.name)).not.toContain("spending_currency");
+    expect(columns.map((c) => c.name)).not.toContain("spending_monthly_limit");
+  });
+
+  it("leaves the instance on its defaults on down when nobody set up purchases", async () => {
+    const db = await initTestDb();
+    await insertUser(db, "erin");
+    await db.query("INSERT INTO config (id, data) VALUES (1, '{}')");
+
+    await rewind(db);
+
+    expect(await configData(db)).toEqual({});
   });
 });

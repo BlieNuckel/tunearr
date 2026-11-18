@@ -7,6 +7,7 @@ const mockFindOne = vi.fn();
 const mockCreate = vi.fn();
 const mockSave = vi.fn();
 const mockRemove = vi.fn();
+const mockUpdate = vi.fn();
 const mockCreateQueryBuilder = vi.fn();
 
 vi.mock("../../db/index", () => ({
@@ -17,21 +18,17 @@ vi.mock("../../db/index", () => ({
       create: (...args: unknown[]) => mockCreate(...args),
       save: (...args: unknown[]) => mockSave(...args),
       remove: (...args: unknown[]) => mockRemove(...args),
+      update: (...args: unknown[]) => mockUpdate(...args),
       createQueryBuilder: (...args: unknown[]) =>
         mockCreateQueryBuilder(...args),
     }),
   }),
   Purchase: "Purchase",
+  User: "User",
 }));
 
 vi.mock("../../api/musicbrainz/releaseGroups", () => ({
   getReleaseGroupById: (...args: unknown[]) => mockGetReleaseGroupById(...args),
-}));
-
-vi.mock("../../config", () => ({
-  getConfig: () => ({
-    spending: { currency: "USD", monthlyLimit: null },
-  }),
 }));
 
 vi.mock("../../logger", () => ({
@@ -47,6 +44,8 @@ import {
   removePurchase,
   getPurchases,
   getSpendingSummary,
+  readSpendingSettings,
+  writeSpendingSettings,
 } from "./purchaseService";
 
 beforeEach(() => {
@@ -57,9 +56,15 @@ beforeEach(() => {
   });
 });
 
+function userRow(currency: string | null, limit: number | null) {
+  return { id: 1, spending_currency: currency, spending_monthly_limit: limit };
+}
+
 describe("recordPurchase", () => {
-  it("creates a new purchase when none exists", async () => {
-    mockFindOne.mockResolvedValue(null);
+  it("creates a new purchase in the user's currency when none exists", async () => {
+    mockFindOne
+      .mockResolvedValueOnce(userRow("USD", null))
+      .mockResolvedValueOnce(null);
     mockCreate.mockReturnValue({
       user_id: 1,
       album_mbid: "mbid-1",
@@ -76,7 +81,7 @@ describe("recordPurchase", () => {
       currency: "USD",
     });
 
-    const result = await recordPurchase(1, "mbid-1", 999, "USD");
+    const result = await recordPurchase(1, "mbid-1", 999);
     expect(result).toEqual({ status: "recorded", id: 10 });
     expect(mockGetReleaseGroupById).toHaveBeenCalledWith("mbid-1");
     expect(mockCreate).toHaveBeenCalledWith({
@@ -99,21 +104,36 @@ describe("recordPurchase", () => {
       currency: "EUR",
       purchased_at: "2024-01-01T00:00:00Z",
     };
-    mockFindOne.mockResolvedValue(existing);
+    mockFindOne
+      .mockResolvedValueOnce(userRow("USD", null))
+      .mockResolvedValueOnce(existing);
     mockSave.mockResolvedValue({ ...existing, price: 999, currency: "USD" });
 
-    const result = await recordPurchase(1, "mbid-1", 999, "USD");
+    const result = await recordPurchase(1, "mbid-1", 999);
     expect(result).toEqual({ status: "updated", id: 5 });
     expect(existing.price).toBe(999);
     expect(existing.currency).toBe("USD");
     expect(mockGetReleaseGroupById).not.toHaveBeenCalled();
   });
 
+  it("refuses with a 409 until the user has chosen a currency", async () => {
+    mockFindOne.mockResolvedValueOnce(userRow(null, null));
+
+    await expect(recordPurchase(1, "mbid-1", 999)).rejects.toMatchObject({
+      status: 409,
+      message:
+        "Choose your purchase currency in Settings before recording purchases",
+    });
+    expect(mockSave).not.toHaveBeenCalled();
+  });
+
   it("throws when MusicBrainz lookup fails", async () => {
-    mockFindOne.mockResolvedValue(null);
+    mockFindOne
+      .mockResolvedValueOnce(userRow("USD", null))
+      .mockResolvedValueOnce(null);
     mockGetReleaseGroupById.mockResolvedValue(null);
 
-    await expect(recordPurchase(1, "bad-mbid", 999, "USD")).rejects.toThrow(
+    await expect(recordPurchase(1, "bad-mbid", 999)).rejects.toThrow(
       "Could not resolve release group bad-mbid on MusicBrainz"
     );
   });
@@ -156,41 +176,174 @@ describe("getPurchases", () => {
   });
 });
 
-describe("getSpendingSummary", () => {
-  it("returns month, allTime totals and album count", async () => {
-    const mockQb = {
-      select: vi.fn().mockReturnThis(),
-      where: vi.fn().mockReturnThis(),
-      andWhere: vi.fn().mockReturnThis(),
-      getRawOne: vi.fn(),
-    };
+function summaryQueryBuilder() {
+  const qb = {
+    select: vi.fn().mockReturnThis(),
+    where: vi.fn().mockReturnThis(),
+    andWhere: vi.fn().mockReturnThis(),
+    getRawOne: vi.fn(),
+  };
+  mockCreateQueryBuilder.mockReturnValue(qb);
+  return qb;
+}
 
-    mockCreateQueryBuilder.mockReturnValue(mockQb);
-    mockQb.getRawOne
+describe("getSpendingSummary", () => {
+  it("returns totals in the user's currency with their limit", async () => {
+    mockFindOne.mockResolvedValue(userRow("SEK", 50000));
+    const qb = summaryQueryBuilder();
+    qb.getRawOne
       .mockResolvedValueOnce({ total: 2000 })
       .mockResolvedValueOnce({ total: 50000 })
       .mockResolvedValueOnce({ count: 12 });
 
     const result = await getSpendingSummary(1);
     expect(result).toEqual({
+      currency: "SEK",
+      monthlyLimit: 50000,
       month: 2000,
       allTime: 50000,
       albumCount: 12,
     });
     expect(mockCreateQueryBuilder).toHaveBeenCalledTimes(3);
+    for (const call of qb.andWhere.mock.calls.filter((c) =>
+      String(c[0]).includes("currency")
+    )) {
+      expect(call[1]).toEqual({ currency: "SEK" });
+    }
   });
 
   it("returns zeros when no purchases exist", async () => {
-    const mockQb = {
-      select: vi.fn().mockReturnThis(),
-      where: vi.fn().mockReturnThis(),
-      andWhere: vi.fn().mockReturnThis(),
-      getRawOne: vi.fn().mockResolvedValue({ total: null, count: null }),
-    };
-
-    mockCreateQueryBuilder.mockReturnValue(mockQb);
+    mockFindOne.mockResolvedValue(userRow("USD", null));
+    const qb = summaryQueryBuilder();
+    qb.getRawOne.mockResolvedValue({ total: null, count: null });
 
     const result = await getSpendingSummary(1);
-    expect(result).toEqual({ month: 0, allTime: 0, albumCount: 0 });
+    expect(result).toEqual({
+      currency: "USD",
+      monthlyLimit: null,
+      month: 0,
+      allTime: 0,
+      albumCount: 0,
+    });
+  });
+
+  it("returns zeros without querying until a currency is chosen", async () => {
+    mockFindOne.mockResolvedValue(userRow(null, null));
+
+    expect(await getSpendingSummary(1)).toEqual({
+      currency: null,
+      monthlyLimit: null,
+      month: 0,
+      allTime: 0,
+      albumCount: 0,
+    });
+    expect(mockCreateQueryBuilder).not.toHaveBeenCalled();
+  });
+
+  it("throws a 404 when the user is gone", async () => {
+    mockFindOne.mockResolvedValue(null);
+
+    await expect(getSpendingSummary(1)).rejects.toMatchObject({ status: 404 });
+  });
+});
+
+describe("readSpendingSettings", () => {
+  it("maps the user's columns to spending settings", async () => {
+    mockFindOne.mockResolvedValue(userRow("EUR", 1000));
+
+    expect(await readSpendingSettings(1)).toEqual({
+      currency: "EUR",
+      monthlyLimit: 1000,
+    });
+  });
+});
+
+describe("writeSpendingSettings", () => {
+  it("writes only the fields given and returns the stored result", async () => {
+    mockFindOne.mockResolvedValue(userRow("USD", 2500));
+
+    const result = await writeSpendingSettings(1, { monthlyLimit: 2500 });
+
+    expect(mockUpdate).toHaveBeenCalledWith(
+      { id: 1 },
+      { spending_monthly_limit: 2500 }
+    );
+    expect(result).toEqual({ currency: "USD", monthlyLimit: 2500 });
+  });
+
+  it("clears the limit when given null", async () => {
+    mockFindOne.mockResolvedValue(userRow("USD", null));
+
+    await writeSpendingSettings(1, { monthlyLimit: null });
+
+    expect(mockUpdate).toHaveBeenCalledWith(
+      { id: 1 },
+      { spending_monthly_limit: null }
+    );
+  });
+
+  it("changes the currency", async () => {
+    mockFindOne.mockResolvedValue(userRow("JPY", null));
+
+    await writeSpendingSettings(1, { currency: "JPY" });
+
+    expect(mockUpdate).toHaveBeenCalledWith(
+      { id: 1 },
+      { spending_currency: "JPY" }
+    );
+  });
+
+  it("sets a first currency and limit together", async () => {
+    mockFindOne.mockResolvedValue(userRow(null, null));
+
+    await writeSpendingSettings(1, { currency: "SEK", monthlyLimit: 50000 });
+
+    expect(mockUpdate).toHaveBeenCalledWith(
+      { id: 1 },
+      { spending_currency: "SEK", spending_monthly_limit: 50000 }
+    );
+  });
+
+  it("refuses a limit before a currency is chosen", async () => {
+    mockFindOne.mockResolvedValue(userRow(null, null));
+
+    await expect(
+      writeSpendingSettings(1, { monthlyLimit: 5000 })
+    ).rejects.toMatchObject({
+      status: 400,
+      message: "Choose a currency before setting a limit",
+    });
+    expect(mockUpdate).not.toHaveBeenCalled();
+  });
+
+  it("refuses to clear a chosen currency", async () => {
+    mockFindOne.mockResolvedValue(userRow("USD", null));
+
+    await expect(
+      writeSpendingSettings(1, { currency: null })
+    ).rejects.toMatchObject({
+      status: 400,
+      message: "currency must be a 3-letter ISO 4217 code",
+    });
+  });
+
+  it.each([
+    [{ currency: "usd" }, "currency must be a 3-letter ISO 4217 code"],
+    [{ currency: "EURO" }, "currency must be a 3-letter ISO 4217 code"],
+    [
+      { monthlyLimit: -1 },
+      "monthlyLimit must be a non-negative integer or null",
+    ],
+    [
+      { monthlyLimit: 9.5 },
+      "monthlyLimit must be a non-negative integer or null",
+    ],
+  ])("rejects %o with a 400", async (patch, message) => {
+    mockFindOne.mockResolvedValue(userRow("USD", null));
+    await expect(writeSpendingSettings(1, patch)).rejects.toMatchObject({
+      status: 400,
+      message,
+    });
+    expect(mockUpdate).not.toHaveBeenCalled();
   });
 });

@@ -4,6 +4,7 @@ import {
   toMajorUnits,
   formatCurrency,
   getSpotifyMonthlyMinor,
+  spendingSettingsError,
 } from "@shared/currency";
 
 describe("getMinorUnitExponent", () => {
@@ -74,5 +75,54 @@ describe("getSpotifyMonthlyMinor", () => {
 
   it("returns null for unsupported currency", () => {
     expect(getSpotifyMonthlyMinor("XYZ")).toBeNull();
+  });
+});
+
+describe("spendingSettingsError", () => {
+  const unset = { currency: null, monthlyLimit: null };
+  const usd = { currency: "USD", monthlyLimit: null };
+
+  it("accepts a first currency, with or without a limit", () => {
+    expect(spendingSettingsError({ currency: "SEK" }, unset)).toBeNull();
+    expect(
+      spendingSettingsError({ currency: "SEK", monthlyLimit: 50000 }, unset)
+    ).toBeNull();
+  });
+
+  it("accepts an empty patch and a cleared limit", () => {
+    expect(spendingSettingsError({}, unset)).toBeNull();
+    expect(spendingSettingsError({ monthlyLimit: null }, usd)).toBeNull();
+  });
+
+  it("accepts a limit once a currency is chosen", () => {
+    expect(spendingSettingsError({ monthlyLimit: 5000 }, usd)).toBeNull();
+  });
+
+  it("rejects a limit before a currency is chosen", () => {
+    expect(spendingSettingsError({ monthlyLimit: 5000 }, unset)).toBe(
+      "Choose a currency before setting a limit"
+    );
+  });
+
+  it("rejects clearing the currency", () => {
+    expect(spendingSettingsError({ currency: null }, usd)).toBe(
+      "currency must be a 3-letter ISO 4217 code"
+    );
+  });
+
+  it("rejects a currency that isn't three upper-case letters", () => {
+    for (const currency of ["usd", "EURO", "", "U$D"]) {
+      expect(spendingSettingsError({ currency }, usd)).toBe(
+        "currency must be a 3-letter ISO 4217 code"
+      );
+    }
+  });
+
+  it("rejects a negative or fractional limit", () => {
+    for (const monthlyLimit of [-1, 1.5, Number.NaN]) {
+      expect(spendingSettingsError({ monthlyLimit }, usd)).toBe(
+        "monthlyLimit must be a non-negative integer or null"
+      );
+    }
   });
 });

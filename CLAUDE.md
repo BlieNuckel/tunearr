@@ -76,7 +76,7 @@ The result: Lidarr sees a normal indexer and download client, but downloads actu
 
 **Shared code (`/shared/`):** Code shared between frontend and backend: `permissions.ts` (Permission enum, `hasPermission()` helper) and `currency.ts`. Importable from both sides via `@shared/*`.
 
-**Config system** (`server/config.ts`): Persisted as JSON at `APP_CONFIG_DIR/config.json`. `getConfig()` reads from disk and merges with defaults on every call (nested config objects like `purchaseDecision`, `spending`, `liveEvents` are deep-merged). `setConfig()` validates and writes. `getConfigValue<K>(key)` provides typed single-field access.
+**Config system** (`server/config.ts`): Persisted as JSON at `APP_CONFIG_DIR/config.json`. `getConfig()` reads from disk and merges with defaults on every call (nested config objects like `purchaseDecision`, `liveEvents`, `musicbrainz` are deep-merged). Spending currency and monthly limit are per user (`users.spending_currency` / `spending_monthly_limit`, `/api/purchases/spending`), not config. A null currency means the user hasn't set up purchases; every purchase is recorded in the user's currency, never one sent by the client, so totals never mix currencies. `setConfig()` validates and writes. `getConfigValue<K>(key)` provides typed single-field access.
 
 **Key patterns:**
 

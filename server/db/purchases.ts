@@ -1,4 +1,5 @@
-import { getDataSource, Purchase } from "./index";
+import { getDataSource, Purchase, User } from "./index";
+import type { SpendingSettings } from "../../shared/currency";
 
 export type PurchaseInput = {
   userId: number;
@@ -88,4 +89,37 @@ export async function countPurchases(
     .andWhere("p.currency = :currency", { currency })
     .getRawOne()) as { count: number | null };
   return Number(row.count) || 0;
+}
+
+export async function getUserSpending(
+  userId: number
+): Promise<SpendingSettings | null> {
+  const row = await getDataSource()
+    .getRepository(User)
+    .findOne({ where: { id: userId } });
+  if (!row) return null;
+
+  return {
+    currency: row.spending_currency,
+    monthlyLimit: row.spending_monthly_limit,
+  };
+}
+
+export async function setUserSpending(
+  userId: number,
+  patch: Partial<SpendingSettings>
+): Promise<void> {
+  await getDataSource()
+    .getRepository(User)
+    .update(
+      { id: userId },
+      {
+        ...(patch.currency !== undefined
+          ? { spending_currency: patch.currency }
+          : {}),
+        ...(patch.monthlyLimit !== undefined
+          ? { spending_monthly_limit: patch.monthlyLimit }
+          : {}),
+      }
+    );
 }

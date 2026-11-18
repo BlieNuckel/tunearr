@@ -6,7 +6,6 @@ import {
   type SettingsContextValue,
 } from "./settingsContextDef";
 import { DEFAULT_PURCHASE_DECISION } from "./purchaseDecisionDefaults";
-import { DEFAULT_SPENDING } from "./spendingDefaults";
 import { DEFAULT_LIVE_EVENTS } from "@shared/settingsDefaults";
 import { DEFAULT_MUSICBRAINZ } from "@shared/musicbrainzServer";
 import { useAuth } from "./useAuth";
@@ -44,7 +43,6 @@ const EMPTY_SETTINGS: AppSettings = {
   torznabApiKey: "",
   listeningCaptureEnabled: true,
   purchaseDecision: DEFAULT_PURCHASE_DECISION,
-  spending: DEFAULT_SPENDING,
   liveEvents: DEFAULT_LIVE_EVENTS,
   musicbrainz: DEFAULT_MUSICBRAINZ,
 };
@@ -78,10 +76,6 @@ function normalizeSettings(data: Record<string, unknown>): AppSettings {
     purchaseDecision: {
       ...DEFAULT_PURCHASE_DECISION,
       ...((data.purchaseDecision as object) ?? {}),
-    },
-    spending: {
-      ...DEFAULT_SPENDING,
-      ...((data.spending as object) ?? {}),
     },
     liveEvents: {
       ...DEFAULT_LIVE_EVENTS,

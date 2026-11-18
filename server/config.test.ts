@@ -3,10 +3,7 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 import { initializeDatabase, closeDatabase, getDataSource } from "./db/index";
-import {
-  DEFAULT_PURCHASE_DECISION as SHARED_PURCHASE_DECISION,
-  DEFAULT_SPENDING as SHARED_SPENDING,
-} from "../shared/settingsDefaults";
+import { DEFAULT_PURCHASE_DECISION as SHARED_PURCHASE_DECISION } from "../shared/settingsDefaults";
 import {
   getConfig,
   setConfig,
@@ -221,6 +218,14 @@ describe("listening capture config", () => {
     expect(config).not.toHaveProperty("promotedAlbum");
   });
 
+  it("drops an instance-wide spending section, which now lives on each user", async () => {
+    await getDataSource().query("UPDATE config SET data = ? WHERE id = 1", [
+      JSON.stringify({ spending: { currency: "SEK", monthlyLimit: 5000 } }),
+    ]);
+
+    expect(getConfig()).not.toHaveProperty("spending");
+  });
+
   it("prefers an explicit top-level switch over the legacy one", async () => {
     await getDataSource().query("UPDATE config SET data = ? WHERE id = 1", [
       JSON.stringify({
@@ -322,14 +327,13 @@ describe("shared settings defaults", () => {
     const config = getConfig();
 
     expect(config.purchaseDecision).toEqual(SHARED_PURCHASE_DECISION);
-    expect(config.spending).toEqual(SHARED_SPENDING);
   });
 
   it("treats a null nested section as 'no change' rather than wiping it", () => {
-    setConfig({ spending: { monthlyLimit: 25 } as never });
-    setConfig({ spending: null as never });
+    setConfig({ purchaseDecision: { oldReleaseThresholdYears: 25 } });
+    setConfig({ purchaseDecision: null as never });
 
-    expect(getConfig().spending.monthlyLimit).toBe(25);
+    expect(getConfig().purchaseDecision.oldReleaseThresholdYears).toBe(25);
   });
 
   it("still validates a nested section supplied as null-valued keys", () => {
@@ -341,11 +345,12 @@ describe("shared settings defaults", () => {
   });
 
   it("does not let a partial nested write drop the other keys", () => {
-    setConfig({ spending: { monthlyLimit: 25 } as never });
+    setConfig({ purchaseDecision: { labelBlocklist: ["Sony"] } });
+    setConfig({ purchaseDecision: { oldReleaseThresholdYears: 25 } });
 
-    const { spending } = getConfig();
-    expect(spending.monthlyLimit).toBe(25);
-    expect(spending.currency).toBe(SHARED_SPENDING.currency);
+    const { purchaseDecision } = getConfig();
+    expect(purchaseDecision.oldReleaseThresholdYears).toBe(25);
+    expect(purchaseDecision.labelBlocklist).toEqual(["Sony"]);
   });
 });
 
