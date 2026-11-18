@@ -11,6 +11,7 @@ import {
 import { getMbServer, type MbServer } from "./server";
 import { markLoadFailed, markLoadNotFound } from "./loadContext";
 import { MbUnavailableError } from "./errors";
+import { TUNEARR_USER_AGENT } from "../userAgent";
 import type { MbServerKind } from "../../../shared/musicbrainzServer";
 
 /**
@@ -20,7 +21,7 @@ import type { MbServerKind } from "../../../shared/musicbrainzServer";
 type RefusalKind = MbRefusalKind | "outage";
 
 export const MB_HEADERS = {
-  "User-Agent": "Tunearr/0.1.0 (github.com/tunearr)",
+  "User-Agent": TUNEARR_USER_AGENT,
   Accept: "application/json",
 };
 
