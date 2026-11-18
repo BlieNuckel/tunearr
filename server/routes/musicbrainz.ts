@@ -24,6 +24,7 @@ import { getReleaseTracks } from "../api/musicbrainz/tracks";
 import { enrichTracksWithPreviews } from "../services/musicbrainz";
 import { getConfigValue } from "../config";
 import { evaluatePurchaseDecision } from "../services/purchaseDecision/evaluatePurchaseDecision";
+import { isMbUnavailableError } from "../api/musicbrainz/errors";
 
 const router = express.Router();
 
@@ -179,12 +180,20 @@ router.get(
         config
       );
       sendSSE(res, "result", result);
-    } catch {
-      sendSSE(res, "result", {
-        recommendation: "neutral",
-        signals: [],
-        label: null,
-      });
+    } catch (error) {
+      if (isMbUnavailableError(error)) {
+        sendSSE(res, "error", {
+          error: error.message,
+          retryable: true,
+          retryAfterMs: error.retryAfterMs,
+        });
+      } else {
+        sendSSE(res, "result", {
+          recommendation: "neutral",
+          signals: [],
+          label: null,
+        });
+      }
     } finally {
       res.end();
     }

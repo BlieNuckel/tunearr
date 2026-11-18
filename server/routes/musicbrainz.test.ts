@@ -542,4 +542,30 @@ describe("GET /purchase-context/:releaseGroupId", () => {
       label: null,
     });
   });
+
+  it("sends a retryable error event when MusicBrainz is busy", async () => {
+    mockGetReleaseGroupLabel.mockRejectedValue(
+      new MbUnavailableError("MusicBrainz is busy (returned 503)", 3000)
+    );
+    mockGetReleaseGroupDate.mockResolvedValue(null);
+
+    const res = await request(app)
+      .get("/purchase-context/rg-busy")
+      .buffer(true)
+      .parse((res, cb) => {
+        let data = "";
+        res.on("data", (chunk: Buffer) => {
+          data += chunk.toString();
+        });
+        res.on("end", () => cb(null, data));
+      });
+
+    const events = parseSSEEvents(res.body as string);
+    expect(events.find((e) => e.event === "result")).toBeUndefined();
+    expect(events.find((e) => e.event === "error")?.data).toEqual({
+      error: "MusicBrainz is busy (returned 503)",
+      retryable: true,
+      retryAfterMs: 3000,
+    });
+  });
 });

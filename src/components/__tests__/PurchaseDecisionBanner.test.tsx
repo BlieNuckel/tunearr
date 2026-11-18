@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import PurchaseDecisionBanner from "../PurchaseDecisionBanner";
 import type { PurchaseContext } from "@/hooks/usePurchaseContext";
 
@@ -152,5 +152,40 @@ describe("PurchaseDecisionBanner", () => {
     );
     expect(screen.queryByText("MusicBrainz")).not.toBeInTheDocument();
     expect(screen.queryByText("Wikipedia")).not.toBeInTheDocument();
+  });
+
+  it("says MusicBrainz is busy while the advice is retried", () => {
+    render(
+      <PurchaseDecisionBanner
+        context={null}
+        loading
+        progress={null}
+        error="MusicBrainz is busy (returned 503)"
+        retrying
+      />
+    );
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "MusicBrainz is busy, retrying…"
+    );
+  });
+
+  it("offers a retry once retries run out", () => {
+    const onRetry = vi.fn();
+    render(
+      <PurchaseDecisionBanner
+        context={null}
+        loading={false}
+        progress={null}
+        error="MusicBrainz is busy (returned 503)"
+        retrying={false}
+        onRetry={onRetry}
+      />
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "MusicBrainz is still busy"
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(onRetry).toHaveBeenCalled();
   });
 });
