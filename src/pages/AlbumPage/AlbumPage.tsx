@@ -6,72 +6,67 @@ import useArtistReleaseGroups from "@/hooks/useArtistReleaseGroups";
 import useLibraryAlbums from "@/hooks/useLibraryAlbums";
 import useWantedAlbums from "@/hooks/useWantedAlbums";
 import useSimilarAlbums from "@/hooks/useSimilarAlbums";
-import ReleaseSectionGrid from "@/pages/ArtistPage/components/ReleaseSectionGrid";
-import AlbumHeader from "./components/AlbumHeader";
+import ReleaseSectionWithStatus from "@/pages/ArtistPage/components/ReleaseSectionWithStatus";
+import AlbumHeaderSection from "./components/AlbumHeaderSection";
 import AlbumTracklist from "./components/AlbumTracklist";
-import AlbumPageSkeleton from "./components/AlbumPageSkeleton";
 
+/**
+ * Every section loads and fails on its own: the header waits on album details,
+ * and a busy MusicBrainz costs one section its content, not the whole page.
+ */
 export default function AlbumPage() {
   const { mbid } = useParams<{ mbid: string }>();
-  const { album, loading, error } = useReleaseGroupDetails(mbid);
-  const { label } = useReleaseGroupLabel(mbid);
-  const { releaseGroups, loading: moreLoading } = useArtistReleaseGroups(
-    album?.artistMbid
-  );
+  const details = useReleaseGroupDetails(mbid);
+  const label = useReleaseGroupLabel(mbid);
+  const album = details.album;
+  const more = useArtistReleaseGroups(album?.artistMbid);
   const { isAlbumInLibrary, getAlbumLibrary } = useLibraryAlbums();
   const { isAlbumWanted } = useWantedAlbums();
-  const { albums: similarAlbums, loading: similarLoading } =
-    useSimilarAlbums(mbid);
+  const similar = useSimilarAlbums(mbid);
 
   const otherReleases = useMemo(
-    () => releaseGroups.filter((rg) => rg.id !== album?.mbid),
-    [releaseGroups, album?.mbid]
+    () => more.releaseGroups.filter((rg) => rg.id !== album?.mbid),
+    [more.releaseGroups, album?.mbid]
   );
 
-  if (loading) return <AlbumPageSkeleton />;
-
-  if (error || !album) {
-    return (
-      <div className="mt-16 flex flex-col items-center text-gray-400 animate-fade-in">
-        <p className="text-lg font-medium text-gray-500">
-          {error ?? "Album not found"}
-        </p>
-        <p className="mt-1 text-center">
-          We couldn&apos;t load this album. Try again from search.
-        </p>
-      </div>
-    );
-  }
+  const waitingForArtistName = details.loading && !details.retrying;
 
   return (
     <div>
-      <AlbumHeader
+      <AlbumHeaderSection
         album={album}
-        label={label}
-        inLibrary={isAlbumInLibrary(album.mbid)}
-        initialWanted={isAlbumWanted(album.mbid)}
-        library={getAlbumLibrary(album.mbid)}
+        details={details}
+        label={label.label}
+        labelState={label}
+        inLibrary={album ? isAlbumInLibrary(album.mbid) : false}
+        initialWanted={album ? isAlbumWanted(album.mbid) : false}
+        library={album ? getAlbumLibrary(album.mbid) : null}
       />
 
-      <AlbumTracklist albumMbid={album.mbid} artistName={album.artistName} />
+      {mbid && (
+        <AlbumTracklist
+          albumMbid={waitingForArtistName ? null : mbid}
+          artistName={album?.artistName ?? null}
+        />
+      )}
 
-      {(moreLoading || otherReleases.length > 0) && (
-        <ReleaseSectionGrid
+      {album?.artistMbid && (
+        <ReleaseSectionWithStatus
           title="More from this artist"
+          subject="more from this artist"
           items={otherReleases}
-          loading={moreLoading}
+          state={more}
           getAlbumLibrary={getAlbumLibrary}
         />
       )}
 
-      {(similarLoading || similarAlbums.length > 0) && (
-        <ReleaseSectionGrid
-          title="Similar albums"
-          items={similarAlbums}
-          loading={similarLoading}
-          getAlbumLibrary={getAlbumLibrary}
-        />
-      )}
+      <ReleaseSectionWithStatus
+        title="Similar albums"
+        subject="similar albums"
+        items={similar.albums}
+        state={similar}
+        getAlbumLibrary={getAlbumLibrary}
+      />
     </div>
   );
 }

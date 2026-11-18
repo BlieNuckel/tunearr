@@ -7,20 +7,18 @@ import useLibraryArtists from "@/hooks/useLibraryArtists";
 import useSimilarArtists from "@/hooks/useSimilarArtists";
 import useArtistLiveDates from "@/hooks/useArtistLiveDates";
 import { groupArtistReleases } from "@/utils/groupArtistReleases";
-import ArtistHeader from "./components/ArtistHeader";
+import ArtistHeaderSection from "./components/ArtistHeaderSection";
 import ArtistDiscography from "./components/ArtistDiscography";
 import SimilarArtists from "./components/SimilarArtists";
 import ArtistLiveDates from "./components/ArtistLiveDates";
-import ArtistPageSkeleton from "./components/ArtistPageSkeleton";
 
+/** The header waits on artist details; the discography and the rest load and fail on their own. */
 export default function ArtistPage() {
   const { mbid } = useParams<{ mbid: string }>();
-  const { artist, loading, error } = useArtistDetails(mbid);
-  const {
-    releaseGroups,
-    loading: releasesLoading,
-    error: releasesError,
-  } = useArtistReleaseGroups(mbid);
+  const details = useArtistDetails(mbid);
+  const artist = details.artist;
+  const releases = useArtistReleaseGroups(mbid);
+  const releaseGroups = releases.releaseGroups;
   const { getAlbumLibrary } = useLibraryAlbums();
   const { isArtistInLibrary } = useLibraryArtists();
   const { artists: similarArtists, loading: similarLoading } =
@@ -32,34 +30,19 @@ export default function ArtistPage() {
     [releaseGroups, mbid]
   );
 
-  if (loading) return <ArtistPageSkeleton />;
-
-  if (error || !artist) {
-    return (
-      <div className="mt-16 flex flex-col items-center text-gray-400 animate-fade-in">
-        <p className="text-lg font-medium text-gray-500">
-          {error ?? "Artist not found"}
-        </p>
-        <p className="mt-1 text-center">
-          We couldn&apos;t load this artist. Try again from search.
-        </p>
-      </div>
-    );
-  }
-
   return (
     <div>
-      <ArtistHeader
+      <ArtistHeaderSection
         artist={artist}
-        inLibrary={isArtistInLibrary(mbid ?? "", artist.name)}
+        details={details}
+        inLibrary={artist ? isArtistInLibrary(mbid ?? "", artist.name) : false}
       />
 
       <ArtistLiveDates dates={liveDates} tracking={liveTracking} />
 
       <ArtistDiscography
         sections={sections}
-        loading={releasesLoading}
-        error={releasesError}
+        state={releases}
         getAlbumLibrary={getAlbumLibrary}
       />
 

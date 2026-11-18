@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import useAsyncData from "./useAsyncData";
 import type { FetchContext } from "./useAsyncData";
 import type { ReleaseGroup } from "../types";
+import { responseError } from "@/utils/fetchError";
 
 export interface SimilarAlbum {
   mbid: string;
@@ -47,15 +48,12 @@ async function fetchSimilarAlbums({
     `/api/similar-albums?mbid=${encodeURIComponent(key)}`,
     { signal }
   );
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error(data.error || "Failed to load similar albums");
-  }
+  if (!res.ok) throw await responseError(res, "Failed to load similar albums");
   return res.json();
 }
 
 export default function useSimilarAlbums(mbid: string | null | undefined) {
-  const { data, loading, error } = useAsyncData(
+  const { data, loading, error, errorKind, retrying, refresh } = useAsyncData(
     mbid ?? null,
     fetchSimilarAlbums
   );
@@ -65,5 +63,5 @@ export default function useSimilarAlbums(mbid: string | null | undefined) {
     [data]
   );
 
-  return { albums, loading, error };
+  return { albums, loading, error, errorKind, retrying, refresh };
 }

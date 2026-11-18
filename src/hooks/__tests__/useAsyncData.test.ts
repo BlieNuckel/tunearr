@@ -1,6 +1,7 @@
 import { renderHook, act, waitFor } from "@testing-library/react";
 import useAsyncData from "../useAsyncData";
 import type { FetchContext } from "../useAsyncData";
+import { FetchError } from "@/utils/fetchError";
 
 type Deferred<T> = {
   promise: Promise<T>;
@@ -347,5 +348,129 @@ describe("useAsyncData", () => {
 
     expect(result.current.error).toBeNull();
     expect(result.current.data).toBe("k2");
+  });
+});
+
+describe("useAsyncData automatic retry", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function busy(retryAfterMs = 1000) {
+    return new FetchError("MusicBrainz is busy", 503, true, retryAfterMs);
+  }
+
+  it("retries a retryable error after the delay the server asked for", async () => {
+    vi.useFakeTimers();
+    const fetcher = vi
+      .fn()
+      .mockRejectedValueOnce(busy(1000))
+      .mockResolvedValue("value");
+    const { result } = renderHook(() => useAsyncData("k1", fetcher));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(result.current.retrying).toBe(true);
+    expect(result.current.errorKind).toBe("busy");
+    expect(fetcher).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(result.current.data).toBe("value");
+    expect(result.current.retrying).toBe(false);
+    expect(result.current.error).toBeNull();
+  });
+
+  it("doubles the delay and stops after the cap, leaving the error", async () => {
+    vi.useFakeTimers();
+    const fetcher = vi.fn().mockRejectedValue(busy(1000));
+    const { result } = renderHook(() => useAsyncData("k1", fetcher));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    for (const delay of [1000, 2000, 4000]) {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(delay);
+      });
+    }
+    expect(fetcher).toHaveBeenCalledTimes(4);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60_000);
+    });
+    expect(fetcher).toHaveBeenCalledTimes(4);
+    expect(result.current.retrying).toBe(false);
+    expect(result.current.error).toBe("MusicBrainz is busy");
+    expect(result.current.errorKind).toBe("busy");
+  });
+
+  it("does not retry an error that isn't retryable", async () => {
+    vi.useFakeTimers();
+    const fetcher = vi
+      .fn()
+      .mockRejectedValue(new FetchError("Album not found", 404));
+    const { result } = renderHook(() => useAsyncData("k1", fetcher));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30_000);
+    });
+
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(result.current.retrying).toBe(false);
+    expect(result.current.errorKind).toBe("notFound");
+  });
+
+  it("starts the count over on a manual refresh", async () => {
+    vi.useFakeTimers();
+    const fetcher = vi.fn().mockRejectedValue(busy(1000));
+    const { result } = renderHook(() => useAsyncData("k1", fetcher));
+
+    for (const delay of [0, 1000, 2000, 4000]) {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(delay);
+      });
+    }
+    expect(fetcher).toHaveBeenCalledTimes(4);
+    expect(result.current.retrying).toBe(false);
+
+    let pending!: Promise<void>;
+    act(() => {
+      pending = result.current.refresh();
+    });
+    await act(async () => {
+      await pending;
+    });
+
+    expect(fetcher).toHaveBeenCalledTimes(5);
+    expect(result.current.retrying).toBe(true);
+  });
+
+  it("drops a scheduled retry when the key changes", async () => {
+    vi.useFakeTimers();
+    const fetcher = vi
+      .fn()
+      .mockRejectedValueOnce(busy(1000))
+      .mockResolvedValue("other");
+    const { result, rerender } = renderHook(
+      ({ key }: { key: string }) => useAsyncData(key, fetcher),
+      { initialProps: { key: "k1" } }
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(0);
+    });
+    rerender({ key: "k2" });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000);
+    });
+
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(fetcher.mock.calls.map((c) => c[0].key)).toEqual(["k1", "k2"]);
+    expect(result.current.data).toBe("other");
   });
 });

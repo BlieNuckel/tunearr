@@ -1,45 +1,45 @@
-import { useState, useCallback } from "react";
-import { Medium } from "../types";
+import useAsyncData from "./useAsyncData";
+import type { FetchContext } from "./useAsyncData";
+import type { Medium } from "../types";
+import { responseError } from "@/utils/fetchError";
 
-export default function useReleaseTracks() {
-  const [media, setMedia] = useState<Medium[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+interface ReleaseTracksResponse {
+  media?: Medium[];
+}
 
-  const fetchTracks = useCallback(
-    async (releaseGroupId: string, artistName?: string) => {
-      setLoading(true);
-      setError(null);
+function tracksKey(releaseGroupId: string, artistName?: string | null) {
+  if (!artistName) return releaseGroupId;
+  return `${releaseGroupId}?${new URLSearchParams({ artistName }).toString()}`;
+}
 
-      try {
-        const params = new URLSearchParams();
-        if (artistName) params.set("artistName", artistName);
-        const query = params.toString();
-        const url = `/api/musicbrainz/tracks/${releaseGroupId}${query ? `?${query}` : ""}`;
+async function fetchTracks({
+  key,
+  signal,
+}: FetchContext): Promise<ReleaseTracksResponse> {
+  const res = await fetch(`/api/musicbrainz/tracks/${key}`, { signal });
+  if (!res.ok) throw await responseError(res, "Failed to fetch tracks");
+  return res.json();
+}
 
-        const res = await fetch(url);
-
-        if (!res.ok) {
-          const data = await res.json();
-          throw new Error(data.error || "Failed to fetch tracks");
-        }
-
-        const data = await res.json();
-        setMedia(data.media || []);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to fetch tracks");
-        setMedia([]);
-      } finally {
-        setLoading(false);
-      }
-    },
-    []
+/**
+ * Tracks for a release group. The artist name only adds audio previews, so a
+ * missing one still loads the tracklist. Pass a null id to wait.
+ */
+export default function useReleaseTracks(
+  releaseGroupId: string | null,
+  artistName?: string | null
+) {
+  const { data, loading, error, errorKind, retrying, refresh } = useAsyncData(
+    releaseGroupId === null ? null : tracksKey(releaseGroupId, artistName),
+    fetchTracks
   );
 
-  const reset = useCallback(() => {
-    setMedia([]);
-    setError(null);
-  }, []);
-
-  return { media, loading, error, fetchTracks, reset };
+  return {
+    media: data?.media ?? [],
+    loading,
+    error,
+    errorKind,
+    retrying,
+    refresh,
+  };
 }
