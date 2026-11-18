@@ -26,7 +26,7 @@ export default function ArtistCard({
 
   const handleClick = () => {
     haptics.light();
-    void go({ mbid, name });
+    void go({ mbid, name, imageUrl });
   };
 
   const showImage = imageUrl && !imageError;

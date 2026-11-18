@@ -154,9 +154,9 @@ const makeRg = (id: string, title: string): ReleaseGroup => ({
   "artist-credit": [],
 });
 
-function renderPage() {
+function renderPage(state?: unknown) {
   return render(
-    <MemoryRouter initialEntries={["/album/rg-1"]}>
+    <MemoryRouter initialEntries={[{ pathname: "/album/rg-1", state }]}>
       <Routes>
         <Route path="/album/:mbid" element={<AlbumPage />} />
       </Routes>
@@ -375,5 +375,62 @@ describe("AlbumPage", () => {
     renderPage();
 
     expect(screen.queryByTestId("similar-albums")).not.toBeInTheDocument();
+  });
+
+  describe("from a card", () => {
+    const preview = {
+      albumPreview: makeAlbum({ title: "OK Computer (card)" }),
+    };
+
+    it("draws the header from the card while details load", () => {
+      mockState.loading = true;
+      renderPage(preview);
+
+      expect(screen.getByTestId("album-header")).toHaveTextContent(
+        "OK Computer (card)"
+      );
+      expect(screen.queryByTestId("album-header-skeleton")).toBeNull();
+    });
+
+    it("starts the tracklist and discography from the card's artist", () => {
+      mockState.loading = true;
+      renderPage(preview);
+
+      expect(screen.getByTestId("album-tracklist")).toHaveTextContent("rg-1");
+      expect(screen.getByTestId("album-tracklist")).toHaveAttribute(
+        "data-artist",
+        "Radiohead"
+      );
+      expect(receivedArtistMbid).toBe("a1");
+    });
+
+    it("swaps in the fetched details when they land", () => {
+      mockState.album = makeAlbum({ title: "OK Computer" });
+      renderPage(preview);
+
+      expect(screen.getByTestId("album-header")).toHaveTextContent(
+        /^OK Computer$/
+      );
+    });
+
+    it("keeps the card's header and says why when details fail", () => {
+      mockState.error = "busy";
+      mockState.errorKind = "busy";
+      renderPage(preview);
+
+      expect(screen.getByTestId("album-header")).toHaveTextContent(
+        "OK Computer (card)"
+      );
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "the rest of this album's details"
+      );
+    });
+
+    it("ignores a card preview for another album", () => {
+      mockState.loading = true;
+      renderPage({ albumPreview: makeAlbum({ mbid: "rg-other" }) });
+
+      expect(screen.getByTestId("album-header-skeleton")).toBeInTheDocument();
+    });
   });
 });

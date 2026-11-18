@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import NewReleasesShelf from "../NewReleasesShelf";
 import type { NewReleaseItem, NewReleasesData } from "@/types";
 
@@ -31,6 +31,12 @@ function makeItem(overrides: Partial<NewReleaseItem> = {}): NewReleaseItem {
     followedReleaseId: 11,
     ...overrides,
   };
+}
+
+/** Stands in for the album page, showing the router state it was given. */
+function AlbumProbe() {
+  const location = useLocation();
+  return <pre data-testid="probe">{JSON.stringify(location.state)}</pre>;
 }
 
 function makeData(items: NewReleaseItem[]): NewReleasesData {
@@ -150,5 +156,37 @@ describe("NewReleasesShelf", () => {
     renderShelf(makeData([makeItem({ releaseDate: "2026-07-08" })]));
     expect(screen.getByText(/yesterday/)).toBeInTheDocument();
     vi.useRealTimers();
+  });
+
+  it("hands the album page what the card shows", () => {
+    render(
+      <MemoryRouter initialEntries={["/"]}>
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <NewReleasesShelf data={makeData([makeItem()])} loading={false} />
+            }
+          />
+          <Route path="/album/:mbid" element={<AlbumProbe />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    fireEvent.click(
+      screen.getByRole("link", { name: "Fresh Album by Some Artist" })
+    );
+
+    expect(JSON.parse(screen.getByTestId("probe").textContent ?? "")).toEqual({
+      albumPreview: {
+        mbid: "rg-1",
+        title: "Fresh Album",
+        artistName: "Some Artist",
+        artistMbid: "mbid-1",
+        firstReleaseDate: "2026-07-01",
+        primaryType: null,
+        secondaryTypes: [],
+      },
+    });
   });
 });

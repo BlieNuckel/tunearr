@@ -71,4 +71,14 @@ describe("ArtistCard", () => {
     fireEvent.click(screen.getByRole("button", { name: /Radiohead/ }));
     expect(mockGo).toHaveBeenCalledWith({ mbid: undefined, name: "Radiohead" });
   });
+
+  it("passes the image along so the artist header can show it at once", () => {
+    renderCard({ name: "Radiohead", mbid: "a1", imageUrl: "https://img/rh" });
+    fireEvent.click(screen.getByRole("button", { name: /Radiohead/ }));
+    expect(mockGo).toHaveBeenCalledWith({
+      mbid: "a1",
+      name: "Radiohead",
+      imageUrl: "https://img/rh",
+    });
+  });
 });

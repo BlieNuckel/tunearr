@@ -90,14 +90,28 @@ describe("ReleaseGroupCard", () => {
     render(<ReleaseGroupCard releaseGroup={makeReleaseGroup()} />);
 
     fireEvent.click(screen.getByTestId("release-group-card"));
-    expect(mockNavigate).toHaveBeenCalledWith("/album/abc-123");
+    expect(mockNavigate).toHaveBeenCalledWith("/album/abc-123", {
+      state: {
+        albumPreview: expect.objectContaining({
+          mbid: "abc-123",
+          title: makeReleaseGroup().title,
+        }),
+      },
+    });
   });
 
   it("navigates from the mobile card too", () => {
     render(<ReleaseGroupCard releaseGroup={makeReleaseGroup()} />);
 
     fireEvent.click(screen.getByTestId("release-group-card-mobile"));
-    expect(mockNavigate).toHaveBeenCalledWith("/album/abc-123");
+    expect(mockNavigate).toHaveBeenCalledWith("/album/abc-123", {
+      state: {
+        albumPreview: expect.objectContaining({
+          mbid: "abc-123",
+          title: makeReleaseGroup().title,
+        }),
+      },
+    });
   });
 
   it("passes the album's context options to the ContextMenu wrapper", () => {

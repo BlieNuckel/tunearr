@@ -102,7 +102,15 @@ describe("WantedCard", () => {
     render(<WantedCard releaseGroup={makeReleaseGroup()} initialWanted />);
 
     fireEvent.click(screen.getByText("OK Computer"));
-    expect(mockNavigate).toHaveBeenCalledWith("/album/mbid-1");
+    expect(mockNavigate).toHaveBeenCalledWith("/album/mbid-1", {
+      state: {
+        albumPreview: expect.objectContaining({
+          mbid: "mbid-1",
+          title: "OK Computer",
+          artistName: "Radiohead",
+        }),
+      },
+    });
   });
 
   it("shows the Monitored button when the album is in library", () => {
