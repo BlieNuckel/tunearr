@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import SpendingSummary from "../SpendingSummary";
 
 const baseSummary = { month: 2499, allTime: 50000, albumCount: 12 };
@@ -131,5 +132,28 @@ describe("SpendingSummary", () => {
     );
 
     expect(screen.queryByText(/Spotify/)).not.toBeInTheDocument();
+  });
+
+  it("asks the user to set up purchases until they choose a currency", () => {
+    render(
+      <MemoryRouter>
+        <SpendingSummary
+          summary={{
+            currency: null,
+            monthlyLimit: null,
+            month: 0,
+            allTime: 0,
+            albumCount: 0,
+          }}
+        />
+      </MemoryRouter>
+    );
+
+    expect(
+      screen.getByRole("link", { name: "Set up purchases" })
+    ).toHaveAttribute("href", "/settings/general");
+    expect(
+      screen.queryByText("Supporting artists this month")
+    ).not.toBeInTheDocument();
   });
 });

@@ -23,7 +23,7 @@ type RecordPurchaseResult =
 
 type RemovePurchaseResult = { status: "removed" } | { status: "not_found" };
 
-/** Totals in the user's own currency, with the limit they are measured against. */
+/** Totals in the user's own currency, with the limit they are measured against. All zero until a currency is chosen. */
 export type SpendingSummary = SpendingSettings & {
   month: number;
   allTime: number;
@@ -44,12 +44,24 @@ async function resolveAlbumInfo(
   return info;
 }
 
+/**
+ * Records in the user's own currency, never one from the request: mixed
+ * currencies can't be totalled, so a purchase can't be saved before the user
+ * has chosen one.
+ */
 export async function recordPurchase(
   userId: number,
   albumMbid: string,
-  price: number,
-  currency: string
+  price: number
 ): Promise<RecordPurchaseResult> {
+  const { currency } = await readSpendingSettings(userId);
+  if (currency === null) {
+    throw new ApiError(
+      409,
+      "Choose your purchase currency in Settings before recording purchases"
+    );
+  }
+
   const existing = await findPurchase(userId, albumMbid);
   if (existing) {
     const saved = await updatePurchasePrice(
@@ -107,7 +119,10 @@ export async function writeSpendingSettings(
   userId: number,
   patch: Partial<SpendingSettings>
 ): Promise<SpendingSettings> {
-  const error = spendingSettingsError(patch);
+  const error = spendingSettingsError(
+    patch,
+    await readSpendingSettings(userId)
+  );
   if (error) throw new ApiError(400, error);
 
   await setUserSpending(userId, patch);
@@ -118,6 +133,9 @@ export async function getSpendingSummary(
   userId: number
 ): Promise<SpendingSummary> {
   const spending = await readSpendingSettings(userId);
+  if (spending.currency === null) {
+    return { ...spending, month: 0, allTime: 0, albumCount: 0 };
+  }
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 

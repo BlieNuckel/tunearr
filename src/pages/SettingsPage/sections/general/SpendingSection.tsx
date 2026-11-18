@@ -25,7 +25,7 @@ function parseLimit(
 }
 
 function limitDisplay(spending: SpendingSettings): string {
-  return spending.monthlyLimit !== null
+  return spending.monthlyLimit !== null && spending.currency !== null
     ? toMajorUnits(spending.monthlyLimit, spending.currency).toString()
     : "";
 }
@@ -41,7 +41,7 @@ export default function SpendingSection() {
   };
 
   const handleLimitBlur = (value: string) => {
-    if (!spending) return;
+    if (!spending?.currency) return;
     const limit = parseLimit(value, spending.currency);
     if (limit === undefined || limit === spending.monthlyLimit) return;
     void submit({ monthlyLimit: limit });
@@ -68,10 +68,15 @@ export default function SpendingSection() {
             </label>
             <select
               id="spending-currency"
-              value={spending.currency}
+              value={spending.currency ?? ""}
               onChange={(e) => void submit({ currency: e.target.value })}
               className={INPUT_CLASSES}
             >
+              {spending.currency === null && (
+                <option value="" disabled>
+                  Choose a currency
+                </option>
+              )}
               {COMMON_CURRENCIES.map((c) => (
                 <option key={c.code} value={c.code}>
                   {c.code} — {c.name}
@@ -79,8 +84,9 @@ export default function SpendingSection() {
               ))}
             </select>
             <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">
-              Your spending summary counts only purchases in this currency.
-              Changing it won&apos;t convert existing purchase records
+              Purchases are recorded in this currency, and your summary counts
+              only purchases in it. Changing it won&apos;t convert existing
+              purchase records
             </p>
           </div>
 
@@ -96,7 +102,12 @@ export default function SpendingSection() {
               step="any"
               defaultValue={limitDisplay(spending)}
               onBlur={(e) => handleLimitBlur(e.target.value)}
-              placeholder="No limit"
+              disabled={spending.currency === null}
+              placeholder={
+                spending.currency === null
+                  ? "Choose a currency first"
+                  : "No limit"
+              }
               className={INPUT_CLASSES}
             />
             <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">

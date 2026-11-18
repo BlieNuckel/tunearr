@@ -56,9 +56,15 @@ beforeEach(() => {
   });
 });
 
+function userRow(currency: string | null, limit: number | null) {
+  return { id: 1, spending_currency: currency, spending_monthly_limit: limit };
+}
+
 describe("recordPurchase", () => {
-  it("creates a new purchase when none exists", async () => {
-    mockFindOne.mockResolvedValue(null);
+  it("creates a new purchase in the user's currency when none exists", async () => {
+    mockFindOne
+      .mockResolvedValueOnce(userRow("USD", null))
+      .mockResolvedValueOnce(null);
     mockCreate.mockReturnValue({
       user_id: 1,
       album_mbid: "mbid-1",
@@ -75,7 +81,7 @@ describe("recordPurchase", () => {
       currency: "USD",
     });
 
-    const result = await recordPurchase(1, "mbid-1", 999, "USD");
+    const result = await recordPurchase(1, "mbid-1", 999);
     expect(result).toEqual({ status: "recorded", id: 10 });
     expect(mockGetReleaseGroupById).toHaveBeenCalledWith("mbid-1");
     expect(mockCreate).toHaveBeenCalledWith({
@@ -98,21 +104,36 @@ describe("recordPurchase", () => {
       currency: "EUR",
       purchased_at: "2024-01-01T00:00:00Z",
     };
-    mockFindOne.mockResolvedValue(existing);
+    mockFindOne
+      .mockResolvedValueOnce(userRow("USD", null))
+      .mockResolvedValueOnce(existing);
     mockSave.mockResolvedValue({ ...existing, price: 999, currency: "USD" });
 
-    const result = await recordPurchase(1, "mbid-1", 999, "USD");
+    const result = await recordPurchase(1, "mbid-1", 999);
     expect(result).toEqual({ status: "updated", id: 5 });
     expect(existing.price).toBe(999);
     expect(existing.currency).toBe("USD");
     expect(mockGetReleaseGroupById).not.toHaveBeenCalled();
   });
 
+  it("refuses with a 409 until the user has chosen a currency", async () => {
+    mockFindOne.mockResolvedValueOnce(userRow(null, null));
+
+    await expect(recordPurchase(1, "mbid-1", 999)).rejects.toMatchObject({
+      status: 409,
+      message:
+        "Choose your purchase currency in Settings before recording purchases",
+    });
+    expect(mockSave).not.toHaveBeenCalled();
+  });
+
   it("throws when MusicBrainz lookup fails", async () => {
-    mockFindOne.mockResolvedValue(null);
+    mockFindOne
+      .mockResolvedValueOnce(userRow("USD", null))
+      .mockResolvedValueOnce(null);
     mockGetReleaseGroupById.mockResolvedValue(null);
 
-    await expect(recordPurchase(1, "bad-mbid", 999, "USD")).rejects.toThrow(
+    await expect(recordPurchase(1, "bad-mbid", 999)).rejects.toThrow(
       "Could not resolve release group bad-mbid on MusicBrainz"
     );
   });
@@ -154,10 +175,6 @@ describe("getPurchases", () => {
     });
   });
 });
-
-function userRow(currency: string, limit: number | null) {
-  return { id: 1, spending_currency: currency, spending_monthly_limit: limit };
-}
 
 function summaryQueryBuilder() {
   const qb = {
@@ -208,6 +225,19 @@ describe("getSpendingSummary", () => {
       allTime: 0,
       albumCount: 0,
     });
+  });
+
+  it("returns zeros without querying until a currency is chosen", async () => {
+    mockFindOne.mockResolvedValue(userRow(null, null));
+
+    expect(await getSpendingSummary(1)).toEqual({
+      currency: null,
+      monthlyLimit: null,
+      month: 0,
+      allTime: 0,
+      albumCount: 0,
+    });
+    expect(mockCreateQueryBuilder).not.toHaveBeenCalled();
   });
 
   it("throws a 404 when the user is gone", async () => {
@@ -263,6 +293,40 @@ describe("writeSpendingSettings", () => {
     );
   });
 
+  it("sets a first currency and limit together", async () => {
+    mockFindOne.mockResolvedValue(userRow(null, null));
+
+    await writeSpendingSettings(1, { currency: "SEK", monthlyLimit: 50000 });
+
+    expect(mockUpdate).toHaveBeenCalledWith(
+      { id: 1 },
+      { spending_currency: "SEK", spending_monthly_limit: 50000 }
+    );
+  });
+
+  it("refuses a limit before a currency is chosen", async () => {
+    mockFindOne.mockResolvedValue(userRow(null, null));
+
+    await expect(
+      writeSpendingSettings(1, { monthlyLimit: 5000 })
+    ).rejects.toMatchObject({
+      status: 400,
+      message: "Choose a currency before setting a limit",
+    });
+    expect(mockUpdate).not.toHaveBeenCalled();
+  });
+
+  it("refuses to clear a chosen currency", async () => {
+    mockFindOne.mockResolvedValue(userRow("USD", null));
+
+    await expect(
+      writeSpendingSettings(1, { currency: null })
+    ).rejects.toMatchObject({
+      status: 400,
+      message: "currency must be a 3-letter ISO 4217 code",
+    });
+  });
+
   it.each([
     [{ currency: "usd" }, "currency must be a 3-letter ISO 4217 code"],
     [{ currency: "EURO" }, "currency must be a 3-letter ISO 4217 code"],
@@ -275,6 +339,7 @@ describe("writeSpendingSettings", () => {
       "monthlyLimit must be a non-negative integer or null",
     ],
   ])("rejects %o with a 400", async (patch, message) => {
+    mockFindOne.mockResolvedValue(userRow("USD", null));
     await expect(writeSpendingSettings(1, patch)).rejects.toMatchObject({
       status: 400,
       message,

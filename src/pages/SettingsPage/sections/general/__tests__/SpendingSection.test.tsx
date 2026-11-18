@@ -161,4 +161,36 @@ describe("SpendingSection", () => {
       await screen.findByText(/won't convert existing purchase records/)
     ).toBeInTheDocument();
   });
+
+  describe("before the user has chosen a currency", () => {
+    it("asks for a currency and holds the limit back", async () => {
+      mockFetch({ currency: null, monthlyLimit: null });
+      render(<SpendingSection />);
+
+      expect(
+        await screen.findByDisplayValue("Choose a currency")
+      ).toBeInTheDocument();
+      expect(
+        screen.getByPlaceholderText("Choose a currency first")
+      ).toBeDisabled();
+    });
+
+    it("saves the first currency and then allows a limit", async () => {
+      const fetchMock = mockFetch({ currency: null, monthlyLimit: null });
+      render(<SpendingSection />);
+
+      fireEvent.change(await screen.findByDisplayValue("Choose a currency"), {
+        target: { value: "SEK" },
+      });
+
+      expect(
+        await screen.findByDisplayValue("SEK — Swedish Krona")
+      ).toBeInTheDocument();
+      expect(screen.queryByText("Choose a currency")).not.toBeInTheDocument();
+      expect(screen.getByPlaceholderText("No limit")).toBeEnabled();
+      expect(patchBodies(fetchMock)).toEqual([
+        { url: "/api/purchases/spending", body: { currency: "SEK" } },
+      ]);
+    });
+  });
 });

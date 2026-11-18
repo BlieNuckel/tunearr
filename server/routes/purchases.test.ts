@@ -111,6 +111,44 @@ describe("PATCH /spending", () => {
   });
 });
 
+describe("POST /", () => {
+  it("records at the user's currency, ignoring one sent in the body", async () => {
+    mockRecordPurchase.mockResolvedValue({ status: "recorded", id: 3 });
+
+    const res = await request(app)
+      .post("/")
+      .send({ albumMbid: "rg-1", price: 1299, currency: "JPY" });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ status: "recorded", id: 3 });
+    expect(mockRecordPurchase).toHaveBeenCalledWith(7, "rg-1", 1299);
+  });
+
+  it("rejects a price that isn't a whole number of minor units", async () => {
+    const res = await request(app)
+      .post("/")
+      .send({ albumMbid: "rg-1", price: 12.5 });
+
+    expect(res.status).toBe(400);
+    expect(mockRecordPurchase).not.toHaveBeenCalled();
+  });
+
+  it("passes the not-set-up refusal back as a 409", async () => {
+    mockRecordPurchase.mockRejectedValue(
+      new ApiError(
+        409,
+        "Choose your purchase currency in Settings before recording purchases"
+      )
+    );
+
+    const res = await request(app)
+      .post("/")
+      .send({ albumMbid: "rg-1", price: 1299 });
+
+    expect(res.status).toBe(409);
+  });
+});
+
 describe("GET /", () => {
   it("lists the user's purchases in the client shape", async () => {
     mockGetPurchases.mockResolvedValue([

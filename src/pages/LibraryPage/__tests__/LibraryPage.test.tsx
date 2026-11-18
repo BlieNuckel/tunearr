@@ -478,6 +478,34 @@ describe("LibraryPage", () => {
     expect(await screen.findByText(/€25\.00 of €50\.00/)).toBeInTheDocument();
   });
 
+  it("offers purchase setup instead of totals until a currency is chosen", async () => {
+    vi.mocked(fetch).mockImplementation((url) => {
+      if (typeof url === "string" && url.includes("/purchases/summary")) {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              currency: null,
+              monthlyLimit: null,
+              month: 0,
+              allTime: 0,
+              albumCount: 0,
+            }),
+            { status: 200 }
+          )
+        );
+      }
+      return Promise.resolve(new Response(JSON.stringify([]), { status: 200 }));
+    });
+    renderWithAuth(Permission.REQUEST, "/library");
+
+    expect(
+      await screen.findByRole("link", { name: "Set up purchases" })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("Supporting artists this month")
+    ).not.toBeInTheDocument();
+  });
+
   it("hides purchase dashboard on mobile sub-tabs", () => {
     renderWithAuth(Permission.REQUEST, "/library/requests");
 

@@ -86,9 +86,12 @@ export class User {
   @Column({ type: "boolean", nullable: true })
   live_banner_enabled!: boolean | null;
 
-  /** ISO 4217 code the spending summary totals in. Purchases in other currencies are not counted. */
-  @Column({ type: "text", default: "USD" })
-  spending_currency!: string;
+  /**
+   * ISO 4217 code every purchase is recorded in. Null until the user sets up
+   * purchases; once set it can be changed but not cleared.
+   */
+  @Column({ type: "text", nullable: true })
+  spending_currency!: string | null;
 
   /** Soft monthly budget in minor units of `spending_currency`. Null means no limit. */
   @Column({ type: "integer", nullable: true })

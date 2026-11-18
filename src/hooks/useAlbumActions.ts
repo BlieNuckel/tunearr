@@ -38,7 +38,7 @@ export interface AlbumActions {
   isPriceModalOpen: boolean;
   closePriceModal: () => void;
   handleAddToLibrary: () => void;
-  handleRecordPurchase: (price: number, currency: string) => void;
+  handleRecordPurchase: (price: number) => void;
   recordingPurchase: boolean;
 }
 
@@ -184,8 +184,7 @@ export default function useAlbumActions({
     isPriceModalOpen,
     closePriceModal: () => setIsPriceModalOpen(false),
     handleAddToLibrary: () => requestAlbum({ albumMbid }),
-    handleRecordPurchase: (price, currency) =>
-      recordPurchase(albumMbid, price, currency),
+    handleRecordPurchase: (price) => recordPurchase(albumMbid, price),
     recordingPurchase: purchaseState === "recording",
   };
 }
