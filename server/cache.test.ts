@@ -127,4 +127,59 @@ describe("withCache", () => {
     expect(result).toBe("second");
     expect(fn).toHaveBeenCalledTimes(2);
   });
+
+  it("shares one run between concurrent calls for the same key", async () => {
+    let release!: (value: string) => void;
+    const fn = vi.fn(
+      (_arg: string) =>
+        new Promise<string>((resolve) => {
+          release = resolve;
+        })
+    );
+    const cached = withCache(fn, {
+      cache,
+      key: (arg: string) => arg,
+      ttlMs: 60_000,
+    });
+
+    const first = cached("test");
+    const second = cached("test");
+    release("result");
+
+    expect(await first).toBe("result");
+    expect(await second).toBe("result");
+    expect(fn).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not share runs between different keys", async () => {
+    const fn = vi.fn((arg: string) => Promise.resolve(arg));
+    const cached = withCache(fn, {
+      cache,
+      key: (arg: string) => arg,
+      ttlMs: 60_000,
+    });
+
+    await Promise.all([cached("a"), cached("b")]);
+
+    expect(fn).toHaveBeenCalledTimes(2);
+  });
+
+  it("shares a rejection with waiting callers but runs again afterwards", async () => {
+    const fn = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("boom"))
+      .mockResolvedValue("result");
+    const cached = withCache(fn, {
+      cache,
+      key: (arg: string) => arg,
+      ttlMs: 60_000,
+    });
+
+    const results = await Promise.allSettled([cached("test"), cached("test")]);
+    expect(results.map((r) => r.status)).toEqual(["rejected", "rejected"]);
+    expect(fn).toHaveBeenCalledTimes(1);
+
+    expect(await cached("test")).toBe("result");
+    expect(fn).toHaveBeenCalledTimes(2);
+  });
 });

@@ -16,10 +16,17 @@ const MAX_RESULTS = 12;
 
 /**
  * MusicBrainz searches one request may spend resolving candidates Last.fm gave no MBID for.
- * Each costs a paced slot on the interactive lane, which preempts the pollers, so an
- * unbounded resolve would hold the queue for as long as the candidate list is.
+ * Each costs a paced slot, so an unbounded resolve would hold the queue for as long as the
+ * candidate list is.
  */
 const MB_RESOLUTION_BUDGET = 5;
+
+/**
+ * Similar albums are enrichment, not page content, so their MusicBrainz work waits on the
+ * background lane instead of competing with the page's own requests. The searches also hit
+ * the zone MusicBrainz sheds first.
+ */
+const MB_PRIORITY = "background";
 
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 
@@ -48,7 +55,7 @@ const cache = new NodeCache();
 const log = createLogger("similarAlbums");
 
 async function loadSeed(mbid: string): Promise<SeedAlbum | null> {
-  const details = await getAlbumDetails(mbid);
+  const details = await getAlbumDetails(mbid, MB_PRIORITY);
   if (!details) return null;
 
   return {
@@ -72,7 +79,7 @@ async function resolveMbid(
   const query = `releasegroup:"${title}" AND artist:"${artist}"`;
 
   try {
-    const result = await searchReleaseGroups(query);
+    const result = await searchReleaseGroups(query, MB_PRIORITY);
     const match = result["release-groups"].find(
       (rg) =>
         normalizeAlbumKey(

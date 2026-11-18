@@ -141,8 +141,14 @@ describe("getSimilarAlbums", () => {
     expect(albums[0].mbid).toBe("resolved-rg");
     expect(albums[0].year).toBe("1991");
     expect(mockSearchReleaseGroups).toHaveBeenCalledWith(
-      'releasegroup:"Loveless" AND artist:"My Bloody Valentine"'
+      'releasegroup:"Loveless" AND artist:"My Bloody Valentine"',
+      "background"
     );
+  });
+
+  it("does its MusicBrainz work on the background lane", async () => {
+    await getSimilarAlbums("seed-rg");
+    expect(mockGetAlbumDetails).toHaveBeenCalledWith("seed-rg", "background");
   });
 
   it("drops a candidate whose search returns a different album", async () => {
@@ -205,6 +211,17 @@ describe("getSimilarAlbums", () => {
     const second = await getSimilarAlbums("seed-rg");
 
     expect(second).toEqual(first);
+    expect(mockGetAlbumDetails).toHaveBeenCalledTimes(1);
+  });
+
+  it("builds the list once for concurrent requests", async () => {
+    mockCollectTagCandidates.mockResolvedValue([candidate()]);
+
+    await Promise.all([
+      getSimilarAlbums("seed-rg"),
+      getSimilarAlbums("seed-rg"),
+    ]);
+
     expect(mockGetAlbumDetails).toHaveBeenCalledTimes(1);
   });
 
