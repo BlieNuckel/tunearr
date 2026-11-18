@@ -35,6 +35,7 @@ import { PromotedAlbumSnapshots1724000000000 } from "./migration/16_PromotedAlbu
 import { RemoveRecommendations1725000000000 } from "./migration/17_RemoveRecommendations";
 import { UserSpending1726000000000 } from "./migration/18_UserSpending";
 import { FollowedReleaseDismissed1727000000000 } from "./migration/19_FollowedReleaseDismissed";
+import { RequestAvailable1728000000000 } from "./migration/20_RequestAvailable";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -88,6 +89,7 @@ export function createDataSource(dbPath?: string): DataSource {
       RemoveRecommendations1725000000000,
       UserSpending1726000000000,
       FollowedReleaseDismissed1727000000000,
+      RequestAvailable1728000000000,
     ],
     synchronize: false,
     migrationsRun: true,
