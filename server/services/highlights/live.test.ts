@@ -100,15 +100,29 @@ describe("listLiveHighlights", () => {
     expect(entry.at).toBe("2026-11-17T00:00:00.000Z");
   });
 
-  it("ranks a nearby show as fresh and one that needs travel as standing", async () => {
+  it("ranks a newly announced nearby show as fresh", async () => {
     mockListCandidates.mockResolvedValue([
-      candidate({ tier: "local" }),
-      candidate({ tier: "regional", event: { id: 6 } }),
+      candidate({ tier: "local", reason: "just-announced" }),
+      candidate({
+        tier: "regional",
+        reason: "just-announced",
+        event: { id: 6 },
+      }),
     ]);
 
     const result = await listLiveHighlights(7, NOW);
 
     expect(result.map((r) => r.tier)).toEqual([TIER_FRESH, TIER_STANDING]);
+  });
+
+  it("ranks a reminder about a known show below news", async () => {
+    mockListCandidates.mockResolvedValue([
+      candidate({ tier: "local", reason: "coming-up" }),
+    ]);
+
+    const [entry] = await listLiveHighlights(7, NOW);
+
+    expect(entry.tier).toBe(TIER_STANDING);
   });
 
   it("dates a new announcement by when it was first seen", async () => {
