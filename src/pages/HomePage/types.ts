@@ -12,7 +12,7 @@ export type HighlightView = {
   details: string[];
   artworkUrl: string | null;
   artworkAlt: string;
-  /** Album covers are square and get framed; event photos fill the space. */
+  /** An album cover tints its card with its own colour; an event photo does not. */
   artworkKind: "cover" | "photo";
   library: { state: AlbumLibraryState; label: string } | null;
 };

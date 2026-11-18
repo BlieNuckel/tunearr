@@ -2,6 +2,12 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import HighlightsSpotlight from "../HighlightsSpotlight";
+
+const mockUseImageHue = vi.fn();
+
+vi.mock("@/hooks/useImageHue", () => ({
+  default: (url: string | null) => mockUseImageHue(url),
+}));
 import type { Highlight } from "@/types";
 import {
   handlers,
@@ -30,7 +36,26 @@ function featuredTitle(): string | null {
   return within(screen.getByRole("article")).getByRole("heading").textContent;
 }
 
+beforeEach(() => {
+  mockUseImageHue.mockReset();
+  mockUseImageHue.mockReturnValue(null);
+});
+
 describe("HighlightsSpotlight", () => {
+  it("tints a waiting release from its cover and leaves live dates white", () => {
+    mockUseImageHue.mockImplementation((url: string | null) =>
+      url ? { hue: 30, saturation: 0.8 } : null
+    );
+    renderSpotlight([LIVE, EP]);
+
+    expect(
+      screen
+        .getByRole("button", { name: "Show New EP: Second Record" })
+        .style.getPropertyValue("--album-surface")
+    ).toBe("hsl(30 45% 88%)");
+    expect(screen.getByRole("article")).toHaveClass("bg-emerald-100");
+  });
+
   it("features the first highlight and lists the rest beside it", () => {
     renderSpotlight([RELEASE, LIVE, EP]);
 

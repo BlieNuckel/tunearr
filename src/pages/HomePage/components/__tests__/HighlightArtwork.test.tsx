@@ -12,22 +12,12 @@ describe("HighlightArtwork", () => {
     ).toHaveAttribute("src", "https://caa.test/rg-1.jpg");
   });
 
-  it("frames a cover over a blurred copy that screen readers skip", () => {
-    const { container } = render(
-      <HighlightArtwork view={describeHighlight(releaseHighlight())} framed />
-    );
+  it("crops an event photo to fill its box", () => {
+    render(<HighlightArtwork view={describeHighlight(liveHighlight())} />);
 
-    const images = container.querySelectorAll("img");
-    expect(images).toHaveLength(2);
-    expect(images[0]).toHaveAttribute("aria-hidden", "true");
-    expect(screen.getAllByRole("img")).toHaveLength(1);
-  });
-
-  it("does not frame an event photo", () => {
-    const { container } = render(
-      <HighlightArtwork view={describeHighlight(liveHighlight())} framed />
+    expect(screen.getByAltText("Yves Tumor at Amiralen")).toHaveClass(
+      "object-cover"
     );
-    expect(container.querySelectorAll("img")).toHaveLength(1);
   });
 
   it("falls back to an icon when the image fails", () => {

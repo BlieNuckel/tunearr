@@ -2,6 +2,7 @@ import type { Highlight } from "@/types";
 import { describeHighlight } from "../highlightView";
 import HighlightArtwork from "./HighlightArtwork";
 import HighlightEyebrow from "./HighlightEyebrow";
+import useCardSurface from "../useCardSurface";
 
 interface HighlightTileProps {
   highlight: Highlight;
@@ -14,13 +15,15 @@ export default function HighlightTile({
   onSelect,
 }: HighlightTileProps) {
   const view = describeHighlight(highlight);
+  const surface = useCardSurface(view, "bg-white dark:bg-gray-800");
 
   return (
     <button
       type="button"
       onClick={() => onSelect(highlight)}
       aria-label={`Show ${view.eyebrow}: ${view.title}`}
-      className="w-full h-[5.5rem] flex items-center gap-3 p-2 text-left rounded-xl border-2 border-black bg-white dark:bg-gray-800 shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all"
+      style={surface.style}
+      className={`w-full h-[5.5rem] flex items-center gap-3 p-2 text-left rounded-xl border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all ${surface.className}`}
     >
       <HighlightArtwork
         view={view}

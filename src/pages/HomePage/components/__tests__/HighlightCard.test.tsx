@@ -2,6 +2,12 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import HighlightCard from "../HighlightCard";
+
+const mockUseImageHue = vi.fn();
+
+vi.mock("@/hooks/useImageHue", () => ({
+  default: (url: string | null) => mockUseImageHue(url),
+}));
 import type { Highlight } from "@/types";
 import {
   handlers,
@@ -43,6 +49,40 @@ function renderCard(
   );
   return cardHandlers;
 }
+
+beforeEach(() => {
+  mockUseImageHue.mockReset();
+  mockUseImageHue.mockReturnValue(null);
+});
+
+describe("HighlightCard surface", () => {
+  it("takes a muted version of the cover's colour", () => {
+    mockUseImageHue.mockReturnValue({ hue: 225, saturation: 0.5 });
+    renderCard(releaseHighlight());
+
+    const card = screen.getByRole("article");
+    expect(mockUseImageHue).toHaveBeenCalledWith("https://caa.test/rg-1.jpg");
+    expect(card.style.getPropertyValue("--album-surface")).toBe(
+      "hsl(225 30% 88%)"
+    );
+    expect(card.style.getPropertyValue("--album-surface-dark")).toBe(
+      "hsl(225 23% 20%)"
+    );
+    expect(card).toHaveClass("bg-(--album-surface)");
+  });
+
+  it("keeps the release colour until the cover's colour is known", () => {
+    renderCard(releaseHighlight());
+    expect(screen.getByRole("article")).toHaveClass("bg-amber-100");
+  });
+
+  it("never tints a live card from its photo", () => {
+    mockUseImageHue.mockReturnValue({ hue: 225, saturation: 0.5 });
+    renderCard(liveHighlight());
+
+    expect(mockUseImageHue).toHaveBeenCalledWith(null);
+  });
+});
 
 describe("HighlightCard for a release", () => {
   it("shows what was released and by whom", () => {

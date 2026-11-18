@@ -4,6 +4,7 @@ import type { Highlight } from "@/types";
 import { describeHighlight } from "../highlightView";
 import { LIBRARY_PILL, TONE_SURFACE } from "../styles";
 import type { HighlightHandlers, HighlightView } from "../types";
+import useCardSurface from "../useCardSurface";
 import HighlightActions from "./HighlightActions";
 import HighlightArtwork from "./HighlightArtwork";
 import HighlightEyebrow from "./HighlightEyebrow";
@@ -25,7 +26,7 @@ const LAYOUT_CLASSES = {
   },
   stack: {
     article: "flex-col",
-    artwork: "w-full aspect-[16/10] shrink-0 border-b-2 border-black",
+    artwork: "w-full aspect-[4/3] shrink-0 border-b-2 border-black",
     body: "p-4",
     title: "mt-2 text-xl line-clamp-2",
     subtitle: "mt-0.5 text-base",
@@ -80,17 +81,15 @@ export default function HighlightCard({
   const haptics = useHaptics();
   const view = describeHighlight(highlight);
   const classes = LAYOUT_CLASSES[layout];
+  const surface = useCardSurface(view, TONE_SURFACE[view.tone]);
 
   return (
     <article
       aria-label={`${view.eyebrow}: ${view.title}`}
-      className={`relative h-full flex overflow-hidden rounded-xl border-2 border-black shadow-cartoon-md ${TONE_SURFACE[view.tone]} ${classes.article}`}
+      style={surface.style}
+      className={`relative h-full flex overflow-hidden rounded-xl border-2 border-black shadow-cartoon-md transition-colors duration-500 ${surface.className} ${classes.article}`}
     >
-      <HighlightArtwork
-        view={view}
-        framed={layout === "stack"}
-        className={classes.artwork}
-      />
+      <HighlightArtwork view={view} className={classes.artwork} />
 
       <div className={`flex-1 min-w-0 flex flex-col ${classes.body}`}>
         <HighlightText view={view} layout={layout} />
