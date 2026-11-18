@@ -1,10 +1,9 @@
 import { useCallback } from "react";
 import { createSearchParams, useNavigate } from "react-router-dom";
 import SearchBar from "@/components/SearchBar";
-import DiscoverGrid from "./components/DiscoverGrid";
-import { SECTION_DEFINITIONS } from "./sections";
+import Highlights from "./components/Highlights";
 
-export default function DiscoverPage() {
+export default function HomePage() {
   const navigate = useNavigate();
 
   const handleSearch = useCallback(
@@ -23,11 +22,11 @@ export default function DiscoverPage() {
         Home
       </h1>
 
-      <div className="mb-6">
+      <div className="mb-8">
         <SearchBar onSearch={handleSearch} />
       </div>
 
-      <DiscoverGrid definitions={SECTION_DEFINITIONS} />
+      <Highlights />
     </div>
   );
 }

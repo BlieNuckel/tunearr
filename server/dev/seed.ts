@@ -552,7 +552,7 @@ async function seed() {
   console.log("\nTo see mock Lidarr lifecycle states, run the server with:");
   console.log("  MOCK_LIDARR=true pnpm dev");
   console.log("\nLive events are seeded for the admin account:");
-  console.log("  Discover      banner (just-announced local show)");
+  console.log("  Home          highlights (just-announced local shows)");
   console.log("  /library/live Upcoming, Going, Dismissed and Past tabs");
   console.log("  /artist/:mbid live dates on the five followed artists");
   console.log(

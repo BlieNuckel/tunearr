@@ -5,7 +5,7 @@ import RequireOnboarding from "./components/RequireOnboarding";
 import SearchPage from "./pages/SearchPage/SearchPage";
 import ArtistPage from "./pages/ArtistPage/ArtistPage";
 import AlbumPage from "./pages/AlbumPage/AlbumPage";
-import DiscoverPage from "./pages/DiscoverPage/DiscoverPage";
+import HomePage from "./pages/HomePage/HomePage";
 import LibraryPage from "./pages/LibraryPage/LibraryPage";
 import SettingsLayout from "./pages/SettingsPage/SettingsLayout";
 import GeneralSettingsPage from "./pages/SettingsPage/pages/GeneralSettingsPage";
@@ -34,7 +34,7 @@ function App() {
         <Route path="/onboarding" element={<OnboardingPage />} />
         <Route element={<RequireOnboarding />}>
           <Route element={<Layout />}>
-            <Route path="/" element={<DiscoverPage />} />
+            <Route path="/" element={<HomePage />} />
             <Route path="/search" element={<SearchPage />} />
             <Route path="/artist/:mbid" element={<ArtistPage />} />
             <Route path="/album/:mbid" element={<AlbumPage />} />

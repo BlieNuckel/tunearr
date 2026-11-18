@@ -57,7 +57,7 @@ vi.mock("@/components/ReleaseGroupCard", () => ({
   ),
 }));
 
-vi.mock("@/pages/DiscoverPage/components/ArtistCard", () => ({
+vi.mock("@/components/ArtistCard", () => ({
   default: ({ name, inLibrary }: { name: string; inLibrary?: boolean }) => (
     <div data-testid="artist-card" data-in-library={String(!!inLibrary)}>
       {name}
