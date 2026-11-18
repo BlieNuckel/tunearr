@@ -3,6 +3,7 @@ import type {
   ArtistDetails,
   ReleaseHighlight,
   ReleaseGroup,
+  RequestHighlight,
 } from "@/types";
 
 /**
@@ -37,6 +38,20 @@ export function albumPreviewFromReleaseHighlight(
     artistMbid: item.artistMbid,
     firstReleaseDate: item.releaseDate,
     primaryType: item.releaseType,
+    secondaryTypes: [],
+  };
+}
+
+export function albumPreviewFromRequestHighlight(
+  item: RequestHighlight
+): AlbumDetails {
+  return {
+    mbid: item.albumMbid,
+    title: item.title,
+    artistName: item.artistName,
+    artistMbid: null,
+    firstReleaseDate: null,
+    primaryType: null,
     secondaryTypes: [],
   };
 }

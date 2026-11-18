@@ -13,6 +13,7 @@ import {
   handlers,
   liveHighlight,
   releaseHighlight,
+  requestHighlight,
 } from "../../__tests__/fixtures";
 
 function LocationProbe() {
@@ -143,6 +144,38 @@ describe("HighlightCard for a release", () => {
   it("draws an icon when there is no cover", () => {
     renderCard(releaseHighlight({ coverUrl: null }));
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
+  });
+});
+
+describe("HighlightCard for an arrived request", () => {
+  it("says the requested album is here", () => {
+    renderCard(requestHighlight());
+
+    expect(
+      screen.getByRole("article", { name: "Your request is here: Dummy" })
+    ).toBeInTheDocument();
+    expect(screen.getByText("Portishead")).toBeInTheDocument();
+    expect(screen.getByAltText("Dummy cover art")).toBeInTheDocument();
+  });
+
+  it("opens the album without touching followed releases", async () => {
+    const cardHandlers = renderCard(requestHighlight());
+
+    await userEvent.click(screen.getByRole("link", { name: "View album" }));
+
+    expect(screen.getByTestId("location")).toHaveTextContent("/album/rg-9");
+    expect(cardHandlers.onOpenRelease).not.toHaveBeenCalled();
+  });
+
+  it("dismisses the request", async () => {
+    const request = requestHighlight();
+    const cardHandlers = renderCard(request);
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Dismiss Dummy" })
+    );
+
+    expect(cardHandlers.onDismiss).toHaveBeenCalledWith(request);
   });
 });
 

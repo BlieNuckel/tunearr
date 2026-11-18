@@ -6,6 +6,7 @@ import type {
   LiveHighlight,
   ReleaseHighlight,
   ReleaseLidarrStatus,
+  RequestHighlight,
 } from "@/types";
 import type { HighlightTone, HighlightView } from "./types";
 
@@ -74,6 +75,24 @@ function describeRelease(
   };
 }
 
+function describeRequest(
+  highlight: RequestHighlight,
+  now: number
+): HighlightView {
+  const added = formatRelativeReleaseDate(highlight.availableAt, now);
+  return {
+    eyebrow: "Your request is here",
+    tone: "request",
+    title: highlight.title,
+    subtitle: highlight.artistName,
+    details: added ? [`Added to your library ${added}`] : [],
+    artworkUrl: highlight.coverUrl,
+    artworkAlt: `${highlight.title} cover art`,
+    artworkKind: "cover",
+    library: null,
+  };
+}
+
 export function headliner(highlight: LiveHighlight): string {
   const lead = highlight.performers.find((performer) => performer.isHeadliner);
   return lead?.name ?? highlight.performers[0]?.name ?? highlight.name;
@@ -127,7 +146,7 @@ export function describeHighlight(
   highlight: Highlight,
   now: number = Date.now()
 ): HighlightView {
-  return highlight.kind === "release"
-    ? describeRelease(highlight, now)
-    : describeLive(highlight);
+  if (highlight.kind === "release") return describeRelease(highlight, now);
+  if (highlight.kind === "request") return describeRequest(highlight, now);
+  return describeLive(highlight);
 }

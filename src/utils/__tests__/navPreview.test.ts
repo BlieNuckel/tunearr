@@ -1,6 +1,7 @@
 import {
   albumNavState,
   albumPreviewFromReleaseHighlight,
+  albumPreviewFromRequestHighlight,
   albumPreviewFromReleaseGroup,
   artistNavState,
   readAlbumPreview,
@@ -36,6 +37,31 @@ describe("albumPreviewFromReleaseGroup", () => {
     expect(
       albumPreviewFromReleaseGroup({ ...rg, "artist-credit": [] })
     ).toMatchObject({ artistName: "Unknown Artist", artistMbid: null });
+  });
+});
+
+describe("albumPreviewFromRequestHighlight", () => {
+  it("builds album details from an arrived request", () => {
+    expect(
+      albumPreviewFromRequestHighlight({
+        kind: "request",
+        key: "request:9",
+        requestId: 9,
+        albumMbid: "rg-9",
+        title: "Dummy",
+        artistName: "Portishead",
+        coverUrl: "https://caa.test/rg-9.jpg",
+        availableAt: "2026-11-18T09:00:00.000Z",
+      })
+    ).toEqual({
+      mbid: "rg-9",
+      title: "Dummy",
+      artistName: "Portishead",
+      artistMbid: null,
+      firstReleaseDate: null,
+      primaryType: null,
+      secondaryTypes: [],
+    });
   });
 });
 

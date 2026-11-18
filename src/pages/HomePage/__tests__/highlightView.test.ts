@@ -1,5 +1,5 @@
 import { describeHighlight, headliner } from "../highlightView";
-import { liveHighlight, releaseHighlight } from "./fixtures";
+import { liveHighlight, releaseHighlight, requestHighlight } from "./fixtures";
 
 const NOW = Date.parse("2026-11-18T12:00:00");
 
@@ -44,6 +44,31 @@ describe("describeHighlight for a release", () => {
     expect(
       describeHighlight(releaseHighlight({ lidarrStatus }), NOW).library
     ).toEqual({ state, label });
+  });
+});
+
+describe("describeHighlight for an arrived request", () => {
+  it("tells the requester their album is here", () => {
+    expect(describeHighlight(requestHighlight(), NOW)).toEqual({
+      eyebrow: "Your request is here",
+      tone: "request",
+      title: "Dummy",
+      subtitle: "Portishead",
+      details: ["Added to your library today"],
+      artworkUrl: "https://caa.test/rg-9.jpg",
+      artworkAlt: "Dummy cover art",
+      artworkKind: "cover",
+      library: null,
+    });
+  });
+
+  it("says how long ago it arrived", () => {
+    expect(
+      describeHighlight(
+        requestHighlight({ availableAt: "2026-11-16T09:00:00" }),
+        NOW
+      ).details
+    ).toEqual(["Added to your library 2 days ago"]);
   });
 });
 

@@ -146,6 +146,33 @@ describe("syncRequestStatuses", () => {
   });
 });
 
+describe("available_at", () => {
+  it("dates the moment a request reaches the library", async () => {
+    vi.useFakeTimers({ now: Date.parse("2026-11-18T10:00:00.000Z") });
+    mockFind.mockResolvedValue([
+      { id: 1, album_mbid: "mbid-in", lidarr_status: "downloading" },
+      { id: 2, album_mbid: "mbid-down", lidarr_status: null },
+    ]);
+    mockRefreshLidarrData.mockResolvedValue({
+      queueMap: new Map([
+        ["mbid-down", { downloadProgress: 10, quality: "FLAC" }],
+      ]),
+      importedMap: new Map([["mbid-in", { id: 1 }]]),
+      wantedMap: new Map(),
+    });
+
+    await syncRequestStatuses();
+    vi.useRealTimers();
+
+    const saved = mockSave.mock.calls[0][0] as {
+      id: number;
+      available_at?: string;
+    }[];
+    expect(saved[0].available_at).toBe("2026-11-18T10:00:00.000Z");
+    expect(saved[1].available_at).toBeUndefined();
+  });
+});
+
 describe("notifications", () => {
   it("announces each request whose status changed", async () => {
     const request = {

@@ -52,6 +52,14 @@ export class Request {
   @Column({ type: "text", nullable: true })
   approved_at!: string | null;
 
+  /** When Lidarr imported the album, which is when the requester can play it. */
+  @Column({ type: "text", nullable: true })
+  available_at!: string | null;
+
+  /** The requester has seen enough of the "it's here" highlight on Home. */
+  @Column({ type: "text", nullable: true })
+  highlight_dismissed_at!: string | null;
+
   @CreateDateColumn({ type: "text" })
   created_at!: string;
 

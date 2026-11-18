@@ -1,5 +1,9 @@
 import type { Mock } from "vitest";
-import type { LiveHighlight, ReleaseHighlight } from "@/types";
+import type {
+  LiveHighlight,
+  ReleaseHighlight,
+  RequestHighlight,
+} from "@/types";
 import type { HighlightHandlers } from "../types";
 
 type MockHandlers = {
@@ -53,6 +57,22 @@ export function liveHighlight(
     viewedAt: null,
     tier: "local",
     reason: "coming-up",
+    ...overrides,
+  };
+}
+
+export function requestHighlight(
+  overrides: Partial<RequestHighlight> = {}
+): RequestHighlight {
+  return {
+    kind: "request",
+    key: "request:9",
+    requestId: 9,
+    albumMbid: "rg-9",
+    title: "Dummy",
+    artistName: "Portishead",
+    coverUrl: "https://caa.test/rg-9.jpg",
+    availableAt: "2026-11-18T09:00:00",
     ...overrides,
   };
 }

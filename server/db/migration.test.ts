@@ -6,6 +6,7 @@ import { LiveEvents1721000000000 } from "./migration/13_LiveEvents";
 import { RemoveRecommendations1725000000000 } from "./migration/17_RemoveRecommendations";
 import { UserSpending1726000000000 } from "./migration/18_UserSpending";
 import { FollowedReleaseDismissed1727000000000 } from "./migration/19_FollowedReleaseDismissed";
+import { RequestAvailable1728000000000 } from "./migration/20_RequestAvailable";
 import type { DataSource } from "typeorm";
 
 let ds: DataSource | null = null;
@@ -825,6 +826,61 @@ describe("FollowedReleaseDismissed migration", () => {
     )) as { name: string }[];
     expect(afterUp.map((c) => c.name)).toContain("dismissed_at");
 
+    await runner.release();
+  });
+});
+
+async function insertImportRequest(
+  db: DataSource,
+  userId: number,
+  mbid: string,
+  lidarrStatus: string | null
+): Promise<void> {
+  await db.query(
+    `INSERT INTO requests (user_id, album_mbid, artist_name, album_title, status, lidarr_status, updated_at)
+     VALUES (?, ?, 'Artist', ?, 'approved', ?, '2026-11-15 09:30:00')`,
+    [userId, mbid, mbid, lidarrStatus]
+  );
+}
+
+async function availableAt(
+  db: DataSource
+): Promise<Record<string, string | null>> {
+  const rows = (await db.query(
+    "SELECT album_mbid, available_at FROM requests"
+  )) as { album_mbid: string; available_at: string | null }[];
+  return Object.fromEntries(rows.map((r) => [r.album_mbid, r.available_at]));
+}
+
+describe("RequestAvailable migration", () => {
+  it("dates imported requests from their last update and leaves the rest", async () => {
+    const db = await initTestDb();
+    const runner = db.createQueryRunner();
+    await new RequestAvailable1728000000000().down(runner);
+    const userId = await insertUser(db, "frank");
+    await insertImportRequest(db, userId, "imported", "imported");
+    await insertImportRequest(db, userId, "downloading", "downloading");
+
+    await new RequestAvailable1728000000000().up(runner);
+
+    expect(await availableAt(db)).toEqual({
+      imported: "2026-11-15T09:30:00.000Z",
+      downloading: null,
+    });
+    await runner.release();
+  });
+
+  it("drops both columns on down", async () => {
+    const db = await initTestDb();
+    const runner = db.createQueryRunner();
+
+    await new RequestAvailable1728000000000().down(runner);
+
+    const columns = (await db.query("PRAGMA table_info(requests)")) as {
+      name: string;
+    }[];
+    expect(columns.map((c) => c.name)).not.toContain("available_at");
+    expect(columns.map((c) => c.name)).not.toContain("highlight_dismissed_at");
     await runner.release();
   });
 });

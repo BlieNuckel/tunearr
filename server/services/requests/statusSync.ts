@@ -43,11 +43,13 @@ export async function syncRequestStatuses(): Promise<void> {
     return;
   }
 
+  const now = new Date().toISOString();
   const changed: Request[] = [];
   candidates.forEach((request, i) => {
     const next = statuses[i] ?? null;
     if (request.lidarr_status !== next) {
       request.lidarr_status = next;
+      if (next === "imported") request.available_at = now;
       changed.push(request);
     }
   });

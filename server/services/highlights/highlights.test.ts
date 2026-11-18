@@ -5,6 +5,8 @@ const mockWithLidarr = vi.fn();
 const mockListLive = vi.fn();
 const mockDismissRelease = vi.fn();
 const mockSetUserResponse = vi.fn();
+const mockListRequests = vi.fn();
+const mockDismissRequest = vi.fn();
 
 vi.mock("./releases", () => ({
   listReleaseHighlights: (...args: unknown[]) => mockListReleases(...args),
@@ -13,6 +15,14 @@ vi.mock("./releases", () => ({
 
 vi.mock("./live", () => ({
   listLiveHighlights: (...args: unknown[]) => mockListLive(...args),
+}));
+
+vi.mock("./requests", () => ({
+  listRequestHighlights: (...args: unknown[]) => mockListRequests(...args),
+}));
+
+vi.mock("../../db/requests", () => ({
+  dismissRequestHighlight: (...args: unknown[]) => mockDismissRequest(...args),
 }));
 
 vi.mock("../followed/followedService", () => ({
@@ -32,10 +42,27 @@ function entry(key: string, tier: number, at: string) {
   return { tier, at, highlight: { key } };
 }
 
+function releaseEntry(key: string, releaseGroupMbid: string) {
+  return {
+    tier: TIER_FRESH,
+    at: "2026-11-16",
+    highlight: { key, kind: "release", releaseGroupMbid },
+  };
+}
+
+function requestEntry(key: string, albumMbid: string, at: string) {
+  return {
+    tier: TIER_FRESH,
+    at,
+    highlight: { key, kind: "request", albumMbid },
+  };
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   mockListReleases.mockResolvedValue([]);
   mockListLive.mockResolvedValue([]);
+  mockListRequests.mockResolvedValue([]);
   mockWithLidarr.mockImplementation((items: unknown) => Promise.resolve(items));
 });
 
@@ -60,6 +87,29 @@ describe("getHighlights", () => {
       "release:new",
       "release:seen",
     ]);
+  });
+
+  it("ranks arrived requests alongside the other news", async () => {
+    mockListReleases.mockResolvedValue([releaseEntry("release:1", "rg-1")]);
+    mockListRequests.mockResolvedValue([
+      requestEntry("request:2", "rg-2", "2026-11-17T09:00:00.000Z"),
+    ]);
+
+    const result = await getHighlights(7, NOW);
+
+    expect(mockListRequests).toHaveBeenCalledWith(7, NOW);
+    expect(result.items.map((h) => h.key)).toEqual(["request:2", "release:1"]);
+  });
+
+  it("drops a request that is already shown as a followed release", async () => {
+    mockListReleases.mockResolvedValue([releaseEntry("release:1", "rg-1")]);
+    mockListRequests.mockResolvedValue([
+      requestEntry("request:2", "rg-1", "2026-11-17T09:00:00.000Z"),
+    ]);
+
+    const result = await getHighlights(7, NOW);
+
+    expect(result.items.map((h) => h.key)).toEqual(["release:1"]);
   });
 
   it("keeps one featured highlight and three beside it", async () => {
@@ -104,6 +154,19 @@ describe("dismissHighlight", () => {
   it("reports a release that is not the user's", async () => {
     mockDismissRelease.mockResolvedValue(false);
     expect(await dismissHighlight(7, "release", 12)).toBe(false);
+  });
+
+  it("dismisses an arrived request for the user", async () => {
+    mockDismissRequest.mockResolvedValue(true);
+
+    expect(await dismissHighlight(7, "request", 9)).toBe(true);
+    expect(mockDismissRequest).toHaveBeenCalledWith(7, 9, expect.any(String));
+    expect(mockSetUserResponse).not.toHaveBeenCalled();
+  });
+
+  it("reports a request that is not the user's", async () => {
+    mockDismissRequest.mockResolvedValue(false);
+    expect(await dismissHighlight(7, "request", 9)).toBe(false);
   });
 
   it("dismisses a live date the same way the live pages do", async () => {

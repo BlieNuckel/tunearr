@@ -1,4 +1,4 @@
-import { Brackets, In, IsNull, Not } from "typeorm";
+import { Brackets, In, IsNull, MoreThanOrEqual, Not } from "typeorm";
 import { getDataSource, Request } from "./index";
 import type { LidarrLifecycleStatus } from "./index";
 
@@ -107,4 +107,36 @@ export async function listRequests(
   }
 
   return qb.getMany();
+}
+
+/**
+ * A user's requests that reached the library at or after `since` and that they
+ * have not dismissed from Home, newest first.
+ */
+export async function listAvailableRequestsForUser(
+  userId: number,
+  since: string
+): Promise<Request[]> {
+  return repo().find({
+    where: {
+      user_id: userId,
+      lidarr_status: "imported",
+      available_at: MoreThanOrEqual(since),
+      highlight_dismissed_at: IsNull(),
+    },
+    order: { available_at: "DESC" },
+  });
+}
+
+/** Returns false when the request is not this user's or has not arrived yet. */
+export async function dismissRequestHighlight(
+  userId: number,
+  requestId: number,
+  at: string
+): Promise<boolean> {
+  const result = await repo().update(
+    { id: requestId, user_id: userId, available_at: Not(IsNull()) },
+    { highlight_dismissed_at: at }
+  );
+  return (result.affected ?? 0) > 0;
 }
