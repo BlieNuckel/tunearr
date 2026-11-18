@@ -1,6 +1,16 @@
-import { render as rtlRender, screen } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { render as rtlRender, screen, fireEvent } from "@testing-library/react";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import DiscoverPage from "../DiscoverPage";
+
+function SearchRouteProbe() {
+  const location = useLocation();
+  return (
+    <div data-testid="search-route">
+      {location.pathname}
+      {location.search}
+    </div>
+  );
+}
 
 const render = (ui: React.ReactElement) =>
   rtlRender(ui, {
@@ -38,5 +48,30 @@ describe("DiscoverPage", () => {
     expect(
       screen.queryByTestId("discover-section-nearbyShows")
     ).not.toBeInTheDocument();
+  });
+
+  it("renders a search bar", () => {
+    render(<DiscoverPage />);
+    expect(screen.getByTestId("search-input")).toBeInTheDocument();
+  });
+
+  it("opens the search page with the submitted query", () => {
+    rtlRender(
+      <MemoryRouter initialEntries={["/"]}>
+        <Routes>
+          <Route path="/" element={<DiscoverPage />} />
+          <Route path="/search" element={<SearchRouteProbe />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    fireEvent.change(screen.getByTestId("search-input"), {
+      target: { value: "Massive Attack" },
+    });
+    fireEvent.submit(screen.getByTestId("search-form"));
+
+    expect(screen.getByTestId("search-route")).toHaveTextContent(
+      "/search?q=Massive+Attack"
+    );
   });
 });

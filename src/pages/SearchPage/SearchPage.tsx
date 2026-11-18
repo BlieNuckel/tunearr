@@ -1,6 +1,6 @@
 import { useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
-import SearchBar from "./components/SearchBar";
+import SearchBar from "@/components/SearchBar";
 import ReleaseGroupCard from "@/components/ReleaseGroupCard";
 import ArtistCard from "@/pages/DiscoverPage/components/ArtistCard";
 import Skeleton from "@/components/Skeleton";
