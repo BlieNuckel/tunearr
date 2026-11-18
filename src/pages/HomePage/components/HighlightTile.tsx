@@ -3,6 +3,7 @@ import { describeHighlight } from "../highlightView";
 import HighlightArtwork from "./HighlightArtwork";
 import HighlightEyebrow from "./HighlightEyebrow";
 import useCardSurface from "../useCardSurface";
+import { TONE_SURFACE } from "../styles";
 
 interface HighlightTileProps {
   highlight: Highlight;
@@ -15,7 +16,7 @@ export default function HighlightTile({
   onSelect,
 }: HighlightTileProps) {
   const view = describeHighlight(highlight);
-  const surface = useCardSurface(view, "bg-white dark:bg-gray-800");
+  const surface = useCardSurface(view, TONE_SURFACE[view.tone]);
 
   return (
     <button

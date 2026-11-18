@@ -42,7 +42,7 @@ beforeEach(() => {
 });
 
 describe("HighlightsSpotlight", () => {
-  it("tints a waiting release from its cover and leaves live dates white", () => {
+  it("tints a waiting release from its cover", () => {
     mockUseImageHue.mockImplementation((url: string | null) =>
       url ? { hue: 30, saturation: 0.8 } : null
     );
@@ -53,7 +53,30 @@ describe("HighlightsSpotlight", () => {
         .getByRole("button", { name: "Show New EP: Second Record" })
         .style.getPropertyValue("--album-surface")
     ).toBe("hsl(30 45% 88%)");
+  });
+
+  it("gives a waiting highlight without art the same colour as a featured one", () => {
+    const noArt = releaseHighlight({
+      key: "release:3",
+      followedReleaseId: 3,
+      title: "Miss You",
+      releaseType: "Single",
+      coverUrl: null,
+    });
+    renderSpotlight([LIVE, noArt]);
+
+    expect(
+      screen.getByRole("button", { name: "Show New single: Miss You" })
+    ).toHaveClass("bg-amber-100");
     expect(screen.getByRole("article")).toHaveClass("bg-emerald-100");
+  });
+
+  it("gives a waiting live date its live colour", () => {
+    renderSpotlight([RELEASE, LIVE]);
+
+    expect(
+      screen.getByRole("button", { name: "Show Live near you: Yves Tumor" })
+    ).toHaveClass("bg-emerald-100");
   });
 
   it("features the first highlight and lists the rest beside it", () => {
