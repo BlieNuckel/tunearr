@@ -1,5 +1,5 @@
 import { mbJson } from "./config";
-import { mbCached, MB_TTL } from "./cache";
+import { mbCached, mbPrime, MB_TTL } from "./cache";
 import type { MbPriority } from "./queue";
 import type {
   MusicBrainzReleaseGroup,
@@ -22,6 +22,44 @@ export type AlbumDetails = {
 
 type LabelResult = { name: string; mbid: string } | null;
 
+/**
+ * Search results, an artist's discography and a direct lookup all carry these
+ * fields in the same shape (search leaves out empty secondary types), so any
+ * of them can fill an album's details.
+ */
+function toAlbumDetails(data: MusicBrainzReleaseGroup): AlbumDetails {
+  const credit = data["artist-credit"]?.[0];
+
+  return {
+    mbid: data.id,
+    title: data.title ?? "Unknown Album",
+    artistName: credit?.name ?? "Unknown Artist",
+    artistMbid: credit?.artist?.id ?? null,
+    firstReleaseDate: data["first-release-date"] || null,
+    primaryType: data["primary-type"] || null,
+    secondaryTypes: data["secondary-types"] ?? [],
+  };
+}
+
+function albumDetailsKey(releaseGroupMbid: string): string {
+  return `album:${releaseGroupMbid}`;
+}
+
+/**
+ * Seed album details for every listed release group, so opening one from a
+ * search or an artist page needs no request for its header. Rows without a
+ * credited artist MBID are skipped; the album page needs it.
+ */
+function primeAlbumDetails(releaseGroups: MusicBrainzReleaseGroup[]): void {
+  for (const rg of releaseGroups) {
+    if (!rg.id || !rg["artist-credit"]?.[0]?.artist?.id) continue;
+    mbPrime(
+      { key: albumDetailsKey(rg.id), ttlSeconds: MB_TTL.immutable },
+      toAlbumDetails(rg)
+    );
+  }
+}
+
 async function loadReleaseGroupSearch(
   query: string,
   priority: MbPriority
@@ -34,6 +72,7 @@ async function loadReleaseGroupSearch(
   }
 
   const sorted = [...data["release-groups"]].sort((a, b) => b.score - a.score);
+  primeAlbumDetails(sorted);
 
   return { ...data, "release-groups": sorted, count: sorted.length };
 }
@@ -44,7 +83,9 @@ async function loadArtistReleaseGroups(
 ): Promise<MusicBrainzReleaseGroup[]> {
   const path = `/release-group?artist=${artistId}&type=album|ep|single&limit=100&inc=artist-credits&fmt=json`;
   const data = await mbJson<MusicBrainzSearchResponse>(path, priority);
-  return data?.["release-groups"] ?? [];
+  const releaseGroups = data?.["release-groups"] ?? [];
+  primeAlbumDetails(releaseGroups);
+  return releaseGroups;
 }
 
 async function loadReleaseGroupSummary(
@@ -68,18 +109,7 @@ async function loadAlbumDetails(
   const path = `/release-group/${releaseGroupMbid}?inc=artist-credits&fmt=json`;
   const data = await mbJson<MusicBrainzReleaseGroup>(path, priority);
   if (!data) return null;
-
-  const credit = data["artist-credit"]?.[0];
-
-  return {
-    mbid: data.id,
-    title: data.title ?? "Unknown Album",
-    artistName: credit?.name ?? "Unknown Artist",
-    artistMbid: credit?.artist?.id ?? null,
-    firstReleaseDate: data["first-release-date"] || null,
-    primaryType: data["primary-type"] || null,
-    secondaryTypes: data["secondary-types"] ?? [],
-  };
+  return toAlbumDetails(data);
 }
 
 async function loadReleaseGroupLabel(
@@ -193,7 +223,7 @@ export function getAlbumDetails(
 ): Promise<AlbumDetails | null> {
   return mbCached(
     {
-      key: `album:${releaseGroupMbid}`,
+      key: albumDetailsKey(releaseGroupMbid),
       ttlSeconds: MB_TTL.immutable,
       priority,
     },

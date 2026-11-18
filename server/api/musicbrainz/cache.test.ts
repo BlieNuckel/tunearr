@@ -10,7 +10,13 @@ vi.mock("./server", () => ({
     intervalMs: 1100,
   }),
 }));
-import { mbCached, clearMbCache, getMbCacheStats, MB_TTL } from "./cache";
+import {
+  mbCached,
+  mbPrime,
+  clearMbCache,
+  getMbCacheStats,
+  MB_TTL,
+} from "./cache";
 import type { MbPriority } from "./queue";
 import { markLoadFailed, markLoadNotFound } from "./loadContext";
 
@@ -403,5 +409,39 @@ describe("clearMbCache", () => {
     await mbCached(options, loader);
 
     expect(loader).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("mbPrime", () => {
+  it("seeds an entry a later call is served from", async () => {
+    const loader = vi.fn().mockResolvedValue("loaded");
+    mbPrime({ key: "k", ttlSeconds: MB_TTL.immutable }, "primed");
+
+    expect(await mbCached({ key: "k", ttlSeconds: 60 }, loader)).toBe("primed");
+    expect(loader).not.toHaveBeenCalled();
+  });
+
+  it("never overwrites an existing entry", async () => {
+    await mbCached({ key: "k", ttlSeconds: 60 }, () =>
+      Promise.resolve("looked up")
+    );
+    mbPrime({ key: "k", ttlSeconds: MB_TTL.immutable }, "primed");
+
+    expect(
+      await mbCached({ key: "k", ttlSeconds: 60 }, () =>
+        Promise.resolve("again")
+      )
+    ).toBe("looked up");
+  });
+
+  it("is scoped to the server it came from", async () => {
+    mbPrime({ key: "k", ttlSeconds: MB_TTL.immutable }, "official");
+    serverRoot = "http://mb.local";
+
+    expect(
+      await mbCached({ key: "k", ttlSeconds: 60 }, () =>
+        Promise.resolve("mirror")
+      )
+    ).toBe("mirror");
   });
 });

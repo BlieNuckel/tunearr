@@ -1,5 +1,5 @@
 import { mbJson } from "./config";
-import { mbCached, MB_TTL } from "./cache";
+import { mbCached, mbPrime, MB_TTL } from "./cache";
 import type { MbPriority } from "./queue";
 import type {
   ArtistInfo,
@@ -17,6 +17,15 @@ function toArtistInfo(artist: MusicBrainzArtist): ArtistInfo {
     type: artist.type || undefined,
     country: artist.country || undefined,
   };
+}
+
+/** A lookup carries no search score, so a primed entry must not either. */
+function primeArtists(artists: MusicBrainzArtist[]): void {
+  for (const artist of artists) {
+    if (!artist.id) continue;
+    const { score: _score, ...info } = toArtistInfo(artist);
+    mbPrime({ key: `artist:${artist.id}`, ttlSeconds: MB_TTL.slow }, info);
+  }
 }
 
 async function loadArtistMbid(
@@ -46,7 +55,9 @@ async function loadArtistSearch(
 ): Promise<ArtistInfo[]> {
   const path = `/artist/?query=${encodeURIComponent(query)}&limit=25&fmt=json`;
   const data = await mbJson<MusicBrainzArtistSearchResponse>(path, priority);
-  return (data?.artists ?? []).map(toArtistInfo);
+  const artists = data?.artists ?? [];
+  primeArtists(artists);
+  return artists.map(toArtistInfo);
 }
 
 /**
