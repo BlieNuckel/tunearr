@@ -1,6 +1,6 @@
 import type { SerializedNotice } from "../liveEvents/serialize";
 
-export type HighlightKind = "release" | "live";
+export type HighlightKind = "release" | "live" | "request";
 
 export type ReleaseLidarrStatus = "downloading" | "wanted" | "imported";
 
@@ -24,7 +24,19 @@ export type LiveHighlight = SerializedNotice & {
   key: string;
 };
 
-export type Highlight = ReleaseHighlight | LiveHighlight;
+/** An album the user asked for that is now in the library. */
+export type RequestHighlight = {
+  kind: "request";
+  key: string;
+  requestId: number;
+  albumMbid: string;
+  title: string;
+  artistName: string;
+  coverUrl: string;
+  availableAt: string;
+};
+
+export type Highlight = ReleaseHighlight | LiveHighlight | RequestHighlight;
 
 /**
  * Where a highlight sits before anything else is compared. Lower comes first.

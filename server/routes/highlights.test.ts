@@ -4,7 +4,7 @@ const mockGetHighlights = vi.fn();
 const mockDismissHighlight = vi.fn();
 
 vi.mock("../services/highlights/highlights", () => ({
-  HIGHLIGHT_KINDS: ["release", "live"],
+  HIGHLIGHT_KINDS: ["release", "live", "request"],
   getHighlights: (...args: unknown[]) => mockGetHighlights(...args),
   dismissHighlight: (...args: unknown[]) => mockDismissHighlight(...args),
 }));
@@ -63,6 +63,11 @@ describe("POST /:kind/:id/dismiss", () => {
   it("dismisses a live date", async () => {
     await request(app).post("/live/34/dismiss");
     expect(mockDismissHighlight).toHaveBeenCalledWith(7, "live", 34);
+  });
+
+  it("dismisses an arrived request", async () => {
+    await request(app).post("/request/9/dismiss");
+    expect(mockDismissHighlight).toHaveBeenCalledWith(7, "request", 9);
   });
 
   it("rejects an unknown kind", async () => {
