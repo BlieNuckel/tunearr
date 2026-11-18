@@ -6,6 +6,7 @@ import {
   type SpendingSettings,
 } from "@shared/currency";
 import useSpendingSettings from "@/hooks/useSpendingSettings";
+import CurrencyChangeConfirm from "./CurrencyChangeConfirm";
 
 const INPUT_CLASSES =
   "w-full sm:w-sm px-3 py-2 bg-white dark:bg-gray-800 border-2 border-black rounded-lg text-gray-900 dark:text-gray-100 placeholder-gray-200 dark:placeholder-gray-600 focus:outline-none focus:border-amber-400 shadow-cartoon-md";
@@ -33,11 +34,25 @@ function limitDisplay(spending: SpendingSettings): string {
 export default function SpendingSection() {
   const { spending, loading, error, save } = useSpendingSettings();
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [pendingCurrency, setPendingCurrency] = useState<string | null>(null);
 
   if (loading && !spending) return null;
 
   const submit = async (patch: Partial<SpendingSettings>) => {
     setSaveError(await save(patch));
+  };
+
+  const handleCurrencyChange = (currency: string) => {
+    if (spending?.currency == null) {
+      void submit({ currency });
+      return;
+    }
+    if (currency !== spending.currency) setPendingCurrency(currency);
+  };
+
+  const confirmCurrency = (currency: string) => {
+    setPendingCurrency(null);
+    void submit({ currency, monthlyLimit: null });
   };
 
   const handleLimitBlur = (value: string) => {
@@ -69,7 +84,7 @@ export default function SpendingSection() {
             <select
               id="spending-currency"
               value={spending.currency ?? ""}
-              onChange={(e) => void submit({ currency: e.target.value })}
+              onChange={(e) => handleCurrencyChange(e.target.value)}
               className={INPUT_CLASSES}
             >
               {spending.currency === null && (
@@ -86,7 +101,7 @@ export default function SpendingSection() {
             <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">
               Purchases are recorded in this currency, and your summary counts
               only purchases in it. Changing it won&apos;t convert existing
-              purchase records
+              purchase records and clears your monthly limit
             </p>
           </div>
 
@@ -114,6 +129,16 @@ export default function SpendingSection() {
               Soft limit — shows a warning in your Purchases tab when exceeded
             </p>
           </div>
+
+          {spending.currency !== null && (
+            <CurrencyChangeConfirm
+              to={pendingCurrency}
+              from={spending.currency}
+              monthlyLimit={spending.monthlyLimit}
+              onConfirm={confirmCurrency}
+              onCancel={() => setPendingCurrency(null)}
+            />
+          )}
         </>
       )}
     </div>

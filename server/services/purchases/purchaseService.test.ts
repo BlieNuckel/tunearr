@@ -282,14 +282,39 @@ describe("writeSpendingSettings", () => {
     );
   });
 
-  it("changes the currency", async () => {
-    mockFindOne.mockResolvedValue(userRow("JPY", null));
+  it("clears the limit when moving to another currency", async () => {
+    mockFindOne
+      .mockResolvedValueOnce(userRow("USD", 5000))
+      .mockResolvedValueOnce(userRow("JPY", null));
 
-    await writeSpendingSettings(1, { currency: "JPY" });
+    const result = await writeSpendingSettings(1, { currency: "JPY" });
 
     expect(mockUpdate).toHaveBeenCalledWith(
       { id: 1 },
-      { spending_currency: "JPY" }
+      { spending_currency: "JPY", spending_monthly_limit: null }
+    );
+    expect(result).toEqual({ currency: "JPY", monthlyLimit: null });
+  });
+
+  it("keeps a limit sent with the new currency", async () => {
+    mockFindOne.mockResolvedValue(userRow("USD", 5000));
+
+    await writeSpendingSettings(1, { currency: "JPY", monthlyLimit: 8000 });
+
+    expect(mockUpdate).toHaveBeenCalledWith(
+      { id: 1 },
+      { spending_currency: "JPY", spending_monthly_limit: 8000 }
+    );
+  });
+
+  it("keeps the limit when the same currency is sent again", async () => {
+    mockFindOne.mockResolvedValue(userRow("USD", 5000));
+
+    await writeSpendingSettings(1, { currency: "USD" });
+
+    expect(mockUpdate).toHaveBeenCalledWith(
+      { id: 1 },
+      { spending_currency: "USD" }
     );
   });
 

@@ -115,17 +115,28 @@ export async function readSpendingSettings(
   return spending;
 }
 
+/** A limit is counted in the old currency, so moving to another one clears it unless the patch sets a new one. */
+function withLimitClearedOnSwitch(
+  patch: Partial<SpendingSettings>,
+  current: SpendingSettings
+): Partial<SpendingSettings> {
+  const switching =
+    current.currency !== null &&
+    patch.currency !== undefined &&
+    patch.currency !== current.currency;
+  if (!switching || patch.monthlyLimit !== undefined) return patch;
+  return { ...patch, monthlyLimit: null };
+}
+
 export async function writeSpendingSettings(
   userId: number,
   patch: Partial<SpendingSettings>
 ): Promise<SpendingSettings> {
-  const error = spendingSettingsError(
-    patch,
-    await readSpendingSettings(userId)
-  );
+  const current = await readSpendingSettings(userId);
+  const error = spendingSettingsError(patch, current);
   if (error) throw new ApiError(400, error);
 
-  await setUserSpending(userId, patch);
+  await setUserSpending(userId, withLimitClearedOnSwitch(patch, current));
   return readSpendingSettings(userId);
 }
 
