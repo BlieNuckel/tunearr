@@ -18,6 +18,7 @@ import SoulseekIntegrationPage from "./pages/SettingsPage/integrations/SoulseekI
 import PlexIntegrationPage from "./pages/SettingsPage/integrations/PlexIntegrationPage";
 import LastfmIntegrationPage from "./pages/SettingsPage/integrations/LastfmIntegrationPage";
 import LiveEventsIntegrationPage from "./pages/SettingsPage/integrations/LiveEventsIntegrationPage";
+import MusicBrainzIntegrationPage from "./pages/SettingsPage/integrations/MusicBrainzIntegrationPage";
 import NotificationsPage from "./pages/SettingsPage/notifications/NotificationsPage";
 import MyNotificationsPage from "./pages/SettingsPage/notifications/MyNotificationsPage";
 import EmailNotificationsPage from "./pages/SettingsPage/notifications/EmailNotificationsPage";
@@ -66,6 +67,10 @@ function App() {
                 <Route path="soulseek" element={<SoulseekIntegrationPage />} />
                 <Route path="plex" element={<PlexIntegrationPage />} />
                 <Route path="lastfm" element={<LastfmIntegrationPage />} />
+                <Route
+                  path="musicbrainz"
+                  element={<MusicBrainzIntegrationPage />}
+                />
                 <Route
                   path="live-events"
                   element={<LiveEventsIntegrationPage />}

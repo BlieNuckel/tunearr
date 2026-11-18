@@ -30,6 +30,11 @@ const settingsRoutes: SettingsRoute[] = [
     regex: /^\/settings\/integrations\/lastfm/,
   },
   {
+    text: "MusicBrainz",
+    route: "/settings/integrations/musicbrainz",
+    regex: /^\/settings\/integrations\/musicbrainz/,
+  },
+  {
     text: "Live events",
     route: "/settings/integrations/live-events",
     regex: /^\/settings\/integrations\/live-events/,

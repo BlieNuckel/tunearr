@@ -8,6 +8,7 @@ import {
 import { DEFAULT_PURCHASE_DECISION } from "./purchaseDecisionDefaults";
 import { DEFAULT_SPENDING } from "./spendingDefaults";
 import { DEFAULT_LIVE_EVENTS } from "@shared/settingsDefaults";
+import { DEFAULT_MUSICBRAINZ } from "@shared/musicbrainzServer";
 import { useAuth } from "./useAuth";
 import { hasPermission, Permission } from "@shared/permissions";
 
@@ -45,6 +46,7 @@ const EMPTY_SETTINGS: AppSettings = {
   purchaseDecision: DEFAULT_PURCHASE_DECISION,
   spending: DEFAULT_SPENDING,
   liveEvents: DEFAULT_LIVE_EVENTS,
+  musicbrainz: DEFAULT_MUSICBRAINZ,
 };
 
 const EMPTY_OPTIONS: LidarrOptions = {
@@ -84,6 +86,10 @@ function normalizeSettings(data: Record<string, unknown>): AppSettings {
     liveEvents: {
       ...DEFAULT_LIVE_EVENTS,
       ...((data.liveEvents as object) ?? {}),
+    },
+    musicbrainz: {
+      ...DEFAULT_MUSICBRAINZ,
+      ...((data.musicbrainz as object) ?? {}),
     },
   };
 }
