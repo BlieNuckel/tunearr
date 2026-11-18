@@ -235,6 +235,20 @@ export function mbCached<T>(
   return refreshStale(options, priority, loader, entry, parent);
 }
 
+/**
+ * Seed an entry from data we already hold, e.g. one row of a search result,
+ * so a later lookup of that entity costs no request. Never overwrites: an
+ * existing entry may come from a direct lookup, which is the better source.
+ */
+export function mbPrime<T>(
+  unscopedOptions: Omit<MbCacheOptions, "priority">,
+  value: T
+): void {
+  const options = serverScoped(unscopedOptions);
+  if (readEntry(options.key) !== undefined) return;
+  store(options.key, value, options.ttlSeconds);
+}
+
 /** Drop every cached MusicBrainz value, in memory and on disk. */
 export function clearMbCache(): void {
   memory.flushAll();

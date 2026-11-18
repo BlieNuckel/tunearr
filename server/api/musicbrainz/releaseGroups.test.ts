@@ -15,6 +15,7 @@ import {
   getReleaseGroupLabel,
   getReleaseGroupDate,
   getAlbumDetails,
+  fetchReleaseGroupsForArtist,
 } from "./releaseGroups";
 
 const mockFetch = vi.fn();
@@ -363,5 +364,89 @@ describe("getReleaseGroupDate", () => {
 
     const result = await getReleaseGroupDate("rg-notfound");
     expect(result).toBeNull();
+  });
+});
+
+describe("priming album details from lists", () => {
+  const listed = {
+    id: "rg-1",
+    score: 100,
+    title: "OK Computer",
+    "primary-type": "Album",
+    "first-release-date": "1997-05-21",
+    "artist-credit": [
+      { name: "Radiohead", artist: { id: "artist-1", name: "Radiohead" } },
+    ],
+  };
+
+  const expected = {
+    mbid: "rg-1",
+    title: "OK Computer",
+    artistName: "Radiohead",
+    artistMbid: "artist-1",
+    firstReleaseDate: "1997-05-21",
+    primaryType: "Album",
+    secondaryTypes: [],
+  };
+
+  it("fills album details from search results", async () => {
+    mockFetch.mockResolvedValue(
+      okResponse({ "release-groups": [listed], count: 1, offset: 0 })
+    );
+
+    await searchReleaseGroups("ok computer");
+    mockFetch.mockClear();
+
+    expect(await getAlbumDetails("rg-1")).toEqual(expected);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("fills album details from an artist's discography", async () => {
+    mockFetch.mockResolvedValue(
+      okResponse({
+        "release-groups": [{ ...listed, "secondary-types": ["Live"] }],
+      })
+    );
+
+    await fetchReleaseGroupsForArtist("artist-1");
+    mockFetch.mockClear();
+
+    expect(await getAlbumDetails("rg-1")).toEqual({
+      ...expected,
+      secondaryTypes: ["Live"],
+    });
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("skips a row without a credited artist MBID", async () => {
+    mockFetch.mockResolvedValueOnce(
+      okResponse({
+        "release-groups": [{ ...listed, "artist-credit": [] }],
+        count: 1,
+        offset: 0,
+      })
+    );
+    await searchReleaseGroups("ok computer");
+
+    mockFetch.mockResolvedValueOnce(okResponse(listed));
+    await getAlbumDetails("rg-1");
+
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("never overwrites details from a direct lookup", async () => {
+    mockFetch.mockResolvedValueOnce(okResponse(listed));
+    await getAlbumDetails("rg-1");
+
+    mockFetch.mockResolvedValueOnce(
+      okResponse({
+        "release-groups": [{ ...listed, title: "Ok Computer (search)" }],
+        count: 1,
+        offset: 0,
+      })
+    );
+    await searchReleaseGroups("ok computer");
+
+    expect((await getAlbumDetails("rg-1"))?.title).toBe("OK Computer");
   });
 });

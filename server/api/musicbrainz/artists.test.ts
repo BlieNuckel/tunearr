@@ -185,3 +185,58 @@ describe("searchArtists", () => {
     await expect(searchArtists("radio")).rejects.toThrow("503");
   });
 });
+
+describe("priming from artist search", () => {
+  it("lets a later lookup of a listed artist skip MusicBrainz, without the score", async () => {
+    mockMbFetch.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () =>
+        Promise.resolve({
+          artists: [
+            {
+              id: "a1",
+              name: "Radiohead",
+              score: 100,
+              disambiguation: null,
+              type: "Group",
+              country: "GB",
+            },
+          ],
+        }),
+    });
+
+    await searchArtists("radiohead");
+    mockMbFetch.mockClear();
+
+    expect(await getArtistById("a1")).toEqual({
+      mbid: "a1",
+      name: "Radiohead",
+      type: "Group",
+      country: "GB",
+    });
+    expect(mockMbFetch).not.toHaveBeenCalled();
+  });
+
+  it("never overwrites an artist already looked up directly", async () => {
+    mockMbFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: () =>
+        Promise.resolve({ id: "a1", name: "Radiohead", country: "GB" }),
+    });
+    await getArtistById("a1");
+
+    mockMbFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: () =>
+        Promise.resolve({
+          artists: [{ id: "a1", name: "Radiohead (search)", score: 90 }],
+        }),
+    });
+    await searchArtists("radiohead");
+
+    expect((await getArtistById("a1"))?.name).toBe("Radiohead");
+  });
+});
