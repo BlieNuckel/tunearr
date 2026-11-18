@@ -50,8 +50,16 @@ export default function PurchaseLinksModal({
   albumMbid,
   onAddToLibrary,
 }: PurchaseLinksModalProps) {
-  const { context, loading, progress, fetchContext, reset } =
-    usePurchaseContext();
+  const {
+    context,
+    loading,
+    progress,
+    error,
+    retrying,
+    fetchContext,
+    retry,
+    reset,
+  } = usePurchaseContext();
 
   useEffect(() => {
     if (isOpen && albumMbid) {
@@ -88,6 +96,9 @@ export default function PurchaseLinksModal({
           context={context}
           loading={loading}
           progress={progress}
+          error={error}
+          retrying={retrying}
+          onRetry={retry}
         />
 
         <PurchaseLinks artistName={artistName} albumTitle={albumTitle} />

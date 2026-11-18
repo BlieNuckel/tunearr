@@ -4,6 +4,7 @@ import SearchBar from "@/components/SearchBar";
 import ReleaseGroupCard from "@/components/ReleaseGroupCard";
 import ArtistCard from "@/pages/DiscoverPage/components/ArtistCard";
 import Skeleton from "@/components/Skeleton";
+import SectionStatus from "@/components/SectionStatus";
 import useSearch from "@/hooks/useSearch";
 import useLibraryAlbums from "@/hooks/useLibraryAlbums";
 import useLibraryArtists from "@/hooks/useLibraryArtists";
@@ -62,9 +63,44 @@ function SearchSkeletons() {
   );
 }
 
+/** A part of the results MusicBrainz hasn't answered for yet. */
+function MissingSection({
+  title,
+  subject,
+  retrying,
+  onRetry,
+}: {
+  title: string;
+  subject: string;
+  retrying: boolean;
+  onRetry: () => void;
+}) {
+  return (
+    <section>
+      <h2 className={SECTION_HEADING_CLASS}>{title}</h2>
+      <SectionStatus
+        subject={subject}
+        error="MusicBrainz is busy"
+        errorKind="busy"
+        retrying={retrying}
+        onRetry={onRetry}
+      />
+    </section>
+  );
+}
+
 export default function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { albums, artists, loading, error, search } = useSearch();
+  const {
+    albums,
+    artists,
+    loading,
+    error,
+    missing,
+    retrying,
+    search,
+    retryMissing,
+  } = useSearch();
   const { getAlbumLibrary } = useLibraryAlbums();
   const { isArtistInLibrary } = useLibraryArtists();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -93,7 +129,10 @@ export default function SearchPage() {
     [setSearchParams]
   );
 
-  const hasResults = artists.length > 0 || albums.length > 0;
+  const artistsMissing = missing.includes("artists");
+  const albumsMissing = missing.includes("albums");
+  const hasResults =
+    artists.length > 0 || albums.length > 0 || missing.length > 0;
 
   return (
     <div>
@@ -111,7 +150,16 @@ export default function SearchPage() {
 
       {!loading && !error && hasResults && (
         <div className="mt-6 space-y-8">
-          {artists.length > 0 && (
+          {artistsMissing && (
+            <MissingSection
+              title="Artists"
+              subject="artists"
+              retrying={retrying}
+              onRetry={retryMissing}
+            />
+          )}
+
+          {!artistsMissing && artists.length > 0 && (
             <section>
               <h2 className={SECTION_HEADING_CLASS}>Artists</h2>
               <div className={ARTIST_GRID_CLASS}>
@@ -128,7 +176,16 @@ export default function SearchPage() {
             </section>
           )}
 
-          {albums.length > 0 && (
+          {albumsMissing && (
+            <MissingSection
+              title="Albums"
+              subject="albums"
+              retrying={retrying}
+              onRetry={retryMissing}
+            />
+          )}
+
+          {!albumsMissing && albums.length > 0 && (
             <section>
               <h2 className={SECTION_HEADING_CLASS}>Albums</h2>
               <div className={ALBUM_GRID_CLASS}>

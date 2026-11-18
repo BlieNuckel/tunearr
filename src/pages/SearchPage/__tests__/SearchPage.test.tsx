@@ -1,4 +1,4 @@
-import { act, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import SearchPage from "../SearchPage";
 import type { ArtistSearchResult, ReleaseGroup } from "@/types";
@@ -8,7 +8,10 @@ let mockSearchState: {
   artists: ArtistSearchResult[];
   loading: boolean;
   error: string | null;
+  missing: ("albums" | "artists")[];
+  retrying: boolean;
   search: ReturnType<typeof vi.fn>;
+  retryMissing: ReturnType<typeof vi.fn>;
 };
 
 let libraryAlbumMbids: string[] = [];
@@ -90,7 +93,10 @@ beforeEach(() => {
     artists: [],
     loading: false,
     error: null,
+    missing: [],
+    retrying: false,
     search: vi.fn(),
+    retryMissing: vi.fn(),
   };
   libraryAlbumMbids = [];
   libraryArtistMbids = [];
@@ -189,5 +195,39 @@ describe("SearchPage", () => {
 
     expect(input.value).toBe("");
     expect(document.activeElement).toBe(input);
+  });
+
+  it("shows album results while artists are still being retried", () => {
+    mockSearchState.albums = [
+      {
+        id: "rg-1",
+        score: 100,
+        title: "OK Computer",
+        "primary-type": "Album",
+        "first-release-date": "1997",
+        "artist-credit": [],
+      },
+    ];
+    mockSearchState.missing = ["artists"];
+    mockSearchState.retrying = true;
+    renderSearchPage("radio");
+
+    expect(screen.getByText("Artists")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "MusicBrainz is busy, retrying…"
+    );
+    expect(screen.getAllByTestId("release-card")).toHaveLength(1);
+    expect(screen.queryByText("No results found")).toBeNull();
+  });
+
+  it("offers a retry for a part once retries run out", () => {
+    mockSearchState.missing = ["albums"];
+    renderSearchPage("radio");
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "MusicBrainz is still busy, so we couldn't load albums."
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(mockSearchState.retryMissing).toHaveBeenCalled();
   });
 });

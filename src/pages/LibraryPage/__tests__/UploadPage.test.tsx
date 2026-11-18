@@ -126,4 +126,37 @@ describe("UploadPage", () => {
       replace: true,
     });
   });
+
+  it("shows an unknown album when MusicBrainz has none", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ error: "Release group not found" }), {
+        status: 404,
+      })
+    );
+    render(<UploadPage />);
+
+    await waitFor(() =>
+      expect(screen.getByText("Unknown album")).toBeInTheDocument()
+    );
+  });
+
+  it("says MusicBrainz is busy while the album lookup is retried", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          error: "MusicBrainz is busy (returned 503)",
+          retryable: true,
+          retryAfterMs: 1000,
+        }),
+        { status: 503 }
+      )
+    );
+    render(<UploadPage />);
+
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent(
+        "MusicBrainz is busy, retrying…"
+      )
+    );
+  });
 });

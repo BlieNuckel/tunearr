@@ -1,6 +1,7 @@
 import type { PurchaseContext } from "@/hooks/usePurchaseContext";
 import { InformationCircleIcon, HeartIcon } from "@/components/icons";
 import Spinner from "@/components/Spinner";
+import SectionStatus from "@/components/SectionStatus";
 
 type ProgressEvent = {
   step: string;
@@ -11,6 +12,10 @@ interface PurchaseDecisionBannerProps {
   context: PurchaseContext | null;
   loading: boolean;
   progress: ProgressEvent | null;
+  /** Set when MusicBrainz was too busy to evaluate the album. */
+  error?: string | null;
+  retrying?: boolean;
+  onRetry?: () => void;
 }
 
 function BannerLoading({ progress }: { progress: ProgressEvent | null }) {
@@ -57,7 +62,24 @@ export default function PurchaseDecisionBanner({
   context,
   loading,
   progress,
+  error = null,
+  retrying = false,
+  onRetry,
 }: PurchaseDecisionBannerProps) {
+  if (retrying || (error && !loading)) {
+    return (
+      <div className="rounded-xl border-2 border-gray-200 dark:border-gray-700 p-3">
+        <SectionStatus
+          subject="the label and release date for this advice"
+          error={error}
+          errorKind="busy"
+          retrying={retrying}
+          onRetry={onRetry}
+        />
+      </div>
+    );
+  }
+
   if (loading) {
     return <BannerLoading progress={progress} />;
   }

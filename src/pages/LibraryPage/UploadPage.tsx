@@ -5,6 +5,8 @@ import { hasPermission, Permission } from "@shared/permissions";
 import FileUploadZone from "@/components/FileUploadZone";
 import ImportReview from "@/components/ImportReview";
 import Spinner from "@/components/Spinner";
+import SectionStatus from "@/components/SectionStatus";
+import { responseError } from "@/utils/fetchError";
 import ImageWithShimmer from "@/components/ImageWithShimmer";
 import useFileUpload from "@/hooks/useFileUpload";
 import useAsyncData from "@/hooks/useAsyncData";
@@ -23,6 +25,7 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+/** A missing album is shown as unknown; a busy MusicBrainz throws so it is retried. */
 async function fetchReleaseGroupInfo({
   key,
   signal,
@@ -30,12 +33,21 @@ async function fetchReleaseGroupInfo({
   const res = await fetch(`/api/musicbrainz/release-group/${key}`, {
     signal,
   });
-  return res.ok ? res.json() : null;
+  if (res.status === 404) return null;
+  if (!res.ok) throw await responseError(res, "Failed to load album");
+  return res.json();
 }
 
 function useReleaseGroupInfo(mbid: string | null) {
-  const { data, loading } = useAsyncData(mbid, fetchReleaseGroupInfo);
-  return { info: data ?? null, loading };
+  const { data, loading, error, errorKind, retrying, refresh } = useAsyncData(
+    mbid,
+    fetchReleaseGroupInfo
+  );
+  return {
+    info: data ?? null,
+    loading,
+    lookup: { loading, error, errorKind, retrying, refresh },
+  };
 }
 
 export default function UploadPage() {
@@ -51,7 +63,7 @@ export default function UploadPage() {
     if (!canImport) navigate("/library/wanted", { replace: true });
   }, [canImport, navigate]);
 
-  const { info, loading: infoLoading } = useReleaseGroupInfo(mbid);
+  const { info, loading: infoLoading, lookup } = useReleaseGroupInfo(mbid);
   const {
     step,
     files,
@@ -120,7 +132,15 @@ export default function UploadPage() {
           )}
         </div>
         <div className="min-w-0">
-          {infoLoading ? (
+          {lookup.retrying || (lookup.error && !infoLoading) ? (
+            <SectionStatus
+              subject="this album's details"
+              error={lookup.error}
+              errorKind={lookup.errorKind}
+              retrying={lookup.retrying}
+              onRetry={() => void lookup.refresh()}
+            />
+          ) : infoLoading ? (
             <div className="flex items-center gap-2">
               <Spinner className="w-4 h-4 text-gray-400" />
               <span className="text-gray-400 text-sm">Loading...</span>

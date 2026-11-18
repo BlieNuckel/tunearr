@@ -103,4 +103,98 @@ describe("usePurchaseContext", () => {
     expect(result.current.context).toBeNull();
     expect(result.current.progress).toBeNull();
   });
+
+  describe("when MusicBrainz is busy", () => {
+    const busyEvent = {
+      event: "error",
+      data: {
+        error: "MusicBrainz is busy (returned 503)",
+        retryable: true,
+        retryAfterMs: 1000,
+      },
+    };
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("retries on its own and settles on the result", async () => {
+      vi.useFakeTimers();
+      vi.mocked(fetch)
+        .mockResolvedValueOnce(sseResponse([busyEvent]))
+        .mockResolvedValueOnce(
+          sseResponse([{ event: "result", data: buyResponse }])
+        );
+
+      const { result } = renderHook(() => usePurchaseContext());
+      await act(async () => {
+        await result.current.fetchContext("rg-1");
+      });
+
+      expect(result.current.retrying).toBe(true);
+      expect(result.current.error).toBe("MusicBrainz is busy (returned 503)");
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1000);
+      });
+
+      expect(fetch).toHaveBeenCalledTimes(2);
+      expect(result.current.context).toEqual(buyResponse);
+      expect(result.current.retrying).toBe(false);
+      expect(result.current.error).toBeNull();
+    });
+
+    it("stops after three retries and offers a manual retry", async () => {
+      vi.useFakeTimers();
+      vi.mocked(fetch).mockImplementation(() =>
+        Promise.resolve(sseResponse([busyEvent]))
+      );
+
+      const { result } = renderHook(() => usePurchaseContext());
+      await act(async () => {
+        await result.current.fetchContext("rg-1");
+      });
+      for (const delay of [1000, 2000, 4000]) {
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(delay);
+        });
+      }
+
+      expect(fetch).toHaveBeenCalledTimes(4);
+      expect(result.current.retrying).toBe(false);
+      expect(result.current.error).toBe("MusicBrainz is busy (returned 503)");
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(60_000);
+      });
+      expect(fetch).toHaveBeenCalledTimes(4);
+
+      await act(async () => {
+        result.current.retry();
+        await vi.advanceTimersByTimeAsync(0);
+      });
+      expect(fetch).toHaveBeenCalledTimes(5);
+    });
+
+    it("drops a pending retry on reset", async () => {
+      vi.useFakeTimers();
+      vi.mocked(fetch).mockImplementation(() =>
+        Promise.resolve(sseResponse([busyEvent]))
+      );
+
+      const { result } = renderHook(() => usePurchaseContext());
+      await act(async () => {
+        await result.current.fetchContext("rg-1");
+      });
+      act(() => {
+        result.current.reset();
+      });
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10_000);
+      });
+
+      expect(fetch).toHaveBeenCalledTimes(1);
+      expect(result.current.retrying).toBe(false);
+    });
+  });
 });
