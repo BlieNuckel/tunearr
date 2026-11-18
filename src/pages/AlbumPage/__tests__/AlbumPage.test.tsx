@@ -29,6 +29,10 @@ function idle(): SectionFields {
   };
 }
 
+let mockTracksState: SectionFields & { media: unknown[] };
+
+let receivedTracksArgs: [string | null, string | null | undefined];
+
 let receivedArtistMbid: string | null | undefined;
 let receivedSimilarMbid: string | null | undefined;
 
@@ -38,6 +42,13 @@ vi.mock("@/hooks/useReleaseGroupDetails", () => ({
 
 vi.mock("@/hooks/useReleaseGroupLabel", () => ({
   default: () => mockLabelState,
+}));
+
+vi.mock("@/hooks/useReleaseTracks", () => ({
+  default: (id: string | null, artistName?: string | null) => {
+    receivedTracksArgs = [id, artistName];
+    return mockTracksState;
+  },
 }));
 
 vi.mock("@/hooks/useArtistReleaseGroups", () => ({
@@ -96,16 +107,8 @@ vi.mock("../components/AlbumHeader", () => ({
 }));
 
 vi.mock("../components/AlbumTracklist", () => ({
-  default: ({
-    albumMbid,
-    artistName,
-  }: {
-    albumMbid: string | null;
-    artistName: string | null;
-  }) => (
-    <div data-testid="album-tracklist" data-artist={artistName ?? "none"}>
-      {albumMbid ?? "waiting"}
-    </div>
+  default: ({ waiting }: { waiting: boolean }) => (
+    <div data-testid="album-tracklist" data-waiting={waiting} />
   ),
 }));
 
@@ -169,6 +172,8 @@ beforeEach(() => {
   mockLabelState = { ...idle(), label: null };
   mockReleaseGroupsState = { ...idle(), releaseGroups: [] };
   mockSimilarAlbumsState = { ...idle(), albums: [] };
+  mockTracksState = { ...idle(), media: [] };
+  receivedTracksArgs = [null, undefined];
   receivedArtistMbid = undefined;
   receivedSimilarMbid = undefined;
 });
@@ -179,7 +184,11 @@ describe("AlbumPage", () => {
     renderPage();
 
     expect(screen.getByTestId("album-header-skeleton")).toBeInTheDocument();
-    expect(screen.getByTestId("album-tracklist")).toHaveTextContent("waiting");
+    expect(screen.getByTestId("album-tracklist")).toHaveAttribute(
+      "data-waiting",
+      "true"
+    );
+    expect(receivedTracksArgs[0]).toBeNull();
   });
 
   it("says an album doesn't exist without offering a retry", () => {
@@ -202,11 +211,7 @@ describe("AlbumPage", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(
       "MusicBrainz is still busy, so we couldn't load this album."
     );
-    expect(screen.getByTestId("album-tracklist")).toHaveTextContent("rg-1");
-    expect(screen.getByTestId("album-tracklist")).toHaveAttribute(
-      "data-artist",
-      "none"
-    );
+    expect(receivedTracksArgs).toEqual(["rg-1", undefined]);
     expect(screen.getByTestId("similar-albums")).toBeInTheDocument();
   });
 
@@ -228,7 +233,7 @@ describe("AlbumPage", () => {
     expect(screen.getByRole("status")).toHaveTextContent(
       "MusicBrainz is busy, retrying…"
     );
-    expect(screen.getByTestId("album-tracklist")).toHaveTextContent("rg-1");
+    expect(receivedTracksArgs[0]).toBe("rg-1");
   });
 
   it("shows a failed label under the header with its own retry", () => {
@@ -275,7 +280,7 @@ describe("AlbumPage", () => {
     renderPage();
 
     expect(screen.getByTestId("album-header")).toHaveTextContent("OK Computer");
-    expect(screen.getByTestId("album-tracklist")).toHaveTextContent("rg-1");
+    expect(receivedTracksArgs[0]).toBe("rg-1");
   });
 
   it("passes library and wanted status to the header", () => {
@@ -396,11 +401,7 @@ describe("AlbumPage", () => {
       mockState.loading = true;
       renderPage(preview);
 
-      expect(screen.getByTestId("album-tracklist")).toHaveTextContent("rg-1");
-      expect(screen.getByTestId("album-tracklist")).toHaveAttribute(
-        "data-artist",
-        "Radiohead"
-      );
+      expect(receivedTracksArgs).toEqual(["rg-1", "Radiohead"]);
       expect(receivedArtistMbid).toBe("a1");
     });
 
@@ -431,6 +432,32 @@ describe("AlbumPage", () => {
       renderPage({ albumPreview: makeAlbum({ mbid: "rg-other" }) });
 
       expect(screen.getByTestId("album-header-skeleton")).toBeInTheDocument();
+    });
+  });
+
+  describe("similar albums", () => {
+    it("wait until the rest of the page has settled", () => {
+      mockState.album = makeAlbum();
+      mockTracksState.loading = true;
+      renderPage();
+
+      expect(receivedSimilarMbid).toBeNull();
+    });
+
+    it("wait while another section is being retried", () => {
+      mockState.album = makeAlbum();
+      mockLabelState.retrying = true;
+      renderPage();
+
+      expect(receivedSimilarMbid).toBeNull();
+    });
+
+    it("start once every section has loaded or failed", () => {
+      mockState.album = makeAlbum();
+      mockReleaseGroupsState.error = "boom";
+      renderPage();
+
+      expect(receivedSimilarMbid).toBe("rg-1");
     });
   });
 });

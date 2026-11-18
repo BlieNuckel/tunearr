@@ -1,19 +1,18 @@
 import TrackList from "@/components/TrackList";
-import SectionStatus from "@/components/SectionStatus";
-import useReleaseTracks from "@/hooks/useReleaseTracks";
+import SectionStatus, { type SectionState } from "@/components/SectionStatus";
 import useAudioPreview from "@/hooks/useAudioPreview";
+import type { Medium } from "@/types";
 
 interface AlbumTracklistProps {
-  /** Null while waiting to learn the artist name, so previews come with the first load. */
-  albumMbid: string | null;
-  artistName: string | null;
+  tracks: SectionState & { media: Medium[] };
+  /** True while waiting to learn the artist name, so previews come with the first load. */
+  waiting: boolean;
 }
 
 export default function AlbumTracklist({
-  albumMbid,
-  artistName,
+  tracks,
+  waiting,
 }: AlbumTracklistProps) {
-  const tracks = useReleaseTracks(albumMbid, artistName);
   const { toggle, isTrackPlaying } = useAudioPreview();
   const failed = tracks.retrying || tracks.error !== null;
 
@@ -34,7 +33,7 @@ export default function AlbumTracklist({
         ) : (
           <TrackList
             media={tracks.media}
-            loading={albumMbid === null || tracks.loading}
+            loading={waiting || tracks.loading}
             error={null}
             onTogglePreview={toggle}
             isTrackPlaying={isTrackPlaying}

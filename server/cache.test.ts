@@ -131,7 +131,7 @@ describe("withCache", () => {
   it("shares one run between concurrent calls for the same key", async () => {
     let release!: (value: string) => void;
     const fn = vi.fn(
-      () =>
+      (_arg: string) =>
         new Promise<string>((resolve) => {
           release = resolve;
         })

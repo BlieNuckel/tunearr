@@ -1,12 +1,7 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import AlbumTracklist from "../AlbumTracklist";
 
-const mockUseReleaseTracks = vi.fn();
 const mockRefresh = vi.fn();
-
-vi.mock("@/hooks/useReleaseTracks", () => ({
-  default: (...args: unknown[]) => mockUseReleaseTracks(...args),
-}));
 
 vi.mock("@/hooks/useAudioPreview", () => ({
   default: () => ({
@@ -36,20 +31,21 @@ function tracks(overrides: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockUseReleaseTracks.mockReturnValue(tracks());
 });
 
 describe("AlbumTracklist", () => {
-  it("loads tracks for the album with the artist name", () => {
-    render(<AlbumTracklist albumMbid="rg-1" artistName="Radiohead" />);
+  it("renders the tracklist", () => {
+    render(<AlbumTracklist tracks={tracks()} waiting={false} />);
 
-    expect(mockUseReleaseTracks).toHaveBeenCalledWith("rg-1", "Radiohead");
     expect(screen.getByText("Tracklist")).toBeInTheDocument();
-    expect(screen.getByTestId("track-list")).toBeInTheDocument();
+    expect(screen.getByTestId("track-list")).toHaveAttribute(
+      "data-loading",
+      "false"
+    );
   });
 
   it("shows the skeleton while waiting for the album", () => {
-    render(<AlbumTracklist albumMbid={null} artistName={null} />);
+    render(<AlbumTracklist tracks={tracks()} waiting />);
 
     expect(screen.getByTestId("track-list")).toHaveAttribute(
       "data-loading",
@@ -58,10 +54,12 @@ describe("AlbumTracklist", () => {
   });
 
   it("says MusicBrainz is busy while retrying", () => {
-    mockUseReleaseTracks.mockReturnValue(
-      tracks({ retrying: true, error: "busy", errorKind: "busy" })
+    render(
+      <AlbumTracklist
+        tracks={tracks({ retrying: true, error: "busy", errorKind: "busy" })}
+        waiting={false}
+      />
     );
-    render(<AlbumTracklist albumMbid="rg-1" artistName="Radiohead" />);
 
     expect(screen.getByRole("status")).toHaveTextContent(
       "MusicBrainz is busy, retrying…"
@@ -70,10 +68,12 @@ describe("AlbumTracklist", () => {
   });
 
   it("offers a retry once retries run out", () => {
-    mockUseReleaseTracks.mockReturnValue(
-      tracks({ error: "busy", errorKind: "busy" })
+    render(
+      <AlbumTracklist
+        tracks={tracks({ error: "busy", errorKind: "busy" })}
+        waiting={false}
+      />
     );
-    render(<AlbumTracklist albumMbid="rg-1" artistName="Radiohead" />);
 
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(mockRefresh).toHaveBeenCalled();

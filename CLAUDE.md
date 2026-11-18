@@ -81,7 +81,7 @@ The result: Lidarr sees a normal indexer and download client, but downloads actu
 **Key patterns:**
 
 - External API clients created via `createExternalApi()` — don't hand-roll fetch/caching/rate-limiting per service
-- `withCache()` (`server/cache.ts`) for memoizing arbitrary async functions with a TTL
+- `withCache()` (`server/cache.ts`) for memoizing arbitrary async functions with a TTL; concurrent calls for one key share a single run
 - All external API calls routed through the backend
 - Functional components with custom hooks — no class components
 - Tailwind utility classes only — no custom CSS files
