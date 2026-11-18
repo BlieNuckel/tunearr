@@ -1,5 +1,6 @@
 import { mbJson } from "./config";
 import { mbCached, mbPrime, MB_TTL } from "./cache";
+import { getFirstRelease, type LabelResult } from "./firstRelease";
 import type { MbPriority } from "./queue";
 import type {
   MusicBrainzReleaseGroup,
@@ -7,7 +8,6 @@ import type {
   ReleaseGroupSearchResult,
   MusicBrainzRelease,
   ReleaseGroupInfo,
-  MusicBrainzLabelReleasesResponse,
 } from "./types";
 
 export type AlbumDetails = {
@@ -19,8 +19,6 @@ export type AlbumDetails = {
   primaryType: string | null;
   secondaryTypes: string[];
 };
-
-type LabelResult = { name: string; mbid: string } | null;
 
 /**
  * Search results, an artist's discography and a direct lookup all carry these
@@ -88,20 +86,6 @@ async function loadArtistReleaseGroups(
   return releaseGroups;
 }
 
-async function loadReleaseGroupSummary(
-  releaseGroupMbid: string,
-  priority: MbPriority
-): Promise<{ artistName: string; albumTitle: string } | null> {
-  const path = `/release-group/${releaseGroupMbid}?inc=artist-credits&fmt=json`;
-  const data = await mbJson<MusicBrainzReleaseGroup>(path, priority);
-  if (!data) return null;
-
-  return {
-    artistName: data["artist-credit"]?.[0]?.name ?? "Unknown Artist",
-    albumTitle: data.title ?? "Unknown Album",
-  };
-}
-
 async function loadAlbumDetails(
   releaseGroupMbid: string,
   priority: MbPriority
@@ -110,31 +94,6 @@ async function loadAlbumDetails(
   const data = await mbJson<MusicBrainzReleaseGroup>(path, priority);
   if (!data) return null;
   return toAlbumDetails(data);
-}
-
-async function loadReleaseGroupLabel(
-  releaseGroupMbid: string,
-  priority: MbPriority
-): Promise<LabelResult> {
-  const path = `/release?release-group=${releaseGroupMbid}&inc=labels&limit=1&fmt=json`;
-  const data = await mbJson<MusicBrainzLabelReleasesResponse>(path, priority);
-
-  const labelInfo = data?.releases?.[0]?.["label-info"];
-  if (!labelInfo || labelInfo.length === 0) return null;
-
-  const label = labelInfo[0].label;
-  if (!label?.name || !label?.id) return null;
-
-  return { name: label.name, mbid: label.id };
-}
-
-async function loadReleaseGroupDate(
-  releaseGroupMbid: string,
-  priority: MbPriority
-): Promise<string | null> {
-  const path = `/release-group/${releaseGroupMbid}?fmt=json`;
-  const data = await mbJson<{ "first-release-date"?: string }>(path, priority);
-  return data?.["first-release-date"] || null;
 }
 
 async function loadReleaseGroupIdFromRelease(
@@ -152,22 +111,6 @@ async function loadReleaseGroupIdFromRelease(
     firstReleaseDate: rg["first-release-date"] ?? "",
     primaryType: rg["primary-type"] ?? null,
     secondaryTypes: rg["secondary-types"] ?? [],
-  };
-}
-
-async function loadReleaseGroupInfo(
-  releaseGroupMbid: string,
-  priority: MbPriority
-): Promise<ReleaseGroupInfo | null> {
-  const path = `/release-group/${releaseGroupMbid}?fmt=json`;
-  const data = await mbJson<MusicBrainzReleaseGroup>(path, priority);
-  if (!data?.id) return null;
-
-  return {
-    id: data.id,
-    firstReleaseDate: data["first-release-date"] ?? "",
-    primaryType: data["primary-type"] ?? null,
-    secondaryTypes: data["secondary-types"] ?? [],
   };
 }
 
@@ -201,19 +144,17 @@ export function fetchReleaseGroupsForArtist(
   );
 }
 
-/** Look up a release group by its MBID, returning title and artist credit */
-export function getReleaseGroupById(
+/**
+ * Title and artist credit for a release group. Read from album details, which
+ * fetch the same document, so it costs no request of its own.
+ */
+export async function getReleaseGroupById(
   releaseGroupMbid: string,
   priority: MbPriority = "interactive"
 ): Promise<{ artistName: string; albumTitle: string } | null> {
-  return mbCached(
-    {
-      key: `rg-summary:${releaseGroupMbid}`,
-      ttlSeconds: MB_TTL.immutable,
-      priority,
-    },
-    (p) => loadReleaseGroupSummary(releaseGroupMbid, p)
-  );
+  const album = await getAlbumDetails(releaseGroupMbid, priority);
+  if (!album) return null;
+  return { artistName: album.artistName, albumTitle: album.title };
 }
 
 /** Fetch album metadata for a release group, including artist MBID and type */
@@ -231,34 +172,21 @@ export function getAlbumDetails(
   );
 }
 
-/** Fetch the primary label for a release group */
-export function getReleaseGroupLabel(
+/** Fetch the primary label for a release group, from its first release */
+export async function getReleaseGroupLabel(
   releaseGroupMbid: string,
   priority: MbPriority = "interactive"
 ): Promise<LabelResult> {
-  return mbCached(
-    {
-      key: `rg-label:${releaseGroupMbid}`,
-      ttlSeconds: MB_TTL.immutable,
-      priority,
-    },
-    (p) => loadReleaseGroupLabel(releaseGroupMbid, p)
-  );
+  return (await getFirstRelease(releaseGroupMbid, priority)).label;
 }
 
-/** Fetch the first-release-date for a release group */
-export function getReleaseGroupDate(
+/** The first-release-date for a release group, read from its album details */
+export async function getReleaseGroupDate(
   releaseGroupMbid: string,
   priority: MbPriority = "interactive"
 ): Promise<string | null> {
-  return mbCached(
-    {
-      key: `rg-date:${releaseGroupMbid}`,
-      ttlSeconds: MB_TTL.immutable,
-      priority,
-    },
-    (p) => loadReleaseGroupDate(releaseGroupMbid, p)
-  );
+  const album = await getAlbumDetails(releaseGroupMbid, priority);
+  return album?.firstReleaseDate ?? null;
 }
 
 /** Convert a release MBID to its release-group ID, first release date and types */
@@ -273,20 +201,5 @@ export function getReleaseGroupIdFromRelease(
       priority,
     },
     (p) => loadReleaseGroupIdFromRelease(releaseMbid, p)
-  );
-}
-
-/** Read a release group directly by its own MBID */
-export function getReleaseGroupInfo(
-  releaseGroupMbid: string,
-  priority: MbPriority = "interactive"
-): Promise<ReleaseGroupInfo | null> {
-  return mbCached(
-    {
-      key: `rg-info:${releaseGroupMbid}`,
-      ttlSeconds: MB_TTL.immutable,
-      priority,
-    },
-    (p) => loadReleaseGroupInfo(releaseGroupMbid, p)
   );
 }
