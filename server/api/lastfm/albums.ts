@@ -22,12 +22,8 @@ function pickImageUrl(
   return extralarge?.["#text"] || large?.["#text"] || "";
 }
 
-export const getTopAlbumsByTag = async (
-  tag: string,
-  page = "1",
-  limit = "50"
-) => {
-  const url = buildUrl("tag.getTopAlbums", { tag, page, limit });
+export const getTopAlbumsByTag = async (tag: string, limit = "50") => {
+  const url = buildUrl("tag.getTopAlbums", { tag, limit });
   const response = await resilientFetch(url);
   const data: LastfmTagAlbumsResponse = await response.json();
 
@@ -46,14 +42,7 @@ export const getTopAlbumsByTag = async (
     })
   );
 
-  const attr = albumsContainer?.["@attr"];
-  return {
-    albums,
-    pagination: {
-      page: Number(attr?.page) || 1,
-      totalPages: Number(attr?.totalPages) || 1,
-    },
-  };
+  return { albums };
 };
 
 export async function getAlbumTopTags(

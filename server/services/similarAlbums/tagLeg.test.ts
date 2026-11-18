@@ -29,7 +29,6 @@ function tagAlbums(names: string[]) {
       artistMbid: `artist-mbid-${i}`,
       imageUrl: "",
     })),
-    pagination: { page: 1, totalPages: 1 },
   };
 }
 

@@ -10,31 +10,10 @@ export type LastfmTag = {
   count: number;
 };
 
-export type LastfmTagArtist = {
-  name: string;
-  mbid: string;
-  image?: Array<{ "#text": string; size: string }>;
-};
-
 export type LastfmSimilarResponse = {
   error?: number;
   message?: string;
   similarartists?: { artist: LastfmSimilarArtist[] };
-};
-
-export type LastfmTopTagsResponse = {
-  error?: number;
-  message?: string;
-  toptags?: { tag: LastfmTag[] };
-};
-
-export type LastfmTagArtistsResponse = {
-  error?: number;
-  message?: string;
-  topartists?: {
-    artist: LastfmTagArtist[];
-    "@attr"?: { page: string; totalPages: string };
-  };
 };
 
 export type LastfmTagAlbum = {
@@ -47,10 +26,7 @@ export type LastfmTagAlbum = {
 export type LastfmTagAlbumsResponse = {
   error?: number;
   message?: string;
-  albums?: {
-    album: LastfmTagAlbum[];
-    "@attr"?: { page: string; totalPages: string };
-  };
+  albums?: { album: LastfmTagAlbum[] };
 };
 
 export type LastfmAlbumTopTagsResponse = {

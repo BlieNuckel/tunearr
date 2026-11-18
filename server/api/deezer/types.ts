@@ -41,8 +41,3 @@ export type DeezerAlbumsResponse = {
   total: number;
   next?: string;
 };
-
-export type DeezerAlbumSearchResponse = {
-  data: DeezerAlbum[];
-  total: number;
-};
