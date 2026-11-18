@@ -1,4 +1,19 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import type { MbServer } from "./server";
+
+const OFFICIAL: MbServer = {
+  root: "https://musicbrainz.org",
+  baseUrl: "https://musicbrainz.org/ws/2",
+  kind: "official",
+  intervalMs: 1100,
+};
+
+let currentServer: MbServer = OFFICIAL;
+
+vi.mock("./server", () => ({
+  getMbServer: () => currentServer,
+}));
+
 import {
   acquireMbSlot,
   getMbQueueDepth,
@@ -23,6 +38,7 @@ function track(
 
 beforeEach(() => {
   vi.useFakeTimers();
+  currentServer = OFFICIAL;
   resetMbQueue();
 });
 
@@ -196,5 +212,65 @@ describe("throttle breaker", () => {
 
     reportMbThrottled();
     expect(getMbPauseRemainingMs()).toBe(2000);
+  });
+});
+
+describe("pace from the configured server", () => {
+  it("spaces grants by the server's interval", async () => {
+    currentServer = { ...OFFICIAL, root: "http://mb.local", intervalMs: 200 };
+    const granted: string[] = [];
+    for (let i = 0; i < 3; i += 1) void track("interactive", `r${i}`, granted);
+
+    await vi.advanceTimersByTimeAsync(0);
+    expect(granted).toEqual(["r0"]);
+
+    await vi.advanceTimersByTimeAsync(200);
+    expect(granted).toEqual(["r0", "r1"]);
+
+    await vi.advanceTimersByTimeAsync(200);
+    expect(granted).toEqual(["r0", "r1", "r2"]);
+  });
+
+  it("grants everything at once when the server is unpaced", async () => {
+    currentServer = { ...OFFICIAL, root: "http://mb.local", intervalMs: 0 };
+    const granted: string[] = [];
+    for (let i = 0; i < 5; i += 1) void track("interactive", `r${i}`, granted);
+
+    await vi.advanceTimersByTimeAsync(0);
+    expect(granted).toHaveLength(5);
+  });
+
+  it("picks up a pace change without a restart", async () => {
+    const granted: string[] = [];
+    void track("interactive", "first", granted);
+    await vi.advanceTimersByTimeAsync(INTERVAL_MS);
+
+    currentServer = { ...OFFICIAL, intervalMs: 300 };
+    void track("interactive", "a", granted);
+    void track("interactive", "b", granted);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(granted).toEqual(["first", "a"]);
+
+    await vi.advanceTimersByTimeAsync(300);
+    expect(granted).toEqual(["first", "a", "b"]);
+  });
+
+  it("drops a backoff earned against another server", async () => {
+    const granted: string[] = [];
+    void track("interactive", "first", granted);
+    await vi.advanceTimersByTimeAsync(INTERVAL_MS);
+
+    for (let i = 0; i < 5; i += 1) reportMbThrottled();
+    expect(getMbPauseRemainingMs()).toBe(32_000);
+
+    void track("interactive", "second", granted);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(granted).toEqual(["first"]);
+
+    currentServer = { ...OFFICIAL, root: "http://mb.local", intervalMs: 0 };
+    await vi.advanceTimersByTimeAsync(1000);
+
+    expect(granted).toEqual(["first", "second"]);
+    expect(getMbPauseRemainingMs()).toBe(0);
   });
 });

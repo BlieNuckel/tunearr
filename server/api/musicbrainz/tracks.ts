@@ -1,4 +1,4 @@
-import { MB_BASE, mbJson } from "./config";
+import { mbJson } from "./config";
 import { mbCached, MB_TTL } from "./cache";
 import type { MbPriority } from "./queue";
 import type { MusicBrainzReleasesResponse, TrackMedia } from "./types";
@@ -7,8 +7,8 @@ async function loadReleaseTracks(
   releaseGroupId: string,
   priority: MbPriority
 ): Promise<TrackMedia[]> {
-  const url = `${MB_BASE}/release?release-group=${releaseGroupId}&inc=recordings+media&limit=1&fmt=json`;
-  const data = await mbJson<MusicBrainzReleasesResponse>(url, priority);
+  const path = `/release?release-group=${releaseGroupId}&inc=recordings+media&limit=1&fmt=json`;
+  const data = await mbJson<MusicBrainzReleasesResponse>(path, priority);
 
   const release = data?.releases?.[0];
   if (!release) {

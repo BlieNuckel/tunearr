@@ -1,4 +1,4 @@
-import { MB_BASE, mbJson } from "./config";
+import { mbJson } from "./config";
 import { mbCached, MB_TTL } from "./cache";
 import type { MbPriority } from "./queue";
 import type {
@@ -23,8 +23,8 @@ async function loadArtistMbid(
   name: string,
   priority: MbPriority
 ): Promise<string | null> {
-  const url = `${MB_BASE}/artist/?query=${encodeURIComponent(name)}&limit=1&fmt=json`;
-  const data = await mbJson<MusicBrainzArtistSearchResponse>(url, priority);
+  const path = `/artist/?query=${encodeURIComponent(name)}&limit=1&fmt=json`;
+  const data = await mbJson<MusicBrainzArtistSearchResponse>(path, priority);
   return data?.artists?.[0]?.id ?? null;
 }
 
@@ -33,7 +33,7 @@ async function loadArtistById(
   priority: MbPriority
 ): Promise<ArtistInfo | null> {
   const data = await mbJson<MusicBrainzArtist>(
-    `${MB_BASE}/artist/${mbid}?fmt=json`,
+    `/artist/${mbid}?fmt=json`,
     priority
   );
   if (!data?.id) return null;
@@ -44,8 +44,8 @@ async function loadArtistSearch(
   query: string,
   priority: MbPriority
 ): Promise<ArtistInfo[]> {
-  const url = `${MB_BASE}/artist/?query=${encodeURIComponent(query)}&limit=25&fmt=json`;
-  const data = await mbJson<MusicBrainzArtistSearchResponse>(url, priority);
+  const path = `/artist/?query=${encodeURIComponent(query)}&limit=25&fmt=json`;
+  const data = await mbJson<MusicBrainzArtistSearchResponse>(path, priority);
   return (data?.artists ?? []).map(toArtistInfo);
 }
 

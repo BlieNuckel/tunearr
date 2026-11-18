@@ -1,5 +1,6 @@
 import NodeCache from "node-cache";
 import type { MbPriority } from "./queue";
+import { getMbServer } from "./server";
 
 /** How long a MusicBrainz value stays fresh, chosen by how volatile the data is. */
 export const MB_TTL = {
@@ -86,14 +87,23 @@ function loadOnce<T>(
 }
 
 /**
+ * Keys carry the server they were fetched from: a mirror can lag behind or
+ * answer differently, and "not found" on one server is no fact about another.
+ */
+function serverScoped(options: MbCacheOptions): MbCacheOptions {
+  return { ...options, key: `${getMbServer().root} ${options.key}` };
+}
+
+/**
  * Serve a MusicBrainz value from cache, loading it through the request queue on
  * a miss. Rejections are never cached, so a throttled MusicBrainz can't leave a
  * failure sitting in the cache for the whole TTL.
  */
 export function mbCached<T>(
-  options: MbCacheOptions,
+  unscopedOptions: MbCacheOptions,
   loader: MbLoader<T>
 ): Promise<T> {
+  const options = serverScoped(unscopedOptions);
   const entry = cache.get<CacheEntry<T>>(options.key);
 
   if (entry === undefined) {

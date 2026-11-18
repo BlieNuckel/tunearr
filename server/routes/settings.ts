@@ -11,6 +11,12 @@ import {
 } from "../services/liveEvents/settingsChange";
 import { testLidarrConnection } from "../services/settings";
 import { testSlskdConnection } from "../api/slskd/testConnection";
+import { testMbConnection } from "../api/musicbrainz/testConnection";
+import {
+  DEFAULT_MUSICBRAINZ,
+  mbRequestsPerSecondError,
+  mbServerUrlError,
+} from "../../shared/musicbrainzServer";
 import { requireAuth } from "../middleware/requireAuth";
 import { requirePermission } from "../middleware/requirePermission";
 import { Permission } from "../../shared/permissions";
@@ -94,6 +100,24 @@ router.post("/test-slskd", async (req: Request, res: Response) => {
   }
 
   const result = await testSlskdConnection(slskdUrl, slskdApiKey);
+  if ("error" in result) {
+    return res.status(result.status).json({ error: result.error });
+  }
+
+  res.json(result);
+});
+
+router.post("/test-musicbrainz", async (req: Request, res: Response) => {
+  const serverUrl =
+    typeof req.body?.serverUrl === "string" ? req.body.serverUrl : "";
+  const requestsPerSecond =
+    req.body?.requestsPerSecond ?? DEFAULT_MUSICBRAINZ.requestsPerSecond;
+
+  const error =
+    mbServerUrlError(serverUrl) ?? mbRequestsPerSecondError(requestsPerSecond);
+  if (error) return res.status(400).json({ error });
+
+  const result = await testMbConnection({ serverUrl, requestsPerSecond });
   if ("error" in result) {
     return res.status(result.status).json({ error: result.error });
   }

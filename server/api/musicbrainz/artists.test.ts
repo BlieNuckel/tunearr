@@ -1,5 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+vi.mock("./server", () => ({
+  getMbServer: () => ({
+    root: "https://musicbrainz.org",
+    baseUrl: "https://musicbrainz.org/ws/2",
+    kind: "official",
+    intervalMs: 1100,
+  }),
+}));
+
 const mockMbFetch = vi.fn();
 const mockAcquireMbSlot = vi.fn((..._args: unknown[]) => Promise.resolve());
 

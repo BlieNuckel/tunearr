@@ -1,4 +1,4 @@
-import { MB_BASE, mbJson } from "./config";
+import { mbJson } from "./config";
 import { mbCached, MB_TTL } from "./cache";
 import type { MbPriority } from "./queue";
 import type { MusicBrainzLabelWithRels } from "./types";
@@ -22,8 +22,8 @@ function loadLabelWithRels(
   labelMbid: string,
   priority: MbPriority
 ): Promise<MusicBrainzLabelWithRels | null> {
-  const url = `${MB_BASE}/label/${labelMbid}?inc=label-rels&fmt=json`;
-  return mbJson<MusicBrainzLabelWithRels>(url, priority);
+  const path = `/label/${labelMbid}?inc=label-rels&fmt=json`;
+  return mbJson<MusicBrainzLabelWithRels>(path, priority);
 }
 
 function fetchLabelWithRels(

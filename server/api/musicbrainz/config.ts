@@ -6,8 +6,7 @@ import {
   reportMbThrottled,
   type MbPriority,
 } from "./queue";
-
-export const MB_BASE = "https://musicbrainz.org/ws/2";
+import { getMbServer, type MbServer } from "./server";
 
 export const MB_HEADERS = {
   "User-Agent": "Tunearr/0.1.0 (github.com/tunearr)",
@@ -34,17 +33,24 @@ function retryAfterSeconds(response: Response): number | undefined {
 
 /**
  * Fetch from MusicBrainz through the shared request queue. Every MusicBrainz
- * call must go through here — the queue is the only thing holding us to 1 req/s,
- * so a single call that bypasses it turns a paced stream back into a burst.
+ * call must go through here — the queue is the only thing holding us to the
+ * server's pace, so a single call that bypasses it turns a paced stream back
+ * into a burst.
+ *
+ * `path` is relative to `/ws/2` (e.g. `/artist/<mbid>?fmt=json`) and resolved
+ * against the configured server at call time, so a server change applies to the
+ * next request.
  *
  * Each attempt takes its own slot, so a retry is paced like any other request
  * rather than firing straight back at a service that just refused us. Retries
  * are handled here instead of inside `resilientFetch` for exactly that reason.
  */
 export async function mbFetch(
-  url: string,
-  priority: MbPriority = "interactive"
+  path: string,
+  priority: MbPriority = "interactive",
+  server: MbServer = getMbServer()
 ): Promise<Response> {
+  const url = `${server.baseUrl}${path}`;
   let lastError: unknown;
 
   for (let attempt = 0; attempt <= MB_RETRIES; attempt += 1) {
@@ -80,10 +86,10 @@ export async function mbFetch(
 
 /** Fetch and parse a MusicBrainz JSON document. Returns null when it doesn't exist. */
 export async function mbJson<T>(
-  url: string,
+  path: string,
   priority: MbPriority = "interactive"
 ): Promise<T | null> {
-  const response = await mbFetch(url, priority);
+  const response = await mbFetch(path, priority);
 
   if (NOT_FOUND_STATUSES.has(response.status)) return null;
   if (!response.ok) {

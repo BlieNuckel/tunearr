@@ -6,6 +6,7 @@ const mockValidateWritableDirectory = vi.fn();
 const mockListDirectorySuggestions = vi.fn();
 const mockTestLidarrConnection = vi.fn();
 const mockTestSlskdConnection = vi.fn();
+const mockTestMbConnection = vi.fn();
 const mockSnapshotLiveEvents = vi.fn();
 const mockOnLiveEventsSaved = vi.fn();
 
@@ -34,6 +35,10 @@ vi.mock("../services/liveEvents/settingsChange", () => ({
 
 vi.mock("../api/slskd/testConnection", () => ({
   testSlskdConnection: (...args: unknown[]) => mockTestSlskdConnection(...args),
+}));
+
+vi.mock("../api/musicbrainz/testConnection", () => ({
+  testMbConnection: (...args: unknown[]) => mockTestMbConnection(...args),
 }));
 
 vi.mock("../middleware/requireAuth", () => ({
@@ -296,5 +301,77 @@ describe("POST /settings/test-slskd", () => {
       "http://slskd:5030",
       "goodkey"
     );
+  });
+});
+
+describe("POST /settings/test-musicbrainz", () => {
+  it("tests the public server when the URL is blank", async () => {
+    mockTestMbConnection.mockResolvedValue({
+      success: true,
+      serverUrl: "https://musicbrainz.org",
+      latencyMs: 120,
+    });
+
+    const res = await request(app).post("/settings/test-musicbrainz").send({});
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      success: true,
+      serverUrl: "https://musicbrainz.org",
+      latencyMs: 120,
+    });
+    expect(mockTestMbConnection).toHaveBeenCalledWith({
+      serverUrl: "",
+      requestsPerSecond: 1,
+    });
+  });
+
+  it("passes the typed server and pace through", async () => {
+    mockTestMbConnection.mockResolvedValue({
+      success: true,
+      serverUrl: "http://mb.local:5000",
+      latencyMs: 5,
+    });
+
+    await request(app)
+      .post("/settings/test-musicbrainz")
+      .send({ serverUrl: "http://mb.local:5000", requestsPerSecond: 0 });
+
+    expect(mockTestMbConnection).toHaveBeenCalledWith({
+      serverUrl: "http://mb.local:5000",
+      requestsPerSecond: 0,
+    });
+  });
+
+  it("rejects an invalid URL without testing it", async () => {
+    const res = await request(app)
+      .post("/settings/test-musicbrainz")
+      .send({ serverUrl: "ftp://mb.local" });
+
+    expect(res.status).toBe(400);
+    expect(mockTestMbConnection).not.toHaveBeenCalled();
+  });
+
+  it("rejects an invalid pace without testing it", async () => {
+    const res = await request(app)
+      .post("/settings/test-musicbrainz")
+      .send({ serverUrl: "http://mb.local", requestsPerSecond: -2 });
+
+    expect(res.status).toBe(400);
+    expect(mockTestMbConnection).not.toHaveBeenCalled();
+  });
+
+  it("returns the failure the test reports", async () => {
+    mockTestMbConnection.mockResolvedValue({
+      error: "http://mb.local returned 503",
+      status: 502,
+    });
+
+    const res = await request(app)
+      .post("/settings/test-musicbrainz")
+      .send({ serverUrl: "http://mb.local" });
+
+    expect(res.status).toBe(502);
+    expect(res.body.error).toBe("http://mb.local returned 503");
   });
 });
