@@ -13,8 +13,12 @@ import {
   searchArtists,
   getArtistMbidByName,
 } from "../api/musicbrainz/artists";
-import { getArtistImage, getArtistsImages } from "../api/deezer/artists";
-import type { ArtistInfo } from "../api/musicbrainz/types";
+import { getArtistImage } from "../api/deezer/artists";
+import {
+  enrichArtistsWithImages,
+  parseSearchParts,
+  searchAll,
+} from "../services/searchAll";
 import { getLabelAncestors } from "../api/musicbrainz/labels";
 import { getReleaseTracks } from "../api/musicbrainz/tracks";
 import { enrichTracksWithPreviews } from "../services/musicbrainz";
@@ -23,43 +27,13 @@ import { evaluatePurchaseDecision } from "../services/purchaseDecision/evaluateP
 
 const router = express.Router();
 
-const ARTIST_SCORE_THRESHOLD = 85;
-const ARTIST_RESULT_LIMIT = 5;
-
-/** Keep only the strongest artist matches so they don't bury album results */
-function topArtists(artists: ArtistInfo[]): ArtistInfo[] {
-  return artists
-    .filter((a) => (a.score ?? 0) >= ARTIST_SCORE_THRESHOLD)
-    .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
-    .slice(0, ARTIST_RESULT_LIMIT);
-}
-
-async function enrichArtistsWithImages(artists: ArtistInfo[]) {
-  const images = await getArtistsImages(artists.map((a) => a.name));
-  return artists.map((a) => ({
-    ...a,
-    imageUrl: images.get(a.name.toLowerCase()) || undefined,
-  }));
-}
-
 router.get("/search/all", async (req: Request, res: Response) => {
   const { q } = req.query;
   if (typeof q !== "string") {
     return res.status(400).json({ error: "Query parameter q is required" });
   }
 
-  const [releaseGroups, artists] = await Promise.all([
-    searchReleaseGroups(q),
-    searchArtists(q),
-  ]);
-
-  const enrichedArtists = await enrichArtistsWithImages(topArtists(artists));
-
-  res.json({
-    "release-groups": releaseGroups["release-groups"],
-    count: releaseGroups.count,
-    artists: enrichedArtists,
-  });
+  res.json(await searchAll(q, parseSearchParts(req.query.parts)));
 });
 
 router.get("/search", async (req: Request, res: Response) => {

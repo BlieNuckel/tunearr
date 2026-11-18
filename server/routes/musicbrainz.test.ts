@@ -62,6 +62,7 @@ vi.mock("../services/musicbrainz", () => ({
 import express from "express";
 import request from "supertest";
 import musicbrainzRouter from "./musicbrainz";
+import { MbUnavailableError } from "../api/musicbrainz/errors";
 
 const app = express();
 app.use("/", musicbrainzRouter);
@@ -125,6 +126,7 @@ describe("GET /search/all", () => {
         },
         { mbid: "a2", name: "Radio Dept.", score: 90 },
       ],
+      partial: [],
     });
     expect(mockSearchReleaseGroups).toHaveBeenCalledWith("radio");
     expect(mockSearchArtists).toHaveBeenCalledWith("radio");
@@ -150,6 +152,55 @@ describe("GET /search/all", () => {
     expect(res.status).toBe(200);
     expect(res.body.artists).toEqual([]);
     expect(mockGetArtistsImages).toHaveBeenCalledWith([]);
+  });
+});
+
+describe("GET /search/all partial results", () => {
+  it("returns album results and marks artists partial when MusicBrainz is busy for them", async () => {
+    mockSearchReleaseGroups.mockResolvedValue({
+      "release-groups": [{ id: "rg-1", title: "OK Computer" }],
+      count: 1,
+      offset: 0,
+    });
+    mockSearchArtists.mockRejectedValue(
+      new MbUnavailableError("MusicBrainz is busy (returned 503)", 2000)
+    );
+
+    const res = await request(app).get("/search/all?q=radio");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      "release-groups": [{ id: "rg-1", title: "OK Computer" }],
+      count: 1,
+      partial: ["artists"],
+      retryAfterMs: 2000,
+    });
+  });
+
+  it("asks only for the parts named in ?parts", async () => {
+    mockSearchArtists.mockResolvedValue([
+      { mbid: "a1", name: "Radiohead", score: 100 },
+    ]);
+    mockGetArtistsImages.mockResolvedValue(new Map());
+
+    const res = await request(app).get("/search/all?q=radio&parts=artists");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      artists: [{ mbid: "a1", name: "Radiohead", score: 100 }],
+      partial: [],
+    });
+    expect(mockSearchReleaseGroups).not.toHaveBeenCalled();
+  });
+
+  it("still fails on an error that isn't MusicBrainz being busy", async () => {
+    mockSearchReleaseGroups.mockRejectedValue(new Error("boom"));
+    mockSearchArtists.mockResolvedValue([]);
+    mockGetArtistsImages.mockResolvedValue(new Map());
+
+    const res = await request(app).get("/search/all?q=radio");
+
+    expect(res.status).toBe(500);
   });
 });
 
