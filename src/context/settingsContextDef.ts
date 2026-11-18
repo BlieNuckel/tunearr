@@ -4,6 +4,9 @@ import type {
   PurchaseDecisionSettings,
   SpendingSettings,
 } from "@shared/settingsDefaults";
+import type { MusicBrainzSettings } from "@shared/musicbrainzServer";
+
+export type { MusicBrainzSettings } from "@shared/musicbrainzServer";
 
 export type {
   LiveEventsSettings,
@@ -28,6 +31,7 @@ export interface AppSettings {
   purchaseDecision?: PurchaseDecisionSettings;
   spending?: SpendingSettings;
   liveEvents?: LiveEventsSettings;
+  musicbrainz?: MusicBrainzSettings;
 }
 
 export type LidarrOptions = {

@@ -1,4 +1,4 @@
-import { MB_BASE, mbJson } from "./config";
+import { mbJson } from "./config";
 import { mbCached, MB_TTL } from "./cache";
 import type { MbPriority } from "./queue";
 import type {
@@ -26,8 +26,8 @@ async function loadReleaseGroupSearch(
   query: string,
   priority: MbPriority
 ): Promise<ReleaseGroupSearchResult> {
-  const url = `${MB_BASE}/release-group/?query=${encodeURIComponent(query)}&limit=100&fmt=json`;
-  const data = await mbJson<MusicBrainzSearchResponse>(url, priority);
+  const path = `/release-group/?query=${encodeURIComponent(query)}&limit=100&fmt=json`;
+  const data = await mbJson<MusicBrainzSearchResponse>(path, priority);
 
   if (!data) {
     return { "release-groups": [], count: 0, offset: 0 };
@@ -42,8 +42,8 @@ async function loadArtistReleaseGroups(
   artistId: string,
   priority: MbPriority
 ): Promise<MusicBrainzReleaseGroup[]> {
-  const url = `${MB_BASE}/release-group?artist=${artistId}&type=album|ep|single&limit=100&inc=artist-credits&fmt=json`;
-  const data = await mbJson<MusicBrainzSearchResponse>(url, priority);
+  const path = `/release-group?artist=${artistId}&type=album|ep|single&limit=100&inc=artist-credits&fmt=json`;
+  const data = await mbJson<MusicBrainzSearchResponse>(path, priority);
   return data?.["release-groups"] ?? [];
 }
 
@@ -51,8 +51,8 @@ async function loadReleaseGroupSummary(
   releaseGroupMbid: string,
   priority: MbPriority
 ): Promise<{ artistName: string; albumTitle: string } | null> {
-  const url = `${MB_BASE}/release-group/${releaseGroupMbid}?inc=artist-credits&fmt=json`;
-  const data = await mbJson<MusicBrainzReleaseGroup>(url, priority);
+  const path = `/release-group/${releaseGroupMbid}?inc=artist-credits&fmt=json`;
+  const data = await mbJson<MusicBrainzReleaseGroup>(path, priority);
   if (!data) return null;
 
   return {
@@ -65,8 +65,8 @@ async function loadAlbumDetails(
   releaseGroupMbid: string,
   priority: MbPriority
 ): Promise<AlbumDetails | null> {
-  const url = `${MB_BASE}/release-group/${releaseGroupMbid}?inc=artist-credits&fmt=json`;
-  const data = await mbJson<MusicBrainzReleaseGroup>(url, priority);
+  const path = `/release-group/${releaseGroupMbid}?inc=artist-credits&fmt=json`;
+  const data = await mbJson<MusicBrainzReleaseGroup>(path, priority);
   if (!data) return null;
 
   const credit = data["artist-credit"]?.[0];
@@ -86,8 +86,8 @@ async function loadReleaseGroupLabel(
   releaseGroupMbid: string,
   priority: MbPriority
 ): Promise<LabelResult> {
-  const url = `${MB_BASE}/release?release-group=${releaseGroupMbid}&inc=labels&limit=1&fmt=json`;
-  const data = await mbJson<MusicBrainzLabelReleasesResponse>(url, priority);
+  const path = `/release?release-group=${releaseGroupMbid}&inc=labels&limit=1&fmt=json`;
+  const data = await mbJson<MusicBrainzLabelReleasesResponse>(path, priority);
 
   const labelInfo = data?.releases?.[0]?.["label-info"];
   if (!labelInfo || labelInfo.length === 0) return null;
@@ -102,8 +102,8 @@ async function loadReleaseGroupDate(
   releaseGroupMbid: string,
   priority: MbPriority
 ): Promise<string | null> {
-  const url = `${MB_BASE}/release-group/${releaseGroupMbid}?fmt=json`;
-  const data = await mbJson<{ "first-release-date"?: string }>(url, priority);
+  const path = `/release-group/${releaseGroupMbid}?fmt=json`;
+  const data = await mbJson<{ "first-release-date"?: string }>(path, priority);
   return data?.["first-release-date"] || null;
 }
 
@@ -111,8 +111,8 @@ async function loadReleaseGroupIdFromRelease(
   releaseMbid: string,
   priority: MbPriority
 ): Promise<ReleaseGroupInfo | null> {
-  const url = `${MB_BASE}/release/${releaseMbid}?inc=release-groups&fmt=json`;
-  const data = await mbJson<MusicBrainzRelease>(url, priority);
+  const path = `/release/${releaseMbid}?inc=release-groups&fmt=json`;
+  const data = await mbJson<MusicBrainzRelease>(path, priority);
 
   const rg = data?.["release-group"];
   if (!rg?.id) return null;
@@ -129,8 +129,8 @@ async function loadReleaseGroupInfo(
   releaseGroupMbid: string,
   priority: MbPriority
 ): Promise<ReleaseGroupInfo | null> {
-  const url = `${MB_BASE}/release-group/${releaseGroupMbid}?fmt=json`;
-  const data = await mbJson<MusicBrainzReleaseGroup>(url, priority);
+  const path = `/release-group/${releaseGroupMbid}?fmt=json`;
+  const data = await mbJson<MusicBrainzReleaseGroup>(path, priority);
   if (!data?.id) return null;
 
   return {

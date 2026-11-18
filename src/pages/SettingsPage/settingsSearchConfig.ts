@@ -24,6 +24,7 @@ export type SettingsSection =
   | "lidarrConnection"
   | "lidarrOptions"
   | "lastfm"
+  | "musicbrainz"
   | "liveEvents"
   | "livePreferences"
   | "plex"
@@ -119,6 +120,21 @@ export const SECTION_META: Record<SettingsSection, SectionMeta> = {
     label: "Last.fm",
     tab: "integrations",
     keywords: ["lastfm", "last.fm", "scrobble", "api", "key"],
+    permission: Permission.ADMIN,
+  },
+  musicbrainz: {
+    label: "MusicBrainz",
+    tab: "integrations",
+    keywords: [
+      "musicbrainz",
+      "metadata",
+      "mirror",
+      "server",
+      "url",
+      "rate",
+      "pace",
+      "requests per second",
+    ],
     permission: Permission.ADMIN,
   },
   plex: {

@@ -1,4 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+
+let serverRoot = "https://musicbrainz.org";
+
+vi.mock("./server", () => ({
+  getMbServer: () => ({
+    root: serverRoot,
+    baseUrl: `${serverRoot}/ws/2`,
+    kind: "official",
+    intervalMs: 1100,
+  }),
+}));
 import { mbCached, clearMbCache, getMbCacheStats, MB_TTL } from "./cache";
 import type { MbPriority } from "./queue";
 
@@ -17,6 +28,7 @@ function deferred<T>(): {
 }
 
 beforeEach(() => {
+  serverRoot = "https://musicbrainz.org";
   clearMbCache();
 });
 
@@ -77,6 +89,21 @@ describe("mbCached", () => {
       mbCached({ key: "a", ttlSeconds: MB_TTL.immutable }, loader),
       mbCached({ key: "b", ttlSeconds: MB_TTL.immutable }, loader),
     ]);
+    expect(loader).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps entries from different servers apart", async () => {
+    const loader = vi
+      .fn()
+      .mockResolvedValueOnce("official")
+      .mockResolvedValueOnce("mirror");
+    const options = { key: "k", ttlSeconds: MB_TTL.immutable };
+
+    expect(await mbCached(options, loader)).toBe("official");
+    serverRoot = "http://mb.local";
+    expect(await mbCached(options, loader)).toBe("mirror");
+    serverRoot = "https://musicbrainz.org";
+    expect(await mbCached(options, loader)).toBe("official");
     expect(loader).toHaveBeenCalledTimes(2);
   });
 

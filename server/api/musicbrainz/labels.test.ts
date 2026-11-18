@@ -1,4 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+
+vi.mock("./server", () => ({
+  getMbServer: () => ({
+    root: "https://musicbrainz.org",
+    baseUrl: "https://musicbrainz.org/ws/2",
+    kind: "official",
+    intervalMs: 1100,
+  }),
+}));
 import { getLabelAncestors } from "./labels";
 
 const mockFetch = vi.fn();

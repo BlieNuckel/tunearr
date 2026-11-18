@@ -28,6 +28,11 @@ describe("filterSections", () => {
     expect(result).toContain("plex");
   });
 
+  it("matches the musicbrainz section by mirror keyword", () => {
+    expect(filterSections("mirror")).toContain("musicbrainz");
+    expect(filterSections("MusicBrainz")).toContain("musicbrainz");
+  });
+
   it("matches slskd by soulseek keyword", () => {
     const result = filterSections("soulseek");
     expect(result).toContain("slskd");

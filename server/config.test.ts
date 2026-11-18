@@ -15,6 +15,7 @@ import {
   DEFAULT_LIVE_EVENTS,
   DEFAULT_NOTIFICATIONS,
 } from "./config";
+import { DEFAULT_MUSICBRAINZ } from "../shared/musicbrainzServer";
 
 let tmpDir: string;
 let originalEnv: string | undefined;
@@ -443,5 +444,56 @@ describe("liveEvents config", () => {
     expect(() =>
       setConfig({ liveEvents: { maxPagesPerRun: 0 } as never })
     ).toThrow();
+  });
+});
+
+describe("musicbrainz config", () => {
+  beforeEach(() => {
+    initializeConfig();
+  });
+
+  it("defaults to the public server at 1 req/s", () => {
+    expect(getConfig().musicbrainz).toEqual(DEFAULT_MUSICBRAINZ);
+    expect(getConfig().musicbrainz).toEqual({
+      serverUrl: "",
+      requestsPerSecond: 1,
+    });
+  });
+
+  it("normalizes the server URL on save", () => {
+    setConfig({ musicbrainz: { serverUrl: " http://mb.local:5000/ws/2/ " } });
+    expect(getConfig().musicbrainz.serverUrl).toBe("http://mb.local:5000");
+  });
+
+  it("deep-merges a partial patch", () => {
+    setConfig({ musicbrainz: { serverUrl: "http://mb.local" } });
+    setConfig({ musicbrainz: { requestsPerSecond: 0 } });
+
+    expect(getConfig().musicbrainz).toEqual({
+      serverUrl: "http://mb.local",
+      requestsPerSecond: 0,
+    });
+  });
+
+  it("rejects a URL that isn't http or https", () => {
+    expect(() =>
+      setConfig({ musicbrainz: { serverUrl: "ftp://mb.local" } })
+    ).toThrow("musicbrainz.serverUrl");
+  });
+
+  it("rejects a negative or excessive pace", () => {
+    expect(() => setConfig({ musicbrainz: { requestsPerSecond: -1 } })).toThrow(
+      "musicbrainz.requestsPerSecond"
+    );
+    expect(() =>
+      setConfig({ musicbrainz: { requestsPerSecond: 500 } })
+    ).toThrow("musicbrainz.requestsPerSecond");
+  });
+
+  it("still saves a switch back to the public server with a mirror's pace", () => {
+    setConfig({
+      musicbrainz: { serverUrl: "http://mb.local", requestsPerSecond: 20 },
+    });
+    expect(() => setConfig({ musicbrainz: { serverUrl: "" } })).not.toThrow();
   });
 });

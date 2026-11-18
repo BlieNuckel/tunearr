@@ -1,15 +1,10 @@
 import { createLogger } from "../../logger";
+import { getMbServer, type MbServer } from "./server";
 
 /** Which lane a MusicBrainz request waits in. */
 export type MbPriority = "interactive" | "background";
 
 type Waiter = { grant: () => void };
-
-/**
- * MusicBrainz allows roughly 1 request per second. The extra 100ms absorbs
- * timer jitter so a burst of grants can't land inside the same second.
- */
-const MIN_INTERVAL_MS = 1100;
 
 /**
  * Interactive work (searches, page loads) always jumps ahead of background work
@@ -23,6 +18,9 @@ const THROTTLE_BASE_PAUSE_MS = 2000;
 
 const THROTTLE_MAX_PAUSE_MS = 60_000;
 
+/** A long pause is slept in steps this size, so a server switch can cut it short. */
+const PAUSE_CHECK_MS = 1000;
+
 const log = createLogger("musicbrainz");
 
 const lanes: Record<MbPriority, Waiter[]> = {
@@ -34,6 +32,7 @@ let pumping = false;
 let consecutiveInteractive = 0;
 let consecutiveThrottles = 0;
 let pausedUntil = 0;
+let activeServerRoot: string | null = null;
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -57,20 +56,44 @@ function takeNextWaiter(): Waiter | undefined {
   return lanes.interactive.shift();
 }
 
-async function waitForResume(): Promise<void> {
+function clearThrottleState(): void {
+  consecutiveThrottles = 0;
+  pausedUntil = 0;
+}
+
+/**
+ * Read the configured server and forget the backoff when it changed: a pause
+ * earned against musicbrainz.org says nothing about a mirror, and must not stall it.
+ */
+function syncActiveServer(): MbServer {
+  const server = getMbServer();
+  if (activeServerRoot !== null && server.root !== activeServerRoot) {
+    log.info(
+      `MusicBrainz server changed to ${server.root}, clearing the previous server's backoff`
+    );
+    clearThrottleState();
+  }
+  activeServerRoot = server.root;
+  return server;
+}
+
+async function waitForResume(): Promise<MbServer> {
+  let server = syncActiveServer();
   for (
     let remaining = pausedUntil - Date.now();
     remaining > 0;
     remaining = pausedUntil - Date.now()
   ) {
-    await delay(remaining);
+    await delay(Math.min(remaining, PAUSE_CHECK_MS));
+    server = syncActiveServer();
   }
+  return server;
 }
 
 /**
- * Grant one slot at a time, spacing each grant MIN_INTERVAL_MS apart. The delay
- * runs after the final grant too, so a request arriving just behind the last one
- * still waits out the interval instead of being released immediately.
+ * Grant one slot at a time, spacing grants by the active server's pace. The
+ * delay runs after the final grant too, so a request arriving just behind the
+ * last one still waits out the interval instead of being released immediately.
  */
 async function pump(): Promise<void> {
   pumping = true;
@@ -80,9 +103,9 @@ async function pump(): Promise<void> {
       waiter !== undefined;
       waiter = takeNextWaiter()
     ) {
-      await waitForResume();
+      const server = await waitForResume();
       waiter.grant();
-      await delay(MIN_INTERVAL_MS);
+      if (server.intervalMs > 0) await delay(server.intervalMs);
     }
   } finally {
     pumping = false;
@@ -108,8 +131,7 @@ export function acquireMbSlot(
  * in an otherwise healthy stream costs a single backoff rather than a spiral.
  */
 export function reportMbSuccess(): void {
-  consecutiveThrottles = 0;
-  pausedUntil = 0;
+  clearThrottleState();
 }
 
 /**
@@ -150,6 +172,6 @@ export function resetMbQueue(): void {
   lanes.interactive = [];
   lanes.background = [];
   consecutiveInteractive = 0;
-  consecutiveThrottles = 0;
-  pausedUntil = 0;
+  activeServerRoot = null;
+  clearThrottleState();
 }

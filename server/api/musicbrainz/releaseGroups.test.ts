@@ -1,4 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+
+vi.mock("./server", () => ({
+  getMbServer: () => ({
+    root: "https://musicbrainz.org",
+    baseUrl: "https://musicbrainz.org/ws/2",
+    kind: "official",
+    intervalMs: 1100,
+  }),
+}));
 import {
   searchReleaseGroups,
   getReleaseGroupById,
@@ -21,7 +30,9 @@ vi.mock("./queue", () => ({
   reportMbThrottled: () => {},
 }));
 
-import { MB_BASE, MB_HEADERS } from "./config";
+import { MB_HEADERS } from "./config";
+
+const MB_BASE = "https://musicbrainz.org/ws/2";
 import { clearMbCache } from "./cache";
 
 beforeEach(() => {
