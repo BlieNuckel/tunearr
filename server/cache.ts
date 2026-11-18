@@ -6,7 +6,9 @@ export type CachedFn<TArgs extends unknown[], TReturn> = ((
 
 /**
  * Wraps an async function with caching. On cache hit, returns the cached value
- * without calling the underlying function.
+ * without calling the underlying function. Concurrent calls for the same key
+ * share one run, so a burst (or React StrictMode's double effect) does the work
+ * once. A rejection is shared with the callers waiting on it but never cached.
  * @param fn - The async function to wrap
  * @param options.cache - NodeCache instance to use
  * @param options.key - Function to derive a cache key from the arguments
@@ -22,6 +24,7 @@ export function withCache<TArgs extends unknown[], TReturn>(
   }
 ): CachedFn<TArgs, TReturn> {
   const ttlSeconds = Math.ceil(options.ttlMs / 1000);
+  const inFlight = new Map<string, Promise<TReturn>>();
 
   const wrapped = async (...args: TArgs): Promise<TReturn> => {
     const cacheKey = options.key(...args);
@@ -30,12 +33,25 @@ export function withCache<TArgs extends unknown[], TReturn>(
       return cached;
     }
 
-    const result = await fn(...args);
-    options.cache.set(cacheKey, result, ttlSeconds);
-    return result;
+    const running = inFlight.get(cacheKey);
+    if (running) return running;
+
+    const run = fn(...args)
+      .then((result) => {
+        options.cache.set(cacheKey, result, ttlSeconds);
+        return result;
+      })
+      .finally(() => {
+        inFlight.delete(cacheKey);
+      });
+    inFlight.set(cacheKey, run);
+    return run;
   };
 
-  wrapped.clearCache = () => options.cache.flushAll();
+  wrapped.clearCache = () => {
+    options.cache.flushAll();
+    inFlight.clear();
+  };
 
   return wrapped as CachedFn<TArgs, TReturn>;
 }
