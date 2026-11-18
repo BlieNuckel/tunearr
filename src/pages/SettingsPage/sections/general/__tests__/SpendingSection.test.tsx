@@ -3,13 +3,24 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import SpendingSection from "../SpendingSection";
 import type { SpendingSettings } from "@shared/currency";
 
+vi.mock("@/hooks/useIsMobile", () => ({
+  default: () => false,
+}));
+
 type FetchCall = [string, RequestInit | undefined];
 
 function mockFetch(
   stored: SpendingSettings,
-  patchResponse?: { ok: boolean; body: unknown }
+  patchResponse?: { ok: boolean; body: unknown },
+  albumCount = 0
 ) {
-  const fetchMock = vi.fn((_url: string, init?: RequestInit) => {
+  const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+    if (url === "/api/purchases/summary") {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({ ...stored, month: 0, allTime: 0, albumCount }),
+      });
+    }
     if (init?.method === "PATCH") {
       const response = patchResponse ?? {
         ok: true,
@@ -50,18 +61,68 @@ describe("SpendingSection", () => {
     );
   });
 
-  it("saves a new currency to the user's settings", async () => {
-    const fetchMock = mockFetch({ currency: "USD", monthlyLimit: null });
-    render(<SpendingSection />);
+  describe("changing from one currency to another", () => {
+    it("asks first and says how many purchases stop counting", async () => {
+      const fetchMock = mockFetch(
+        { currency: "USD", monthlyLimit: null },
+        undefined,
+        3
+      );
+      render(<SpendingSection />);
 
-    fireEvent.change(await screen.findByDisplayValue("USD — US Dollar"), {
-      target: { value: "EUR" },
+      fireEvent.change(await screen.findByDisplayValue("USD — US Dollar"), {
+        target: { value: "EUR" },
+      });
+
+      expect(
+        await screen.findByText(
+          /Your 3 purchases recorded in USD will no longer count/
+        )
+      ).toBeInTheDocument();
+      expect(screen.getByDisplayValue("USD — US Dollar")).toBeInTheDocument();
+      expect(patchBodies(fetchMock)).toEqual([]);
     });
 
-    expect(await screen.findByDisplayValue("EUR — Euro")).toBeInTheDocument();
-    expect(patchBodies(fetchMock)).toEqual([
-      { url: "/api/purchases/spending", body: { currency: "EUR" } },
-    ]);
+    it("saves the new currency and clears the limit once confirmed", async () => {
+      const fetchMock = mockFetch({ currency: "USD", monthlyLimit: 5000 });
+      render(<SpendingSection />);
+
+      fireEvent.change(await screen.findByDisplayValue("USD — US Dollar"), {
+        target: { value: "EUR" },
+      });
+      expect(
+        await screen.findByText(/monthly limit of \$50\.00 will be cleared/)
+      ).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "Switch to EUR" }));
+
+      expect(await screen.findByDisplayValue("EUR — Euro")).toBeInTheDocument();
+      expect(screen.getByPlaceholderText("No limit")).toHaveValue(null);
+      expect(patchBodies(fetchMock)).toEqual([
+        {
+          url: "/api/purchases/spending",
+          body: { currency: "EUR", monthlyLimit: null },
+        },
+      ]);
+    });
+
+    it("keeps the old currency when cancelled", async () => {
+      const fetchMock = mockFetch({ currency: "USD", monthlyLimit: 5000 });
+      render(<SpendingSection />);
+
+      fireEvent.change(await screen.findByDisplayValue("USD — US Dollar"), {
+        target: { value: "EUR" },
+      });
+      fireEvent.click(await screen.findByRole("button", { name: "Keep USD" }));
+
+      await waitFor(() =>
+        expect(
+          screen.queryByRole("button", { name: "Switch to EUR" })
+        ).not.toBeInTheDocument()
+      );
+      expect(screen.getByDisplayValue("USD — US Dollar")).toBeInTheDocument();
+      expect(screen.getByPlaceholderText("No limit")).toHaveValue(50);
+      expect(patchBodies(fetchMock)).toEqual([]);
+    });
   });
 
   it("renders an empty limit input when there is no limit", async () => {
@@ -134,6 +195,9 @@ describe("SpendingSection", () => {
     fireEvent.change(await screen.findByDisplayValue("USD — US Dollar"), {
       target: { value: "EUR" },
     });
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Switch to EUR" })
+    );
 
     expect(
       await screen.findByText("currency must be a 3-letter ISO 4217 code")
@@ -187,6 +251,7 @@ describe("SpendingSection", () => {
         await screen.findByDisplayValue("SEK — Swedish Krona")
       ).toBeInTheDocument();
       expect(screen.queryByText("Choose a currency")).not.toBeInTheDocument();
+      expect(screen.queryByText(/Switch to/)).not.toBeInTheDocument();
       expect(screen.getByPlaceholderText("No limit")).toBeEnabled();
       expect(patchBodies(fetchMock)).toEqual([
         { url: "/api/purchases/spending", body: { currency: "SEK" } },
