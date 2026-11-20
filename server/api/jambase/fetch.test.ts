@@ -12,7 +12,8 @@ vi.mock("../resilientFetch", () => ({
   resilientFetch: (...args: unknown[]) => mockResilientFetch(...args),
 }));
 
-const { jambaseGet, setCallRecorder } = await import("./fetch");
+const { jambaseGet, setCallRecorder, setPreflightCheck } =
+  await import("./fetch");
 const { JambaseError } = await import("./config");
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -48,6 +49,7 @@ beforeEach(() => {
 
 afterEach(() => {
   setCallRecorder(null);
+  setPreflightCheck(null);
 });
 
 describe("jambaseGet", () => {
@@ -295,5 +297,26 @@ describe("call accounting", () => {
 
     await expect(jambaseGet("/events")).rejects.toThrow();
     expect(recorder).not.toHaveBeenCalled();
+  });
+
+  it("neither guards nor counts an unmetered call, such as /quota", async () => {
+    const recorder = vi.fn();
+    const guard = vi.fn().mockRejectedValue(new Error("allowance spent"));
+    setCallRecorder(recorder);
+    setPreflightCheck(guard);
+    mockResilientFetch.mockResolvedValue(jsonResponse({ usedCalls: 1000 }));
+
+    await expect(jambaseGet("/quota", {}, { metered: false })).resolves.toEqual(
+      { usedCalls: 1000 }
+    );
+    expect(guard).not.toHaveBeenCalled();
+    expect(recorder).not.toHaveBeenCalled();
+  });
+
+  it("guards a metered call before it is sent", async () => {
+    setPreflightCheck(vi.fn().mockRejectedValue(new Error("allowance spent")));
+
+    await expect(jambaseGet("/events")).rejects.toThrow("allowance spent");
+    expect(mockResilientFetch).not.toHaveBeenCalled();
   });
 });

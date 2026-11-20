@@ -38,6 +38,7 @@ import { UserSpending1726000000000 } from "./migration/18_UserSpending";
 import { FollowedReleaseDismissed1727000000000 } from "./migration/19_FollowedReleaseDismissed";
 import { RequestAvailable1728000000000 } from "./migration/20_RequestAvailable";
 import { LiveArtists1729000000000 } from "./migration/21_LiveArtists";
+import { LiveQuotaFromJambase1730000000000 } from "./migration/22_LiveQuotaFromJambase";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -94,6 +95,7 @@ export function createDataSource(dbPath?: string): DataSource {
       FollowedReleaseDismissed1727000000000,
       RequestAvailable1728000000000,
       LiveArtists1729000000000,
+      LiveQuotaFromJambase1730000000000,
     ],
     synchronize: false,
     migrationsRun: true,

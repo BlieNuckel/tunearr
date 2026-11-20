@@ -279,13 +279,23 @@ export interface LivePreferencesPatch {
   bannerEnabled?: boolean | null;
 }
 
+/**
+ * `jambase`: the last `/quota` check succeeded. `local`: it failed, so usage is
+ * the last JamBase figure plus our own count. `unknown`: JamBase never answered.
+ */
+export type LiveQuotaSource = "jambase" | "local" | "unknown";
+
 export interface LiveQuotaStatus {
-  period: string;
+  plan: string | null;
   used: number;
-  quota: number;
-  ratio: number;
-  projectedMonthly: number;
-  remainingFollowCapacity: number;
-  batchSize: number;
-  hardStopped: boolean;
+  /** Null when the plan has no monthly cap. */
+  quota: number | null;
+  ratio: number | null;
+  overageCalls: number;
+  periodStart: string | null;
+  periodEnd: string | null;
+  allowOverage: boolean;
+  blocked: boolean;
+  source: LiveQuotaSource;
+  checkedAt: string | null;
 }

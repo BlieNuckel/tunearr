@@ -29,6 +29,36 @@ describe("LiveEventsSection", () => {
     expect(screen.getByText(/billed rather than refused/)).toBeInTheDocument();
   });
 
+  it("leaves paid usage off by default", () => {
+    renderSection();
+    expect(
+      screen.getByRole("checkbox", {
+        name: "Allow paid usage past the plan quota",
+      })
+    ).not.toBeChecked();
+  });
+
+  it("turns paid usage on", async () => {
+    const onChange = renderSection();
+
+    await userEvent.click(
+      screen.getByRole("checkbox", {
+        name: "Allow paid usage past the plan quota",
+      })
+    );
+
+    expect(onChange).toHaveBeenCalledWith({ allowOverage: true });
+  });
+
+  it("shows paid usage as on when it is", () => {
+    renderSection({ allowOverage: true });
+    expect(
+      screen.getByRole("checkbox", {
+        name: "Allow paid usage past the plan quota",
+      })
+    ).toBeChecked();
+  });
+
   it("keeps the API key masked", () => {
     renderSection({ apiKey: "jbd_secret" });
     expect(screen.getByDisplayValue("jbd_secret")).toHaveAttribute(
@@ -82,7 +112,11 @@ describe("LiveEventsSection", () => {
 
   it("toggles the feature", async () => {
     const onChange = renderSection();
-    await userEvent.click(screen.getByRole("checkbox"));
+    await userEvent.click(
+      screen.getByRole("checkbox", {
+        name: "Fetch tour dates for followed artists",
+      })
+    );
     expect(onChange).toHaveBeenCalledWith({ enabled: true });
   });
 });

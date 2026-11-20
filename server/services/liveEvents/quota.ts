@@ -1,184 +1,211 @@
 import { getConfig } from "../../config";
-import { JambaseError } from "../../api/jambase/config";
+import { JambaseError, isLiveEventsConfigured } from "../../api/jambase/config";
 import { setCallRecorder, setPreflightCheck } from "../../api/jambase/fetch";
+import { fetchJambaseQuota } from "../../api/jambase/quota";
+import type { JambaseQuota } from "../../api/jambase/quota";
 import {
+  findCurrentQuotaPeriod,
   getQuotaPeriod,
   incrementQuotaCalls,
   recordWarnedThreshold,
+  syncQuotaPeriod,
 } from "../../db/liveQuota";
-import { listFollowedJambaseIds } from "../../db/liveEvents";
+import type { QuotaPeriod } from "../../db/liveQuota";
 import { notifyQuotaWarning } from "../notifications";
 import { createLogger } from "../../logger";
 
+/**
+ * - `jambase`: the last `/quota` check succeeded.
+ * - `local`: it failed, so usage is the last JamBase figure plus our own count.
+ * - `unknown`: JamBase has never answered, so there is nothing to show.
+ */
+export type QuotaSource = "jambase" | "local" | "unknown";
+
 export type QuotaStatus = {
-  period: string;
+  plan: string | null;
   used: number;
-  quota: number;
-  ratio: number;
-  projectedMonthly: number;
-  remainingFollowCapacity: number;
-  batchSize: number;
-  hardStopped: boolean;
+  quota: number | null;
+  ratio: number | null;
+  overageCalls: number;
+  periodStart: string | null;
+  periodEnd: string | null;
+  allowOverage: boolean;
+  blocked: boolean;
+  source: QuotaSource;
+  checkedAt: string | null;
+};
+
+type RemoteState = {
+  quota: JambaseQuota;
+  fetchedAt: number;
 };
 
 const log = createLogger("live-quota");
 
-/** 1.0 is "you are now paying"; the warn ratio is configurable. */
-const HARD_THRESHOLD = 1;
-
-let cachedStatus: QuotaStatus | null = null;
+const WARN_RATIO = 0.8;
+const FULL_RATIO = 1;
 
 /**
- * The billing period starts on the subscription day, not the 1st, so a call on
- * the 3rd with a start day of 15 still belongs to the previous month's period.
+ * `/quota` is free, but a sweep makes its calls in a burst, so asking before
+ * every one would double the request count for no new information. Between
+ * checks our own counter covers the gap.
  */
-export function periodKeyFor(at: Date, startDay: number): string {
-  const year = at.getUTCFullYear();
-  const month = at.getUTCMonth();
-  const anchored = at.getUTCDate() >= startDay ? month : month - 1;
-  const shifted = new Date(Date.UTC(year, anchored, 1));
-  return `${shifted.getUTCFullYear()}-${String(shifted.getUTCMonth() + 1).padStart(2, "0")}`;
+const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
+
+let remote: RemoteState | null = null;
+let lastCheckFailed = false;
+let inFlight: Promise<JambaseQuota | null> | null = null;
+let announcing: Promise<void> = Promise.resolve();
+
+function ratioOf(period: QuotaPeriod): number | null {
+  return period.quota ? period.calls / period.quota : null;
 }
 
-/**
- * Cost scales per batch of artists, not per artist, because `artistId` takes up
- * to 100 ids per call. That step function is what the capacity number has to
- * express: the next few follows are usually free, then one crosses a boundary.
- */
-export function projectMonthlyCalls(
-  rosterSize: number,
-  batchSize: number,
-  callsPerDayOverhead = 1
-): number {
-  const batches = Math.ceil(rosterSize / Math.max(1, batchSize));
-  return 30 * (batches + callsPerDayOverhead);
-}
-
-export function remainingFollowCapacity(
-  rosterSize: number,
-  batchSize: number,
-  quota: number
-): number {
-  let capacity = 0;
-  while (
-    projectMonthlyCalls(rosterSize + capacity + 1, batchSize) <= quota &&
-    capacity < 100_000
-  ) {
-    capacity += 1;
-  }
-  return capacity;
-}
-
-export async function getQuotaStatus(
-  at: Date = new Date()
-): Promise<QuotaStatus> {
-  const { liveEvents } = getConfig();
-  const period = periodKeyFor(at, liveEvents.billingPeriodStartDay);
-  const [usage, roster] = await Promise.all([
-    getQuotaPeriod(period),
-    listFollowedJambaseIds(),
-  ]);
-
-  const ratio = liveEvents.monthlyQuota
-    ? usage.calls / liveEvents.monthlyQuota
-    : 0;
-
-  return {
-    period,
-    used: usage.calls,
-    quota: liveEvents.monthlyQuota,
-    ratio,
-    projectedMonthly: projectMonthlyCalls(
-      roster.length,
-      liveEvents.rosterBatchSize
-    ),
-    remainingFollowCapacity: remainingFollowCapacity(
-      roster.length,
-      liveEvents.rosterBatchSize,
-      liveEvents.monthlyQuota
-    ),
-    batchSize: liveEvents.rosterBatchSize,
-    hardStopped: liveEvents.quotaHardStop && ratio >= HARD_THRESHOLD,
-  };
+function isBlocked(period: QuotaPeriod | null): boolean {
+  if (getConfig().liveEvents.allowOverage) return false;
+  if (!period?.quota) return false;
+  return period.calls >= period.quota;
 }
 
 /**
  * Usage is a condition rather than a moment, so a naive emit would fire on every
- * poll. #225 defers the other condition-shaped events for the same reason; this
- * one is tractable because the billing period gives a natural reset.
+ * check. Each threshold is announced once per billing period.
  */
-async function announceCrossings(
-  period: string,
-  used: number,
-  quota: number,
-  at: string
-): Promise<void> {
-  const { liveEvents } = getConfig();
+async function checkCrossings(period: string, at: string): Promise<void> {
   const usage = await getQuotaPeriod(period);
-  const ratio = quota ? used / quota : 0;
+  const ratio = ratioOf(usage);
+  if (ratio === null) return;
 
-  for (const threshold of [liveEvents.quotaWarnRatio, HARD_THRESHOLD]) {
+  for (const threshold of [WARN_RATIO, FULL_RATIO]) {
     if (ratio < threshold) continue;
     if (usage.warnedThresholds.includes(threshold)) continue;
 
     await recordWarnedThreshold(period, threshold, at);
     log.warn(
-      `JamBase usage crossed ${Math.round(threshold * 100)}% of ${quota} (${used} calls this period)`
+      `JamBase usage crossed ${Math.round(threshold * 100)}% of ${usage.quota} (${usage.calls} calls this period)`
     );
     void notifyQuotaWarning({
-      used,
-      quota,
+      used: usage.calls,
+      quota: usage.quota as number,
       ratio: threshold,
-      hardStopped: threshold >= HARD_THRESHOLD && liveEvents.quotaHardStop,
+      blocked: threshold >= FULL_RATIO && isBlocked(usage),
     });
   }
 }
 
-async function record(status: number | null): Promise<void> {
-  const { liveEvents } = getConfig();
-  const now = new Date();
-  const period = periodKeyFor(now, liveEvents.billingPeriodStartDay);
-
-  // 4xx responses are billable too, so they count.
-  await incrementQuotaCalls(period, now.toISOString());
-  cachedStatus = null;
-
-  const usage = await getQuotaPeriod(period);
-  await announceCrossings(
-    period,
-    usage.calls,
-    liveEvents.monthlyQuota,
-    now.toISOString()
-  );
-
-  if (status === null) log.debug("Counted a failed request against quota");
+/**
+ * One check at a time: calls are recorded without waiting for each other, and
+ * two checks reading "not warned yet" before either saves would warn twice.
+ */
+function announceCrossings(period: string, at: string): Promise<void> {
+  announcing = announcing
+    .then(() => checkCrossings(period, at))
+    .catch((error) => log.error("Quota warning check failed", error));
+  return announcing;
 }
 
-async function preflight(): Promise<void> {
-  const { liveEvents } = getConfig();
-  if (!liveEvents.quotaHardStop) return;
-
-  cachedStatus ??= await getQuotaStatus();
-  if (cachedStatus.ratio >= HARD_THRESHOLD) {
-    throw new JambaseError(
-      "quota-exceeded",
-      `Monthly JamBase quota of ${cachedStatus.quota} is spent; further calls would be billed`,
-      null
+async function checkJambaseQuota(): Promise<JambaseQuota | null> {
+  try {
+    const quota = await fetchJambaseQuota();
+    const now = new Date().toISOString();
+    await syncQuotaPeriod(
+      quota.periodStart,
+      {
+        used: quota.usedCalls,
+        quota: quota.quota,
+        periodEnd: quota.periodEnd,
+      },
+      now
     );
+    remote = { quota, fetchedAt: Date.now() };
+    lastCheckFailed = false;
+    await announceCrossings(quota.periodStart, now);
+    return quota;
+  } catch (error) {
+    lastCheckFailed = true;
+    const kind = error instanceof JambaseError ? error.kind : "unknown";
+    log.warn(`Could not read JamBase /quota (${kind}); using our own count`);
+    return null;
   }
 }
 
+/** Ask JamBase for usage unless it answered recently. Concurrent asks share one call. */
+async function refreshIfStale(): Promise<void> {
+  if (remote && Date.now() - remote.fetchedAt < REFRESH_INTERVAL_MS) return;
+  inFlight ??= checkJambaseQuota().finally(() => {
+    inFlight = null;
+  });
+  await inFlight;
+}
+
+async function record(): Promise<void> {
+  const now = new Date().toISOString();
+  const current = await findCurrentQuotaPeriod(now);
+  // Before JamBase has ever reported a period there is nothing to count against.
+  if (!current) return;
+
+  // 4xx responses are billable too, so every metered call counts.
+  await incrementQuotaCalls(current.period, now);
+  await announceCrossings(current.period, now);
+}
+
 /**
- * Wires counting and the hard stop into the client rather than into each
- * caller, so a new call site cannot forget to account for itself.
+ * Refreshes even when overage is allowed: the check is also what picks up a new
+ * period and keeps the 80% and 100% warnings coming.
+ */
+async function preflight(): Promise<void> {
+  await refreshIfStale();
+  const current = await findCurrentQuotaPeriod(new Date().toISOString());
+  if (!isBlocked(current)) return;
+
+  throw new JambaseError(
+    "quota-exceeded",
+    `The JamBase allowance of ${current?.quota} calls is spent; further calls would be billed`,
+    null
+  );
+}
+
+function sourceOf(current: QuotaPeriod | null): QuotaSource {
+  if (remote && !lastCheckFailed) return "jambase";
+  return current ? "local" : "unknown";
+}
+
+export async function getQuotaStatus(): Promise<QuotaStatus> {
+  if (isLiveEventsConfigured()) await refreshIfStale();
+
+  const current = await findCurrentQuotaPeriod(new Date().toISOString());
+  const plan = remote?.quota ?? null;
+
+  return {
+    plan: plan?.plan ?? null,
+    used: current?.calls ?? 0,
+    quota: current?.quota ?? null,
+    ratio: current ? ratioOf(current) : null,
+    overageCalls: plan?.overageCalls ?? 0,
+    periodStart: current?.period ?? null,
+    periodEnd: current?.periodEnd ?? null,
+    allowOverage: getConfig().liveEvents.allowOverage,
+    blocked: isBlocked(current),
+    source: sourceOf(current),
+    checkedAt: remote ? new Date(remote.fetchedAt).toISOString() : null,
+  };
+}
+
+/**
+ * Wires counting and the guard into the client rather than into each caller,
+ * so a new call site cannot forget to account for itself.
  */
 export function installQuotaTracking(): void {
-  setCallRecorder(({ status }) => {
-    void record(status);
+  setCallRecorder(() => {
+    void record();
   });
   setPreflightCheck(preflight);
 }
 
+/** Forget the cached `/quota` answer so a test can start from a known state. */
 export function resetQuotaCache(): void {
-  cachedStatus = null;
+  remote = null;
+  lastCheckFailed = false;
+  inFlight = null;
+  announcing = Promise.resolve();
 }

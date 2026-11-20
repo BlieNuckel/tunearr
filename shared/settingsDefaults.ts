@@ -64,13 +64,11 @@ export type LiveEventsSettings = {
   rosterFullSweptAt: string | null;
   /** Where an unfinished full pass resumes; null when none is in progress. */
   rosterFullPass: RosterFullPassCursor | null;
-  /** Plan allowance. Editable because paid tiers differ (Startup is 20,000). */
-  monthlyQuota: number;
-  quotaWarnRatio: number;
-  /** The API bills past the allowance rather than refusing, so we stop instead. */
-  quotaHardStop: boolean;
-  /** Billing periods start on the subscription date, not the 1st. */
-  billingPeriodStartDay: number;
+  /**
+   * JamBase bills past the plan allowance rather than refusing, so calls stop
+   * there unless this is on. Usage comes from JamBase's own `GET /quota`.
+   */
+  allowOverage: boolean;
 };
 
 export const DEFAULT_LIVE_EVENTS: LiveEventsSettings = {
@@ -90,8 +88,5 @@ export const DEFAULT_LIVE_EVENTS: LiveEventsSettings = {
   rosterWatermark: null,
   rosterFullSweptAt: null,
   rosterFullPass: null,
-  monthlyQuota: 1000,
-  quotaWarnRatio: 0.8,
-  quotaHardStop: true,
-  billingPeriodStartDay: 1,
+  allowOverage: false,
 };
