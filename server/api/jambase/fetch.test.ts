@@ -111,6 +111,60 @@ describe("jambaseGet", () => {
     }
   });
 
+  it("reads a 400 for an unknown lookup id as not-found, which is how JamBase says it", async () => {
+    for (const errorCode of ["no_lookup_results", "identifier_invalid"]) {
+      mockResilientFetch.mockResolvedValue(
+        jsonResponse(
+          { success: false, errors: [{ errorCode, errorMessage: "nope" }] },
+          400
+        )
+      );
+      await expect(
+        jambaseGet("/artists/id/musicbrainz:abc")
+      ).rejects.toMatchObject({ kind: "not-found", status: 400 });
+    }
+  });
+
+  it("finds the lookup code among several errors", async () => {
+    mockResilientFetch.mockResolvedValue(
+      jsonResponse(
+        {
+          errors: [
+            { errorCode: "general_error" },
+            { errorCode: "no_lookup_results" },
+          ],
+        },
+        400
+      )
+    );
+
+    await expect(
+      jambaseGet("/artists/id/musicbrainz:abc")
+    ).rejects.toMatchObject({ kind: "not-found" });
+  });
+
+  it("reads any other 400 as a request we built wrong, naming the codes", async () => {
+    mockResilientFetch.mockResolvedValue(
+      jsonResponse({ errors: [{ errorCode: "parameter_invalid" }] }, 400)
+    );
+
+    await expect(jambaseGet("/events")).rejects.toMatchObject({
+      kind: "bad-request",
+      status: 400,
+      message: expect.stringContaining("parameter_invalid"),
+    });
+  });
+
+  it("reads a 400 with an unreadable body as bad-request rather than transient", async () => {
+    for (const response of [badJsonResponse(400), jsonResponse(null, 400)]) {
+      mockResilientFetch.mockResolvedValue(response);
+      await expect(jambaseGet("/events")).rejects.toMatchObject({
+        kind: "bad-request",
+        message: expect.stringContaining("no error code"),
+      });
+    }
+  });
+
   it("does not retry a status, so a 4xx costs one call and not several", async () => {
     mockResilientFetch.mockResolvedValue(jsonResponse({}, 403));
 

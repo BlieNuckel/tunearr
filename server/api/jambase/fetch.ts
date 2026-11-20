@@ -7,7 +7,13 @@ export type CallRecorder = (info: {
   endpoint: string;
 }) => void;
 
+type JambaseErrorBody = {
+  errors?: { errorCode?: unknown }[];
+};
+
 const log = createLogger("JamBase API");
+
+const LOOKUP_MISS_CODES = new Set(["no_lookup_results", "identifier_invalid"]);
 
 const TIMEOUT_MS = 15000;
 
@@ -49,6 +55,38 @@ function classify(status: number): JambaseError {
     return new JambaseError("rate-limited", "JamBase rate limit hit", status);
   }
   return new JambaseError("transient", `JamBase returned ${status}`, status);
+}
+
+async function readErrorCodes(response: Response): Promise<string[]> {
+  try {
+    const body = (await response.json()) as JambaseErrorBody;
+    return (body?.errors ?? []).flatMap((entry) =>
+      typeof entry?.errorCode === "string" ? [entry.errorCode] : []
+    );
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * JamBase answers a lookup by an id it has never seen with 400 rather than 404,
+ * so a 400 is only a broken request when its error codes say so.
+ */
+async function classifyBadRequest(response: Response): Promise<JambaseError> {
+  const codes = await readErrorCodes(response);
+  if (codes.some((code) => LOOKUP_MISS_CODES.has(code))) {
+    return new JambaseError(
+      "not-found",
+      `JamBase has no such entity (${codes.join(", ")})`,
+      400
+    );
+  }
+  const detail = codes.length > 0 ? codes.join(", ") : "no error code";
+  return new JambaseError(
+    "bad-request",
+    `JamBase rejected the request (${detail})`,
+    400
+  );
 }
 
 function buildQuery(
@@ -97,8 +135,15 @@ export async function jambaseGet<T>(
   recordCall?.({ status: response.status, endpoint });
 
   if (!response.ok) {
-    const error = classify(response.status);
-    if (error.kind === "plan-gated" || error.kind === "unauthorized") {
+    const error =
+      response.status === 400
+        ? await classifyBadRequest(response)
+        : classify(response.status);
+    if (
+      error.kind === "plan-gated" ||
+      error.kind === "unauthorized" ||
+      error.kind === "bad-request"
+    ) {
       log.error(`${endpoint}: ${error.message}`);
     } else if (error.kind !== "not-found") {
       log.warn(`${endpoint}: ${error.message}`);
