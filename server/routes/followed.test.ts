@@ -8,6 +8,7 @@ const mockGetUnseen = vi.fn();
 const mockMarkViewed = vi.fn();
 const mockMarkOneViewed = vi.fn();
 const mockRunPoll = vi.fn();
+const mockTrackingByMbid = vi.fn();
 
 vi.mock("../services/followed/followedService", () => ({
   followArtist: (...args: unknown[]) => mockFollow(...args),
@@ -17,6 +18,10 @@ vi.mock("../services/followed/followedService", () => ({
   getUnseenReleaseCount: (...args: unknown[]) => mockGetUnseen(...args),
   markFollowedReleasesViewed: (...args: unknown[]) => mockMarkViewed(...args),
   markFollowedReleaseViewed: (...args: unknown[]) => mockMarkOneViewed(...args),
+}));
+
+vi.mock("../services/liveEvents/tracking", () => ({
+  getLiveTrackingByMbid: (...args: unknown[]) => mockTrackingByMbid(...args),
 }));
 
 vi.mock("../services/followed/poller", () => ({
@@ -58,6 +63,7 @@ app.use(
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockTrackingByMbid.mockResolvedValue(new Map());
 });
 
 describe("GET /", () => {
@@ -69,8 +75,6 @@ describe("GET /", () => {
         artist_name: "Artist",
         last_checked_at: null,
         created_at: "2024-01-01",
-        jambase_artist_id: null,
-        jambase_resolved_at: null,
       },
     ]);
 
@@ -87,9 +91,16 @@ describe("GET /", () => {
       },
     ]);
     expect(mockGetFollowed).toHaveBeenCalledWith(1);
+    expect(mockTrackingByMbid).toHaveBeenCalledWith(["mbid-1"]);
   });
 
-  it("derives the live tracking state per follow", async () => {
+  it("reports each follow's live tracking state", async () => {
+    mockTrackingByMbid.mockResolvedValue(
+      new Map([
+        ["mbid-1", "tracked"],
+        ["mbid-2", "unavailable"],
+      ])
+    );
     mockGetFollowed.mockResolvedValue([
       {
         id: 1,
@@ -97,8 +108,6 @@ describe("GET /", () => {
         artist_name: "Tracked",
         last_checked_at: null,
         created_at: "2024-01-01",
-        jambase_artist_id: "jambase:1",
-        jambase_resolved_at: "2026-08-01T00:00:00.000Z",
       },
       {
         id: 2,
@@ -106,8 +115,6 @@ describe("GET /", () => {
         artist_name: "Unknown to JamBase",
         last_checked_at: null,
         created_at: "2024-01-01",
-        jambase_artist_id: null,
-        jambase_resolved_at: "2026-08-01T00:00:00.000Z",
       },
     ]);
 

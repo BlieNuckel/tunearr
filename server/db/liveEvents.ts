@@ -2,6 +2,7 @@ import { In } from "typeorm";
 import {
   getDataSource,
   FollowedArtist,
+  LiveArtist,
   LiveEvent,
   LiveEventPerformer,
   UserLiveEventState,
@@ -75,13 +76,19 @@ export type HydratedLiveEvent = LiveEvent & {
 };
 
 /**
- * JamBase resolution for one artist, collapsed across everyone following them.
+ * JamBase resolution for one followed artist, with how many users follow them.
  * The two nullable columns carry three states; see `deriveLiveTracking`.
  */
 export type ArtistResolutionSummary = {
   follows: number;
   jambase_artist_id: string | null;
   jambase_resolved_at: string | null;
+};
+
+/** A followed MBID JamBase has not answered for yet. */
+export type UnresolvedArtist = {
+  artist_mbid: string;
+  artist_name: string;
 };
 
 type RawArtistResolution = {
@@ -117,6 +124,10 @@ function stateRepo() {
 
 function artistRepo() {
   return getDataSource().getRepository(FollowedArtist);
+}
+
+function liveArtistRepo() {
+  return getDataSource().getRepository(LiveArtist);
 }
 
 function toRadians(degrees: number): number {
@@ -300,10 +311,11 @@ export async function findFollowedUpcomingEvents(
   const builder = eventRepo()
     .createQueryBuilder("e")
     .innerJoin(LiveEventPerformer, "p", "p.event_id = e.id")
+    .innerJoin(LiveArtist, "la", "la.jambase_artist_id = p.artist_jambase_id")
     .innerJoin(
       FollowedArtist,
       "fa",
-      "fa.jambase_artist_id = p.artist_jambase_id AND fa.user_id = :userId",
+      "fa.artist_mbid = la.artist_mbid AND fa.user_id = :userId",
       { userId }
     )
     .where("e.event_date >= :from AND e.event_date <= :to", {
@@ -357,10 +369,11 @@ export async function findAllForUser(
   const builder = eventRepo()
     .createQueryBuilder("e")
     .innerJoin(LiveEventPerformer, "p", "p.event_id = e.id")
+    .innerJoin(LiveArtist, "la", "la.jambase_artist_id = p.artist_jambase_id")
     .innerJoin(
       FollowedArtist,
       "fa",
-      "fa.jambase_artist_id = p.artist_jambase_id AND fa.user_id = :userId",
+      "fa.artist_mbid = la.artist_mbid AND fa.user_id = :userId",
       { userId }
     )
     .where("e.deletion_status IS NULL");
@@ -423,92 +436,116 @@ export async function markNotified(
   return upsertState(userId, eventId, { notified_at: at });
 }
 
-export async function setJambaseArtistId(
-  followedArtistId: number,
+/** Store JamBase's answer for an artist: its id, or null for a confirmed miss. */
+export async function recordArtistResolution(
+  artistMbid: string,
   jambaseArtistId: string | null,
   resolvedAt: string
 ): Promise<void> {
-  await artistRepo().update(
-    { id: followedArtistId },
-    { jambase_artist_id: jambaseArtistId, jambase_resolved_at: resolvedAt }
+  await liveArtistRepo().upsert(
+    {
+      artist_mbid: artistMbid,
+      jambase_artist_id: jambaseArtistId,
+      resolved_at: resolvedAt,
+    },
+    ["artist_mbid"]
   );
 }
 
 /**
- * Followed artists never resolved against JamBase. A row with
- * `jambase_resolved_at` set and a null id is a confirmed miss and is excluded,
- * so an artist JamBase has never heard of is not re-resolved every sweep.
+ * Followed artists JamBase has not answered for, one entry per MBID however
+ * many users follow them, longest-waiting first. A confirmed miss has a row, so
+ * an artist JamBase has never heard of is not looked up again.
  */
 export async function findUnresolvedFollowedArtists(
   limit: number
-): Promise<FollowedArtist[]> {
+): Promise<UnresolvedArtist[]> {
   return artistRepo()
     .createQueryBuilder("fa")
-    .where("fa.jambase_resolved_at IS NULL")
-    .orderBy("fa.created_at", "ASC")
+    .leftJoin(LiveArtist, "la", "la.artist_mbid = fa.artist_mbid")
+    .select("fa.artist_mbid", "artist_mbid")
+    .addSelect("MIN(fa.artist_name)", "artist_name")
+    .addSelect("MIN(fa.created_at)", "first_followed_at")
+    .where("la.artist_mbid IS NULL")
+    .groupBy("fa.artist_mbid")
+    .orderBy("first_followed_at", "ASC")
     .limit(limit)
-    .getMany();
+    .getRawMany<UnresolvedArtist & { first_followed_at: string }>()
+    .then((rows) =>
+      rows.map(({ artist_mbid, artist_name }) => ({ artist_mbid, artist_name }))
+    );
 }
 
 /**
- * The JamBase id any user has already resolved for this MBID. Artist pages key
- * off MBIDs, but events key off JamBase ids, and this is the only bridge that
- * does not involve matching names.
+ * The JamBase id for an MBID somebody follows. Artist pages key off MBIDs, but
+ * events key off JamBase ids, and this is the only bridge that does not involve
+ * matching names. An artist nobody follows any more is no longer swept, so its
+ * stored dates are stale and it gets null like any unfollowed artist.
  */
 export async function findJambaseIdForArtistMbid(
   artistMbid: string
 ): Promise<string | null> {
-  const row = await artistRepo()
-    .createQueryBuilder("fa")
-    .select("fa.jambase_artist_id", "jambase_artist_id")
-    .where("fa.artist_mbid = :artistMbid", { artistMbid })
-    .andWhere("fa.jambase_artist_id IS NOT NULL")
+  const row = await liveArtistRepo()
+    .createQueryBuilder("la")
+    .innerJoin(FollowedArtist, "fa", "fa.artist_mbid = la.artist_mbid")
+    .select("la.jambase_artist_id", "jambase_artist_id")
+    .where("la.artist_mbid = :artistMbid", { artistMbid })
+    .andWhere("la.jambase_artist_id IS NOT NULL")
     .limit(1)
     .getRawOne<{ jambase_artist_id: string }>();
   return row?.jambase_artist_id ?? null;
 }
 
+function resolutionQuery() {
+  return artistRepo()
+    .createQueryBuilder("fa")
+    .leftJoin(LiveArtist, "la", "la.artist_mbid = fa.artist_mbid")
+    .select("COUNT(fa.id)", "follows")
+    .addSelect("MAX(la.jambase_artist_id)", "jambase_artist_id")
+    .addSelect("MAX(la.resolved_at)", "jambase_resolved_at");
+}
+
 /**
- * One row per distinct followed artist, collapsing the per-user follow rows.
- * MAX() picks a non-null id if anyone resolved one and a timestamp if anyone got
- * a definitive answer, which is the state of the artist rather than of one
- * person's follow. `follows` separates "nobody follows them" from "followed but
- * not yet attempted", which the null columns cannot.
+ * One row per distinct followed artist. `follows` separates "nobody follows
+ * them" from "followed but not yet attempted", which the null columns cannot.
  */
 export async function listArtistResolutions(): Promise<
   ArtistResolutionSummary[]
 > {
-  const rows = await artistRepo()
-    .createQueryBuilder("fa")
-    .select("COUNT(fa.id)", "follows")
-    .addSelect("MAX(fa.jambase_artist_id)", "jambase_artist_id")
-    .addSelect("MAX(fa.jambase_resolved_at)", "jambase_resolved_at")
+  const rows = await resolutionQuery()
     .groupBy("fa.artist_mbid")
     .getRawMany<RawArtistResolution>();
   return rows.map(toResolutionSummary);
 }
 
-/** The same collapsed state for one MBID. `follows` is 0 when nobody follows it. */
+/** The same state for one MBID. `follows` is 0 when nobody follows it. */
 export async function findArtistResolution(
   artistMbid: string
 ): Promise<ArtistResolutionSummary> {
-  const row = await artistRepo()
-    .createQueryBuilder("fa")
-    .select("COUNT(fa.id)", "follows")
-    .addSelect("MAX(fa.jambase_artist_id)", "jambase_artist_id")
-    .addSelect("MAX(fa.jambase_resolved_at)", "jambase_resolved_at")
+  const row = await resolutionQuery()
     .where("fa.artist_mbid = :artistMbid", { artistMbid })
     .getRawOne<RawArtistResolution>();
 
   return toResolutionSummary(row);
 }
 
-/** Distinct JamBase artist ids across all users, for batched sweeps. */
+/** JamBase's stored answer for each of these MBIDs that has one. */
+export async function findLiveArtists(
+  artistMbids: readonly string[]
+): Promise<LiveArtist[]> {
+  if (artistMbids.length === 0) return [];
+  return liveArtistRepo().find({
+    where: { artist_mbid: In([...artistMbids]) },
+  });
+}
+
+/** Distinct JamBase ids of artists somebody follows, for batched sweeps. */
 export async function listFollowedJambaseIds(): Promise<string[]> {
-  const rows = await artistRepo()
-    .createQueryBuilder("fa")
-    .select("DISTINCT fa.jambase_artist_id", "jambase_artist_id")
-    .where("fa.jambase_artist_id IS NOT NULL")
+  const rows = await liveArtistRepo()
+    .createQueryBuilder("la")
+    .innerJoin(FollowedArtist, "fa", "fa.artist_mbid = la.artist_mbid")
+    .select("DISTINCT la.jambase_artist_id", "jambase_artist_id")
+    .where("la.jambase_artist_id IS NOT NULL")
     .getRawMany<{ jambase_artist_id: string }>();
   return rows.map((row) => row.jambase_artist_id);
 }
@@ -517,8 +554,9 @@ export async function listFollowedJambaseIds(): Promise<string[]> {
 export async function listUsersWithResolvedFollows(): Promise<number[]> {
   const rows = await artistRepo()
     .createQueryBuilder("fa")
+    .innerJoin(LiveArtist, "la", "la.artist_mbid = fa.artist_mbid")
     .select("DISTINCT fa.user_id", "user_id")
-    .where("fa.jambase_artist_id IS NOT NULL")
+    .where("la.jambase_artist_id IS NOT NULL")
     .getRawMany<{ user_id: number }>();
   return rows.map((row) => row.user_id);
 }

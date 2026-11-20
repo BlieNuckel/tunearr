@@ -7,6 +7,7 @@ import { RemoveRecommendations1725000000000 } from "./migration/17_RemoveRecomme
 import { UserSpending1726000000000 } from "./migration/18_UserSpending";
 import { FollowedReleaseDismissed1727000000000 } from "./migration/19_FollowedReleaseDismissed";
 import { RequestAvailable1728000000000 } from "./migration/20_RequestAvailable";
+import { LiveArtists1729000000000 } from "./migration/21_LiveArtists";
 import type { DataSource } from "typeorm";
 
 let ds: DataSource | null = null;
@@ -205,8 +206,6 @@ describe("FollowedArtists migration", () => {
       "artist_name",
       "last_checked_at",
       "created_at",
-      "jambase_artist_id",
-      "jambase_resolved_at",
     ]);
 
     const releaseCols = (await db.query(
@@ -648,6 +647,7 @@ describe("LiveEvents migration", () => {
     const db = await initTestDb();
 
     const runner = db.createQueryRunner();
+    await new LiveArtists1729000000000().down(runner);
     await new LiveEvents1721000000000().down(runner);
 
     const tables = (await db.query(
@@ -665,6 +665,137 @@ describe("LiveEvents migration", () => {
       name: string;
     }[];
     expect(userCols.map((c) => c.name)).not.toContain("live_regions");
+  });
+});
+
+describe("LiveArtists migration", () => {
+  type OldFollow = [number, string, string | null, string | null];
+
+  const AT = "2026-08-17T09:00:00.000Z";
+
+  async function rewind(db: DataSource): Promise<void> {
+    const runner = db.createQueryRunner();
+    await new LiveArtists1729000000000().down(runner);
+    await runner.release();
+  }
+
+  async function reapply(db: DataSource): Promise<void> {
+    const runner = db.createQueryRunner();
+    await new LiveArtists1729000000000().up(runner);
+    await runner.release();
+  }
+
+  async function seedOldFollows(
+    db: DataSource,
+    rows: OldFollow[]
+  ): Promise<void> {
+    await insertUser(db, "a");
+    await insertUser(db, "b");
+    for (const [userId, mbid, jambaseId, resolvedAt] of rows) {
+      await db.query(
+        `INSERT INTO followed_artists
+           (user_id, artist_mbid, artist_name, jambase_artist_id, jambase_resolved_at)
+         VALUES (?, ?, ?, ?, ?)`,
+        [userId, mbid, mbid, jambaseId, resolvedAt]
+      );
+    }
+  }
+
+  async function followedColumns(db: DataSource): Promise<string[]> {
+    const columns = (await db.query("PRAGMA table_info(followed_artists)")) as {
+      name: string;
+    }[];
+    return columns.map((c) => c.name);
+  }
+
+  it("moves resolutions to one row per artist and drops the follow columns", async () => {
+    const db = await initTestDb();
+    await rewind(db);
+    await seedOldFollows(db, [
+      [1, "found", "jambase:1", AT],
+      [2, "found", null, null],
+      [1, "miss", null, AT],
+      [1, "pending", null, null],
+    ]);
+
+    await reapply(db);
+
+    expect(
+      await db.query(
+        "SELECT artist_mbid, jambase_artist_id, resolved_at FROM live_artists ORDER BY artist_mbid"
+      )
+    ).toEqual([
+      { artist_mbid: "found", jambase_artist_id: "jambase:1", resolved_at: AT },
+      { artist_mbid: "miss", jambase_artist_id: null, resolved_at: AT },
+    ]);
+    expect(await followedColumns(db)).not.toContain("jambase_artist_id");
+    expect(await followedColumns(db)).not.toContain("jambase_resolved_at");
+  });
+
+  it("keeps an id that was stored without a timestamp", async () => {
+    const db = await initTestDb();
+    await rewind(db);
+    await seedOldFollows(db, [[1, "odd", "jambase:3", null]]);
+
+    await reapply(db);
+
+    const [row] = (await db.query(
+      "SELECT jambase_artist_id, resolved_at FROM live_artists"
+    )) as { jambase_artist_id: string; resolved_at: string }[];
+    expect(row.jambase_artist_id).toBe("jambase:3");
+    expect(Number.isNaN(Date.parse(row.resolved_at))).toBe(false);
+  });
+
+  it("rejects a second row for the same artist", async () => {
+    const db = await initTestDb();
+    const insert =
+      "INSERT INTO live_artists (artist_mbid, jambase_artist_id, resolved_at) VALUES ('a', NULL, 'now')";
+    await db.query(insert);
+    await expect(db.query(insert)).rejects.toThrow();
+  });
+
+  it("copies each artist's answer back onto every follow when reverted", async () => {
+    const db = await initTestDb();
+    await insertUser(db, "a");
+    await insertUser(db, "b");
+    await db.query(
+      "INSERT INTO followed_artists (user_id, artist_mbid, artist_name) VALUES (1, 'found', 'x'), (2, 'found', 'x'), (1, 'new', 'y')"
+    );
+    await db.query(
+      "INSERT INTO live_artists (artist_mbid, jambase_artist_id, resolved_at) VALUES ('found', 'jambase:1', ?)",
+      [AT]
+    );
+
+    await rewind(db);
+
+    expect(
+      await db.query(
+        "SELECT user_id, artist_mbid, jambase_artist_id, jambase_resolved_at FROM followed_artists ORDER BY artist_mbid, user_id"
+      )
+    ).toEqual([
+      {
+        user_id: 1,
+        artist_mbid: "found",
+        jambase_artist_id: "jambase:1",
+        jambase_resolved_at: AT,
+      },
+      {
+        user_id: 2,
+        artist_mbid: "found",
+        jambase_artist_id: "jambase:1",
+        jambase_resolved_at: AT,
+      },
+      {
+        user_id: 1,
+        artist_mbid: "new",
+        jambase_artist_id: null,
+        jambase_resolved_at: null,
+      },
+    ]);
+    const tables = await db.query(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'live_artists'"
+    );
+    expect(tables).toEqual([]);
   });
 });
 

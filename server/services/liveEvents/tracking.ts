@@ -1,5 +1,6 @@
 import {
   findArtistResolution,
+  findLiveArtists,
   listArtistResolutions,
 } from "../../db/liveEvents";
 import type { ArtistResolutionSummary } from "../../db/liveEvents";
@@ -38,6 +39,29 @@ export async function getArtistLiveTracking(
 ): Promise<LiveTrackingState | null> {
   const summary = await findArtistResolution(artistMbid);
   return summary.follows === 0 ? null : deriveLiveTracking(summary);
+}
+
+/**
+ * Tracking state for each MBID in a user's follow list. An MBID JamBase has
+ * never been asked about has no row and comes back pending.
+ */
+export async function getLiveTrackingByMbid(
+  artistMbids: readonly string[]
+): Promise<Map<string, LiveTrackingState>> {
+  const rows = await findLiveArtists(artistMbids);
+  const byMbid = new Map(rows.map((row) => [row.artist_mbid, row]));
+  return new Map(
+    artistMbids.map((mbid) => {
+      const row = byMbid.get(mbid);
+      return [
+        mbid,
+        deriveLiveTracking({
+          jambase_artist_id: row?.jambase_artist_id ?? null,
+          jambase_resolved_at: row?.resolved_at ?? null,
+        }),
+      ];
+    })
+  );
 }
 
 function tally(

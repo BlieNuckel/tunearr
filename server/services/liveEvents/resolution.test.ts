@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const mockResolveArtistByMbid = vi.fn();
 const mockIsConfigured = vi.fn();
 const mockFindUnresolved = vi.fn();
-const mockSetJambaseArtistId = vi.fn();
+const mockRecordResolution = vi.fn();
 
 vi.mock("../../api/jambase/artists", () => ({
   resolveArtistByMbid: (...args: unknown[]) => mockResolveArtistByMbid(...args),
@@ -22,14 +22,14 @@ vi.mock("../../api/jambase/config", async () => {
 vi.mock("../../db/liveEvents", () => ({
   findUnresolvedFollowedArtists: (...args: unknown[]) =>
     mockFindUnresolved(...args),
-  setJambaseArtistId: (...args: unknown[]) => mockSetJambaseArtistId(...args),
+  recordArtistResolution: (...args: unknown[]) => mockRecordResolution(...args),
 }));
 
 const { resolveFollowedArtists } = await import("./resolution");
 const { JambaseError } = await import("../../api/jambase/config");
 
 function artist(id: number, name: string) {
-  return { id, artist_mbid: `mbid-${id}`, artist_name: name };
+  return { artist_mbid: `mbid-${id}`, artist_name: name };
 }
 
 beforeEach(() => {
@@ -58,8 +58,8 @@ describe("resolveFollowedArtists", () => {
     const outcome = await resolveFollowedArtists(10);
 
     expect(outcome).toMatchObject({ attempted: 1, resolved: 1, missing: 0 });
-    expect(mockSetJambaseArtistId).toHaveBeenCalledWith(
-      1,
+    expect(mockRecordResolution).toHaveBeenCalledWith(
+      "mbid-1",
       "jambase:219057",
       expect.any(String)
     );
@@ -72,8 +72,8 @@ describe("resolveFollowedArtists", () => {
     const outcome = await resolveFollowedArtists(10);
 
     expect(outcome).toMatchObject({ resolved: 0, missing: 1 });
-    expect(mockSetJambaseArtistId).toHaveBeenCalledWith(
-      1,
+    expect(mockRecordResolution).toHaveBeenCalledWith(
+      "mbid-1",
       null,
       expect.any(String)
     );
@@ -88,7 +88,7 @@ describe("resolveFollowedArtists", () => {
     const outcome = await resolveFollowedArtists(10);
 
     expect(outcome).toMatchObject({ attempted: 1, failed: 1 });
-    expect(mockSetJambaseArtistId).not.toHaveBeenCalled();
+    expect(mockRecordResolution).not.toHaveBeenCalled();
   });
 
   it("keeps going after one artist fails transiently", async () => {
@@ -140,7 +140,7 @@ describe("resolveFollowedArtists", () => {
     const outcome = await resolveFollowedArtists(10);
 
     expect(mockResolveArtistByMbid).toHaveBeenCalledTimes(2);
-    expect(mockSetJambaseArtistId).toHaveBeenCalledTimes(1);
+    expect(mockRecordResolution).toHaveBeenCalledTimes(1);
     expect(outcome).toMatchObject({ attempted: 2, resolved: 1, failed: 1 });
   });
 

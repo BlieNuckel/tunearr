@@ -3,7 +3,7 @@ import { JambaseError } from "../../api/jambase/config";
 import { isLiveEventsConfigured } from "../../api/jambase/config";
 import {
   findUnresolvedFollowedArtists,
-  setJambaseArtistId,
+  recordArtistResolution,
 } from "../../db/liveEvents";
 import { createLogger } from "../../logger";
 
@@ -46,8 +46,8 @@ export async function resolveFollowedArtists(
     outcome.attempted += 1;
     try {
       const resolved = await resolveArtistByMbid(artist.artist_mbid);
-      await setJambaseArtistId(
-        artist.id,
+      await recordArtistResolution(
+        artist.artist_mbid,
         resolved?.jambaseArtistId ?? null,
         isoNow()
       );

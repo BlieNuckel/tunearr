@@ -11,7 +11,8 @@ import { LiveEvent } from "./LiveEvent";
 
 /**
  * The lineup of an event, and the join that makes the whole feature work:
- * `artist_jambase_id` against `followed_artists.jambase_artist_id`.
+ * `artist_jambase_id` against `live_artists.jambase_artist_id`, then the MBID
+ * there against `followed_artists`.
  *
  * The key is the JamBase artist id rather than an MBID because
  * `expandExternalIdentifiers` is plan-gated, so performer nodes carry
