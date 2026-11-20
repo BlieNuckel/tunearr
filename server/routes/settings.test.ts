@@ -125,6 +125,31 @@ describe("PUT /settings", () => {
     );
   });
 
+  it("drops the sweep's own state from a live events save, keeping the rest", async () => {
+    mockSnapshotLiveEvents.mockReturnValue({
+      configured: true,
+      hasOrigin: true,
+      sweepIntervalHours: 24,
+    });
+
+    await request(app)
+      .put("/settings")
+      .send({
+        lidarrUrl: "http://lidarr:8686",
+        liveEvents: {
+          apiKey: "k",
+          rosterWatermark: "2026-01-01 00:00:00",
+          rosterFullSweptAt: "2026-01-01T00:00:00.000Z",
+          rosterFullPass: { startedAt: "x", afterId: null, page: 1 },
+        },
+      });
+
+    expect(mockSetConfig).toHaveBeenCalledWith({
+      lidarrUrl: "http://lidarr:8686",
+      liveEvents: { apiKey: "k" },
+    });
+  });
+
   it("leaves the live poller alone when the save has no liveEvents section", async () => {
     await request(app).put("/settings").send({ lastfmApiKey: "k" });
 

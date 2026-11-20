@@ -269,6 +269,22 @@ function validateNotificationsConfig(config: NotificationsConfig) {
   }
 }
 
+function validateRosterFullPass(cursor: unknown) {
+  if (cursor === null) return;
+  const value = cursor as Record<string, unknown>;
+  const valid =
+    typeof cursor === "object" &&
+    typeof value.startedAt === "string" &&
+    (value.afterId === null || typeof value.afterId === "string") &&
+    Number.isInteger(value.page) &&
+    (value.page as number) >= 1;
+  if (!valid) {
+    throw new Error(
+      "liveEvents.rosterFullPass must be null or { startedAt, afterId, page }"
+    );
+  }
+}
+
 /** The Developer tier only returns events up to six months out. */
 const MAX_BANNER_HORIZON_DAYS = 180;
 
@@ -309,10 +325,6 @@ function validateLiveEventsConfig(config: LiveEventsConfig) {
     config.sweepIntervalHours,
     "liveEvents.sweepIntervalHours"
   );
-  validatePositiveInt(
-    config.fullSweepIntervalDays,
-    "liveEvents.fullSweepIntervalDays"
-  );
   validatePositiveInt(config.monthlyQuota, "liveEvents.monthlyQuota");
   validateRatio(config.quotaWarnRatio, "liveEvents.quotaWarnRatio");
   validatePositiveInt(
@@ -336,6 +348,7 @@ function validateLiveEventsConfig(config: LiveEventsConfig) {
       throw new Error(`liveEvents.${name} must be a string or null`);
     }
   }
+  validateRosterFullPass(config.rosterFullPass);
 
   if (config.bannerHorizonDays > MAX_BANNER_HORIZON_DAYS) {
     throw new Error(
