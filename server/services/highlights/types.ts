@@ -1,4 +1,4 @@
-import type { SerializedNotice } from "../liveEvents/serialize";
+import type { SerializedLiveEvent } from "../liveEvents/serialize";
 
 export type HighlightKind = "release" | "live" | "request";
 
@@ -19,9 +19,23 @@ export type ReleaseHighlight = {
   unseen: boolean;
 };
 
-export type LiveHighlight = SerializedNotice & {
+/** One followed artist on tour. `id` is the baseline row, which dismissal targets. */
+export type LiveHighlight = {
   kind: "live";
   key: string;
+  id: number;
+  artistMbid: string;
+  artistName: string;
+  /** Upcoming dates still on. */
+  dateCount: number;
+  /** Closest to the user, or the soonest without a location. Null when only `change` is news. */
+  closest: SerializedLiveEvent | null;
+  distanceKm: number | null;
+  hasLocation: boolean;
+  /** When the user was last told about new or closer dates. */
+  notifiedAt: string | null;
+  /** A show they marked going that was recently cancelled, postponed or moved. */
+  change: SerializedLiveEvent | null;
 };
 
 /** An album the user asked for that is now in the library. */

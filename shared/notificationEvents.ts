@@ -12,7 +12,7 @@ export type NotificationEventId =
   | "integration.unreachable"
   | "import.failed"
   | "live.quotaWarning"
-  | "live.nearbyShow"
+  | "live.tourAnnounced"
   | "live.statusChanged";
 
 export type NotificationEventDefinition = {
@@ -87,9 +87,10 @@ export const NOTIFICATION_EVENTS: readonly NotificationEventDefinition[] = [
     defaultEnabled: true,
   },
   {
-    id: "live.nearbyShow",
-    label: "Live dates near you",
-    description: "An artist you follow announced a date you could get to.",
+    id: "live.tourAnnounced",
+    label: "Tour dates",
+    description:
+      "An artist you follow announced dates, or added one closer to you than any before.",
     audience: "user",
     defaultEnabled: true,
   },
@@ -97,7 +98,7 @@ export const NOTIFICATION_EVENTS: readonly NotificationEventDefinition[] = [
     id: "live.statusChanged",
     label: "Show cancelled or moved",
     description:
-      "A show you were told about was cancelled, postponed, or rescheduled.",
+      "A show you marked as going was cancelled, postponed, or rescheduled.",
     audience: "user",
     defaultEnabled: true,
   },

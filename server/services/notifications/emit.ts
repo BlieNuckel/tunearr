@@ -192,39 +192,70 @@ export function notifyQuotaWarning(
   });
 }
 
-export type LiveEventNotification = {
+export type TourNotification = {
   userId: number;
   artistName: string;
-  venue: string;
+  artistMbid: string;
+  /** `announced`: the artist had no dates before. `closer`: a date beat the closest one known. */
+  change: "announced" | "closer";
+  dateCount: number;
+  place: string;
   eventDate: string;
-  tier: "local" | "regional";
+  /** Null when the user has no location or the venue has no coordinates. */
+  distanceKm: number | null;
 };
 
-export type LiveStatusNotification = LiveEventNotification & {
+export type LiveStatusNotification = {
+  userId: number;
+  artistName: string;
+  place: string;
+  eventDate: string;
   status: "cancelled" | "postponed" | "rescheduled";
 };
 
-function liveEventBody(notification: LiveEventNotification): string {
-  return `${notification.venue} on ${notification.eventDate}`;
+const SHORT_DATE: Intl.DateTimeFormatOptions = {
+  day: "numeric",
+  month: "short",
+  timeZone: "UTC",
+};
+
+function shortDate(isoDate: string): string {
+  const date = new Date(`${isoDate}T00:00:00Z`);
+  return Number.isNaN(date.getTime())
+    ? isoDate
+    : date.toLocaleDateString("en-GB", SHORT_DATE);
 }
 
-export function notifyLiveEvent(
-  notification: LiveEventNotification
+function tourTitle(notification: TourNotification): string {
+  if (notification.change === "closer") {
+    return `${notification.artistName} added a date closer to you`;
+  }
+  const dates =
+    notification.dateCount === 1 ? "a date" : `${notification.dateCount} dates`;
+  return `${notification.artistName} announced ${dates}`;
+}
+
+function tourBody(notification: TourNotification): string {
+  const when = `${notification.place}, ${shortDate(notification.eventDate)}`;
+  if (notification.distanceKm === null) return `Next: ${when}`;
+  return `Closest: ${when} (${Math.round(notification.distanceKm)} km)`;
+}
+
+/** One per artist per sweep, never one per date, and the full tour is a tap away. */
+export function notifyTourUpdate(
+  notification: TourNotification
 ): Promise<void> {
   return notifyUser(notification.userId, {
-    eventId: "live.nearbyShow",
-    title:
-      notification.tier === "local"
-        ? `${notification.artistName} is playing near you`
-        : `${notification.artistName} is playing within reach`,
-    body: liveEventBody(notification),
-    url: "/library/live",
+    eventId: "live.tourAnnounced",
+    title: tourTitle(notification),
+    body: tourBody(notification),
+    url: `/artist/${notification.artistMbid}`,
   });
 }
 
 /**
- * Fires even for someone who already dismissed or bought tickets. They are
- * exactly the person who needs to know the show is off.
+ * Only for shows the user marked going: they are the ones whose plans just
+ * changed.
  */
 export function notifyLiveStatusChange(
   notification: LiveStatusNotification
@@ -232,7 +263,7 @@ export function notifyLiveStatusChange(
   return notifyUser(notification.userId, {
     eventId: "live.statusChanged",
     title: `${notification.artistName}: show ${notification.status}`,
-    body: liveEventBody(notification),
+    body: `${notification.place} on ${shortDate(notification.eventDate)}`,
     url: "/library/live",
   });
 }
