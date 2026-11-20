@@ -47,6 +47,7 @@
     "migration:run": "pnpm typeorm migration:run -d server/db/dataSource.ts",
     "seed": "tsx --tsconfig server/tsconfig.json server/dev/seed.ts",
     "dev:mock": "MOCK_LIDARR=true pnpm dev",
+    "dev:live": "tsx --tsconfig server/tsconfig.json server/dev/liveScenario.ts",
     "prepare": "husky"
   },
   "devDependencies": {
