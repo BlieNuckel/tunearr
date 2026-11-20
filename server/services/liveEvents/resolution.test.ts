@@ -129,6 +129,21 @@ describe("resolveFollowedArtists", () => {
     expect(mockResolveArtistByMbid).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps going after a request JamBase rejected, so one odd artist cannot block the queue", async () => {
+    mockFindUnresolved.mockResolvedValue([artist(1, "A"), artist(2, "B")]);
+    mockResolveArtistByMbid
+      .mockRejectedValueOnce(
+        new JambaseError("bad-request", "lookup_error", 400)
+      )
+      .mockResolvedValueOnce({ jambaseArtistId: "jambase:2", name: "B" });
+
+    const outcome = await resolveFollowedArtists(10);
+
+    expect(mockResolveArtistByMbid).toHaveBeenCalledTimes(2);
+    expect(mockSetJambaseArtistId).toHaveBeenCalledTimes(1);
+    expect(outcome).toMatchObject({ attempted: 2, resolved: 1, failed: 1 });
+  });
+
   it("passes the limit through, so a big import cannot drain the quota", async () => {
     await resolveFollowedArtists(25);
     expect(mockFindUnresolved).toHaveBeenCalledWith(25);

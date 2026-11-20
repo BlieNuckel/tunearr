@@ -8,10 +8,12 @@ export type JambaseRequestConfig = {
 /**
  * Why a JamBase call failed, because the caller has to treat these differently:
  * `not-found` is a legitimate answer about an entity, `plan-gated` is permanent
- * until someone pays, and only `transient` is worth trying again.
+ * until someone pays, `bad-request` means we built the call wrong, and only
+ * `transient` is worth trying again.
  */
 export type JambaseErrorKind =
   | "not-found"
+  | "bad-request"
   | "plan-gated"
   | "unauthorized"
   | "rate-limited"
