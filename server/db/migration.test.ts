@@ -889,6 +889,8 @@ describe("LiveUserLocation migration", () => {
     quotaWarnRatio: 0.8,
     quotaHardStop: true,
     billingPeriodStartDay: 1,
+    shelfHorizonDays: 60,
+    shelfMinAffinity: 0.5,
     allowOverage: false,
   };
 

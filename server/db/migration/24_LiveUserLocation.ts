@@ -28,6 +28,8 @@ const DROPPED_CONFIG_PATHS = [
   "$.liveEvents.quotaWarnRatio",
   "$.liveEvents.quotaHardStop",
   "$.liveEvents.billingPeriodStartDay",
+  "$.liveEvents.shelfHorizonDays",
+  "$.liveEvents.shelfMinAffinity",
 ];
 
 const ORIGIN_LAT = `(SELECT json_extract("data", '$.liveEvents.originLat') FROM "config" WHERE "id" = 1)`;
