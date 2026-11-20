@@ -23,6 +23,17 @@ export const DEFAULT_PURCHASE_DECISION: PurchaseDecisionSettings = {
  * which is why it is server-wide: per-user knobs are filters over already-swept
  * data and live on the user row instead.
  */
+/**
+ * A full pass that ran out of page budget, resumed on the next run. Artist ids
+ * are swept in sorted order, so `afterId` is the last id of the last finished
+ * batch and `page` is the next page of the batch after it.
+ */
+export type RosterFullPassCursor = {
+  startedAt: string;
+  afterId: string | null;
+  page: number;
+};
+
 export type LiveEventsSettings = {
   enabled: boolean;
   apiKey: string;
@@ -44,8 +55,6 @@ export type LiveEventsSettings = {
   /** Hard stop per run. Overage bills rather than fails, so this is a cost control. */
   maxPagesPerRun: number;
   sweepIntervalHours: number;
-  /** How often a non-delta pass runs to catch anything a delta sweep missed. */
-  fullSweepIntervalDays: number;
   /**
    * Delta state, not a preference: the watermark a `dateModifiedFrom` sweep
    * resumes from, and when the last full pass completed. Null means the next run
@@ -53,6 +62,8 @@ export type LiveEventsSettings = {
    */
   rosterWatermark: string | null;
   rosterFullSweptAt: string | null;
+  /** Where an unfinished full pass resumes; null when none is in progress. */
+  rosterFullPass: RosterFullPassCursor | null;
   /** Plan allowance. Editable because paid tiers differ (Startup is 20,000). */
   monthlyQuota: number;
   quotaWarnRatio: number;
@@ -76,9 +87,9 @@ export const DEFAULT_LIVE_EVENTS: LiveEventsSettings = {
   rosterBatchSize: 100,
   maxPagesPerRun: 20,
   sweepIntervalHours: 24,
-  fullSweepIntervalDays: 30,
   rosterWatermark: null,
   rosterFullSweptAt: null,
+  rosterFullPass: null,
   monthlyQuota: 1000,
   quotaWarnRatio: 0.8,
   quotaHardStop: true,

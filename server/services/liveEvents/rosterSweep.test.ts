@@ -61,6 +61,20 @@ function configure(overrides: Record<string, unknown> = {}) {
   });
 }
 
+function daysAgo(days: number): string {
+  return new Date(Date.now() - days * 86_400_000).toISOString();
+}
+
+function lastPatch(): Record<string, unknown> {
+  const calls = mockSetConfig.mock.calls;
+  return (calls[calls.length - 1][0] as { liveEvents: Record<string, unknown> })
+    .liveEvents;
+}
+
+function sweptIds(index: number): string[] {
+  return callParams(index).artistIds as string[];
+}
+
 function callParams(index: number): Record<string, unknown> {
   return mockSearchEvents.mock.calls[index][0] as Record<string, unknown>;
 }
@@ -191,18 +205,25 @@ describe("delta vs full pass", () => {
     expect(callParams(0).dateModifiedFrom).toBe("2026-08-10 00:00:00");
   });
 
-  it("forces a full pass once the reconciliation interval has elapsed", async () => {
-    const longAgo = new Date(Date.now() - 40 * 86_400_000).toISOString();
+  it("runs a full pass weekly, so a show sliding into the 180-day window is found", async () => {
     configure({
       rosterWatermark: "2026-08-10 00:00:00",
-      rosterFullSweptAt: longAgo,
-      fullSweepIntervalDays: 30,
+      rosterFullSweptAt: daysAgo(7),
     });
 
     const result = await runRosterSweep();
 
     expect(result.isFullPass).toBe(true);
     expect(callParams(0).dateModifiedFrom).toBeUndefined();
+  });
+
+  it("runs a delta when the last full pass is under a week old", async () => {
+    configure({
+      rosterWatermark: "2026-08-10 00:00:00",
+      rosterFullSweptAt: daysAgo(6),
+    });
+
+    expect((await runRosterSweep()).isFullPass).toBe(false);
   });
 
   it("treats an unparseable rosterFullSweptAt as due", async () => {
@@ -240,10 +261,7 @@ describe("watermark advancement", () => {
     configure({ rosterWatermark: null });
     await runRosterSweep();
 
-    const patch = mockSetConfig.mock.calls[0][0] as {
-      liveEvents: Record<string, unknown>;
-    };
-    expect(patch.liveEvents.rosterFullSweptAt).toEqual(expect.any(String));
+    expect(lastPatch().rosterFullSweptAt).toEqual(expect.any(String));
   });
 
   it("does not advance the watermark when the page cap is hit", async () => {
@@ -288,5 +306,129 @@ describe("watermark advancement", () => {
 
     await expect(runRosterSweep()).rejects.toThrow("503");
     expect(mockSetConfig).not.toHaveBeenCalled();
+  });
+});
+
+describe("resumable full pass", () => {
+  const sorted = [...ids(250)].sort();
+
+  it("saves where a capped full pass stopped instead of starting over next run", async () => {
+    mockListIds.mockResolvedValue(ids(250));
+    configure({ rosterBatchSize: 100, maxPagesPerRun: 1 });
+
+    const result = await runRosterSweep();
+
+    expect(result.completed).toBe(false);
+    expect(lastPatch()).toEqual({
+      rosterFullPass: {
+        startedAt: expect.any(String),
+        afterId: sorted[99],
+        page: 1,
+      },
+    });
+  });
+
+  it("resumes after the saved artist id and page, even though a delta is not due", async () => {
+    mockListIds.mockResolvedValue(ids(250));
+    mockSearchEvents.mockResolvedValue(page({ totalPages: 3 }));
+    configure({
+      rosterBatchSize: 100,
+      rosterWatermark: "2026-08-10 00:00:00",
+      rosterFullSweptAt: daysAgo(1),
+      rosterFullPass: {
+        startedAt: "2026-08-20T10:00:00.000Z",
+        afterId: sorted[99],
+        page: 2,
+      },
+    });
+
+    const result = await runRosterSweep();
+
+    expect(result).toMatchObject({ isFullPass: true, resumed: true });
+    expect(callParams(0).dateModifiedFrom).toBeUndefined();
+    expect(sweptIds(0)).toEqual(sorted.slice(100, 200));
+    expect(callParams(0).page).toBe(2);
+    expect(sweptIds(2)).toEqual(sorted.slice(200));
+    expect(callParams(2).page).toBe(1);
+  });
+
+  it("finishing a pass clears the cursor and sets the watermark to when the pass began", async () => {
+    mockListIds.mockResolvedValue(ids(250));
+    configure({
+      rosterBatchSize: 100,
+      rosterWatermark: "2026-08-01 00:00:00",
+      rosterFullSweptAt: daysAgo(9),
+      rosterFullPass: {
+        startedAt: "2026-08-20T10:00:00.000Z",
+        afterId: sorted[199],
+        page: 1,
+      },
+    });
+
+    const result = await runRosterSweep();
+
+    expect(result.completed).toBe(true);
+    expect(lastPatch()).toEqual({
+      rosterFullPass: null,
+      rosterFullSweptAt: expect.any(String),
+      rosterWatermark: "2026-08-20 09:55:00",
+    });
+  });
+
+  it("works through one batch bigger than the page budget across runs", async () => {
+    mockListIds.mockResolvedValue(ids(1));
+    mockSearchEvents.mockResolvedValue(page({ totalPages: 5 }));
+    configure({ maxPagesPerRun: 2 });
+
+    await runRosterSweep();
+    expect(lastPatch().rosterFullPass).toMatchObject({
+      afterId: null,
+      page: 3,
+    });
+
+    const saved = lastPatch().rosterFullPass;
+    vi.clearAllMocks();
+    configure({ maxPagesPerRun: 2, rosterFullPass: saved });
+    await runRosterSweep();
+
+    expect(callParams(0).page).toBe(3);
+    expect(lastPatch().rosterFullPass).toMatchObject({ page: 5 });
+  });
+
+  it("keeps the batches a failed run finished", async () => {
+    mockListIds.mockResolvedValue(ids(250));
+    configure({ rosterBatchSize: 100 });
+    mockSearchEvents
+      .mockResolvedValueOnce(page())
+      .mockRejectedValueOnce(new Error("503"));
+
+    await expect(runRosterSweep()).rejects.toThrow("503");
+
+    expect(lastPatch().rosterFullPass).toMatchObject({ afterId: sorted[99] });
+  });
+
+  it("sweeps artist ids in sorted order, so the cursor means the same thing every run", async () => {
+    mockListIds.mockResolvedValue(["jambase:3", "jambase:1", "jambase:2"]);
+
+    await runRosterSweep();
+
+    expect(sweptIds(0)).toEqual(["jambase:1", "jambase:2", "jambase:3"]);
+  });
+
+  it("completes at once when every id is already behind the cursor", async () => {
+    mockListIds.mockResolvedValue(ids(2));
+    configure({
+      rosterFullPass: {
+        startedAt: "2026-08-20T10:00:00.000Z",
+        afterId: "jambase:9",
+        page: 1,
+      },
+    });
+
+    const result = await runRosterSweep();
+
+    expect(mockSearchEvents).not.toHaveBeenCalled();
+    expect(result.completed).toBe(true);
+    expect(lastPatch().rosterFullPass).toBeNull();
   });
 });
