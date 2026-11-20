@@ -94,6 +94,9 @@ function describeRequest(
   };
 }
 
+/** Without a location the card can only lead with the next date, so it says how to fix that. */
+const SET_LOCATION_HINT = "Set your location in Settings to see the closest";
+
 /** How long new or closer dates count as news on the card. */
 const NEW_DATES_DAYS = 14;
 
@@ -145,7 +148,11 @@ function describeLive(highlight: LiveHighlight, now: number): HighlightView {
   const event = liveEventOf(highlight);
   const details = highlight.change
     ? [placeLine(event, null), movedLine(event)]
-    : [placeLine(event, highlight.distanceKm), tourLine(highlight)];
+    : [
+        placeLine(event, highlight.distanceKm),
+        tourLine(highlight),
+        highlight.hasLocation ? null : SET_LOCATION_HINT,
+      ];
   return {
     eyebrow: liveEyebrow(highlight, now),
     tone: highlight.change ? liveTone(highlight.change.status) : "live",

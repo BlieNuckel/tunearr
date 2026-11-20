@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { KeyboardEvent } from "react";
 import usePlaceSearch from "@/hooks/usePlaceSearch";
 import type { GeocodedPlace } from "@/types";
+import { describePlace } from "@/utils/describePlace";
 
 interface PlaceSearchFieldProps {
   onPick: (place: GeocodedPlace) => void;
@@ -15,11 +16,6 @@ const BUTTON_CLASSES =
 
 const RESULT_CLASSES =
   "w-full px-3 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-amber-100 dark:hover:bg-amber-900/30";
-
-/** "Malmö, Skåne County, Sweden": how a picked place is shown and stored. */
-export function describePlace(place: GeocodedPlace): string {
-  return [place.name, place.region, place.country].filter(Boolean).join(", ");
-}
 
 export default function PlaceSearchField({ onPick }: PlaceSearchFieldProps) {
   const { places, searching, error, search, clear } = usePlaceSearch();

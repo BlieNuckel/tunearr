@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { beforeEach } from "vitest";
 import userEvent from "@testing-library/user-event";
 import LiveEventsSection from "../LiveEventsSection";
@@ -67,47 +67,18 @@ describe("LiveEventsSection", () => {
     );
   });
 
-  it("takes a whole country list at once, commas and all", () => {
-    const onChange = renderSection();
-
-    fireEvent.change(screen.getByRole("combobox"), {
-      target: { value: "se, dk , de," },
-    });
-
-    expect(onChange).toHaveBeenLastCalledWith({ regions: ["SE", "DK", "DE"] });
-  });
-
-  it("shows a chosen country by name, not just its code", () => {
-    renderSection({ regions: ["SE"] });
-    expect(screen.getByText("Sweden")).toBeInTheDocument();
-  });
-
-  it("rejects a saved UK with an explanation rather than failing later", () => {
-    renderSection({ regions: ["UK"] });
-    expect(screen.getByText(/Use GB rather than UK/)).toBeInTheDocument();
-  });
-
-  it("flags a saved code that is not alpha-2", () => {
-    renderSection({ regions: ["SWE"] });
-    expect(
-      screen.getByText(/is not a two-letter country code/)
-    ).toBeInTheDocument();
-  });
-
-  it("explains that the radius bounds everyone on the instance", () => {
+  it("leaves location, radius, countries and windows to each user, so none are here", () => {
     renderSection();
-    expect(
-      screen.getByText(/nobody can see shows beyond it/)
-    ).toBeInTheDocument();
-  });
 
-  it("empties the origin fields rather than sending NaN", async () => {
-    const onChange = renderSection({ originLat: 55.6 });
-
-    const input = screen.getByDisplayValue("55.6");
-    await userEvent.clear(input);
-
-    expect(onChange).toHaveBeenLastCalledWith({ originLat: null });
+    for (const label of [
+      /latitude/i,
+      /radius/i,
+      /countries/i,
+      /announce/i,
+      /reminder/i,
+    ]) {
+      expect(screen.queryByText(label)).not.toBeInTheDocument();
+    }
   });
 
   it("toggles the feature", async () => {
