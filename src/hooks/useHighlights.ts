@@ -68,13 +68,18 @@ export default function useHighlights() {
     [refresh, setData]
   );
 
-  /** Going is an answer to the highlight, so it leaves Home like a dismissal. */
+  /**
+   * Going answers the card for its closest date, so the artist leaves Home like
+   * a dismissal until a closer date turns up.
+   */
   const markGoing = useCallback(
     async (highlight: LiveHighlight) => {
+      if (!highlight.closest) return;
       setData((prev) => withoutHighlight(prev, highlight.key));
-      await post(`/api/live/events/${highlight.id}/response`, {
+      await post(`/api/live/events/${highlight.closest.id}/response`, {
         response: "going",
       });
+      await post(`/api/highlights/live/${highlight.id}/dismiss`);
       void refresh();
     },
     [refresh, setData]

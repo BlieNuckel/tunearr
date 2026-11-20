@@ -13,7 +13,7 @@ function jsonResponse(body: unknown) {
 }
 
 const RELEASE = releaseHighlight({ key: "release:1", followedReleaseId: 1 });
-const LIVE = liveHighlight({ key: "live:5", id: 5 });
+const LIVE = liveHighlight({ key: "live:mbid-yves", id: 5 });
 const REQUEST = requestHighlight({ key: "request:9", requestId: 9 });
 
 async function renderLoaded() {
@@ -79,7 +79,7 @@ describe("useHighlights", () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
   });
 
-  it("dismisses a live date by its event id", async () => {
+  it("dismisses a touring artist by its card id", async () => {
     const { result } = await renderLoaded();
 
     await act(() => result.current.dismiss(LIVE));
@@ -120,11 +120,32 @@ describe("useHighlights", () => {
     });
 
     expect(result.current.highlights).toEqual([RELEASE]);
-    expect(mockFetch).toHaveBeenCalledWith("/api/live/events/5/response", {
+    expect(mockFetch).toHaveBeenCalledWith("/api/live/events/100/response", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ response: "going" }),
     });
+  });
+
+  it("dismisses the artist after recording going, so it stays off Home", async () => {
+    const { result } = await renderLoaded();
+    mockFetch.mockResolvedValue(jsonResponse({}));
+
+    await act(() => result.current.markGoing(LIVE));
+
+    const urls = mockFetch.mock.calls.map((call) => call[0]);
+    expect(urls.indexOf("/api/highlights/live/5/dismiss")).toBeGreaterThan(
+      urls.indexOf("/api/live/events/100/response")
+    );
+  });
+
+  it("does nothing for going when the card has no date of its own", async () => {
+    const { result } = await renderLoaded();
+    mockFetch.mockClear();
+
+    await act(() => result.current.markGoing({ ...LIVE, closest: null }));
+
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 
   it("still refetches when a write fails", async () => {

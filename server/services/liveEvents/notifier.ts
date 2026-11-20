@@ -1,17 +1,22 @@
 import {
   listUsersWithResolvedFollows,
-  findFollowedUpcomingEvents,
-  getUserLivePreferences,
   markNotified,
 } from "../../db/liveEvents";
 import type { HydratedLiveEvent } from "../../db/liveEvents";
-import { notifyLiveEvent, notifyLiveStatusChange } from "../notifications";
-import { evaluate, resolvePreferences } from "./notice";
-import type { EffectivePreferences, NoticeCandidate } from "./notice";
+import {
+  deleteUnfollowedArtistStates,
+  listArtistStates,
+  saveArtistState,
+} from "../../db/liveArtistState";
+import type { UserLiveArtistState } from "../../db/index";
+import { notifyLiveStatusChange, notifyTourUpdate } from "../notifications";
+import { decideBaseline, snapshotOf } from "./baseline";
+import { listUserTours, STATUS_NEWS_DAYS } from "./tours";
+import type { ArtistTour, Origin } from "./tours";
 import { createLogger } from "../../logger";
 
 export type NotifyOutcome = {
-  announced: number;
+  tours: number;
   statusChanges: number;
 };
 
@@ -19,10 +24,11 @@ const log = createLogger("live-notifier");
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-function venueOf(event: HydratedLiveEvent): string {
+/** "Venue, City", or the event name when JamBase gave neither. */
+export function placeOf(event: HydratedLiveEvent): string {
   return (
     [event.venue_name, event.venue_city].filter(Boolean).join(", ") ||
-    "a venue nearby"
+    event.name
   );
 }
 
@@ -32,101 +38,131 @@ function artistOf(event: HydratedLiveEvent): string {
 }
 
 /**
- * A status change re-notifies even when the event was already announced, but
- * only once per change: gating on `status_changed_at` being newer than
- * `notified_at` keeps it from firing on every poll.
+ * A show the user marked going changed, recently, and they have not been told
+ * since. Gating on `notified_at` keeps one change from firing on every poll.
  */
-function needsStatusNotice(candidate: NoticeCandidate): boolean {
-  if (candidate.reason !== "status-changed") return false;
-
-  const notifiedAt = candidate.event.state?.notified_at;
-  if (!notifiedAt) return true;
-
-  const changedAt = candidate.event.status_changed_at;
-  return changedAt !== null && Date.parse(changedAt) > Date.parse(notifiedAt);
+export function hasUnsentStatusChange(
+  event: HydratedLiveEvent,
+  now: number
+): boolean {
+  if (event.state?.response !== "going") return false;
+  if (event.event_status === "scheduled" || !event.status_changed_at) {
+    return false;
+  }
+  const changedAt = Date.parse(event.status_changed_at);
+  if (Number.isNaN(changedAt) || now - changedAt > STATUS_NEWS_DAYS * DAY_MS) {
+    return false;
+  }
+  const notifiedAt = event.state.notified_at;
+  return !notifiedAt || changedAt > Date.parse(notifiedAt);
 }
 
-async function notifyOne(
+async function applyTour(
   userId: number,
-  candidate: NoticeCandidate,
+  tour: ArtistTour,
+  state: UserLiveArtistState | undefined,
+  origin: Origin | null,
   at: string
-): Promise<"status" | "announce" | null> {
-  const shared = {
-    userId,
-    artistName: artistOf(candidate.event),
-    venue: venueOf(candidate.event),
-    eventDate: candidate.event.event_date,
-    tier:
-      candidate.tier === "local" ? ("local" as const) : ("regional" as const),
-  };
+): Promise<boolean> {
+  const action = decideBaseline(tour, state, origin);
+  if (action === "keep") return false;
 
-  if (needsStatusNotice(candidate)) {
-    const status = candidate.event.event_status;
-    if (status === "scheduled") return null;
-    await notifyLiveStatusChange({ ...shared, status });
-    await markNotified(userId, candidate.event.id, at);
-    return "status";
+  const snapshot = snapshotOf(tour, origin, at);
+  if (action === "record" || !tour.closest) {
+    await saveArtistState(userId, tour.artistMbid, snapshot);
+    return false;
   }
 
-  if (candidate.event.state?.notified_at) return null;
-
-  await notifyLiveEvent(shared);
-  await markNotified(userId, candidate.event.id, at);
-  return "announce";
+  await saveArtistState(userId, tour.artistMbid, {
+    ...snapshot,
+    notified_at: at,
+    dismissed_at: null,
+  });
+  await notifyTourUpdate({
+    userId,
+    artistName: tour.artistName,
+    artistMbid: tour.artistMbid,
+    change: state?.closest_event_id === null ? "announced" : "closer",
+    dateCount: tour.dates.length,
+    place: placeOf(tour.closest),
+    eventDate: tour.closest.event_date,
+    distanceKm: tour.distanceKm,
+  });
+  return true;
 }
 
-async function notifyUserEvents(
+async function notifyStatusChanges(
   userId: number,
-  prefs: EffectivePreferences,
+  events: readonly HydratedLiveEvent[],
+  now: number,
+  at: string
+): Promise<number> {
+  let sent = 0;
+  for (const event of events) {
+    if (!hasUnsentStatusChange(event, now)) continue;
+    if (event.event_status === "scheduled") continue;
+    await notifyLiveStatusChange({
+      userId,
+      artistName: artistOf(event),
+      place: placeOf(event),
+      eventDate: event.event_date,
+      status: event.event_status,
+    });
+    await markNotified(userId, event.id, at);
+    sent += 1;
+  }
+  return sent;
+}
+
+async function notifyOneUser(
+  userId: number,
   now: number,
   at: string,
   outcome: NotifyOutcome
 ): Promise<void> {
-  const from = new Date(now).toISOString().slice(0, 10);
-  const to = new Date(now + prefs.bannerHorizonDays * DAY_MS)
-    .toISOString()
-    .slice(0, 10);
+  const [{ origin, tours, events }, states] = await Promise.all([
+    listUserTours(userId, now),
+    listArtistStates(userId),
+  ]);
+  const byMbid = new Map(states.map((state) => [state.artist_mbid, state]));
 
-  const events = await findFollowedUpcomingEvents(userId, {
-    from,
-    to,
-    countries: null,
-  });
-
-  for (const event of events) {
-    const candidate = evaluate(event, prefs, now);
-    if (!candidate) continue;
-
-    const result = await notifyOne(userId, candidate, at);
-    if (result === "status") outcome.statusChanges += 1;
-    else if (result === "announce") outcome.announced += 1;
+  for (const tour of tours) {
+    const sent = await applyTour(
+      userId,
+      tour,
+      byMbid.get(tour.artistMbid),
+      origin,
+      at
+    );
+    if (sent) outcome.tours += 1;
   }
+  outcome.statusChanges += await notifyStatusChanges(userId, events, now, at);
 }
 
 /**
- * Banner-worthy means notification-worthy, so there is no separate
- * notification configuration to reason about: this reuses the notice
- * service's own evaluation rather than duplicating the windows.
+ * Runs after each sweep. One notification per artist at most, and only when
+ * the artist went from no dates to dates or added a closer one; see
+ * `decideBaseline`.
  */
 export async function notifyLiveUpdates(
   now: number = Date.now()
 ): Promise<NotifyOutcome> {
-  const outcome: NotifyOutcome = { announced: 0, statusChanges: 0 };
+  const outcome: NotifyOutcome = { tours: 0, statusChanges: 0 };
+  await deleteUnfollowedArtistStates();
   const userIds = await listUsersWithResolvedFollows();
   const at = new Date(now).toISOString();
 
   for (const userId of userIds) {
     try {
-      const prefs = resolvePreferences(await getUserLivePreferences(userId));
-      await notifyUserEvents(userId, prefs, now, at, outcome);
+      await notifyOneUser(userId, now, at, outcome);
     } catch (error) {
       log.error(`Could not notify user ${userId}`, error);
     }
   }
 
-  if (outcome.announced || outcome.statusChanges) {
+  if (outcome.tours || outcome.statusChanges) {
     log.info(
-      `Notified ${outcome.announced} new date(s) and ${outcome.statusChanges} status change(s)`
+      `Notified ${outcome.tours} tour update(s) and ${outcome.statusChanges} status change(s)`
     );
   }
   return outcome;

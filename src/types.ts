@@ -158,11 +158,6 @@ export type LiveEventStatus =
 
 export type LiveEventResponse = "going" | "dismissed";
 
-export type LiveDistanceTier = "local" | "regional" | "out-of-scope";
-
-export type LiveNoticeReason =
-  "status-changed" | "just-announced" | "coming-up";
-
 export interface LiveEventPerformerSummary {
   jambaseId: string;
   name: string;
@@ -188,11 +183,6 @@ export interface LiveEventSummary {
   viewedAt: string | null;
 }
 
-export interface LiveNotice extends LiveEventSummary {
-  tier: LiveDistanceTier;
-  reason: LiveNoticeReason;
-}
-
 export type ReleaseLidarrStatus = "downloading" | "wanted" | "imported";
 
 export interface ReleaseHighlight {
@@ -210,9 +200,23 @@ export interface ReleaseHighlight {
   unseen: boolean;
 }
 
-export interface LiveHighlight extends LiveNotice {
+/** One followed artist on tour. `id` is what dismissal targets. */
+export interface LiveHighlight {
   kind: "live";
   key: string;
+  id: number;
+  artistMbid: string;
+  artistName: string;
+  /** Upcoming dates still on. */
+  dateCount: number;
+  /** Closest to the user, or the soonest without a location. */
+  closest: LiveEventSummary | null;
+  distanceKm: number | null;
+  hasLocation: boolean;
+  /** When the user was last told about new or closer dates. */
+  notifiedAt: string | null;
+  /** A show they marked going that was recently cancelled, postponed or moved. */
+  change: LiveEventSummary | null;
 }
 
 /** An album the user asked for that is now in the library. */

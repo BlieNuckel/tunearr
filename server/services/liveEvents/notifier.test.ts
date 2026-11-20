@@ -1,294 +1,253 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { DEFAULT_LIVE_EVENTS } from "../../../shared/settingsDefaults";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { initializeDatabase, closeDatabase } from "../../db/index";
+import {
+  BERLIN,
+  COPENHAGEN,
+  LYON,
+  MALMO,
+  NOW,
+  artistState,
+  changeStatus,
+  createUser,
+  follow,
+  locate,
+  markGoing,
+  sweep,
+  unfollow,
+} from "./__fixtures__/tours";
 
-const mockGetConfig = vi.fn();
-const mockListUsers = vi.fn();
-const mockFindFollowed = vi.fn();
-const mockGetPrefs = vi.fn();
-const mockMarkNotified = vi.fn();
-const mockNotifyEvent = vi.fn();
+const mockNotifyTour = vi.fn();
 const mockNotifyStatus = vi.fn();
 
-vi.mock("../../config", () => ({
-  getConfig: () => mockGetConfig(),
-}));
-
-vi.mock("../../db/liveEvents", async () => {
-  const actual = await vi.importActual<typeof import("../../db/liveEvents")>(
-    "../../db/liveEvents"
-  );
-  return {
-    distanceKm: actual.distanceKm,
-    listUsersWithResolvedFollows: () => mockListUsers(),
-    findFollowedUpcomingEvents: (...args: unknown[]) =>
-      mockFindFollowed(...args),
-    getUserLivePreferences: (...args: unknown[]) => mockGetPrefs(...args),
-    markNotified: (...args: unknown[]) => mockMarkNotified(...args),
-  };
-});
-
 vi.mock("../notifications", () => ({
-  notifyLiveEvent: (...args: unknown[]) => mockNotifyEvent(...args),
+  notifyTourUpdate: (...args: unknown[]) => mockNotifyTour(...args),
   notifyLiveStatusChange: (...args: unknown[]) => mockNotifyStatus(...args),
 }));
 
 const { notifyLiveUpdates } = await import("./notifier");
 
-const MALMO = { lat: 55.605, lon: 13.0038 };
-const NOW = Date.parse("2026-08-17T12:00:00.000Z");
-const DAY_MS = 86_400_000;
+const DAY = 86_400_000;
 
-function day(offset: number): string {
-  return new Date(NOW + offset * DAY_MS).toISOString().slice(0, 10);
-}
+let userId: number;
 
-function event(overrides: Record<string, unknown> = {}) {
-  return {
-    id: 1,
-    event_key: "jambase:100",
-    name: "Show",
-    event_date: day(10),
-    previous_start_date: null,
-    event_status: "scheduled",
-    status_changed_at: null,
-    venue_name: "Amiralen",
-    venue_city: "Malmö",
-    venue_country: "SE",
-    venue_lat: MALMO.lat,
-    venue_lon: MALMO.lon,
-    ticket_url: null,
-    image_url: null,
-    first_seen_at: new Date(NOW - DAY_MS).toISOString(),
-    last_seen_at: new Date(NOW).toISOString(),
-    disappeared_at: null,
-    deletion_status: null,
-    merged_into: null,
-    performers: [
-      {
-        artist_jambase_id: "jambase:1",
-        artist_name: "Yves Tumor",
-        is_headliner: true,
-      },
-    ],
-    state: null,
-    distanceKm: null,
-    ...overrides,
-  };
-}
-
-beforeEach(() => {
+beforeEach(async () => {
   vi.clearAllMocks();
-  mockGetConfig.mockReturnValue({
-    liveEvents: {
-      ...DEFAULT_LIVE_EVENTS,
-      enabled: true,
-      apiKey: "k",
-      originLat: MALMO.lat,
-      originLon: MALMO.lon,
-      regions: ["SE", "DE"],
-    },
-  });
-  mockListUsers.mockResolvedValue([7]);
-  mockGetPrefs.mockResolvedValue(null);
-  mockFindFollowed.mockResolvedValue([]);
-  mockMarkNotified.mockResolvedValue(undefined);
-  mockNotifyEvent.mockResolvedValue(undefined);
+  mockNotifyTour.mockResolvedValue(undefined);
   mockNotifyStatus.mockResolvedValue(undefined);
+  await initializeDatabase(":memory:");
+  userId = await createUser("lasse");
+  await follow(userId, "a");
+  await locate(userId, MALMO);
 });
 
-describe("announcing a new date", () => {
-  it("notifies once and records that it did", async () => {
-    mockFindFollowed.mockResolvedValue([event()]);
+afterEach(async () => {
+  await closeDatabase();
+});
+
+describe("first check", () => {
+  it("records an artist's dates silently on rollout or a new follow", async () => {
+    await sweep([{ key: "a1", artist: "a", date: "2026-12-10", at: BERLIN }]);
 
     const outcome = await notifyLiveUpdates(NOW);
 
-    expect(outcome.announced).toBe(1);
-    expect(mockNotifyEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        userId: 7,
-        artistName: "Yves Tumor",
-        venue: "Amiralen, Malmö",
-        tier: "local",
-      })
-    );
-    expect(mockMarkNotified).toHaveBeenCalledWith(7, 1, expect.any(String));
+    expect(outcome.tours).toBe(0);
+    expect(mockNotifyTour).not.toHaveBeenCalled();
+    expect(await artistState(userId, "a")).toMatchObject({
+      closest_event_id: expect.any(Number),
+      notified_at: null,
+    });
   });
 
-  it("does not notify twice for the same event", async () => {
-    mockFindFollowed.mockResolvedValue([
-      event({ state: { notified_at: new Date(NOW - 1000).toISOString() } }),
-    ]);
-
-    expect((await notifyLiveUpdates(NOW)).announced).toBe(0);
-    expect(mockNotifyEvent).not.toHaveBeenCalled();
-  });
-
-  it("stays silent about anything the banner would not show", async () => {
-    mockFindFollowed.mockResolvedValue([
-      event({
-        event_date: day(120),
-        first_seen_at: new Date(NOW - 60 * DAY_MS).toISOString(),
-      }),
-    ]);
-
-    expect((await notifyLiveUpdates(NOW)).announced).toBe(0);
-    expect(mockNotifyEvent).not.toHaveBeenCalled();
-  });
-
-  it("never notifies about an out-of-scope show", async () => {
-    mockFindFollowed.mockResolvedValue([
-      event({ venue_lat: 40.7, venue_lon: -74, venue_country: "US" }),
-    ]);
-
-    expect(mockNotifyEvent).not.toHaveBeenCalled();
-    expect((await notifyLiveUpdates(NOW)).announced).toBe(0);
-  });
-
-  it("marks a regional show as such in the payload", async () => {
-    mockFindFollowed.mockResolvedValue([
-      event({
-        venue_lat: 52.52,
-        venue_lon: 13.405,
-        venue_country: "DE",
-        venue_city: "Berlin",
-      }),
-    ]);
-
+  it("records 'checked, no dates' for a followed artist not touring", async () => {
     await notifyLiveUpdates(NOW);
-    expect(mockNotifyEvent).toHaveBeenCalledWith(
-      expect.objectContaining({ tier: "regional" })
-    );
+
+    expect(await artistState(userId, "a")).toMatchObject({
+      closest_event_id: null,
+    });
+  });
+});
+
+describe("announcements", () => {
+  it("notifies once per artist when one with no dates announces a tour", async () => {
+    await notifyLiveUpdates(NOW);
+    await sweep([
+      { key: "a1", artist: "a", date: "2026-12-10", at: LYON, city: "Lyon" },
+      { key: "a2", artist: "a", date: "2026-12-12", at: BERLIN },
+      { key: "a3", artist: "a", date: "2027-01-02", at: BERLIN },
+    ]);
+
+    const outcome = await notifyLiveUpdates(NOW + DAY);
+
+    expect(outcome.tours).toBe(1);
+    expect(mockNotifyTour).toHaveBeenCalledTimes(1);
+    expect(mockNotifyTour).toHaveBeenCalledWith({
+      userId,
+      artistName: "a",
+      artistMbid: "mbid-a",
+      change: "announced",
+      dateCount: 3,
+      place: "Venue a2, Somewhere",
+      eventDate: "2026-12-12",
+      distanceKm: expect.any(Number),
+    });
+  });
+
+  it("does not repeat itself on the next sweep", async () => {
+    await notifyLiveUpdates(NOW);
+    await sweep([{ key: "a1", artist: "a", date: "2026-12-10", at: BERLIN }]);
+    await notifyLiveUpdates(NOW + DAY);
+    await notifyLiveUpdates(NOW + 2 * DAY);
+
+    expect(mockNotifyTour).toHaveBeenCalledTimes(1);
+  });
+
+  it("notifies again for a closer date, and clears a Highlights dismissal", async () => {
+    await sweep([{ key: "a1", artist: "a", date: "2026-12-10", at: BERLIN }]);
+    await notifyLiveUpdates(NOW);
+    await sweep([
+      { key: "a2", artist: "a", date: "2027-02-01", at: COPENHAGEN },
+    ]);
+
+    await notifyLiveUpdates(NOW + DAY);
+
+    expect(mockNotifyTour).toHaveBeenCalledTimes(1);
+    expect(mockNotifyTour.mock.calls[0][0]).toMatchObject({
+      change: "closer",
+      eventDate: "2027-02-01",
+    });
+    expect(await artistState(userId, "a")).toMatchObject({
+      dismissed_at: null,
+      notified_at: expect.any(String),
+    });
+  });
+
+  it("stays quiet about a later leg further away", async () => {
+    await sweep([
+      { key: "a1", artist: "a", date: "2026-12-10", at: COPENHAGEN },
+    ]);
+    await notifyLiveUpdates(NOW);
+    await sweep([{ key: "a2", artist: "a", date: "2027-02-01", at: LYON }]);
+
+    await notifyLiveUpdates(NOW + DAY);
+
+    expect(mockNotifyTour).not.toHaveBeenCalled();
+  });
+
+  it("re-records silently when the user moves", async () => {
+    await sweep([
+      { key: "a1", artist: "a", date: "2026-12-10", at: BERLIN },
+      { key: "a2", artist: "a", date: "2026-12-11", at: LYON },
+    ]);
+    await notifyLiveUpdates(NOW);
+    await locate(userId, LYON);
+
+    await notifyLiveUpdates(NOW + DAY);
+
+    expect(mockNotifyTour).not.toHaveBeenCalled();
+    expect(await artistState(userId, "a")).toMatchObject({
+      origin_lat: LYON.lat,
+    });
+  });
+
+  it("re-records silently once the known closest date is cancelled", async () => {
+    await sweep([
+      { key: "a1", artist: "a", date: "2026-12-10", at: COPENHAGEN },
+      { key: "a2", artist: "a", date: "2026-12-11", at: BERLIN },
+    ]);
+    await notifyLiveUpdates(NOW);
+    await changeStatus("a1", "cancelled", new Date(NOW).toISOString());
+
+    await notifyLiveUpdates(NOW + DAY);
+
+    expect(mockNotifyTour).not.toHaveBeenCalled();
+  });
+
+  it("notifies first dates for a user without a location, leading with the soonest", async () => {
+    await locate(userId, null);
+    await notifyLiveUpdates(NOW);
+    await sweep([
+      { key: "a1", artist: "a", date: "2027-01-10", at: COPENHAGEN },
+      { key: "a2", artist: "a", date: "2026-12-10", at: LYON },
+    ]);
+
+    await notifyLiveUpdates(NOW + DAY);
+
+    expect(mockNotifyTour.mock.calls[0][0]).toMatchObject({
+      eventDate: "2026-12-10",
+      distanceKm: null,
+    });
+  });
+
+  it("forgets an unfollowed artist, so following again starts silently", async () => {
+    await notifyLiveUpdates(NOW);
+    await unfollow(userId, "a");
+    await notifyLiveUpdates(NOW + DAY);
+    expect(await artistState(userId, "a")).toBeNull();
+
+    await follow(userId, "a");
+    await sweep([{ key: "a1", artist: "a", date: "2026-12-10" }]);
+    await notifyLiveUpdates(NOW + 2 * DAY);
+
+    expect(mockNotifyTour).not.toHaveBeenCalled();
+  });
+
+  it("keeps going for other users when one fails", async () => {
+    const other = await createUser("someone");
+    await follow(other, "b");
+    await notifyLiveUpdates(NOW);
+    await sweep([
+      { key: "a1", artist: "a", date: "2026-12-10" },
+      { key: "b1", artist: "b", date: "2026-12-10" },
+    ]);
+    mockNotifyTour.mockRejectedValueOnce(new Error("push failed"));
+
+    await notifyLiveUpdates(NOW + DAY);
+
+    expect(mockNotifyTour).toHaveBeenCalledTimes(2);
   });
 });
 
 describe("status changes", () => {
-  const cancelled = {
-    event_status: "cancelled",
-    status_changed_at: new Date(NOW - DAY_MS).toISOString(),
-  };
-
-  it("notifies even when the event was already announced", async () => {
-    mockFindFollowed.mockResolvedValue([
-      event({
-        ...cancelled,
-        state: { notified_at: new Date(NOW - 5 * DAY_MS).toISOString() },
-      }),
-    ]);
-
-    const outcome = await notifyLiveUpdates(NOW);
-
-    expect(outcome.statusChanges).toBe(1);
-    expect(mockNotifyStatus).toHaveBeenCalledWith(
-      expect.objectContaining({ status: "cancelled" })
-    );
+  beforeEach(async () => {
+    await sweep([{ key: "a1", artist: "a", date: "2026-12-10" }]);
+    await notifyLiveUpdates(NOW);
   });
 
-  it("notifies someone who already bought tickets", async () => {
-    mockFindFollowed.mockResolvedValue([
-      event({
-        ...cancelled,
-        state: {
-          response: "going",
-          notified_at: new Date(NOW - 5 * DAY_MS).toISOString(),
-        },
-      }),
-    ]);
+  it("tells a user who marked the show going, once", async () => {
+    await markGoing(userId, "a1");
+    await changeStatus("a1", "postponed", new Date(NOW + DAY).toISOString());
 
-    expect((await notifyLiveUpdates(NOW)).statusChanges).toBe(1);
+    await notifyLiveUpdates(NOW + 2 * DAY);
+    await notifyLiveUpdates(NOW + 3 * DAY);
+
+    expect(mockNotifyStatus).toHaveBeenCalledTimes(1);
+    expect(mockNotifyStatus).toHaveBeenCalledWith({
+      userId,
+      artistName: "a",
+      place: "Venue a1, Somewhere",
+      eventDate: "2026-12-10",
+      status: "postponed",
+    });
   });
 
-  it("notifies someone who dismissed it", async () => {
-    mockFindFollowed.mockResolvedValue([
-      event({
-        ...cancelled,
-        state: {
-          response: "dismissed",
-          notified_at: new Date(NOW - 5 * DAY_MS).toISOString(),
-        },
-      }),
-    ]);
+  it("does not tell a user who never said they were going", async () => {
+    await changeStatus("a1", "cancelled", new Date(NOW + DAY).toISOString());
 
-    expect((await notifyLiveUpdates(NOW)).statusChanges).toBe(1);
-  });
+    await notifyLiveUpdates(NOW + 2 * DAY);
 
-  it("does not re-announce the same change on the next poll", async () => {
-    mockFindFollowed.mockResolvedValue([
-      event({
-        ...cancelled,
-        state: { notified_at: new Date(NOW).toISOString() },
-      }),
-    ]);
-
-    expect((await notifyLiveUpdates(NOW)).statusChanges).toBe(0);
     expect(mockNotifyStatus).not.toHaveBeenCalled();
   });
 
-  it("covers postponed and rescheduled too", async () => {
-    for (const status of ["postponed", "rescheduled"]) {
-      vi.clearAllMocks();
-      mockFindFollowed.mockResolvedValue([
-        event({
-          event_status: status,
-          status_changed_at: new Date(NOW - DAY_MS).toISOString(),
-          state: { notified_at: new Date(NOW - 5 * DAY_MS).toISOString() },
-        }),
-      ]);
+  it("treats a change older than two weeks as history", async () => {
+    await markGoing(userId, "a1");
+    await changeStatus(
+      "a1",
+      "cancelled",
+      new Date(NOW - 15 * DAY).toISOString()
+    );
 
-      await notifyLiveUpdates(NOW);
-      expect(mockNotifyStatus).toHaveBeenCalledWith(
-        expect.objectContaining({ status })
-      );
-    }
-  });
-});
-
-describe("across users", () => {
-  it("notifies each user separately", async () => {
-    mockListUsers.mockResolvedValue([7, 8]);
-    mockFindFollowed.mockResolvedValue([event()]);
-
-    const outcome = await notifyLiveUpdates(NOW);
-
-    expect(outcome.announced).toBe(2);
-    expect(mockNotifyEvent).toHaveBeenCalledTimes(2);
-  });
-
-  it("keeps going when one user fails", async () => {
-    mockListUsers.mockResolvedValue([7, 8]);
-    mockGetPrefs.mockRejectedValueOnce(new Error("boom"));
-    mockFindFollowed.mockResolvedValue([event()]);
-
-    const outcome = await notifyLiveUpdates(NOW);
-
-    expect(outcome.announced).toBe(1);
-  });
-
-  it("does nothing when nobody follows a resolved artist", async () => {
-    mockListUsers.mockResolvedValue([]);
-
-    expect(await notifyLiveUpdates(NOW)).toEqual({
-      announced: 0,
-      statusChanges: 0,
-    });
-    expect(mockFindFollowed).not.toHaveBeenCalled();
-  });
-
-  it("still notifies someone who hid the banner, since that is a UI choice", async () => {
-    mockGetPrefs.mockResolvedValue({
-      live_banner_enabled: false,
-      live_radius_km: null,
-      live_lat: null,
-      live_lon: null,
-      live_regions: null,
-      live_announce_days: null,
-      live_imminent_days_local: null,
-      live_imminent_days_regional: null,
-    });
-    mockFindFollowed.mockResolvedValue([event()]);
-
-    // Silencing notifications is what the live.nearbyShow preference is for;
-    // hiding the Discover tile should not quietly disable them too.
     await notifyLiveUpdates(NOW);
-    expect(mockNotifyEvent).toHaveBeenCalled();
+
+    expect(mockNotifyStatus).not.toHaveBeenCalled();
   });
 });

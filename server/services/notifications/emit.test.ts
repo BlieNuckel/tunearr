@@ -15,7 +15,9 @@ vi.mock("../../auth/users", () => ({
 
 import {
   notifyFollowedRelease,
+  notifyLiveStatusChange,
   notifyQuotaWarning,
+  notifyTourUpdate,
   notifyRequestApproved,
   notifyRequestCreated,
   notifyRequestDeclined,
@@ -118,6 +120,68 @@ describe("new requests", () => {
     expect(mockNotifyAdmins.mock.calls[0][0].body).toBe(
       "Someone requested Slowdive – Souvlaki."
     );
+  });
+});
+
+describe("tour updates", () => {
+  const TOUR = {
+    userId: 3,
+    artistName: "Slowdive",
+    artistMbid: "mbid-slowdive",
+    change: "announced" as const,
+    dateCount: 24,
+    place: "Le Transbordeur, Lyon",
+    eventDate: "2027-04-14",
+    distanceKm: 389.6,
+  };
+
+  it("leads an announcement with the closest date and links the artist", async () => {
+    await notifyTourUpdate(TOUR);
+
+    expect(mockNotifyUser).toHaveBeenCalledWith(3, {
+      eventId: "live.tourAnnounced",
+      title: "Slowdive announced 24 dates",
+      body: "Closest: Le Transbordeur, Lyon, 14 Apr (390 km)",
+      url: "/artist/mbid-slowdive",
+    });
+  });
+
+  it("says a date rather than one dates", async () => {
+    await notifyTourUpdate({ ...TOUR, dateCount: 1 });
+    expect(mockNotifyUser.mock.calls[0][1].title).toBe(
+      "Slowdive announced a date"
+    );
+  });
+
+  it("names a closer date as such", async () => {
+    await notifyTourUpdate({ ...TOUR, change: "closer" });
+    expect(mockNotifyUser.mock.calls[0][1].title).toBe(
+      "Slowdive added a date closer to you"
+    );
+  });
+
+  it("calls it the next date when there is no distance", async () => {
+    await notifyTourUpdate({ ...TOUR, distanceKm: null });
+    expect(mockNotifyUser.mock.calls[0][1].body).toBe(
+      "Next: Le Transbordeur, Lyon, 14 Apr"
+    );
+  });
+
+  it("tells a ticket holder what changed", async () => {
+    await notifyLiveStatusChange({
+      userId: 3,
+      artistName: "Slowdive",
+      place: "Le Transbordeur, Lyon",
+      eventDate: "2027-04-14",
+      status: "cancelled",
+    });
+
+    expect(mockNotifyUser).toHaveBeenCalledWith(3, {
+      eventId: "live.statusChanged",
+      title: "Slowdive: show cancelled",
+      body: "Le Transbordeur, Lyon on 14 Apr",
+      url: "/library/live",
+    });
   });
 });
 

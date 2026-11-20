@@ -14,8 +14,8 @@ export {
 export type { FollowedReleaseNotification } from "./emit";
 export type { QuotaWarningNotification } from "./emit";
 export { notifyQuotaWarning } from "./emit";
-export type { LiveEventNotification, LiveStatusNotification } from "./emit";
-export { notifyLiveEvent, notifyLiveStatusChange } from "./emit";
+export type { TourNotification, LiveStatusNotification } from "./emit";
+export { notifyTourUpdate, notifyLiveStatusChange } from "./emit";
 export {
   getEffectivePreferences,
   isEventEnabled,

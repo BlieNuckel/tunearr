@@ -550,6 +550,29 @@ export async function listFollowedJambaseIds(): Promise<string[]> {
   return rows.map((row) => row.jambase_artist_id);
 }
 
+/** A followed artist JamBase knows, with the id their events key off. */
+export type FollowedTourArtist = {
+  artist_mbid: string;
+  artist_name: string;
+  jambase_artist_id: string;
+};
+
+/** This user's followed artists that resolved to a JamBase id. */
+export async function listFollowedTourArtists(
+  userId: number
+): Promise<FollowedTourArtist[]> {
+  return artistRepo()
+    .createQueryBuilder("fa")
+    .innerJoin(LiveArtist, "la", "la.artist_mbid = fa.artist_mbid")
+    .select("fa.artist_mbid", "artist_mbid")
+    .addSelect("fa.artist_name", "artist_name")
+    .addSelect("la.jambase_artist_id", "jambase_artist_id")
+    .where("fa.user_id = :userId", { userId })
+    .andWhere("la.jambase_artist_id IS NOT NULL")
+    .orderBy("fa.artist_name", "ASC")
+    .getRawMany<FollowedTourArtist>();
+}
+
 /** Users who follow at least one resolved artist, i.e. who could be notified. */
 export async function listUsersWithResolvedFollows(): Promise<number[]> {
   const rows = await artistRepo()
