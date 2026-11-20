@@ -59,6 +59,25 @@ export default function LiveEventsSection({
         </p>
       </div>
 
+      <div>
+        <label className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={settings.allowOverage}
+            onChange={(e) => onChange({ allowOverage: e.target.checked })}
+            className="w-4 h-4 border-2 border-black rounded"
+          />
+          <span className="text-sm text-gray-900 dark:text-gray-100">
+            Allow paid usage past the plan quota
+          </span>
+        </label>
+        <p className={HINT_CLASSES}>
+          Off: lookups pause once the plan's calls are used up and resume when
+          the period resets. On: they keep going and JamBase bills each extra
+          call ($0.05 on the Developer plan).
+        </p>
+      </div>
+
       <OriginLocationFields
         originLat={settings.originLat}
         originLon={settings.originLon}
