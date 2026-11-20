@@ -11,6 +11,7 @@ vi.mock("@/hooks/useImageHue", () => ({
 import type { Highlight } from "@/types";
 import {
   handlers,
+  liveEvent,
   liveHighlight,
   releaseHighlight,
   requestHighlight,
@@ -179,18 +180,29 @@ describe("HighlightCard for an arrived request", () => {
   });
 });
 
-describe("HighlightCard for a live date", () => {
-  it("shows the headliner, venue and a ticket link", () => {
+describe("HighlightCard for a touring artist", () => {
+  it("shows the artist, the closest date and a ticket link", () => {
     renderCard(liveHighlight());
 
     expect(
       screen.getByRole("heading", { name: "Yves Tumor" })
     ).toBeInTheDocument();
-    expect(screen.getByText("Live near you")).toBeInTheDocument();
-    expect(screen.getByText("Amiralen, Malmö · 2 km away")).toBeInTheDocument();
+    expect(screen.getByText("On tour")).toBeInTheDocument();
+    expect(
+      screen.getByText("Amiralen, Malmö, SE · 2 km away")
+    ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Tickets" })).toHaveAttribute(
       "href",
       "https://tickets.test/100"
+    );
+  });
+
+  it("links to the artist page for every date", () => {
+    renderCard(liveHighlight());
+
+    expect(screen.getByRole("link", { name: "All dates" })).toHaveAttribute(
+      "href",
+      "/artist/mbid-yves"
     );
   });
 
@@ -203,8 +215,16 @@ describe("HighlightCard for a live date", () => {
     expect(cardHandlers.onGoing).toHaveBeenCalledWith(live);
   });
 
+  it("does not offer going for a date the user is already going to", () => {
+    renderCard(liveHighlight({ closest: liveEvent({ response: "going" }) }));
+
+    expect(
+      screen.queryByRole("button", { name: "Going" })
+    ).not.toBeInTheDocument();
+  });
+
   it("leaves out tickets when there is no link", () => {
-    renderCard(liveHighlight({ ticketUrl: null }));
+    renderCard(liveHighlight({ closest: liveEvent({ ticketUrl: null }) }));
 
     expect(
       screen.queryByRole("link", { name: "Tickets" })
@@ -212,10 +232,22 @@ describe("HighlightCard for a live date", () => {
     expect(screen.getByRole("button", { name: "Going" })).toBeInTheDocument();
   });
 
+  it("shows a postponed show the user is going to without offering going again", () => {
+    renderCard(
+      liveHighlight({
+        change: liveEvent({ status: "postponed", response: "going" }),
+      })
+    );
+
+    expect(screen.getByText("Postponed")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Going" })
+    ).not.toBeInTheDocument();
+  });
+
   it("only offers to acknowledge a cancelled show", async () => {
     const live = liveHighlight({
-      status: "cancelled",
-      reason: "status-changed",
+      change: liveEvent({ status: "cancelled", response: "going" }),
     });
     const cardHandlers = renderCard(live);
 

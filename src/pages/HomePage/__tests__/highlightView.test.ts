@@ -1,5 +1,10 @@
-import { describeHighlight, headliner } from "../highlightView";
-import { liveHighlight, releaseHighlight, requestHighlight } from "./fixtures";
+import { describeHighlight, liveEventOf } from "../highlightView";
+import {
+  liveEvent,
+  liveHighlight,
+  releaseHighlight,
+  requestHighlight,
+} from "./fixtures";
 
 const NOW = Date.parse("2026-11-18T12:00:00");
 
@@ -72,17 +77,17 @@ describe("describeHighlight for an arrived request", () => {
   });
 });
 
-describe("describeHighlight for a live date", () => {
-  it("describes a nearby show by its headliner", () => {
+describe("describeHighlight for a touring artist", () => {
+  it("leads with the closest date and how far away it is", () => {
     const view = describeHighlight(liveHighlight(), NOW);
 
     expect(view).toMatchObject({
-      eyebrow: "Live near you",
+      eyebrow: "On tour",
       tone: "live",
       title: "Yves Tumor",
-      details: ["Amiralen, Malmö · 2 km away"],
+      details: ["Amiralen, Malmö, SE · 2 km away", "Closest of 12 dates"],
       artworkUrl: "https://img.test/100.jpg",
-      artworkAlt: "Yves Tumor at Amiralen",
+      artworkAlt: "Yves Tumor",
       artworkKind: "photo",
       library: null,
     });
@@ -95,47 +100,70 @@ describe("describeHighlight for a live date", () => {
     );
   });
 
-  it("names the country for a show that needs travel", () => {
+  it("calls dates announced in the last two weeks new", () => {
     const view = describeHighlight(
-      liveHighlight({ tier: "regional", venueCountry: "DK", distanceKm: 40 }),
+      liveHighlight({ notifiedAt: "2026-11-10T12:00:00.000Z" }),
       NOW
     );
-
-    expect(view.eyebrow).toBe("Live within reach");
-    expect(view.details).toEqual(["Amiralen, Malmö, DK"]);
+    expect(view.eyebrow).toBe("New tour dates");
   });
 
-  it("calls out a show that was just announced", () => {
+  it("stops calling them new after two weeks", () => {
+    const view = describeHighlight(
+      liveHighlight({ notifiedAt: "2026-11-01T12:00:00.000Z" }),
+      NOW
+    );
+    expect(view.eyebrow).toBe("On tour");
+  });
+
+  it("calls it the next date when there is no distance to go by", () => {
+    const view = describeHighlight(
+      liveHighlight({ distanceKm: null, hasLocation: false }),
+      NOW
+    );
+    expect(view.details).toEqual(["Amiralen, Malmö, SE", "Next of 12 dates"]);
+  });
+
+  it("says when a date is the only one", () => {
     expect(
-      describeHighlight(liveHighlight({ reason: "just-announced" }), NOW)
-        .eyebrow
-    ).toBe("Just announced");
+      describeHighlight(liveHighlight({ dateCount: 1 }), NOW).details[1]
+    ).toBe("Only date announced");
   });
 
   it("gives only the distance when the venue is unknown", () => {
-    expect(
-      describeHighlight(
-        liveHighlight({ venueName: null, venueCity: null }),
-        NOW
-      ).details
-    ).toEqual(["2 km away"]);
+    const view = describeHighlight(
+      liveHighlight({
+        closest: liveEvent({
+          venueName: null,
+          venueCity: null,
+          venueCountry: null,
+        }),
+      }),
+      NOW
+    );
+    expect(view.details[0]).toBe("2 km away");
   });
+});
 
+describe("describeHighlight for a change to a show the user is going to", () => {
   it("leads with a cancellation", () => {
     const view = describeHighlight(
-      liveHighlight({ status: "cancelled", reason: "status-changed" }),
+      liveHighlight({ change: liveEvent({ status: "cancelled" }) }),
       NOW
     );
     expect(view.eyebrow).toBe("Cancelled");
     expect(view.tone).toBe("alert");
+    expect(view.details).toEqual(["Amiralen, Malmö, SE"]);
   });
 
   it("says where a rescheduled show moved from", () => {
     const view = describeHighlight(
       liveHighlight({
-        status: "rescheduled",
-        reason: "status-changed",
-        previousStartDate: "2026-11-20",
+        change: liveEvent({
+          status: "rescheduled",
+          previousStartDate: "2026-11-20",
+          eventDate: "2026-12-01",
+        }),
       }),
       NOW
     );
@@ -143,29 +171,29 @@ describe("describeHighlight for a live date", () => {
     expect(view.eyebrow).toBe("Rescheduled");
     expect(view.tone).toBe("warning");
     expect(view.details[1]).toMatch(/^Moved from /);
+    expect(view.subtitle).toBe(
+      new Date("2026-12-01T00:00:00").toLocaleDateString(undefined, {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+      })
+    );
   });
 
   it("marks a postponed show as a warning", () => {
     expect(
-      describeHighlight(liveHighlight({ status: "postponed" }), NOW).tone
+      describeHighlight(
+        liveHighlight({ change: liveEvent({ status: "postponed" }) }),
+        NOW
+      ).tone
     ).toBe("warning");
   });
 });
 
-describe("headliner", () => {
-  it("prefers the headliner, then the first performer, then the event name", () => {
-    expect(headliner(liveHighlight())).toBe("Yves Tumor");
-    expect(
-      headliner(
-        liveHighlight({
-          performers: [
-            { jambaseId: "j:2", name: "Opener", isHeadliner: false },
-          ],
-        })
-      )
-    ).toBe("Opener");
-    expect(headliner(liveHighlight({ performers: [] }))).toBe(
-      "Yves Tumor at Amiralen"
-    );
+describe("liveEventOf", () => {
+  it("is the change when there is one, else the closest date", () => {
+    const change = liveEvent({ id: 7, status: "postponed" });
+    expect(liveEventOf(liveHighlight())).toMatchObject({ id: 100 });
+    expect(liveEventOf(liveHighlight({ change }))).toBe(change);
   });
 });

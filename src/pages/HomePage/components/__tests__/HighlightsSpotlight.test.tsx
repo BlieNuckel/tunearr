@@ -71,11 +71,11 @@ describe("HighlightsSpotlight", () => {
     expect(screen.getByRole("article")).toHaveClass("bg-emerald-100");
   });
 
-  it("gives a waiting live date its live colour", () => {
+  it("gives a touring artist its live colour", () => {
     renderSpotlight([RELEASE, LIVE]);
 
     expect(
-      screen.getByRole("button", { name: "Show Live near you: Yves Tumor" })
+      screen.getByRole("button", { name: "Show On tour: Yves Tumor" })
     ).toHaveClass("bg-emerald-100");
   });
 
@@ -87,7 +87,7 @@ describe("HighlightsSpotlight", () => {
       screen.getByRole("list", { name: "More highlights" })
     ).getAllByRole("button");
     expect(waiting.map((b) => b.getAttribute("aria-label"))).toEqual([
-      "Show Live near you: Yves Tumor",
+      "Show On tour: Yves Tumor",
       "Show New EP: Second Record",
     ]);
   });
