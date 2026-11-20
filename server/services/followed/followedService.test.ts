@@ -13,6 +13,7 @@ const mockReleaseFindOne = vi.fn();
 const mockReleaseCreate = vi.fn();
 const mockReleaseSave = vi.fn();
 const mockReleaseUpdate = vi.fn();
+const mockResolveOnFollow = vi.fn();
 
 vi.mock("../../db/index", () => ({
   getDataSource: () => ({
@@ -39,6 +40,10 @@ vi.mock("../../db/index", () => ({
   }),
   FollowedArtist: "FollowedArtist",
   FollowedRelease: "FollowedRelease",
+}));
+
+vi.mock("../liveEvents/resolution", () => ({
+  resolveOnFollow: (...args: unknown[]) => mockResolveOnFollow(...args),
 }));
 
 vi.mock("../../logger", () => ({
@@ -75,6 +80,7 @@ describe("followArtist", () => {
     const result = await followArtist(1, "mbid-1", "Artist");
     expect(result).toEqual({ status: "already_following", id: 5 });
     expect(mockCreate).not.toHaveBeenCalled();
+    expect(mockResolveOnFollow).not.toHaveBeenCalled();
   });
 
   it("creates a new follow row", async () => {
@@ -94,6 +100,28 @@ describe("followArtist", () => {
       artist_mbid: "mbid-1",
       artist_name: "Artist",
       last_checked_at: null,
+    });
+  });
+
+  it("asks JamBase about the artist straight away on a new follow", async () => {
+    mockFindOne.mockResolvedValue(null);
+    mockCreate.mockReturnValue({});
+    mockSave.mockResolvedValue({ id: 10 });
+
+    await followArtist(1, "mbid-1", "Artist");
+
+    expect(mockResolveOnFollow).toHaveBeenCalledWith("mbid-1", "Artist");
+  });
+
+  it("does not wait for the JamBase lookup before answering", async () => {
+    mockFindOne.mockResolvedValue(null);
+    mockCreate.mockReturnValue({});
+    mockSave.mockResolvedValue({ id: 10 });
+    mockResolveOnFollow.mockReturnValue(new Promise(() => {}));
+
+    await expect(followArtist(1, "mbid-1", "Artist")).resolves.toEqual({
+      status: "added",
+      id: 10,
     });
   });
 });
