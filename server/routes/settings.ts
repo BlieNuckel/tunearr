@@ -23,6 +23,24 @@ import { Permission } from "../../shared/permissions";
 
 const router = express.Router();
 
+/**
+ * Written only by the roster sweep. The settings form sends back the whole
+ * `liveEvents` object it loaded, so without this a save would roll the sweep
+ * back to whatever state the page was opened with.
+ */
+const LIVE_SWEEP_STATE_KEYS = [
+  "rosterWatermark",
+  "rosterFullSweptAt",
+  "rosterFullPass",
+] as const;
+
+function withoutLiveSweepState<T extends { liveEvents?: object }>(body: T): T {
+  if (!body.liveEvents) return body;
+  const liveEvents: Record<string, unknown> = { ...body.liveEvents };
+  for (const key of LIVE_SWEEP_STATE_KEYS) delete liveEvents[key];
+  return { ...body, liveEvents };
+}
+
 router.get("/status", requireAuth, (_req: Request, res: Response) => {
   const config = getConfig();
   res.json({ configured: Boolean(config.lidarrUrl && config.lidarrApiKey) });
@@ -37,7 +55,7 @@ router.get("/", (_req: Request, res: Response) => {
 });
 
 router.put("/", (req: Request, res: Response) => {
-  const partialConfig = req.body;
+  const partialConfig = withoutLiveSweepState(req.body ?? {});
 
   if (partialConfig.importPath) {
     const result = validateWritableDirectory(partialConfig.importPath);
