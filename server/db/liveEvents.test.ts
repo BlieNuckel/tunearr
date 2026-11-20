@@ -13,7 +13,8 @@ import {
   setUserResponse,
   markViewed,
   markNotified,
-  setJambaseArtistId,
+  recordArtistResolution,
+  listUsersWithResolvedFollows,
   findArtistResolution,
   listArtistResolutions,
   findUnresolvedFollowedArtists,
@@ -85,17 +86,13 @@ async function follow(
   jambaseArtistId: string | null
 ): Promise<number> {
   await getDataSource().query(
-    `INSERT INTO followed_artists
-       (user_id, artist_mbid, artist_name, jambase_artist_id, jambase_resolved_at)
-     VALUES (?, ?, ?, ?, ?)`,
-    [
-      userId,
-      artistMbid,
-      artistName,
-      jambaseArtistId,
-      jambaseArtistId === null ? null : SWEPT_AT,
-    ]
+    `INSERT INTO followed_artists (user_id, artist_mbid, artist_name)
+     VALUES (?, ?, ?)`,
+    [userId, artistMbid, artistName]
   );
+  if (jambaseArtistId !== null) {
+    await recordArtistResolution(artistMbid, jambaseArtistId, SWEPT_AT);
+  }
   const [{ id }] = (await getDataSource().query(
     "SELECT id FROM followed_artists WHERE user_id = ? AND artist_mbid = ?",
     [userId, artistMbid]
@@ -586,27 +583,62 @@ describe("JamBase artist resolution", () => {
     await follow(userId, "mbid-a", "A", null);
     await follow(userId, "mbid-b", "B", "jambase:2");
 
-    const unresolved = await findUnresolvedFollowedArtists(10);
-    expect(unresolved.map((a) => a.artist_mbid)).toEqual(["mbid-a"]);
+    expect(await findUnresolvedFollowedArtists(10)).toEqual([
+      { artist_mbid: "mbid-a", artist_name: "A" },
+    ]);
   });
 
-  it("excludes a confirmed miss so it is not retried every sweep", async () => {
-    const id = await follow(userId, "mbid-a", "A", null);
-    await setJambaseArtistId(id, null, SWEPT_AT);
+  it("lists an artist once however many users follow them", async () => {
+    const other = await createUser("someone-else");
+    await follow(userId, "mbid-a", "A", null);
+    await follow(other, "mbid-a", "A", null);
+
+    expect(await findUnresolvedFollowedArtists(10)).toHaveLength(1);
+  });
+
+  it("does not list a second follower's artist once anyone resolved it", async () => {
+    const other = await createUser("someone-else");
+    await follow(userId, "mbid-a", "A", "jambase:1");
+    await follow(other, "mbid-a", "A", null);
 
     expect(await findUnresolvedFollowedArtists(10)).toEqual([]);
   });
 
-  it("records a resolved id", async () => {
-    const id = await follow(userId, "mbid-a", "A", null);
-    await setJambaseArtistId(id, "jambase:42", SWEPT_AT);
+  it("excludes a confirmed miss so it is not retried every sweep", async () => {
+    await follow(userId, "mbid-a", "A", null);
+    await recordArtistResolution("mbid-a", null, SWEPT_AT);
 
-    const [row] = (await getDataSource().query(
-      "SELECT jambase_artist_id, jambase_resolved_at FROM followed_artists WHERE id = ?",
-      [id]
-    )) as { jambase_artist_id: string; jambase_resolved_at: string }[];
-    expect(row.jambase_artist_id).toBe("jambase:42");
-    expect(row.jambase_resolved_at).toBe(SWEPT_AT);
+    expect(await findUnresolvedFollowedArtists(10)).toEqual([]);
+  });
+
+  it("puts the longest-waiting artist first", async () => {
+    await follow(userId, "mbid-b", "B", null);
+    await follow(userId, "mbid-a", "A", null);
+    await getDataSource().query(
+      "UPDATE followed_artists SET created_at = '2026-01-01' WHERE artist_mbid = 'mbid-b'"
+    );
+    await getDataSource().query(
+      "UPDATE followed_artists SET created_at = '2026-02-01' WHERE artist_mbid = 'mbid-a'"
+    );
+
+    const unresolved = await findUnresolvedFollowedArtists(10);
+    expect(unresolved.map((a) => a.artist_mbid)).toEqual(["mbid-b", "mbid-a"]);
+  });
+
+  it("records one row per artist and overwrites it on a later answer", async () => {
+    await recordArtistResolution("mbid-a", null, "2026-01-01T00:00:00.000Z");
+    await recordArtistResolution("mbid-a", "jambase:42", SWEPT_AT);
+
+    const rows = (await getDataSource().query(
+      "SELECT artist_mbid, jambase_artist_id, resolved_at FROM live_artists"
+    )) as unknown[];
+    expect(rows).toEqual([
+      {
+        artist_mbid: "mbid-a",
+        jambase_artist_id: "jambase:42",
+        resolved_at: SWEPT_AT,
+      },
+    ]);
   });
 
   it("respects the limit", async () => {
@@ -626,6 +658,25 @@ describe("JamBase artist resolution", () => {
       "jambase:1",
       "jambase:2",
     ]);
+  });
+
+  it("stops sweeping an artist nobody follows any more, but keeps the answer", async () => {
+    await recordArtistResolution("mbid-gone", "jambase:9", SWEPT_AT);
+
+    expect(await listFollowedJambaseIds()).toEqual([]);
+    expect(await findUnresolvedFollowedArtists(10)).toEqual([]);
+
+    await follow(userId, "mbid-gone", "Gone", null);
+    expect(await listFollowedJambaseIds()).toEqual(["jambase:9"]);
+    expect(await findUnresolvedFollowedArtists(10)).toEqual([]);
+  });
+
+  it("lists users who follow at least one resolved artist", async () => {
+    const other = await createUser("someone-else");
+    await follow(userId, "mbid-a", "A", "jambase:1");
+    await follow(other, "mbid-b", "B", null);
+
+    expect(await listUsersWithResolvedFollows()).toEqual([userId]);
   });
 });
 
@@ -655,18 +706,9 @@ describe("collapsed artist resolution", () => {
     expect(summary.jambase_artist_id).toBe("jambase:1");
   });
 
-  it("keeps the resolved id when only one follower's row has it", async () => {
+  it("reports a confirmed miss with its timestamp", async () => {
     await follow(userId, "mbid-a", "A", null);
-    await follow(other, "mbid-a", "A", "jambase:1");
-
-    expect((await findArtistResolution("mbid-a")).jambase_artist_id).toBe(
-      "jambase:1"
-    );
-  });
-
-  it("keeps a confirmed miss when another follower has not been attempted", async () => {
-    const id = await follow(userId, "mbid-a", "A", null);
-    await setJambaseArtistId(id, null, SWEPT_AT);
+    await recordArtistResolution("mbid-a", null, SWEPT_AT);
     await follow(other, "mbid-a", "A", null);
 
     const summary = await findArtistResolution("mbid-a");
@@ -773,6 +815,12 @@ describe("findJambaseIdForArtistMbid", () => {
   it("ignores a follow that has not been resolved yet", async () => {
     const userId = await createUser("lasse");
     await follow(userId, "mbid-yves", "Yves Tumor", null);
+
+    expect(await findJambaseIdForArtistMbid("mbid-yves")).toBeNull();
+  });
+
+  it("returns null once nobody follows the artist, since their dates are no longer swept", async () => {
+    await recordArtistResolution("mbid-yves", "jambase:1", SWEPT_AT);
 
     expect(await findJambaseIdForArtistMbid("mbid-yves")).toBeNull();
   });

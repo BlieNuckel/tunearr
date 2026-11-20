@@ -16,6 +16,7 @@ import { LiveEvent } from "./entity/LiveEvent";
 import { LiveEventPerformer } from "./entity/LiveEventPerformer";
 import { UserLiveEventState } from "./entity/UserLiveEventState";
 import { LiveQuotaUsage } from "./entity/LiveQuotaUsage";
+import { LiveArtist } from "./entity/LiveArtist";
 import { InitialSchema1709000000000 } from "./migration/1_InitialSchema";
 import { ConfigTable1710000000000 } from "./migration/2_ConfigTable";
 import { WantedItems1711000000000 } from "./migration/3_WantedItems";
@@ -36,6 +37,7 @@ import { RemoveRecommendations1725000000000 } from "./migration/17_RemoveRecomme
 import { UserSpending1726000000000 } from "./migration/18_UserSpending";
 import { FollowedReleaseDismissed1727000000000 } from "./migration/19_FollowedReleaseDismissed";
 import { RequestAvailable1728000000000 } from "./migration/20_RequestAvailable";
+import { LiveArtists1729000000000 } from "./migration/21_LiveArtists";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -68,6 +70,7 @@ export function createDataSource(dbPath?: string): DataSource {
       LiveEventPerformer,
       UserLiveEventState,
       LiveQuotaUsage,
+      LiveArtist,
     ],
     migrations: [
       InitialSchema1709000000000,
@@ -90,6 +93,7 @@ export function createDataSource(dbPath?: string): DataSource {
       UserSpending1726000000000,
       FollowedReleaseDismissed1727000000000,
       RequestAvailable1728000000000,
+      LiveArtists1729000000000,
     ],
     synchronize: false,
     migrationsRun: true,

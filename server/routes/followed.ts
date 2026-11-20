@@ -10,7 +10,7 @@ import {
   markFollowedReleaseViewed,
 } from "../services/followed/followedService";
 import { runPollOnce } from "../services/followed/poller";
-import { deriveLiveTracking } from "../services/liveEvents/tracking";
+import { getLiveTrackingByMbid } from "../services/liveEvents/tracking";
 
 const router = express.Router();
 
@@ -18,6 +18,9 @@ router.use(requireAuth);
 
 router.get("/", async (req: Request, res: Response) => {
   const items = await getFollowedArtists(req.user!.id);
+  const tracking = await getLiveTrackingByMbid(
+    items.map((item) => item.artist_mbid)
+  );
   res.json(
     items.map((item) => ({
       id: item.id,
@@ -25,7 +28,7 @@ router.get("/", async (req: Request, res: Response) => {
       artistName: item.artist_name,
       lastCheckedAt: item.last_checked_at,
       createdAt: item.created_at,
-      liveTracking: deriveLiveTracking(item),
+      liveTracking: tracking.get(item.artist_mbid) ?? "pending",
     }))
   );
 });

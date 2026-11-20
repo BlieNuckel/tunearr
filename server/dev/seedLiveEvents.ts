@@ -8,6 +8,7 @@ import {
 } from "../db/index";
 import type { LiveEventStatus, LiveEventResponse } from "../db/index";
 import { getConfig, setConfig } from "../config";
+import { recordArtistResolution } from "../db/liveEvents";
 
 export type SeedFollowedArtist = {
   mbid: string;
@@ -284,19 +285,8 @@ async function seedFollows(
       where: { user_id: userId, artist_mbid: artist.mbid },
     });
 
-    if (existing) {
-      // An earlier seed run may predate JamBase resolution.
-      if (!existing.jambase_artist_id) {
-        await repo.update(
-          { id: existing.id },
-          {
-            jambase_artist_id: artist.jambaseId,
-            jambase_resolved_at: isoDaysAgo(1),
-          }
-        );
-      }
-      continue;
-    }
+    await recordArtistResolution(artist.mbid, artist.jambaseId, isoDaysAgo(1));
+    if (existing) continue;
 
     await repo.save(
       repo.create({
@@ -304,8 +294,6 @@ async function seedFollows(
         artist_mbid: artist.mbid,
         artist_name: artist.name,
         last_checked_at: isoDaysAgo(1),
-        jambase_artist_id: artist.jambaseId,
-        jambase_resolved_at: isoDaysAgo(1),
       })
     );
     created += 1;

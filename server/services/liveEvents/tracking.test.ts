@@ -2,15 +2,21 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockFindArtistResolution = vi.fn();
 const mockListArtistResolutions = vi.fn();
+const mockFindLiveArtists = vi.fn();
 
 vi.mock("../../db/liveEvents", () => ({
   findArtistResolution: (...args: unknown[]) =>
     mockFindArtistResolution(...args),
   listArtistResolutions: () => mockListArtistResolutions(),
+  findLiveArtists: (...args: unknown[]) => mockFindLiveArtists(...args),
 }));
 
-const { deriveLiveTracking, getArtistLiveTracking, countLiveTracking } =
-  await import("./tracking");
+const {
+  deriveLiveTracking,
+  getArtistLiveTracking,
+  getLiveTrackingByMbid,
+  countLiveTracking,
+} = await import("./tracking");
 
 function resolution(
   jambaseArtistId: string | null,
@@ -93,6 +99,40 @@ describe("countLiveTracking", () => {
       tracked: 0,
       pending: 0,
       unavailable: 0,
+    });
+  });
+});
+
+describe("getLiveTrackingByMbid", () => {
+  it("maps each MBID to its state, with no stored answer meaning pending", async () => {
+    mockFindLiveArtists.mockResolvedValue([
+      {
+        artist_mbid: "mbid-tracked",
+        jambase_artist_id: "jambase:1",
+        resolved_at: "2026-08-01T00:00:00.000Z",
+      },
+      {
+        artist_mbid: "mbid-missing",
+        jambase_artist_id: null,
+        resolved_at: "2026-08-01T00:00:00.000Z",
+      },
+    ]);
+
+    const tracking = await getLiveTrackingByMbid([
+      "mbid-tracked",
+      "mbid-missing",
+      "mbid-new",
+    ]);
+
+    expect(mockFindLiveArtists).toHaveBeenCalledWith([
+      "mbid-tracked",
+      "mbid-missing",
+      "mbid-new",
+    ]);
+    expect(Object.fromEntries(tracking)).toEqual({
+      "mbid-tracked": "tracked",
+      "mbid-missing": "unavailable",
+      "mbid-new": "pending",
     });
   });
 });
