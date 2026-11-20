@@ -223,12 +223,6 @@ function validatePositiveInt(value: unknown, name: string) {
   }
 }
 
-function validateRatio(value: unknown, name: string) {
-  if (typeof value !== "number" || value < 0 || value > 1) {
-    throw new Error(`${name} must be a number between 0 and 1`);
-  }
-}
-
 function validatePurchaseDecisionConfig(config: PurchaseDecisionConfig) {
   if (!Array.isArray(config.labelBlocklist)) {
     throw new Error("labelBlocklist must be an array");
@@ -325,19 +319,8 @@ function validateLiveEventsConfig(config: LiveEventsConfig) {
     config.sweepIntervalHours,
     "liveEvents.sweepIntervalHours"
   );
-  validatePositiveInt(config.monthlyQuota, "liveEvents.monthlyQuota");
-  validateRatio(config.quotaWarnRatio, "liveEvents.quotaWarnRatio");
-  validatePositiveInt(
-    config.billingPeriodStartDay,
-    "liveEvents.billingPeriodStartDay"
-  );
-  if (config.billingPeriodStartDay > 28) {
-    throw new Error(
-      "liveEvents.billingPeriodStartDay must be 28 or lower so every month has one"
-    );
-  }
-  if (typeof config.quotaHardStop !== "boolean") {
-    throw new Error("liveEvents.quotaHardStop must be a boolean");
+  if (typeof config.allowOverage !== "boolean") {
+    throw new Error("liveEvents.allowOverage must be a boolean");
   }
 
   for (const [name, value] of [

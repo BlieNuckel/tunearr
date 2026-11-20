@@ -400,6 +400,16 @@ describe("liveEvents config", () => {
     ).not.toThrow();
   });
 
+  it("requires allowOverage to be a boolean", () => {
+    expect(() =>
+      setConfig({ liveEvents: { allowOverage: "yes" } as never })
+    ).toThrow("liveEvents.allowOverage must be a boolean");
+  });
+
+  it("keeps paid usage off unless an admin turns it on", () => {
+    expect(getConfig().liveEvents.allowOverage).toBe(false);
+  });
+
   it("rejects a roster batch larger than the API accepts", () => {
     expect(() =>
       setConfig({ liveEvents: { rosterBatchSize: 250 } as never })

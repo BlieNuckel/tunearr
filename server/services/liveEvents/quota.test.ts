@@ -1,31 +1,39 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { DEFAULT_LIVE_EVENTS } from "../../../shared/settingsDefaults";
+import type { QuotaPeriod, QuotaSnapshot } from "../../db/liveQuota";
 
 const mockGetConfig = vi.fn();
-const mockGetPeriod = vi.fn();
-const mockIncrement = vi.fn();
-const mockRecordWarned = vi.fn();
-const mockListRoster = vi.fn();
+const mockIsConfigured = vi.fn();
+const mockFetchQuota = vi.fn();
 const mockNotify = vi.fn();
 const mockSetCallRecorder = vi.fn();
 const mockSetPreflight = vi.fn();
+
+const periods = new Map<string, QuotaPeriod>();
+
+function emptyPeriod(period: string): QuotaPeriod {
+  return {
+    period,
+    calls: 0,
+    quota: null,
+    periodEnd: null,
+    warnedThresholds: [],
+  };
+}
 
 vi.mock("../../config", () => ({
   getConfig: () => mockGetConfig(),
 }));
 
-vi.mock("../../db/liveQuota", () => ({
-  getQuotaPeriod: (...args: unknown[]) => mockGetPeriod(...args),
-  incrementQuotaCalls: (...args: unknown[]) => mockIncrement(...args),
-  recordWarnedThreshold: (...args: unknown[]) => mockRecordWarned(...args),
-}));
+vi.mock("../../api/jambase/config", async () => {
+  const actual = await vi.importActual<
+    typeof import("../../api/jambase/config")
+  >("../../api/jambase/config");
+  return { ...actual, isLiveEventsConfigured: () => mockIsConfigured() };
+});
 
-vi.mock("../../db/liveEvents", () => ({
-  listFollowedJambaseIds: () => mockListRoster(),
-}));
-
-vi.mock("../notifications", () => ({
-  notifyQuotaWarning: (...args: unknown[]) => mockNotify(...args),
+vi.mock("../../api/jambase/quota", () => ({
+  fetchJambaseQuota: () => mockFetchQuota(),
 }));
 
 vi.mock("../../api/jambase/fetch", () => ({
@@ -33,15 +41,49 @@ vi.mock("../../api/jambase/fetch", () => ({
   setPreflightCheck: (...args: unknown[]) => mockSetPreflight(...args),
 }));
 
-const {
-  periodKeyFor,
-  projectMonthlyCalls,
-  remainingFollowCapacity,
-  getQuotaStatus,
-  installQuotaTracking,
-  resetQuotaCache,
-} = await import("./quota");
+vi.mock("../notifications", () => ({
+  notifyQuotaWarning: (...args: unknown[]) => mockNotify(...args),
+}));
+
+vi.mock("../../db/liveQuota", () => ({
+  getQuotaPeriod: async (period: string) =>
+    structuredClone(periods.get(period) ?? emptyPeriod(period)),
+  incrementQuotaCalls: async (period: string) => {
+    const row = periods.get(period) ?? emptyPeriod(period);
+    periods.set(period, { ...row, calls: row.calls + 1 });
+  },
+  recordWarnedThreshold: async (period: string, threshold: number) => {
+    const row = periods.get(period) ?? emptyPeriod(period);
+    periods.set(period, {
+      ...row,
+      warnedThresholds: [...row.warnedThresholds, threshold],
+    });
+  },
+  syncQuotaPeriod: async (period: string, snapshot: QuotaSnapshot) => {
+    const row = periods.get(period) ?? emptyPeriod(period);
+    periods.set(period, {
+      ...row,
+      calls: snapshot.used,
+      quota: snapshot.quota,
+      periodEnd: snapshot.periodEnd,
+    });
+  },
+  findCurrentQuotaPeriod: async (now: string) => {
+    const current = [...periods.values()]
+      .filter((row) => row.periodEnd !== null && row.periodEnd > now)
+      .sort((a, b) =>
+        (b.periodEnd as string).localeCompare(a.periodEnd as string)
+      );
+    return current[0] ? structuredClone(current[0]) : null;
+  },
+}));
+
+const { getQuotaStatus, installQuotaTracking, resetQuotaCache } =
+  await import("./quota");
 const { JambaseError } = await import("../../api/jambase/config");
+
+const PERIOD_START = "2026-11-17T13:01:29.213Z";
+const PERIOD_END = "2026-12-17T13:01:29.213Z";
 
 function configure(overrides: Record<string, unknown> = {}) {
   mockGetConfig.mockReturnValue({
@@ -49,260 +91,296 @@ function configure(overrides: Record<string, unknown> = {}) {
       ...DEFAULT_LIVE_EVENTS,
       enabled: true,
       apiKey: "k",
-      monthlyQuota: 1000,
-      quotaWarnRatio: 0.8,
-      quotaHardStop: true,
-      rosterBatchSize: 100,
       ...overrides,
     },
   });
 }
 
-function roster(size: number): string[] {
-  return Array.from({ length: size }, (_, i) => `jambase:${i}`);
+function jambaseReports(
+  usedCalls: number,
+  overrides: Record<string, unknown> = {}
+) {
+  mockFetchQuota.mockResolvedValue({
+    plan: "developer",
+    quota: 1000,
+    usedCalls,
+    overageCalls: 0,
+    periodStart: PERIOD_START,
+    periodEnd: PERIOD_END,
+    ...overrides,
+  });
+}
+
+function hooks() {
+  installQuotaTracking();
+  return {
+    preflight: mockSetPreflight.mock.calls[0][0] as () => Promise<void>,
+    record: mockSetCallRecorder.mock.calls[0][0] as (info: {
+      status: number | null;
+    }) => void,
+  };
+}
+
+async function recordCalls(count: number): Promise<void> {
+  const { record } = hooks();
+  const before = periods.get(PERIOD_START)?.calls ?? 0;
+  for (let i = 0; i < count; i++) record({ status: 200 });
+  await vi.waitFor(() =>
+    expect(periods.get(PERIOD_START)?.calls).toBe(before + count)
+  );
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-11-20T12:00:00Z"));
+  periods.clear();
   resetQuotaCache();
   configure();
-  mockGetPeriod.mockResolvedValue({
-    period: "2026-08",
-    calls: 0,
-    warnedThresholds: [],
-  });
-  mockIncrement.mockResolvedValue(undefined);
-  mockRecordWarned.mockResolvedValue(undefined);
-  mockListRoster.mockResolvedValue([]);
+  mockIsConfigured.mockReturnValue(true);
+  jambaseReports(40);
 });
 
-describe("periodKeyFor", () => {
-  it("uses calendar months when billing starts on the 1st", () => {
-    expect(periodKeyFor(new Date("2026-08-17T00:00:00Z"), 1)).toBe("2026-08");
-  });
-
-  it("anchors on the subscription day rather than the 1st", () => {
-    expect(periodKeyFor(new Date("2026-08-03T00:00:00Z"), 15)).toBe("2026-07");
-    expect(periodKeyFor(new Date("2026-08-20T00:00:00Z"), 15)).toBe("2026-08");
-  });
-
-  it("rolls back across a year boundary", () => {
-    expect(periodKeyFor(new Date("2026-01-05T00:00:00Z"), 15)).toBe("2025-12");
-  });
-});
-
-describe("projectMonthlyCalls", () => {
-  it("steps per batch of 100 artists, not per artist", () => {
-    expect(projectMonthlyCalls(300, 100)).toBe(120);
-    expect(projectMonthlyCalls(301, 100)).toBe(150);
-    expect(projectMonthlyCalls(400, 100)).toBe(150);
-  });
-
-  it("matches the numbers the spike projected", () => {
-    expect(projectMonthlyCalls(1000, 100)).toBe(330);
-    expect(projectMonthlyCalls(2000, 100)).toBe(630);
-    expect(projectMonthlyCalls(2900, 100)).toBe(900);
-  });
-
-  it("counts the daily geo sweep even with nobody followed", () => {
-    expect(projectMonthlyCalls(0, 100)).toBe(30);
-  });
-});
-
-describe("remainingFollowCapacity", () => {
-  it("reports how many more follows fit before the quota is crossed", () => {
-    // 3,200 artists is 32 batches, 30 x 33 = 990 calls. One more crosses it.
-    expect(remainingFollowCapacity(2800, 100, 1000)).toBe(400);
-    expect(projectMonthlyCalls(3200, 100)).toBeLessThanOrEqual(1000);
-    expect(projectMonthlyCalls(3201, 100)).toBeGreaterThan(1000);
-  });
-
-  it("returns zero once a roster is already over", () => {
-    expect(remainingFollowCapacity(5000, 100, 1000)).toBe(0);
-  });
-
-  it("has plenty of room for a small roster", () => {
-    expect(remainingFollowCapacity(50, 100, 1000)).toBeGreaterThan(1000);
-  });
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe("getQuotaStatus", () => {
-  it("reports usage against the plan allowance", async () => {
-    mockGetPeriod.mockResolvedValue({
-      period: "2026-08",
-      calls: 850,
-      warnedThresholds: [],
+  it("reports JamBase's own figures for the current period", async () => {
+    jambaseReports(400, { overageCalls: 0 });
+
+    expect(await getQuotaStatus()).toEqual({
+      plan: "developer",
+      used: 400,
+      quota: 1000,
+      ratio: 0.4,
+      overageCalls: 0,
+      periodStart: PERIOD_START,
+      periodEnd: PERIOD_END,
+      allowOverage: false,
+      blocked: false,
+      source: "jambase",
+      checkedAt: "2026-11-20T12:00:00.000Z",
     });
-    mockListRoster.mockResolvedValue(roster(300));
-
-    const status = await getQuotaStatus(new Date("2026-08-17T00:00:00Z"));
-
-    expect(status.used).toBe(850);
-    expect(status.quota).toBe(1000);
-    expect(status.ratio).toBeCloseTo(0.85);
-    expect(status.projectedMonthly).toBe(120);
   });
 
-  it("flags a hard stop only once the allowance is fully spent", async () => {
-    mockGetPeriod.mockResolvedValue({
-      period: "2026-08",
-      calls: 999,
-      warnedThresholds: [],
-    });
-    expect((await getQuotaStatus()).hardStopped).toBe(false);
+  it("falls back to our own count when /quota cannot be reached", async () => {
+    await getQuotaStatus();
+    await recordCalls(3);
+    vi.setSystemTime(new Date("2026-11-20T12:06:00Z"));
+    mockFetchQuota.mockRejectedValue(new JambaseError("transient", "503", 503));
 
-    mockGetPeriod.mockResolvedValue({
-      period: "2026-08",
-      calls: 1000,
-      warnedThresholds: [],
-    });
-    expect((await getQuotaStatus()).hardStopped).toBe(true);
+    const status = await getQuotaStatus();
+
+    expect(status).toMatchObject({ used: 43, quota: 1000, source: "local" });
   });
 
-  it("never hard stops when the setting is off", async () => {
-    configure({ quotaHardStop: false });
-    mockGetPeriod.mockResolvedValue({
-      period: "2026-08",
-      calls: 5000,
-      warnedThresholds: [],
-    });
+  it("has nothing to report before JamBase has ever answered", async () => {
+    mockFetchQuota.mockRejectedValue(new JambaseError("transient", "503", 503));
 
-    expect((await getQuotaStatus()).hardStopped).toBe(false);
+    expect(await getQuotaStatus()).toMatchObject({
+      plan: null,
+      used: 0,
+      quota: null,
+      ratio: null,
+      source: "unknown",
+      blocked: false,
+    });
+  });
+
+  it("does not call JamBase when live events are not configured", async () => {
+    mockIsConfigured.mockReturnValue(false);
+
+    await getQuotaStatus();
+
+    expect(mockFetchQuota).not.toHaveBeenCalled();
+  });
+
+  it("treats a plan without a monthly cap as never blocked", async () => {
+    jambaseReports(50_000, { quota: null });
+
+    expect(await getQuotaStatus()).toMatchObject({
+      quota: null,
+      ratio: null,
+      blocked: false,
+    });
   });
 });
 
-describe("counting and warning", () => {
-  beforeEach(() => {
-    vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date("2026-08-17T00:00:00Z"));
+describe("refreshing", () => {
+  it("asks JamBase at most every five minutes", async () => {
+    const { preflight } = hooks();
+
+    await preflight();
+    await preflight();
+    vi.setSystemTime(new Date("2026-11-20T12:04:59Z"));
+    await preflight();
+    expect(mockFetchQuota).toHaveBeenCalledTimes(1);
+
+    vi.setSystemTime(new Date("2026-11-20T12:05:00Z"));
+    await preflight();
+    expect(mockFetchQuota).toHaveBeenCalledTimes(2);
   });
 
-  afterEach(() => {
-    vi.useRealTimers();
+  it("shares one /quota call between concurrent checks", async () => {
+    const { preflight } = hooks();
+
+    await Promise.all([preflight(), preflight(), preflight()]);
+
+    expect(mockFetchQuota).toHaveBeenCalledTimes(1);
   });
 
-  function recorder() {
-    installQuotaTracking();
-    return mockSetCallRecorder.mock.calls[0][0] as (info: {
-      status: number | null;
-    }) => void;
-  }
+  it("replaces our count with JamBase's on each refresh", async () => {
+    const { preflight } = hooks();
+    await preflight();
+    await recordCalls(5);
+    expect(periods.get(PERIOD_START)?.calls).toBe(45);
 
-  it("counts a successful call", async () => {
-    const record = recorder();
-    record({ status: 200 });
-    await vi.waitFor(() => expect(mockIncrement).toHaveBeenCalled());
+    jambaseReports(60);
+    vi.setSystemTime(new Date("2026-11-20T12:10:00Z"));
+    await preflight();
+
+    expect(periods.get(PERIOD_START)?.calls).toBe(60);
   });
 
-  it("counts a 4xx, since those are billable too", async () => {
-    const record = recorder();
-    record({ status: 403 });
-    await vi.waitFor(() => expect(mockIncrement).toHaveBeenCalled());
-  });
+  it("moves to the new period JamBase reports after a rollover", async () => {
+    const { preflight } = hooks();
+    await preflight();
 
-  it("counts a request that never got a response", async () => {
-    const record = recorder();
-    record({ status: null });
-    await vi.waitFor(() => expect(mockIncrement).toHaveBeenCalled());
-  });
-
-  it("announces the warn threshold once it is crossed", async () => {
-    mockGetPeriod.mockResolvedValue({
-      period: "2026-08",
-      calls: 801,
-      warnedThresholds: [],
+    vi.setSystemTime(new Date("2026-12-17T14:00:00Z"));
+    jambaseReports(2, {
+      periodStart: "2026-12-17T13:01:29.213Z",
+      periodEnd: "2027-01-17T13:01:29.213Z",
     });
+    await preflight();
 
-    const record = recorder();
-    record({ status: 200 });
-
-    await vi.waitFor(() => expect(mockNotify).toHaveBeenCalled());
-    expect(mockNotify.mock.calls[0][0]).toMatchObject({ ratio: 0.8 });
-    expect(mockRecordWarned).toHaveBeenCalledWith(
-      "2026-08",
-      0.8,
-      expect.any(String)
+    expect((await getQuotaStatus()).periodStart).toBe(
+      "2026-12-17T13:01:29.213Z"
     );
-  });
-
-  it("stays quiet about a threshold already announced this period", async () => {
-    mockGetPeriod.mockResolvedValue({
-      period: "2026-08",
-      calls: 900,
-      warnedThresholds: [0.8],
-    });
-
-    const record = recorder();
-    record({ status: 200 });
-
-    await vi.waitFor(() => expect(mockIncrement).toHaveBeenCalled());
-    expect(mockNotify).not.toHaveBeenCalled();
-  });
-
-  it("announces the full-quota crossing separately", async () => {
-    mockGetPeriod.mockResolvedValue({
-      period: "2026-08",
-      calls: 1000,
-      warnedThresholds: [0.8],
-    });
-
-    const record = recorder();
-    record({ status: 200 });
-
-    await vi.waitFor(() => expect(mockNotify).toHaveBeenCalled());
-    expect(mockNotify.mock.calls[0][0]).toMatchObject({
-      ratio: 1,
-      hardStopped: true,
-    });
+    expect((await getQuotaStatus()).used).toBe(2);
   });
 });
 
-describe("hard stop", () => {
-  function preflight() {
-    installQuotaTracking();
-    return mockSetPreflight.mock.calls[0][0] as () => Promise<void>;
-  }
+describe("counting", () => {
+  it("counts every metered call, including failures, against the current period", async () => {
+    await getQuotaStatus();
+    const { record } = hooks();
 
-  it("blocks a call once the allowance is spent", async () => {
-    mockGetPeriod.mockResolvedValue({
-      period: "2026-08",
-      calls: 1000,
-      warnedThresholds: [],
+    record({ status: 200 });
+    record({ status: 403 });
+    record({ status: null });
+
+    await vi.waitFor(() => expect(periods.get(PERIOD_START)?.calls).toBe(43));
+  });
+
+  it("counts nothing before JamBase has reported a period", async () => {
+    const { record } = hooks();
+
+    record({ status: 200 });
+    await Promise.resolve();
+
+    expect(periods.size).toBe(0);
+  });
+});
+
+describe("warnings", () => {
+  it("warns once at 80%, whether JamBase or our count crosses it", async () => {
+    jambaseReports(799);
+    await getQuotaStatus();
+    expect(mockNotify).not.toHaveBeenCalled();
+
+    await recordCalls(2);
+
+    await vi.waitFor(() => expect(mockNotify).toHaveBeenCalledTimes(1));
+    expect(mockNotify.mock.calls[0][0]).toMatchObject({
+      ratio: 0.8,
+      blocked: false,
     });
+  });
 
-    await expect(preflight()()).rejects.toMatchObject({
+  it("warns at 100% separately, saying calls are now refused", async () => {
+    jambaseReports(1000);
+
+    await getQuotaStatus();
+
+    await vi.waitFor(() => expect(mockNotify).toHaveBeenCalledTimes(2));
+    expect(mockNotify.mock.calls[1][0]).toMatchObject({
+      ratio: 1,
+      blocked: true,
+    });
+  });
+
+  it("says calls carry on billed at 100% when overage is allowed", async () => {
+    configure({ allowOverage: true });
+    jambaseReports(1000);
+
+    await getQuotaStatus();
+
+    await vi.waitFor(() => expect(mockNotify).toHaveBeenCalledTimes(2));
+    expect(mockNotify.mock.calls[1][0]).toMatchObject({ blocked: false });
+  });
+
+  it("does not repeat a warning within the same period", async () => {
+    jambaseReports(900);
+    await getQuotaStatus();
+    vi.setSystemTime(new Date("2026-11-20T12:10:00Z"));
+    await getQuotaStatus();
+
+    expect(mockNotify).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("guard", () => {
+  it("lets calls through below the allowance", async () => {
+    await expect(hooks().preflight()).resolves.toBeUndefined();
+  });
+
+  it("refuses calls once the allowance is spent", async () => {
+    jambaseReports(1000);
+
+    await expect(hooks().preflight()).rejects.toMatchObject({
+      name: "JambaseError",
       kind: "quota-exceeded",
     });
   });
 
-  it("allows a call below the allowance", async () => {
-    mockGetPeriod.mockResolvedValue({
-      period: "2026-08",
-      calls: 500,
-      warnedThresholds: [],
-    });
+  it("refuses once our own count reaches the allowance between checks", async () => {
+    jambaseReports(998);
+    const { preflight } = hooks();
+    await preflight();
 
-    await expect(preflight()()).resolves.toBeUndefined();
+    await recordCalls(2);
+
+    await expect(preflight()).rejects.toMatchObject({
+      kind: "quota-exceeded",
+    });
   });
 
-  it("does nothing when the hard stop is disabled", async () => {
-    configure({ quotaHardStop: false });
-    mockGetPeriod.mockResolvedValue({
-      period: "2026-08",
-      calls: 99999,
-      warnedThresholds: [],
-    });
+  it("keeps calling past the allowance when paid usage is allowed", async () => {
+    configure({ allowOverage: true });
+    jambaseReports(1500, { overageCalls: 500 });
 
-    await expect(preflight()()).resolves.toBeUndefined();
+    await expect(hooks().preflight()).resolves.toBeUndefined();
+    expect(mockFetchQuota).toHaveBeenCalledTimes(1);
   });
 
-  it("throws a JambaseError so callers classify it like any other refusal", async () => {
-    mockGetPeriod.mockResolvedValue({
-      period: "2026-08",
-      calls: 1000,
-      warnedThresholds: [],
-    });
+  it("guards on the last known figures when /quota cannot be reached", async () => {
+    jambaseReports(999);
+    const { preflight } = hooks();
+    await preflight();
+    await recordCalls(1);
 
-    await expect(preflight()()).rejects.toBeInstanceOf(JambaseError);
+    vi.setSystemTime(new Date("2026-11-20T12:10:00Z"));
+    mockFetchQuota.mockRejectedValue(new JambaseError("transient", "503", 503));
+
+    await expect(preflight()).rejects.toMatchObject({
+      kind: "quota-exceeded",
+    });
+  });
+
+  it("lets calls through when JamBase has never answered, rather than stalling", async () => {
+    mockFetchQuota.mockRejectedValue(new JambaseError("transient", "503", 503));
+
+    await expect(hooks().preflight()).resolves.toBeUndefined();
   });
 });

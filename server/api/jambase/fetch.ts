@@ -11,6 +11,15 @@ export type CallRecorder = (info: {
  * The spec names the field `errorCode`, but the live API sends `code`
  * (observed 2026-11-20), so both are read.
  */
+export type JambaseGetOptions = {
+  /**
+   * False for endpoints JamBase does not bill, such as `/quota`. Those skip the
+   * quota guard and the call counter: the guard asking `/quota` whether it may
+   * call `/quota` would never get an answer once the allowance is spent.
+   */
+  metered?: boolean;
+};
+
 type JambaseErrorBody = {
   errors?: { code?: unknown; errorCode?: unknown }[];
 };
@@ -127,10 +136,12 @@ function buildQuery(
  */
 export async function jambaseGet<T>(
   endpoint: string,
-  params: Record<string, string | number | undefined> = {}
+  params: Record<string, string | number | undefined> = {},
+  options: JambaseGetOptions = {}
 ): Promise<T> {
   const { baseUrl, headers } = getJambaseConfig();
-  if (preflightCheck) await preflightCheck();
+  const metered = options.metered ?? true;
+  if (metered && preflightCheck) await preflightCheck();
 
   const url = `${baseUrl}${endpoint}${buildQuery(params)}`;
 
@@ -142,7 +153,7 @@ export async function jambaseGet<T>(
       { timeoutMs: TIMEOUT_MS }
     );
   } catch (error) {
-    recordCall?.({ status: null, endpoint });
+    if (metered) recordCall?.({ status: null, endpoint });
     log.error(`${endpoint} failed`, error);
     throw new JambaseError(
       "transient",
@@ -151,7 +162,7 @@ export async function jambaseGet<T>(
     );
   }
 
-  recordCall?.({ status: response.status, endpoint });
+  if (metered) recordCall?.({ status: response.status, endpoint });
 
   if (!response.ok) {
     const error =

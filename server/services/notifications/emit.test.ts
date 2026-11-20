@@ -15,6 +15,7 @@ vi.mock("../../auth/users", () => ({
 
 import {
   notifyFollowedRelease,
+  notifyQuotaWarning,
   notifyRequestApproved,
   notifyRequestCreated,
   notifyRequestDeclined,
@@ -116,6 +117,38 @@ describe("new requests", () => {
 
     expect(mockNotifyAdmins.mock.calls[0][0].body).toBe(
       "Someone requested Slowdive – Souvlaki."
+    );
+  });
+});
+
+describe("live events quota", () => {
+  it("warns admins that calls past the allowance are billed", async () => {
+    await notifyQuotaWarning({
+      used: 800,
+      quota: 1000,
+      ratio: 0.8,
+      blocked: false,
+    });
+
+    expect(mockNotifyAdmins).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventId: "live.quotaWarning",
+        title: "Live events at 80% of quota",
+        body: "800 of 1000 monthly live-event calls used. Past the allowance, calls are billed rather than refused.",
+      })
+    );
+  });
+
+  it("says lookups are paused once calls are refused", async () => {
+    await notifyQuotaWarning({
+      used: 1000,
+      quota: 1000,
+      ratio: 1,
+      blocked: true,
+    });
+
+    expect(mockNotifyAdmins.mock.calls[0][0].body).toBe(
+      "Live event lookups are paused until the period resets. 1000 of 1000 calls used."
     );
   });
 });

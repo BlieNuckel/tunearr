@@ -13,12 +13,24 @@ export class LiveQuotaUsage {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  /** Billing period key, `YYYY-MM` anchored on the subscription start day. */
+  /**
+   * Billing period key: the `periodStart` JamBase reports. Rows from before
+   * that are keyed `YYYY-MM` and have no `period_end`, so they are never
+   * current again.
+   */
   @Column({ type: "text" })
   period!: string;
 
+  /** JamBase's `usedCalls` at the last sync, plus our calls since. */
   @Column({ type: "integer", default: 0 })
   calls!: number;
+
+  /** The plan allowance; null when the plan has no monthly cap. */
+  @Column({ type: "integer", nullable: true })
+  quota!: number | null;
+
+  @Column({ type: "text", nullable: true })
+  period_end!: string | null;
 
   /** JSON-encoded number[] of ratio thresholds already announced this period. */
   @Column({ type: "text", nullable: true })

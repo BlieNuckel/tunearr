@@ -8,6 +8,7 @@ import { UserSpending1726000000000 } from "./migration/18_UserSpending";
 import { FollowedReleaseDismissed1727000000000 } from "./migration/19_FollowedReleaseDismissed";
 import { RequestAvailable1728000000000 } from "./migration/20_RequestAvailable";
 import { LiveArtists1729000000000 } from "./migration/21_LiveArtists";
+import { LiveQuotaFromJambase1730000000000 } from "./migration/22_LiveQuotaFromJambase";
 import type { DataSource } from "typeorm";
 
 let ds: DataSource | null = null;
@@ -547,7 +548,22 @@ describe("LiveQuotaUsage migration", () => {
       "calls",
       "warned_thresholds",
       "updated_at",
+      "quota",
+      "period_end",
     ]);
+  });
+
+  it("drops the JamBase period columns when the follow-up migration is reverted", async () => {
+    const db = await initTestDb();
+    const runner = db.createQueryRunner();
+    await new LiveQuotaFromJambase1730000000000().down(runner);
+    await runner.release();
+
+    const columns = (await db.query("PRAGMA table_info(live_quota_usage)")) as {
+      name: string;
+    }[];
+    expect(columns.map((c) => c.name)).not.toContain("quota");
+    expect(columns.map((c) => c.name)).not.toContain("period_end");
   });
 
   it("rejects a duplicate period", async () => {

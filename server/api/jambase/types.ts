@@ -96,3 +96,15 @@ export type EventSearchParams = {
   dateTo?: string;
   dateModifiedFrom?: string;
 };
+
+/** `GET /quota`. Unmetered; the period runs from the subscription anchor. */
+export type JambaseQuotaResponse = {
+  plan?: string | null;
+  quota?: number | null;
+  usedCalls?: number | null;
+  remainingCalls?: number | null;
+  overageCalls?: number | null;
+  noMonthlyCap?: boolean | null;
+  periodStart?: string | null;
+  periodEnd?: string | null;
+};
