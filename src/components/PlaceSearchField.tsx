@@ -2,9 +2,10 @@ import { useState } from "react";
 import type { KeyboardEvent } from "react";
 import usePlaceSearch from "@/hooks/usePlaceSearch";
 import type { GeocodedPlace } from "@/types";
+import { describePlace } from "@/utils/describePlace";
 
 interface PlaceSearchFieldProps {
-  onPick: (latitude: number, longitude: number) => void;
+  onPick: (place: GeocodedPlace) => void;
 }
 
 const INPUT_CLASSES =
@@ -15,10 +16,6 @@ const BUTTON_CLASSES =
 
 const RESULT_CLASSES =
   "w-full px-3 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-amber-100 dark:hover:bg-amber-900/30";
-
-function describe(place: GeocodedPlace): string {
-  return [place.name, place.region, place.country].filter(Boolean).join(", ");
-}
 
 export default function PlaceSearchField({ onPick }: PlaceSearchFieldProps) {
   const { places, searching, error, search, clear } = usePlaceSearch();
@@ -31,8 +28,8 @@ export default function PlaceSearchField({ onPick }: PlaceSearchFieldProps) {
   };
 
   const handlePick = (place: GeocodedPlace) => {
-    onPick(place.latitude, place.longitude);
-    setQuery(describe(place));
+    onPick(place);
+    setQuery(describePlace(place));
     clear();
   };
 
@@ -75,7 +72,7 @@ export default function PlaceSearchField({ onPick }: PlaceSearchFieldProps) {
                 onClick={() => handlePick(place)}
                 className={RESULT_CLASSES}
               >
-                {describe(place)}
+                {describePlace(place)}
               </button>
             </li>
           ))}

@@ -10,7 +10,6 @@ import { restartLiveEventsPoller, runLivePollOnce } from "./poller";
  */
 export type LiveEventsSettingsSnapshot = {
   configured: boolean;
-  hasOrigin: boolean;
   sweepIntervalHours: number;
 };
 
@@ -28,7 +27,6 @@ export function snapshotLiveEventsSettings(): LiveEventsSettingsSnapshot {
   const { liveEvents } = getConfig();
   return {
     configured: isLiveEventsConfigured(),
-    hasOrigin: liveEvents.originLat !== null && liveEvents.originLon !== null,
     sweepIntervalHours: liveEvents.sweepIntervalHours,
   };
 }
@@ -38,17 +36,12 @@ export function resetLiveEventsKickThrottle(): void {
   lastKickAt = 0;
 }
 
-/**
- * Whether this save is what made live events able to return anything. Both
- * transitions matter: without a key nothing runs at all, and the geo sweep bails
- * on a null origin, so filling in coordinates is equally load-bearing.
- */
+/** Whether this save is what turned live events on: a key, and the switch. */
 function becameUsable(
   before: LiveEventsSettingsSnapshot,
   after: LiveEventsSettingsSnapshot
 ): boolean {
-  if (!after.configured) return false;
-  return !before.configured || (!before.hasOrigin && after.hasOrigin);
+  return !before.configured && after.configured;
 }
 
 /**

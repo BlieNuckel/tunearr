@@ -7,8 +7,11 @@ import {
   UserLiveEventState,
 } from "../db/index";
 import type { LiveEventStatus, LiveEventResponse } from "../db/index";
-import { getConfig, setConfig } from "../config";
-import { recordArtistResolution } from "../db/liveEvents";
+import {
+  getUserLivePreferences,
+  recordArtistResolution,
+  setUserLivePreferences,
+} from "../db/liveEvents";
 
 export type SeedFollowedArtist = {
   mbid: string;
@@ -181,7 +184,7 @@ export const SEED_LIVE_EVENTS: SeedLiveEvent[] = [
     ticketUrl: null,
     performers: [performer(NOURISHED)],
     adminNotified: true,
-    note: "cancelled pill (raise statusChangedDaysAgo above announceDays to lead Home highlights)",
+    note: "cancelled pill",
   },
   {
     key: "jambase:seed-6",
@@ -257,20 +260,17 @@ function calendarDayOffset(days: number): string {
 }
 
 /**
- * Points the instance at Malmö so the seeded local shows classify as local
- * rather than merely in-country. Leaves the integration disabled and keyless:
- * seeded rows render from SQLite, and nothing should call JamBase in dev.
+ * Puts the seeded user in Malmö so the seeded tours lead with a closest date.
+ * Leaves the integration disabled and keyless: seeded rows render from SQLite,
+ * and nothing should call JamBase in dev.
  */
-export function seedLiveEventsConfig(): void {
-  const { liveEvents } = getConfig();
-  if (liveEvents.originLat !== null && liveEvents.originLon !== null) return;
-
-  setConfig({
-    liveEvents: {
-      originLat: ORIGIN.lat,
-      originLon: ORIGIN.lon,
-      regions: ["SE", "DK", "DE"],
-    },
+async function seedUserLocation(userId: number): Promise<void> {
+  const prefs = await getUserLivePreferences(userId);
+  if (prefs?.live_lat != null && prefs.live_lon != null) return;
+  await setUserLivePreferences(userId, {
+    live_lat: ORIGIN.lat,
+    live_lon: ORIGIN.lon,
+    live_place: "Malmö, Skåne, Sweden",
   });
 }
 
@@ -369,7 +369,7 @@ async function seedOneEvent(
 }
 
 export async function seedLiveEvents(userId: number): Promise<void> {
-  seedLiveEventsConfig();
+  await seedUserLocation(userId);
 
   const follows = await seedFollows(
     getDataSource().getRepository(FollowedArtist),

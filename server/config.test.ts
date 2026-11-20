@@ -371,23 +371,10 @@ describe("liveEvents config", () => {
     const { liveEvents } = getConfig();
 
     expect(liveEvents.apiKey).toBe("jbd_test");
-    expect(liveEvents.sweepRadiusKm).toBe(DEFAULT_LIVE_EVENTS.sweepRadiusKm);
-    expect(liveEvents.announceDays).toBe(DEFAULT_LIVE_EVENTS.announceDays);
-  });
-
-  it("accepts a null origin, which is the unconfigured state", () => {
-    expect(() =>
-      setConfig({ liveEvents: { originLat: null, originLon: null } as never })
-    ).not.toThrow();
-  });
-
-  it("rejects coordinates outside the possible range", () => {
-    expect(() => setConfig({ liveEvents: { originLat: 91 } as never })).toThrow(
-      "originLat must be between -90 and 90"
+    expect(liveEvents.bannerHorizonDays).toBe(
+      DEFAULT_LIVE_EVENTS.bannerHorizonDays
     );
-    expect(() =>
-      setConfig({ liveEvents: { originLon: -181 } as never })
-    ).toThrow("originLon must be between -180 and 180");
+    expect(liveEvents.allowOverage).toBe(DEFAULT_LIVE_EVENTS.allowOverage);
   });
 
   it("rejects a banner horizon past the tier's six-month window", () => {
@@ -416,43 +403,7 @@ describe("liveEvents config", () => {
     ).toThrow("rosterBatchSize cannot exceed 100");
   });
 
-  it("requires uppercase ISO 3166-1 alpha-2 regions", () => {
-    expect(() =>
-      setConfig({ liveEvents: { regions: ["SE", "DK"] } as never })
-    ).not.toThrow();
-
-    expect(() =>
-      setConfig({ liveEvents: { regions: ["se"] } as never })
-    ).toThrow("must be uppercase");
-
-    expect(() =>
-      setConfig({ liveEvents: { regions: ["SWE"] } as never })
-    ).toThrow("alpha-2");
-
-    expect(() => setConfig({ liveEvents: { regions: "SE" } as never })).toThrow(
-      "regions must be an array"
-    );
-  });
-
-  it("rejects a code that is shaped right but is not a country", () => {
-    expect(() =>
-      setConfig({ liveEvents: { regions: ["QQ"] } as never })
-    ).toThrow("alpha-2");
-  });
-
-  it("rejects UK, because geoCountryIso2 expects GB", () => {
-    expect(() =>
-      setConfig({ liveEvents: { regions: ["UK"] } as never })
-    ).toThrow("GB rather than UK");
-    expect(() =>
-      setConfig({ liveEvents: { regions: ["GB"] } as never })
-    ).not.toThrow();
-  });
-
-  it("rejects non-positive intervals and radii", () => {
-    expect(() =>
-      setConfig({ liveEvents: { sweepRadiusKm: 0 } as never })
-    ).toThrow();
+  it("rejects non-positive intervals and page budgets", () => {
     expect(() =>
       setConfig({ liveEvents: { sweepIntervalHours: -1 } as never })
     ).toThrow();

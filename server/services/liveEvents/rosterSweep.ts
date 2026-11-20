@@ -3,7 +3,6 @@ import { isLiveEventsConfigured } from "../../api/jambase/config";
 import { searchEvents, MAX_PER_PAGE } from "../../api/jambase/events";
 import {
   listFollowedJambaseIds,
-  listLiveRegionsUnion,
   upsertSweptEvents,
   applyTombstones,
 } from "../../db/liveEvents";
@@ -26,8 +25,8 @@ export type RosterSweepResult = {
   completed: boolean;
 };
 
+/** Worldwide: closeness is worked out per user from these, not by filtering the fetch. */
 type SweepWindow = {
-  countries: string[];
   dateFrom: string;
   dateTo: string;
   sweptAt: string;
@@ -102,13 +101,8 @@ function emptyResult(isFullPass = false): RosterSweepResult {
   };
 }
 
-function buildWindow(
-  countries: string[],
-  horizonDays: number,
-  now: Date
-): SweepWindow {
+function buildWindow(horizonDays: number, now: Date): SweepWindow {
   return {
-    countries,
     dateFrom: calendarDay(now),
     dateTo: calendarDay(new Date(now.getTime() + horizonDays * DAY_MS)),
     sweptAt: now.toISOString(),
@@ -137,7 +131,6 @@ async function sweepBatch(
 
     const response = await searchEvents({
       artistIds,
-      countries: params.window.countries,
       dateFrom: params.window.dateFrom,
       dateTo: params.window.dateTo,
       dateModifiedFrom: params.dateModifiedFrom,
@@ -299,9 +292,7 @@ export async function runRosterSweep(): Promise<RosterSweepResult> {
   }
 
   const now = new Date();
-  const union = await listLiveRegionsUnion();
-  const countries = union.length > 0 ? union : liveEvents.regions;
-  const window = buildWindow(countries, liveEvents.bannerHorizonDays, now);
+  const window = buildWindow(liveEvents.bannerHorizonDays, now);
 
   const pass = pickFullPass(liveEvents, now);
   const result: RosterSweepResult = {
@@ -311,7 +302,7 @@ export async function runRosterSweep(): Promise<RosterSweepResult> {
   };
 
   log.info(
-    `${pass ? "Full" : "Delta"} roster sweep${result.resumed ? " (resuming)" : ""}: ${artistIds.length} artist(s), countries=${countries.join("|") || "any"}`
+    `${pass ? "Full" : "Delta"} roster sweep${result.resumed ? " (resuming)" : ""}: ${artistIds.length} artist(s), worldwide`
   );
 
   if (pass) {

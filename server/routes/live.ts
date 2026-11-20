@@ -51,18 +51,11 @@ router.get("/quota", async (_req: Request, res: Response) => {
   res.json(await getQuotaStatus());
 });
 
-/**
- * Admin-only: it exists to fill in the instance origin, which only an admin can
- * set, and it is an outbound lookup rather than something to leave open.
- */
-router.get(
-  "/geocode",
-  requirePermission(Permission.ADMIN),
-  async (req: Request, res: Response) => {
-    const query = typeof req.query.q === "string" ? req.query.q : "";
-    res.json({ places: await searchPlaces(query) });
-  }
-);
+/** Every user sets their own location, so every user can look one up. */
+router.get("/geocode", async (req: Request, res: Response) => {
+  const query = typeof req.query.q === "string" ? req.query.q : "";
+  res.json({ places: await searchPlaces(query) });
+});
 
 /** Instance-wide roster health, so ADMIN rather than per-user. */
 router.get(

@@ -6,7 +6,6 @@ const mockSetConfig = vi.fn();
 const mockIsConfigured = vi.fn();
 const mockSearchEvents = vi.fn();
 const mockListIds = vi.fn();
-const mockListRegions = vi.fn();
 const mockUpsert = vi.fn();
 const mockApplyTombstones = vi.fn();
 
@@ -26,7 +25,6 @@ vi.mock("../../api/jambase/events", () => ({
 
 vi.mock("../../db/liveEvents", () => ({
   listFollowedJambaseIds: () => mockListIds(),
-  listLiveRegionsUnion: () => mockListRegions(),
   upsertSweptEvents: (...args: unknown[]) => mockUpsert(...args),
   applyTombstones: (...args: unknown[]) => mockApplyTombstones(...args),
 }));
@@ -83,7 +81,6 @@ beforeEach(() => {
   vi.clearAllMocks();
   mockIsConfigured.mockReturnValue(true);
   mockListIds.mockResolvedValue(ids(3));
-  mockListRegions.mockResolvedValue(["SE", "DK"]);
   mockSearchEvents.mockResolvedValue(page());
   mockUpsert.mockResolvedValue({
     inserted: [],
@@ -129,18 +126,9 @@ describe("batching", () => {
     expect((callParams(2).artistIds as string[]).length).toBe(50);
   });
 
-  it("sends the union of user regions, not one user's", async () => {
-    mockListRegions.mockResolvedValue(["SE", "DK", "DE"]);
+  it("sweeps worldwide, leaving closeness to each user", async () => {
     await runRosterSweep();
-    expect(callParams(0).countries).toEqual(["SE", "DK", "DE"]);
-  });
-
-  it("falls back to the configured regions when no user has chosen any", async () => {
-    mockListRegions.mockResolvedValue([]);
-    configure({ regions: ["SE"] });
-
-    await runRosterSweep();
-    expect(callParams(0).countries).toEqual(["SE"]);
+    expect(callParams(0)).not.toHaveProperty("countries");
   });
 
   it("bounds the request to the tier's horizon", async () => {

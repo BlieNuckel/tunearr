@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import useAsyncData from "./useAsyncData";
 import type { FetchContext } from "./useAsyncData";
-import type { LivePreferencesData, LivePreferencesPatch } from "@/types";
+import type { LiveLocation, LivePreferencesData } from "@/types";
 
 async function fetchLivePreferences({
   signal,
@@ -17,12 +17,13 @@ export default function useLivePreferences() {
     fetchLivePreferences
   );
 
-  const save = useCallback(
-    async (patch: LivePreferencesPatch): Promise<string | null> => {
+  /** Resolves to an error message, or null once saved. Null clears the location. */
+  const saveLocation = useCallback(
+    async (location: LiveLocation | null): Promise<string | null> => {
       const res = await fetch("/api/live/preferences", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(patch),
+        body: JSON.stringify({ location }),
       });
 
       if (!res.ok) {
@@ -37,10 +38,10 @@ export default function useLivePreferences() {
   );
 
   return {
-    preferences: data?.preferences ?? null,
-    coverage: data?.coverage ?? null,
+    location: data?.location ?? null,
+    loaded: data !== null && data !== undefined,
     loading,
     error,
-    save,
+    saveLocation,
   };
 }
