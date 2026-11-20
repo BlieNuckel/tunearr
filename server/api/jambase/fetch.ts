@@ -7,13 +7,24 @@ export type CallRecorder = (info: {
   endpoint: string;
 }) => void;
 
+/**
+ * The spec names the field `errorCode`, but the live API sends `code`
+ * (observed 2026-11-20), so both are read.
+ */
 type JambaseErrorBody = {
-  errors?: { errorCode?: unknown }[];
+  errors?: { code?: unknown; errorCode?: unknown }[];
+};
+
+type ParsedErrorBody = {
+  codes: string[];
+  excerpt: string;
 };
 
 const log = createLogger("JamBase API");
 
 const LOOKUP_MISS_CODES = new Set(["no_lookup_results", "identifier_invalid"]);
+
+const BODY_EXCERPT_LENGTH = 300;
 
 const TIMEOUT_MS = 15000;
 
@@ -57,14 +68,21 @@ function classify(status: number): JambaseError {
   return new JambaseError("transient", `JamBase returned ${status}`, status);
 }
 
-async function readErrorCodes(response: Response): Promise<string[]> {
+function codeOf(entry: { code?: unknown; errorCode?: unknown }): string[] {
+  const code = entry?.code ?? entry?.errorCode;
+  return typeof code === "string" ? [code] : [];
+}
+
+async function readErrorBody(response: Response): Promise<ParsedErrorBody> {
   try {
-    const body = (await response.json()) as JambaseErrorBody;
-    return (body?.errors ?? []).flatMap((entry) =>
-      typeof entry?.errorCode === "string" ? [entry.errorCode] : []
-    );
+    const body = (await response.json()) as JambaseErrorBody | null;
+    const errors = Array.isArray(body?.errors) ? body.errors : [];
+    return {
+      codes: errors.flatMap(codeOf),
+      excerpt: JSON.stringify(body).slice(0, BODY_EXCERPT_LENGTH),
+    };
   } catch {
-    return [];
+    return { codes: [], excerpt: "unreadable body" };
   }
 }
 
@@ -73,7 +91,7 @@ async function readErrorCodes(response: Response): Promise<string[]> {
  * so a 400 is only a broken request when its error codes say so.
  */
 async function classifyBadRequest(response: Response): Promise<JambaseError> {
-  const codes = await readErrorCodes(response);
+  const { codes, excerpt } = await readErrorBody(response);
   if (codes.some((code) => LOOKUP_MISS_CODES.has(code))) {
     return new JambaseError(
       "not-found",
@@ -81,7 +99,8 @@ async function classifyBadRequest(response: Response): Promise<JambaseError> {
       400
     );
   }
-  const detail = codes.length > 0 ? codes.join(", ") : "no error code";
+  const detail =
+    codes.length > 0 ? codes.join(", ") : `no error code: ${excerpt}`;
   return new JambaseError(
     "bad-request",
     `JamBase rejected the request (${detail})`,
