@@ -72,11 +72,10 @@ afterEach(() => {
 });
 
 describe("snapshotLiveEventsSettings", () => {
-  it("reports an origin only when both coordinates are set", () => {
-    setLiveEvents({ ...CONFIGURED, originLat: 55.6, originLon: null });
+  it("captures whether the integration can run and how often", () => {
+    setLiveEvents(CONFIGURED);
     expect(snapshotLiveEventsSettings()).toEqual({
       configured: true,
-      hasOrigin: false,
       sweepIntervalHours: DEFAULT_LIVE_EVENTS.sweepIntervalHours,
     });
   });
@@ -88,16 +87,8 @@ describe("onLiveEventsSettingsSaved", () => {
     expect(mockRunLivePollOnce).toHaveBeenCalledTimes(1);
   });
 
-  it("sweeps when coordinates arrive, since the geo sweep bails on a null origin", () => {
-    save(CONFIGURED, { ...CONFIGURED, originLat: 55.6, originLon: 13.0 });
-    expect(mockRunLivePollOnce).toHaveBeenCalledTimes(1);
-  });
-
   it("does not sweep for an unrelated field change", () => {
-    save(
-      { ...CONFIGURED, originLat: 55.6, originLon: 13.0 },
-      { ...CONFIGURED, originLat: 55.6, originLon: 13.0, bannerHorizonDays: 60 }
-    );
+    save(CONFIGURED, { ...CONFIGURED, allowOverage: true });
     expect(mockRunLivePollOnce).not.toHaveBeenCalled();
   });
 

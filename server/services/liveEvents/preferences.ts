@@ -1,148 +1,96 @@
-import { getConfig } from "../../config";
 import { ApiError } from "../../middleware/ApiError";
-import { countryCodeError } from "../../../shared/countries";
 import {
-  distanceKm,
   getUserLivePreferences,
   setUserLivePreferences,
 } from "../../db/liveEvents";
 import type { UserLivePreferences } from "../../db/liveEvents";
 
-export type LivePreferencesPatch = {
-  radiusKm?: number | null;
-  lat?: number | null;
-  lon?: number | null;
-  regions?: string[] | null;
-  announceDays?: number | null;
-  imminentDaysLocal?: number | null;
-  imminentDaysRegional?: number | null;
-  bannerEnabled?: boolean | null;
-};
-
-export type LiveCoverage = {
-  originLat: number | null;
-  originLon: number | null;
-  sweepRadiusKm: number;
-  regions: string[];
-  configured: boolean;
+/** Where a user's live dates are measured from, as they picked it. */
+export type LiveLocation = {
+  lat: number;
+  lon: number;
+  /** What they picked ("Malmö, Skåne, Sweden"); null for raw coordinates. */
+  place: string | null;
 };
 
 export type LivePreferencesView = {
-  preferences: UserLivePreferences;
-  coverage: LiveCoverage;
+  location: LiveLocation | null;
 };
 
-/**
- * What this instance can see at all. Surfaced to every user because the sweep
- * origin is admin-owned but decides what everybody else is able to find: an
- * admin in Stockholm silently makes the feature useless for a user in Malmö,
- * and without this there is nothing in the UI that would ever explain why.
- */
-export function getCoverage(): LiveCoverage {
-  const { liveEvents } = getConfig();
+export type LivePreferencesPatch = {
+  location?: unknown;
+};
+
+const MAX_PLACE_LENGTH = 200;
+
+function toView(prefs: UserLivePreferences): LivePreferencesView {
+  if (prefs.live_lat === null || prefs.live_lon === null) {
+    return { location: null };
+  }
   return {
-    originLat: liveEvents.originLat,
-    originLon: liveEvents.originLon,
-    sweepRadiusKm: liveEvents.sweepRadiusKm,
-    regions: liveEvents.regions,
-    configured:
-      liveEvents.enabled &&
-      liveEvents.apiKey.length > 0 &&
-      liveEvents.originLat !== null &&
-      liveEvents.originLon !== null,
+    location: {
+      lat: prefs.live_lat,
+      lon: prefs.live_lon,
+      place: prefs.live_place,
+    },
   };
 }
 
-function validateRegions(regions: string[]): void {
-  for (const code of regions) {
-    const error = countryCodeError(code);
-    if (error) throw new ApiError(400, error);
-  }
+function isCoordinate(value: unknown, limit: number): value is number {
+  return (
+    typeof value === "number" &&
+    Number.isFinite(value) &&
+    Math.abs(value) <= limit
+  );
 }
 
-function validateDays(value: number, name: string): void {
-  if (!Number.isInteger(value) || value < 1) {
-    throw new ApiError(400, `${name} must be a positive whole number of days`);
+function parsePlace(raw: unknown): string | null {
+  if (raw === undefined || raw === null) return null;
+  if (typeof raw !== "string") {
+    throw new ApiError(400, "place must be text");
   }
+  const place = raw.trim();
+  return place === "" ? null : place.slice(0, MAX_PLACE_LENGTH);
 }
 
-/**
- * A home point outside the swept area would return nothing forever with no
- * error to explain it, so it is rejected rather than silently accepted.
- */
-function validateHome(
-  lat: number | null,
-  lon: number | null,
-  coverage: LiveCoverage
-): void {
-  if (lat === null || lon === null) return;
-  if (Math.abs(lat) > 90 || Math.abs(lon) > 180) {
+/** Null clears the location; anything else must be a real coordinate. */
+export function parseLocation(raw: unknown): LiveLocation | null {
+  if (raw === null) return null;
+  if (typeof raw !== "object") {
+    throw new ApiError(400, "location must be { lat, lon, place } or null");
+  }
+  const { lat, lon, place } = raw as Record<string, unknown>;
+  if (!isCoordinate(lat, 90) || !isCoordinate(lon, 180)) {
     throw new ApiError(400, "That is not a valid coordinate");
   }
-  if (coverage.originLat === null || coverage.originLon === null) return;
-
-  const distance = distanceKm(coverage.originLat, coverage.originLon, lat, lon);
-  if (distance > coverage.sweepRadiusKm) {
-    throw new ApiError(
-      400,
-      `That location is ${Math.round(distance)} km from what this instance covers (${coverage.sweepRadiusKm} km). Nothing would ever show up there.`
-    );
-  }
+  return { lat, lon, place: parsePlace(place) };
 }
 
 export async function readLivePreferences(
   userId: number
 ): Promise<LivePreferencesView> {
-  const preferences = await getUserLivePreferences(userId);
-  if (!preferences) throw new ApiError(404, "User not found");
-  return { preferences, coverage: getCoverage() };
+  const prefs = await getUserLivePreferences(userId);
+  if (!prefs) throw new ApiError(404, "User not found");
+  return toView(prefs);
 }
 
 /**
- * Per-user filters over already-swept data. Nothing here widens what gets
- * fetched, which is why it needs no admin permission; the radius is clamped to
- * what the instance actually sweeps rather than rejected, since a user asking
- * for more than exists is not an error, just optimistic.
+ * Only the location is per user now (#408): everyone sees every date, and
+ * closeness is worked out from here.
  */
 export async function writeLivePreferences(
   userId: number,
   patch: LivePreferencesPatch
 ): Promise<LivePreferencesView> {
-  const coverage = getCoverage();
-
-  if (patch.regions != null) validateRegions(patch.regions);
-  for (const [name, value] of [
-    ["announceDays", patch.announceDays],
-    ["imminentDaysLocal", patch.imminentDaysLocal],
-    ["imminentDaysRegional", patch.imminentDaysRegional],
-  ] as const) {
-    if (value != null) validateDays(value, name);
+  if (!patch || !("location" in patch)) {
+    throw new ApiError(400, "Nothing to save: send a location or null");
   }
-  validateHome(patch.lat ?? null, patch.lon ?? null, coverage);
-
-  const radius =
-    patch.radiusKm == null
-      ? patch.radiusKm
-      : Math.min(Math.max(1, patch.radiusKm), coverage.sweepRadiusKm);
+  const location = parseLocation(patch.location);
 
   await setUserLivePreferences(userId, {
-    ...(patch.radiusKm !== undefined ? { live_radius_km: radius } : {}),
-    ...(patch.lat !== undefined ? { live_lat: patch.lat } : {}),
-    ...(patch.lon !== undefined ? { live_lon: patch.lon } : {}),
-    ...(patch.regions !== undefined ? { live_regions: patch.regions } : {}),
-    ...(patch.announceDays !== undefined
-      ? { live_announce_days: patch.announceDays }
-      : {}),
-    ...(patch.imminentDaysLocal !== undefined
-      ? { live_imminent_days_local: patch.imminentDaysLocal }
-      : {}),
-    ...(patch.imminentDaysRegional !== undefined
-      ? { live_imminent_days_regional: patch.imminentDaysRegional }
-      : {}),
-    ...(patch.bannerEnabled !== undefined
-      ? { live_banner_enabled: patch.bannerEnabled }
-      : {}),
+    live_lat: location?.lat ?? null,
+    live_lon: location?.lon ?? null,
+    live_place: location?.place ?? null,
   });
-
   return readLivePreferences(userId);
 }

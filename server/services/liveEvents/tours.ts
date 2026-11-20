@@ -32,16 +32,11 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 /** A show's status change older than this is history, not news. */
 export const STATUS_NEWS_DAYS = 14;
 
-/**
- * The user's own location, else the instance origin every user used to share.
- * The fallback keeps today's behaviour until users have locations of their own.
- */
+/** Where this user's dates are measured from, if they have said. */
 export async function resolveOrigin(userId: number): Promise<Origin | null> {
   const prefs = await getUserLivePreferences(userId);
-  const { liveEvents } = getConfig();
-  const lat = prefs?.live_lat ?? liveEvents.originLat;
-  const lon = prefs?.live_lon ?? liveEvents.originLon;
-  return lat === null || lon === null ? null : { lat, lon };
+  if (prefs?.live_lat == null || prefs.live_lon == null) return null;
+  return { lat: prefs.live_lat, lon: prefs.live_lon };
 }
 
 function distanceFrom(origin: Origin, event: HydratedLiveEvent): number | null {
@@ -105,7 +100,6 @@ export async function listUserTours(
       to: new Date(now + liveEvents.bannerHorizonDays * DAY_MS)
         .toISOString()
         .slice(0, 10),
-      countries: null,
     }),
   ]);
 

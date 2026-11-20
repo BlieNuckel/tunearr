@@ -56,35 +56,18 @@ export class User {
   user_type!: UserType;
 
   /**
-   * Live-events preferences. All nullable, and NULL means "inherit the
-   * server-wide value" rather than "off", so a user who never opens the
-   * settings page follows the instance defaults. Filters only: none of these
-   * widen what the shared sweeps fetch.
+   * Where live dates are measured from. Null means the user has not set one, so
+   * tours lead with the soonest date instead of the closest.
    */
-  @Column({ type: "integer", nullable: true })
-  live_radius_km!: number | null;
-
   @Column({ type: "real", nullable: true })
   live_lat!: number | null;
 
   @Column({ type: "real", nullable: true })
   live_lon!: number | null;
 
-  /** JSON-encoded ISO 3166-1 alpha-2 array. GB, not UK. */
+  /** What the user picked, for showing back ("Malmö, Skåne, Sweden"). */
   @Column({ type: "text", nullable: true })
-  live_regions!: string | null;
-
-  @Column({ type: "integer", nullable: true })
-  live_announce_days!: number | null;
-
-  @Column({ type: "integer", nullable: true })
-  live_imminent_days_local!: number | null;
-
-  @Column({ type: "integer", nullable: true })
-  live_imminent_days_regional!: number | null;
-
-  @Column({ type: "boolean", nullable: true })
-  live_banner_enabled!: boolean | null;
+  live_place!: string | null;
 
   /**
    * ISO 4217 code every purchase is recorded in. Null until the user sets up

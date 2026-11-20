@@ -3,8 +3,6 @@ import { initializeDatabase, getDataSource, closeDatabase } from "./index";
 import type { SweptEvent, SweptPerformer } from "./liveEvents";
 import {
   distanceKm,
-  parseLiveRegions,
-  serializeLiveRegions,
   upsertSweptEvents,
   applyTombstones,
   findFollowedUpcomingEvents,
@@ -20,7 +18,6 @@ import {
   findUnresolvedFollowedArtists,
   findJambaseIdForArtistMbid,
   listFollowedJambaseIds,
-  listLiveRegionsUnion,
   getUserLivePreferences,
   setUserLivePreferences,
 } from "./liveEvents";
@@ -125,29 +122,6 @@ describe("distanceKm", () => {
 
   it("returns zero for the same point", () => {
     expect(distanceKm(MALMO.lat, MALMO.lon, MALMO.lat, MALMO.lon)).toBe(0);
-  });
-});
-
-describe("live region serialization", () => {
-  it("round-trips a country list", () => {
-    expect(parseLiveRegions(serializeLiveRegions(["SE", "DK"]))).toEqual([
-      "SE",
-      "DK",
-    ]);
-  });
-
-  it("returns null for null rather than an empty list", () => {
-    expect(serializeLiveRegions(null)).toBeNull();
-    expect(parseLiveRegions(null)).toBeNull();
-  });
-
-  it("returns null for malformed json", () => {
-    expect(parseLiveRegions("not json")).toBeNull();
-    expect(parseLiveRegions('{"nope":1}')).toBeNull();
-  });
-
-  it("drops non-string entries", () => {
-    expect(parseLiveRegions('["SE",2,null]')).toEqual(["SE"]);
   });
 });
 
@@ -343,22 +317,6 @@ describe("findFollowedUpcomingEvents", () => {
       "jambase:100",
       "jambase:200",
     ]);
-  });
-
-  it("filters by country when regions are given", async () => {
-    const events = await findFollowedUpcomingEvents(userId, {
-      ...WINDOW,
-      countries: ["DE"],
-    });
-    expect(events.map((e) => e.event_key)).toEqual(["jambase:200"]);
-  });
-
-  it("treats an empty country list as no filter", async () => {
-    const events = await findFollowedUpcomingEvents(userId, {
-      ...WINDOW,
-      countries: [],
-    });
-    expect(events).toHaveLength(2);
   });
 
   it("excludes disappeared and tombstoned events", async () => {
@@ -734,69 +692,30 @@ describe("user live preferences", () => {
     userId = await createUser("lasse");
   });
 
-  it("defaults every preference to null so the server value is inherited", async () => {
+  it("starts with no location", async () => {
     expect(await getUserLivePreferences(userId)).toEqual({
-      live_radius_km: null,
       live_lat: null,
       live_lon: null,
-      live_regions: null,
-      live_announce_days: null,
-      live_imminent_days_local: null,
-      live_imminent_days_regional: null,
-      live_banner_enabled: null,
+      live_place: null,
     });
   });
 
-  it("round-trips a patch, including the region list", async () => {
+  it("round-trips a location and the place it came from", async () => {
     await setUserLivePreferences(userId, {
-      live_radius_km: 120,
       live_lat: MALMO.lat,
       live_lon: MALMO.lon,
-      live_regions: ["SE", "DK", "DE"],
-      live_announce_days: 10,
+      live_place: "Malmö, Skåne, Sweden",
     });
 
-    const prefs = await getUserLivePreferences(userId);
-    expect(prefs?.live_radius_km).toBe(120);
-    expect(prefs?.live_regions).toEqual(["SE", "DK", "DE"]);
-    expect(prefs?.live_announce_days).toBe(10);
-    expect(prefs?.live_imminent_days_local).toBeNull();
-  });
-
-  it("leaves untouched columns alone", async () => {
-    await setUserLivePreferences(userId, { live_radius_km: 90 });
-    await setUserLivePreferences(userId, { live_announce_days: 7 });
-
-    const prefs = await getUserLivePreferences(userId);
-    expect(prefs?.live_radius_km).toBe(90);
-    expect(prefs?.live_announce_days).toBe(7);
-  });
-
-  it("can clear the region list back to inherited", async () => {
-    await setUserLivePreferences(userId, { live_regions: ["SE"] });
-    await setUserLivePreferences(userId, { live_regions: null });
-    expect((await getUserLivePreferences(userId))?.live_regions).toBeNull();
+    expect(await getUserLivePreferences(userId)).toEqual({
+      live_lat: MALMO.lat,
+      live_lon: MALMO.lon,
+      live_place: "Malmö, Skåne, Sweden",
+    });
   });
 
   it("returns null for an unknown user", async () => {
     expect(await getUserLivePreferences(9999)).toBeNull();
-  });
-});
-
-describe("listLiveRegionsUnion", () => {
-  it("unions every user's regions, since the sweep is shared", async () => {
-    const a = await createUser("a");
-    const b = await createUser("b");
-    await createUser("c");
-    await setUserLivePreferences(a, { live_regions: ["SE", "DK"] });
-    await setUserLivePreferences(b, { live_regions: ["DK", "DE"] });
-
-    expect((await listLiveRegionsUnion()).sort()).toEqual(["DE", "DK", "SE"]);
-  });
-
-  it("is empty when nobody has configured regions", async () => {
-    await createUser("a");
-    expect(await listLiveRegionsUnion()).toEqual([]);
   });
 });
 
