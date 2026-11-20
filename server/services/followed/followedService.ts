@@ -14,6 +14,7 @@ import {
   type FollowedReleaseWithArtist,
 } from "../../db/followed";
 import { createLogger } from "../../logger";
+import { resolveOnFollow } from "../liveEvents/resolution";
 
 type AddFollowResult =
   { status: "added"; id: number } | { status: "already_following"; id: number };
@@ -44,6 +45,7 @@ export async function followArtist(
 
   const saved = await insertFollowedArtist(userId, artistMbid, artistName);
   log.info(`User ${userId} followed "${artistName}" (${artistMbid})`);
+  void resolveOnFollow(artistMbid, artistName);
 
   return { status: "added", id: saved.id };
 }
