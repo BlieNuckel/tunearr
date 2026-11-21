@@ -3,6 +3,7 @@ import { formatRelativeReleaseDate } from "@/utils/relativeDate";
 import type {
   Highlight,
   LiveEventStatus,
+  LiveEventSummary,
   LiveHighlight,
   ReleaseHighlight,
   ReleaseLidarrStatus,
@@ -93,49 +94,66 @@ function describeRequest(
   };
 }
 
-export function headliner(highlight: LiveHighlight): string {
-  const lead = highlight.performers.find((performer) => performer.isHeadliner);
-  return lead?.name ?? highlight.performers[0]?.name ?? highlight.name;
-}
+/** How long new or closer dates count as news on the card. */
+const NEW_DATES_DAYS = 14;
+
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 function liveTone(status: LiveEventStatus): HighlightTone {
   if (status === "cancelled") return "alert";
   return status === "scheduled" ? "live" : "warning";
 }
 
-/** "near you" is wrong for a show in another country, so the tier picks the wording. */
-function liveEyebrow(highlight: LiveHighlight): string {
-  const status = STATUS_EYEBROWS[highlight.status];
+function liveEyebrow(highlight: LiveHighlight, now: number): string {
+  const status = highlight.change && STATUS_EYEBROWS[highlight.change.status];
   if (status) return status;
-  if (highlight.reason === "just-announced") return "Just announced";
-  return highlight.tier === "local" ? "Live near you" : "Live within reach";
+  const notified = highlight.notifiedAt
+    ? Date.parse(highlight.notifiedAt)
+    : NaN;
+  return now - notified < NEW_DATES_DAYS * DAY_MS
+    ? "New tour dates"
+    : "On tour";
 }
 
-function placeLine(highlight: LiveHighlight): string {
-  const parts = [highlight.venueName, highlight.venueCity].filter(Boolean);
-  if (highlight.tier !== "local" && highlight.venueCountry) {
-    parts.push(highlight.venueCountry);
-  }
-  const place = parts.join(", ");
-  if (highlight.tier !== "local" || highlight.distanceKm === null) return place;
-  const distance = `${Math.round(highlight.distanceKm)} km away`;
+function placeLine(event: LiveEventSummary, distanceKm: number | null): string {
+  const place = [event.venueName, event.venueCity, event.venueCountry]
+    .filter(Boolean)
+    .join(", ");
+  if (distanceKm === null) return place;
+  const distance = `${Math.round(distanceKm)} km away`;
   return place ? `${place} · ${distance}` : distance;
 }
 
-function describeLive(highlight: LiveHighlight): HighlightView {
-  const place = placeLine(highlight);
-  const moved =
-    highlight.status === "rescheduled" && highlight.previousStartDate
-      ? `Moved from ${formatDate(highlight.previousStartDate, SHORT_DATE_FORMAT)}`
-      : null;
+/** Says whether the date shown is the closest or just the next one, and of how many. */
+function tourLine(highlight: LiveHighlight): string {
+  if (highlight.dateCount === 1) return "Only date announced";
+  const which = highlight.distanceKm === null ? "Next" : "Closest";
+  return `${which} of ${highlight.dateCount} dates`;
+}
+
+function movedLine(event: LiveEventSummary): string | null {
+  if (event.status !== "rescheduled" || !event.previousStartDate) return null;
+  return `Moved from ${formatDate(event.previousStartDate, SHORT_DATE_FORMAT)}`;
+}
+
+/** The date the card is about: the change to a show they are going to, else the closest. */
+export function liveEventOf(highlight: LiveHighlight): LiveEventSummary {
+  return (highlight.change ?? highlight.closest) as LiveEventSummary;
+}
+
+function describeLive(highlight: LiveHighlight, now: number): HighlightView {
+  const event = liveEventOf(highlight);
+  const details = highlight.change
+    ? [placeLine(event, null), movedLine(event)]
+    : [placeLine(event, highlight.distanceKm), tourLine(highlight)];
   return {
-    eyebrow: liveEyebrow(highlight),
-    tone: liveTone(highlight.status),
-    title: headliner(highlight),
-    subtitle: formatDate(highlight.eventDate, EVENT_DATE_FORMAT),
-    details: [place, moved].filter((line): line is string => Boolean(line)),
-    artworkUrl: highlight.imageUrl,
-    artworkAlt: highlight.name,
+    eyebrow: liveEyebrow(highlight, now),
+    tone: highlight.change ? liveTone(highlight.change.status) : "live",
+    title: highlight.artistName,
+    subtitle: formatDate(event.eventDate, EVENT_DATE_FORMAT),
+    details: details.filter((line): line is string => Boolean(line)),
+    artworkUrl: event.imageUrl,
+    artworkAlt: highlight.artistName,
     artworkKind: "photo",
     library: null,
   };
@@ -148,5 +166,5 @@ export function describeHighlight(
 ): HighlightView {
   if (highlight.kind === "release") return describeRelease(highlight, now);
   if (highlight.kind === "request") return describeRequest(highlight, now);
-  return describeLive(highlight);
+  return describeLive(highlight, now);
 }

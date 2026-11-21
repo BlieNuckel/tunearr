@@ -1,7 +1,6 @@
 import { dismissFollowedRelease } from "../followed/followedService";
-import { setUserResponse } from "../../db/liveEvents";
 import { dismissRequestHighlight } from "../../db/requests";
-import { listLiveHighlights } from "./live";
+import { dismissLiveHighlight, listLiveHighlights } from "./live";
 import { rankHighlights } from "./rank";
 import { listReleaseHighlights, withLidarrStatus } from "./releases";
 import { listRequestHighlights } from "./requests";
@@ -61,6 +60,5 @@ export async function dismissHighlight(
   const at = new Date().toISOString();
   if (kind === "release") return dismissFollowedRelease(userId, id);
   if (kind === "request") return dismissRequestHighlight(userId, id, at);
-  await setUserResponse(userId, id, "dismissed", at);
-  return true;
+  return dismissLiveHighlight(userId, id);
 }

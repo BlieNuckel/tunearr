@@ -1,5 +1,6 @@
 import type { Mock } from "vitest";
 import type {
+  LiveEventSummary,
   LiveHighlight,
   ReleaseHighlight,
   RequestHighlight,
@@ -30,13 +31,11 @@ export function releaseHighlight(
   };
 }
 
-export function liveHighlight(
-  overrides: Partial<LiveHighlight> = {}
-): LiveHighlight {
+export function liveEvent(
+  overrides: Partial<LiveEventSummary> = {}
+): LiveEventSummary {
   return {
-    kind: "live",
-    key: "live:5",
-    id: 5,
+    id: 100,
     eventKey: "jambase:100",
     name: "Yves Tumor at Amiralen",
     eventDate: "2026-11-25",
@@ -48,15 +47,31 @@ export function liveHighlight(
     venueCountry: "SE",
     ticketUrl: "https://tickets.test/100",
     imageUrl: "https://img.test/100.jpg",
-    distanceKm: 2.4,
+    distanceKm: null,
     performers: [
       { jambaseId: "jambase:1", name: "Yves Tumor", isHeadliner: true },
-      { jambaseId: "jambase:2", name: "Support Act", isHeadliner: false },
     ],
     response: null,
     viewedAt: null,
-    tier: "local",
-    reason: "coming-up",
+    ...overrides,
+  };
+}
+
+export function liveHighlight(
+  overrides: Partial<LiveHighlight> = {}
+): LiveHighlight {
+  return {
+    kind: "live",
+    key: "live:mbid-yves",
+    id: 5,
+    artistMbid: "mbid-yves",
+    artistName: "Yves Tumor",
+    dateCount: 12,
+    closest: liveEvent(),
+    distanceKm: 2.4,
+    hasLocation: true,
+    notifiedAt: null,
+    change: null,
     ...overrides,
   };
 }

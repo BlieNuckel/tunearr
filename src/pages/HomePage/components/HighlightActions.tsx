@@ -13,6 +13,7 @@ import {
   albumPreviewFromRequestHighlight,
   type NavPreviewState,
 } from "@/utils/navPreview";
+import { liveEventOf } from "../highlightView";
 import { PRIMARY_BUTTON, SECONDARY_BUTTON, TICKET_BUTTON } from "../styles";
 import type { HighlightHandlers } from "../types";
 
@@ -84,10 +85,11 @@ function LiveActions({
   handlers: HighlightHandlers;
 }) {
   const haptics = useHaptics();
+  const event = liveEventOf(highlight);
 
   // Nothing to buy or attend for a cancelled show; the only thing left to do
   // is acknowledge it.
-  if (highlight.status === "cancelled") {
+  if (highlight.change?.status === "cancelled") {
     return (
       <button
         type="button"
@@ -104,9 +106,9 @@ function LiveActions({
 
   return (
     <>
-      {highlight.ticketUrl && (
+      {event.ticketUrl && (
         <a
-          href={highlight.ticketUrl}
+          href={event.ticketUrl}
           target="_blank"
           rel="noreferrer noopener"
           className={TICKET_BUTTON}
@@ -115,16 +117,25 @@ function LiveActions({
           Tickets
         </a>
       )}
-      <button
-        type="button"
-        onClick={() => {
-          haptics.light();
-          handlers.onGoing(highlight);
-        }}
+      <Link
+        to={`/artist/${highlight.artistMbid}`}
+        onClick={() => haptics.light()}
         className={SECONDARY_BUTTON}
       >
-        Going
-      </button>
+        All dates
+      </Link>
+      {!highlight.change && event.response !== "going" && (
+        <button
+          type="button"
+          onClick={() => {
+            haptics.light();
+            handlers.onGoing(highlight);
+          }}
+          className={SECONDARY_BUTTON}
+        >
+          Going
+        </button>
+      )}
     </>
   );
 }

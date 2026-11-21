@@ -4,7 +4,7 @@ const mockListReleases = vi.fn();
 const mockWithLidarr = vi.fn();
 const mockListLive = vi.fn();
 const mockDismissRelease = vi.fn();
-const mockSetUserResponse = vi.fn();
+const mockDismissLive = vi.fn();
 const mockListRequests = vi.fn();
 const mockDismissRequest = vi.fn();
 
@@ -15,6 +15,7 @@ vi.mock("./releases", () => ({
 
 vi.mock("./live", () => ({
   listLiveHighlights: (...args: unknown[]) => mockListLive(...args),
+  dismissLiveHighlight: (...args: unknown[]) => mockDismissLive(...args),
 }));
 
 vi.mock("./requests", () => ({
@@ -27,10 +28,6 @@ vi.mock("../../db/requests", () => ({
 
 vi.mock("../followed/followedService", () => ({
   dismissFollowedRelease: (...args: unknown[]) => mockDismissRelease(...args),
-}));
-
-vi.mock("../../db/liveEvents", () => ({
-  setUserResponse: (...args: unknown[]) => mockSetUserResponse(...args),
 }));
 
 import { dismissHighlight, getHighlights, MAX_HIGHLIGHTS } from "./highlights";
@@ -148,7 +145,7 @@ describe("dismissHighlight", () => {
 
     expect(await dismissHighlight(7, "release", 12)).toBe(true);
     expect(mockDismissRelease).toHaveBeenCalledWith(7, 12);
-    expect(mockSetUserResponse).not.toHaveBeenCalled();
+    expect(mockDismissLive).not.toHaveBeenCalled();
   });
 
   it("reports a release that is not the user's", async () => {
@@ -161,7 +158,7 @@ describe("dismissHighlight", () => {
 
     expect(await dismissHighlight(7, "request", 9)).toBe(true);
     expect(mockDismissRequest).toHaveBeenCalledWith(7, 9, expect.any(String));
-    expect(mockSetUserResponse).not.toHaveBeenCalled();
+    expect(mockDismissLive).not.toHaveBeenCalled();
   });
 
   it("reports a request that is not the user's", async () => {
@@ -169,14 +166,16 @@ describe("dismissHighlight", () => {
     expect(await dismissHighlight(7, "request", 9)).toBe(false);
   });
 
-  it("dismisses a live date the same way the live pages do", async () => {
+  it("dismisses a touring artist's card by its baseline row", async () => {
+    mockDismissLive.mockResolvedValue(true);
+
     expect(await dismissHighlight(7, "live", 34)).toBe(true);
-    expect(mockSetUserResponse).toHaveBeenCalledWith(
-      7,
-      34,
-      "dismissed",
-      expect.any(String)
-    );
+    expect(mockDismissLive).toHaveBeenCalledWith(7, 34);
     expect(mockDismissRelease).not.toHaveBeenCalled();
+  });
+
+  it("reports a live card that is not the user's", async () => {
+    mockDismissLive.mockResolvedValue(false);
+    expect(await dismissHighlight(7, "live", 34)).toBe(false);
   });
 });

@@ -15,9 +15,7 @@ describe("HighlightArtwork", () => {
   it("crops an event photo to fill its box", () => {
     render(<HighlightArtwork view={describeHighlight(liveHighlight())} />);
 
-    expect(screen.getByAltText("Yves Tumor at Amiralen")).toHaveClass(
-      "object-cover"
-    );
+    expect(screen.getByAltText("Yves Tumor")).toHaveClass("object-cover");
   });
 
   it("falls back to an icon when the image fails", () => {

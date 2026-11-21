@@ -1,5 +1,4 @@
 import type { HydratedLiveEvent } from "../../db/liveEvents";
-import type { NoticeCandidate } from "./notice";
 
 export function serializeLiveEvent(event: HydratedLiveEvent) {
   return {
@@ -26,14 +25,3 @@ export function serializeLiveEvent(event: HydratedLiveEvent) {
 }
 
 export type SerializedLiveEvent = ReturnType<typeof serializeLiveEvent>;
-
-export function serializeNotice(candidate: NoticeCandidate) {
-  return {
-    ...serializeLiveEvent(candidate.event),
-    tier: candidate.tier,
-    reason: candidate.reason,
-    distanceKm: candidate.distanceKm,
-  };
-}
-
-export type SerializedNotice = ReturnType<typeof serializeNotice>;

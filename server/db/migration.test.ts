@@ -9,6 +9,7 @@ import { FollowedReleaseDismissed1727000000000 } from "./migration/19_FollowedRe
 import { RequestAvailable1728000000000 } from "./migration/20_RequestAvailable";
 import { LiveArtists1729000000000 } from "./migration/21_LiveArtists";
 import { LiveQuotaFromJambase1730000000000 } from "./migration/22_LiveQuotaFromJambase";
+import { LiveArtistBaseline1731000000000 } from "./migration/23_LiveArtistBaseline";
 import type { DataSource } from "typeorm";
 
 let ds: DataSource | null = null;
@@ -812,6 +813,66 @@ describe("LiveArtists migration", () => {
       "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'live_artists'"
     );
     expect(tables).toEqual([]);
+  });
+});
+
+describe("LiveArtistBaseline migration", () => {
+  async function prefEvents(db: DataSource): Promise<string[]> {
+    const rows = (await db.query(
+      "SELECT event_id FROM notification_preferences ORDER BY id"
+    )) as { event_id: string }[];
+    return rows.map((row) => row.event_id);
+  }
+
+  async function savePref(db: DataSource, eventId: string): Promise<void> {
+    await db.query(
+      "INSERT INTO notification_preferences (user_id, event_id, transport_id, enabled, updated_at) VALUES (1, ?, 'webpush', 0, 'now')",
+      [eventId]
+    );
+  }
+
+  it("creates one baseline row per user and artist", async () => {
+    const db = await initTestDb();
+    await insertUser(db, "a");
+    const insert =
+      "INSERT INTO user_live_artist_state (user_id, artist_mbid, evaluated_at) VALUES (1, 'mbid-a', 'now')";
+
+    await db.query(insert);
+    await expect(db.query(insert)).rejects.toThrow();
+  });
+
+  it("moves saved preferences for the per-date notification to the per-artist one", async () => {
+    const db = await initTestDb();
+    await insertUser(db, "a");
+    const runner = db.createQueryRunner();
+    await new LiveArtistBaseline1731000000000().down(runner);
+    await savePref(db, "live.nearbyShow");
+    await savePref(db, "live.statusChanged");
+
+    await new LiveArtistBaseline1731000000000().up(runner);
+    await runner.release();
+
+    expect(await prefEvents(db)).toEqual([
+      "live.tourAnnounced",
+      "live.statusChanged",
+    ]);
+  });
+
+  it("reverts the table and the preference rename", async () => {
+    const db = await initTestDb();
+    await insertUser(db, "a");
+    await savePref(db, "live.tourAnnounced");
+    const runner = db.createQueryRunner();
+
+    await new LiveArtistBaseline1731000000000().down(runner);
+    await runner.release();
+
+    expect(await prefEvents(db)).toEqual(["live.nearbyShow"]);
+    expect(
+      await db.query(
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'user_live_artist_state'"
+      )
+    ).toEqual([]);
   });
 });
 
