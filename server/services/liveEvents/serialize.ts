@@ -1,4 +1,5 @@
 import type { HydratedLiveEvent } from "../../db/liveEvents";
+import type { TouringArtist } from "./tours";
 
 export function serializeLiveEvent(event: HydratedLiveEvent) {
   return {
@@ -25,3 +26,14 @@ export function serializeLiveEvent(event: HydratedLiveEvent) {
 }
 
 export type SerializedLiveEvent = ReturnType<typeof serializeLiveEvent>;
+
+/** A touring artist as the library lists them: the date to lead with, and how many there are. */
+export function serializeTour(tour: TouringArtist) {
+  return {
+    artistMbid: tour.artistMbid,
+    artistName: tour.artistName,
+    dateCount: tour.dates.length,
+    closest: serializeLiveEvent(tour.closest),
+    distanceKm: tour.distanceKm,
+  };
+}

@@ -1,10 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { initializeDatabase, closeDatabase } from "../../db/index";
 import type { HydratedLiveEvent } from "../../db/liveEvents";
-import { pickClosest, listUserTours } from "./tours";
+import { pickClosest, listTouringArtists, listUserTours } from "./tours";
 import {
   BERLIN,
   COPENHAGEN,
+  LYON,
   MALMO,
   NOW,
   createUser,
@@ -123,5 +124,57 @@ describe("listUserTours", () => {
 
     expect(origin).toBeNull();
     expect(tours[0].distanceKm).toBeNull();
+  });
+});
+
+describe("listTouringArtists", () => {
+  let userId: number;
+
+  beforeEach(async () => {
+    await initializeDatabase(":memory:");
+    userId = await createUser("lasse");
+    for (const artist of ["far", "near", "unmeasured", "quiet"]) {
+      await follow(userId, artist);
+    }
+    await sweep([
+      { key: "far1", artist: "far", date: "2026-12-01", at: LYON },
+      { key: "near1", artist: "near", date: "2027-02-01", at: BERLIN },
+      { key: "near2", artist: "near", date: "2027-03-01", at: COPENHAGEN },
+      {
+        key: "unmeasured1",
+        artist: "unmeasured",
+        date: "2026-11-25",
+        at: null,
+      },
+    ]);
+  });
+
+  afterEach(async () => {
+    await closeDatabase();
+  });
+
+  it("lists touring artists nearest first, unmeasured last", async () => {
+    await locate(userId, MALMO);
+
+    const { hasLocation, tours } = await listTouringArtists(userId, NOW);
+
+    expect(hasLocation).toBe(true);
+    expect(tours.map((t) => t.artistName)).toEqual([
+      "near",
+      "far",
+      "unmeasured",
+    ]);
+    expect(tours[0].closest.event_key).toBe("near2");
+  });
+
+  it("lists by the soonest date without a location", async () => {
+    const { hasLocation, tours } = await listTouringArtists(userId, NOW);
+
+    expect(hasLocation).toBe(false);
+    expect(tours.map((t) => t.closest.event_key)).toEqual([
+      "unmeasured1",
+      "far1",
+      "near1",
+    ]);
   });
 });

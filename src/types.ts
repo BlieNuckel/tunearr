@@ -237,6 +237,21 @@ export interface HighlightsData {
   items: Highlight[];
 }
 
+/** A followed artist with dates, as the library lists them. */
+export interface LiveTourSummary {
+  artistMbid: string;
+  artistName: string;
+  dateCount: number;
+  /** Closest to the user, or the soonest without a location. */
+  closest: LiveEventSummary;
+  distanceKm: number | null;
+}
+
+export interface LiveToursData {
+  hasLocation: boolean;
+  tours: LiveTourSummary[];
+}
+
 /** Where a user's live dates are measured from. */
 export interface LiveLocation {
   lat: number;

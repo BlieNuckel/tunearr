@@ -20,6 +20,9 @@ export type ArtistTour = {
   distanceKm: number | null;
 };
 
+/** A tour with at least one date still on, so it has one to lead with. */
+export type TouringArtist = ArtistTour & { closest: HydratedLiveEvent };
+
 export type UserTours = {
   origin: Origin | null;
   tours: ArtistTour[];
@@ -124,4 +127,33 @@ export async function listUserTours(
   });
 
   return { origin, tours, events };
+}
+
+/**
+ * Nearest first, by the closest date's distance. A tour with no measurable
+ * venue has no distance, so it goes after every measured one; ties, and every
+ * tour when there is no location, go by the leading date.
+ */
+function byDistanceThenDate(a: TouringArtist, b: TouringArtist): number {
+  if (a.distanceKm !== b.distanceKm) {
+    if (a.distanceKm === null) return 1;
+    if (b.distanceKm === null) return -1;
+    return a.distanceKm - b.distanceKm;
+  }
+  const byDate = a.closest.event_date.localeCompare(b.closest.event_date);
+  return byDate || a.artistName.localeCompare(b.artistName);
+}
+
+/** The followed artists with dates, nearest tour first, for the library list. */
+export async function listTouringArtists(
+  userId: number,
+  now: number = Date.now()
+): Promise<{ hasLocation: boolean; tours: TouringArtist[] }> {
+  const { origin, tours } = await listUserTours(userId, now);
+  return {
+    hasLocation: origin !== null,
+    tours: tours
+      .filter((tour): tour is TouringArtist => tour.closest !== null)
+      .sort(byDistanceThenDate),
+  };
 }
