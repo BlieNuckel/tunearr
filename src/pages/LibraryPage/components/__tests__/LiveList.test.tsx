@@ -98,6 +98,38 @@ describe("LiveList upcoming", () => {
     ).toBeInTheDocument();
   });
 
+  it("offers tickets and every date next to the closest one", async () => {
+    mockFetch({ tours: { hasLocation: true, tours: [tour()] } });
+    renderList();
+
+    const row = await screen.findByRole("listitem");
+    expect(within(row).getByRole("link", { name: "Tickets" })).toHaveAttribute(
+      "href",
+      "https://tickets.test/100"
+    );
+    expect(
+      within(row).getByRole("link", { name: "All dates" })
+    ).toHaveAttribute("href", "/artist/mbid-yves");
+  });
+
+  it("still offers every date when the closest has no ticket link", async () => {
+    mockFetch({
+      tours: {
+        hasLocation: true,
+        tours: [tour({ closest: event({ ticketUrl: null }) })],
+      },
+    });
+    renderList();
+
+    const row = await screen.findByRole("listitem");
+    expect(
+      within(row).queryByRole("link", { name: "Tickets" })
+    ).not.toBeInTheDocument();
+    expect(
+      within(row).getByRole("link", { name: "All dates" })
+    ).toBeInTheDocument();
+  });
+
   it("says it shows the next date and links to the location setting without a location", async () => {
     mockFetch({
       tours: { hasLocation: false, tours: [tour({ distanceKm: null })] },

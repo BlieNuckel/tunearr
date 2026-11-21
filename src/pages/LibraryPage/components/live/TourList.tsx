@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import useLiveTours from "@/hooks/useLiveTours";
 import type { LiveTourSummary } from "@/types";
 import {
+  AllDatesLink,
   GoingBadge,
   LiveListStatus,
   StatusBadge,
@@ -40,7 +41,10 @@ function TourRow({ tour }: { tour: LiveTourSummary }) {
           {tourLine(tour)}
         </p>
       </div>
-      <TicketsLink url={tour.closest.ticketUrl} />
+      <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+        <TicketsLink url={tour.closest.ticketUrl} />
+        <AllDatesLink artistMbid={tour.artistMbid} />
+      </div>
     </li>
   );
 }
