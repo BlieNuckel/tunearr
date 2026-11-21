@@ -35,9 +35,13 @@ vi.mock("../services/liveEvents/tracking", () => ({
     mockGetArtistLiveTracking(...args),
 }));
 
+const ADMIN_AND_REQUEST = 9;
+const REQUEST_ONLY = 8;
+let callerPermissions = ADMIN_AND_REQUEST;
+
 vi.mock("../middleware/requireAuth", () => ({
   requireAuth: (req: { user: unknown }, _res: unknown, next: () => void) => {
-    req.user = { id: 7, permissions: 9, username: "lasse" };
+    req.user = { id: 7, permissions: callerPermissions, username: "lasse" };
     next();
   },
 }));
@@ -57,7 +61,10 @@ app.use(
     res: express.Response,
     _next: express.NextFunction
   ) => {
-    const status = err instanceof ApiError ? err.status : 500;
+    const status =
+      err instanceof ApiError
+        ? err.status
+        : ((err as Error & { status?: number }).status ?? 500);
     res.status(status).json({ error: err.message });
   }
 );
@@ -91,6 +98,7 @@ function storedEvent(overrides: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  callerPermissions = ADMIN_AND_REQUEST;
   mockFindAllForUser.mockResolvedValue([]);
   mockSetUserResponse.mockResolvedValue({});
   mockMarkViewed.mockResolvedValue({});
@@ -102,8 +110,8 @@ beforeEach(() => {
     pending: 0,
     unavailable: 0,
   });
-  mockReadPreferences.mockResolvedValue({ preferences: {}, coverage: {} });
-  mockWritePreferences.mockResolvedValue({ preferences: {}, coverage: {} });
+  mockReadPreferences.mockResolvedValue({ location: null });
+  mockWritePreferences.mockResolvedValue({ location: null });
 });
 
 describe("GET /events", () => {
@@ -256,8 +264,8 @@ describe("GET /artist/:mbid", () => {
 
   it("returns an empty list rather than an error for an unresolved artist", async () => {
     mockFindJambaseId.mockResolvedValue(null);
-    mockReadPreferences.mockResolvedValue({ preferences: {}, coverage: {} });
-    mockWritePreferences.mockResolvedValue({ preferences: {}, coverage: {} });
+    mockReadPreferences.mockResolvedValue({ location: null });
+    mockWritePreferences.mockResolvedValue({ location: null });
 
     const res = await request(app).get("/artist/mbid-unknown");
 
@@ -279,39 +287,42 @@ describe("GET /artist/:mbid", () => {
 });
 
 describe("preferences", () => {
-  it("returns preferences with the coverage disclosure", async () => {
+  it("returns the caller's location", async () => {
     mockReadPreferences.mockResolvedValue({
-      preferences: { live_radius_km: 40 },
-      coverage: { sweepRadiusKm: 150 },
+      location: { lat: 55.6, lon: 13, place: "Malmö" },
     });
 
     const res = await request(app).get("/preferences");
 
     expect(res.status).toBe(200);
-    expect(res.body.coverage.sweepRadiusKm).toBe(150);
+    expect(res.body).toEqual({
+      location: { lat: 55.6, lon: 13, place: "Malmö" },
+    });
     expect(mockReadPreferences).toHaveBeenCalledWith(7);
   });
 
-  it("patches only the caller's own preferences", async () => {
-    mockWritePreferences.mockResolvedValue({ preferences: {}, coverage: {} });
-
-    const res = await request(app).patch("/preferences").send({ radiusKm: 40 });
+  it("saves only the caller's own location", async () => {
+    const res = await request(app)
+      .patch("/preferences")
+      .send({ location: { lat: 55.6, lon: 13, place: "Malmö" } });
 
     expect(res.status).toBe(200);
-    expect(mockWritePreferences).toHaveBeenCalledWith(7, { radiusKm: 40 });
+    expect(mockWritePreferences).toHaveBeenCalledWith(7, {
+      location: { lat: 55.6, lon: 13, place: "Malmö" },
+    });
   });
 
-  it("surfaces a rejected patch with its status", async () => {
+  it("surfaces a rejected location with its status", async () => {
     mockWritePreferences.mockRejectedValue(
-      new ApiError(400, "Use GB rather than UK for the United Kingdom")
+      new ApiError(400, "That is not a valid coordinate")
     );
 
     const res = await request(app)
       .patch("/preferences")
-      .send({ regions: ["UK"] });
+      .send({ location: { lat: 99, lon: 0 } });
 
     expect(res.status).toBe(400);
-    expect(res.body.error).toContain("GB");
+    expect(res.body.error).toContain("coordinate");
   });
 });
 
@@ -336,6 +347,16 @@ describe("GET /geocode", () => {
     expect(res.body.places[0].name).toBe("Malmö");
   });
 
+  it("lets every user look a place up, since everyone sets their own location", async () => {
+    callerPermissions = REQUEST_ONLY;
+    mockSearchPlaces.mockResolvedValue([]);
+
+    const res = await request(app).get("/geocode?q=Lyon");
+
+    expect(res.status).toBe(200);
+    expect(mockSearchPlaces).toHaveBeenCalledWith("Lyon");
+  });
+
   it("treats a missing query as an empty one rather than a 500", async () => {
     mockSearchPlaces.mockResolvedValue([]);
 
@@ -348,6 +369,15 @@ describe("GET /geocode", () => {
 });
 
 describe("GET /roster", () => {
+  it("stays admin-only", async () => {
+    callerPermissions = REQUEST_ONLY;
+
+    const res = await request(app).get("/roster");
+
+    expect(res.status).toBe(403);
+    expect(mockCountLiveTracking).not.toHaveBeenCalled();
+  });
+
   it("returns the counts per resolution state", async () => {
     mockCountLiveTracking.mockResolvedValue({
       tracked: 12,

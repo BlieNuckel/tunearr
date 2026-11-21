@@ -121,6 +121,18 @@ describe("describeHighlight for a touring artist", () => {
       liveHighlight({ distanceKm: null, hasLocation: false }),
       NOW
     );
+    expect(view.details).toEqual([
+      "Amiralen, Malmö, SE",
+      "Next of 12 dates",
+      "Set your location in Settings to see the closest",
+    ]);
+  });
+
+  it("leaves out the location prompt once the user has one, even when the venue cannot be measured", () => {
+    const view = describeHighlight(
+      liveHighlight({ distanceKm: null, hasLocation: true }),
+      NOW
+    );
     expect(view.details).toEqual(["Amiralen, Malmö, SE", "Next of 12 dates"]);
   });
 

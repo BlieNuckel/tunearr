@@ -37,19 +37,8 @@ export type RosterFullPassCursor = {
 export type LiveEventsSettings = {
   enabled: boolean;
   apiKey: string;
-  /** Default home location for users who have not set their own. Null until an admin sets one. */
-  originLat: number | null;
-  originLon: number | null;
-  /** Upper bound on how far any user's "local" radius can reach. */
-  sweepRadiusKm: number;
   /** Capped at 180 by the Developer tier's 6-month future window. */
   bannerHorizonDays: number;
-  announceDays: number;
-  /** The imminent window scales with distance: a trip needs more lead time. */
-  imminentDaysLocal: number;
-  imminentDaysRegional: number;
-  /** ISO 3166-1 alpha-2 default for users who have not chosen their own. GB, not UK. */
-  regions: string[];
   /** JamBase accepts at least 100 pipe-delimited artistIds per call. */
   rosterBatchSize: number;
   /** Hard stop per run. Overage bills rather than fails, so this is a cost control. */
@@ -74,14 +63,7 @@ export type LiveEventsSettings = {
 export const DEFAULT_LIVE_EVENTS: LiveEventsSettings = {
   enabled: false,
   apiKey: "",
-  originLat: null,
-  originLon: null,
-  sweepRadiusKm: 150,
   bannerHorizonDays: 180,
-  announceDays: 14,
-  imminentDaysLocal: 21,
-  imminentDaysRegional: 45,
-  regions: [],
   rosterBatchSize: 100,
   maxPagesPerRun: 20,
   sweepIntervalHours: 24,

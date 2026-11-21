@@ -10,6 +10,7 @@ import { RequestAvailable1728000000000 } from "./migration/20_RequestAvailable";
 import { LiveArtists1729000000000 } from "./migration/21_LiveArtists";
 import { LiveQuotaFromJambase1730000000000 } from "./migration/22_LiveQuotaFromJambase";
 import { LiveArtistBaseline1731000000000 } from "./migration/23_LiveArtistBaseline";
+import { LiveUserLocation1732000000000 } from "./migration/24_LiveUserLocation";
 import type { DataSource } from "typeorm";
 
 let ds: DataSource | null = null;
@@ -52,16 +53,11 @@ describe("InitialSchema migration", () => {
       "plex_username",
       "plex_token",
       "user_type",
-      "live_radius_km",
       "live_lat",
       "live_lon",
-      "live_regions",
-      "live_announce_days",
-      "live_imminent_days_local",
-      "live_imminent_days_regional",
-      "live_banner_enabled",
       "spending_currency",
       "spending_monthly_limit",
+      "live_place",
     ]);
   });
 
@@ -664,6 +660,7 @@ describe("LiveEvents migration", () => {
     const db = await initTestDb();
 
     const runner = db.createQueryRunner();
+    await new LiveUserLocation1732000000000().down(runner);
     await new LiveArtists1729000000000().down(runner);
     await new LiveEvents1721000000000().down(runner);
 
@@ -873,6 +870,139 @@ describe("LiveArtistBaseline migration", () => {
         "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'user_live_artist_state'"
       )
     ).toEqual([]);
+  });
+});
+
+describe("LiveUserLocation migration", () => {
+  const OLD_LIVE_EVENTS = {
+    enabled: true,
+    apiKey: "jbd_key",
+    originLat: 55.605,
+    originLon: 13.0038,
+    sweepRadiusKm: 150,
+    regions: ["SE"],
+    announceDays: 14,
+    imminentDaysLocal: 21,
+    imminentDaysRegional: 45,
+    fullSweepIntervalDays: 30,
+    monthlyQuota: 1000,
+    quotaWarnRatio: 0.8,
+    quotaHardStop: true,
+    billingPeriodStartDay: 1,
+    shelfHorizonDays: 60,
+    shelfMinAffinity: 0.5,
+    allowOverage: false,
+  };
+
+  async function rewind(db: DataSource): Promise<void> {
+    const runner = db.createQueryRunner();
+    await new LiveUserLocation1732000000000().down(runner);
+    await runner.release();
+  }
+
+  async function reapply(db: DataSource): Promise<void> {
+    const runner = db.createQueryRunner();
+    await new LiveUserLocation1732000000000().up(runner);
+    await runner.release();
+  }
+
+  async function writeLiveConfig(
+    db: DataSource,
+    liveEvents: Record<string, unknown>
+  ): Promise<void> {
+    await db.query("DELETE FROM config");
+    await db.query("INSERT INTO config (id, data) VALUES (1, ?)", [
+      JSON.stringify({ lidarrUrl: "http://lidarr", liveEvents }),
+    ]);
+  }
+
+  async function userLocations(db: DataSource) {
+    return db.query(
+      "SELECT username, live_lat, live_lon, live_place FROM users ORDER BY id"
+    );
+  }
+
+  it("gives everyone without a location the old instance origin", async () => {
+    const db = await initTestDb();
+    await rewind(db);
+    await writeLiveConfig(db, OLD_LIVE_EVENTS);
+    await insertUser(db, "inherits");
+    await insertUser(db, "has-own");
+    await db.query(
+      "UPDATE users SET live_lat = 48.85, live_lon = 2.35 WHERE username = 'has-own'"
+    );
+
+    await reapply(db);
+
+    expect(await userLocations(db)).toEqual([
+      {
+        username: "inherits",
+        live_lat: 55.605,
+        live_lon: 13.0038,
+        live_place: null,
+      },
+      {
+        username: "has-own",
+        live_lat: 48.85,
+        live_lon: 2.35,
+        live_place: null,
+      },
+    ]);
+  });
+
+  it("leaves users without a location when there was no origin", async () => {
+    const db = await initTestDb();
+    await rewind(db);
+    await writeLiveConfig(db, {
+      ...OLD_LIVE_EVENTS,
+      originLat: null,
+      originLon: null,
+    });
+    await insertUser(db, "nowhere");
+
+    await reapply(db);
+
+    expect(await userLocations(db)).toEqual([
+      { username: "nowhere", live_lat: null, live_lon: null, live_place: null },
+    ]);
+  });
+
+  it("removes the old settings from saved config and keeps the rest", async () => {
+    const db = await initTestDb();
+    await rewind(db);
+    await writeLiveConfig(db, OLD_LIVE_EVENTS);
+
+    await reapply(db);
+
+    const [{ data }] = (await db.query(
+      "SELECT data FROM config WHERE id = 1"
+    )) as {
+      data: string;
+    }[];
+    expect(JSON.parse(data)).toEqual({
+      lidarrUrl: "http://lidarr",
+      liveEvents: { enabled: true, apiKey: "jbd_key", allowOverage: false },
+    });
+  });
+
+  it("drops the replaced user columns and restores them on revert", async () => {
+    const db = await initTestDb();
+    const columns = async () =>
+      ((await db.query("PRAGMA table_info(users)")) as { name: string }[]).map(
+        (c) => c.name
+      );
+
+    expect(await columns()).not.toContain("live_regions");
+    await rewind(db);
+
+    expect(await columns()).toEqual(
+      expect.arrayContaining([
+        "live_radius_km",
+        "live_regions",
+        "live_banner_enabled",
+      ])
+    );
+    expect(await columns()).not.toContain("live_place");
   });
 });
 

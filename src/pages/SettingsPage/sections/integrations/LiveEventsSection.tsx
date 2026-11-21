@@ -1,8 +1,6 @@
 import type { LiveEventsSettings } from "@/context/settingsContextDef";
-import CountryPicker from "@/components/CountryPicker";
 import LiveQuotaStatus from "./LiveQuotaStatus";
 import LiveRosterStatus from "./LiveRosterStatus";
-import OriginLocationFields from "./OriginLocationFields";
 
 interface LiveEventsSectionProps {
   settings: LiveEventsSettings;
@@ -76,86 +74,6 @@ export default function LiveEventsSection({
           the period resets. On: they keep going and JamBase bills each extra
           call ($0.05 on the Developer plan).
         </p>
-      </div>
-
-      <OriginLocationFields
-        originLat={settings.originLat}
-        originLon={settings.originLon}
-        onChange={onChange}
-      />
-
-      <div>
-        <label className={LABEL_CLASSES}>Sweep radius (km)</label>
-        <input
-          type="number"
-          min={1}
-          value={settings.sweepRadiusKm}
-          onChange={(e) =>
-            onChange({ sweepRadiusKm: Number(e.target.value) || 1 })
-          }
-          className={INPUT_CLASSES}
-        />
-        <p className={HINT_CLASSES}>
-          The furthest anything is fetched from. Everyone on this instance is
-          limited to it, and nobody can see shows beyond it.
-        </p>
-      </div>
-
-      <div>
-        <label className={LABEL_CLASSES}>Countries</label>
-        <CountryPicker
-          value={settings.regions}
-          onChange={(regions) => onChange({ regions })}
-        />
-        <p className={HINT_CLASSES}>
-          Default for people who have not picked their own. Each extra country
-          widens the shared sweep for everyone.
-        </p>
-      </div>
-
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div>
-          <label className={LABEL_CLASSES}>Announce window (days)</label>
-          <input
-            type="number"
-            min={1}
-            value={settings.announceDays}
-            onChange={(e) =>
-              onChange({ announceDays: Number(e.target.value) || 1 })
-            }
-            className={INPUT_CLASSES}
-          />
-          <p className={HINT_CLASSES}>
-            How long a newly announced date stays on the banner.
-          </p>
-        </div>
-        <div>
-          <label className={LABEL_CLASSES}>Reminder, local (days)</label>
-          <input
-            type="number"
-            min={1}
-            value={settings.imminentDaysLocal}
-            onChange={(e) =>
-              onChange({ imminentDaysLocal: Number(e.target.value) || 1 })
-            }
-            className={INPUT_CLASSES}
-          />
-        </div>
-        <div>
-          <label className={LABEL_CLASSES}>Reminder, further away (days)</label>
-          <input
-            type="number"
-            min={1}
-            value={settings.imminentDaysRegional}
-            onChange={(e) =>
-              onChange({ imminentDaysRegional: Number(e.target.value) || 1 })
-            }
-            className={INPUT_CLASSES}
-          />
-          <p className={HINT_CLASSES}>
-            Longer than local on purpose: a trip needs booking.
-          </p>
-        </div>
       </div>
     </div>
   );

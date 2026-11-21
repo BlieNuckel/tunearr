@@ -3,7 +3,6 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { getDataSource } from "./db/index";
 import { createLogger } from "./logger";
-import { countryCodeError } from "../shared/countries";
 import {
   DEFAULT_PURCHASE_DECISION,
   DEFAULT_LIVE_EVENTS,
@@ -290,29 +289,7 @@ function validateLiveEventsConfig(config: LiveEventsConfig) {
     throw new Error("liveEvents.apiKey must be a string");
   }
 
-  for (const [name, value] of [
-    ["originLat", config.originLat],
-    ["originLon", config.originLon],
-  ] as const) {
-    if (value !== null && typeof value !== "number") {
-      throw new Error(`liveEvents.${name} must be a number or null`);
-    }
-  }
-  if (config.originLat !== null && Math.abs(config.originLat) > 90) {
-    throw new Error("liveEvents.originLat must be between -90 and 90");
-  }
-  if (config.originLon !== null && Math.abs(config.originLon) > 180) {
-    throw new Error("liveEvents.originLon must be between -180 and 180");
-  }
-
-  validatePositiveInt(config.sweepRadiusKm, "liveEvents.sweepRadiusKm");
   validatePositiveInt(config.bannerHorizonDays, "liveEvents.bannerHorizonDays");
-  validatePositiveInt(config.announceDays, "liveEvents.announceDays");
-  validatePositiveInt(config.imminentDaysLocal, "liveEvents.imminentDaysLocal");
-  validatePositiveInt(
-    config.imminentDaysRegional,
-    "liveEvents.imminentDaysRegional"
-  );
   validatePositiveInt(config.rosterBatchSize, "liveEvents.rosterBatchSize");
   validatePositiveInt(config.maxPagesPerRun, "liveEvents.maxPagesPerRun");
   validatePositiveInt(
@@ -340,18 +317,6 @@ function validateLiveEventsConfig(config: LiveEventsConfig) {
   }
   if (config.rosterBatchSize > 100) {
     throw new Error("liveEvents.rosterBatchSize cannot exceed 100");
-  }
-  if (!Array.isArray(config.regions)) {
-    throw new Error("liveEvents.regions must be an array");
-  }
-  for (const code of config.regions) {
-    if (typeof code !== "string") {
-      throw new Error(
-        `liveEvents.regions entries must be strings; got ${String(code)}`
-      );
-    }
-    const error = countryCodeError(code);
-    if (error) throw new Error(`liveEvents.regions: ${error}`);
   }
 }
 

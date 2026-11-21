@@ -55,19 +55,12 @@ export type EventWindow = {
   to: string;
 };
 
-export type FollowedEventsQuery = EventWindow & {
-  countries?: readonly string[] | null;
-};
+export type FollowedEventsQuery = EventWindow;
 
 export type UserLivePreferences = {
-  live_radius_km: number | null;
   live_lat: number | null;
   live_lon: number | null;
-  live_regions: string[] | null;
-  live_announce_days: number | null;
-  live_imminent_days_local: number | null;
-  live_imminent_days_regional: number | null;
-  live_banner_enabled: boolean | null;
+  live_place: string | null;
 };
 
 export type HydratedLiveEvent = LiveEvent & {
@@ -149,22 +142,6 @@ export function distanceKm(
       Math.cos(toRadians(lat2)) *
       Math.sin(dLon / 2) ** 2;
   return 2 * EARTH_RADIUS_KM * Math.asin(Math.sqrt(a));
-}
-
-export function parseLiveRegions(json: string | null): string[] | null {
-  if (json === null) return null;
-  try {
-    const parsed = JSON.parse(json) as unknown;
-    return Array.isArray(parsed)
-      ? parsed.filter((code): code is string => typeof code === "string")
-      : null;
-  } catch {
-    return null;
-  }
-}
-
-export function serializeLiveRegions(codes: string[] | null): string | null {
-  return codes === null ? null : JSON.stringify(codes);
 }
 
 function assignEventFields(row: LiveEvent, event: SweptEvent): void {
@@ -324,12 +301,6 @@ export async function findFollowedUpcomingEvents(
     })
     .andWhere("e.deletion_status IS NULL")
     .andWhere("e.disappeared_at IS NULL");
-
-  if (query.countries && query.countries.length > 0) {
-    builder.andWhere("e.venue_country IN (:...countries)", {
-      countries: [...query.countries],
-    });
-  }
 
   const events = await builder
     .distinct(true)
@@ -584,27 +555,6 @@ export async function listUsersWithResolvedFollows(): Promise<number[]> {
   return rows.map((row) => row.user_id);
 }
 
-/**
- * Union of every user's configured regions. The sweep is shared, so it has to
- * cover the union; per-user narrowing happens at read time.
- */
-export async function listLiveRegionsUnion(): Promise<string[]> {
-  const rows = await getDataSource()
-    .getRepository(User)
-    .createQueryBuilder("u")
-    .select("u.live_regions", "live_regions")
-    .where("u.live_regions IS NOT NULL")
-    .getRawMany<{ live_regions: string }>();
-
-  const union = new Set<string>();
-  for (const row of rows) {
-    for (const code of parseLiveRegions(row.live_regions) ?? []) {
-      union.add(code);
-    }
-  }
-  return [...union];
-}
-
 export async function getUserLivePreferences(
   userId: number
 ): Promise<UserLivePreferences | null> {
@@ -614,30 +564,15 @@ export async function getUserLivePreferences(
   if (!row) return null;
 
   return {
-    live_radius_km: row.live_radius_km,
     live_lat: row.live_lat,
     live_lon: row.live_lon,
-    live_regions: parseLiveRegions(row.live_regions),
-    live_announce_days: row.live_announce_days,
-    live_imminent_days_local: row.live_imminent_days_local,
-    live_imminent_days_regional: row.live_imminent_days_regional,
-    live_banner_enabled: row.live_banner_enabled,
+    live_place: row.live_place,
   };
 }
 
 export async function setUserLivePreferences(
   userId: number,
-  patch: Partial<Omit<UserLivePreferences, "live_regions">> & {
-    live_regions?: string[] | null;
-  }
+  patch: Partial<UserLivePreferences>
 ): Promise<void> {
-  const { live_regions, ...rest } = patch;
-  await getDataSource()
-    .getRepository(User)
-    .update(
-      { id: userId },
-      live_regions === undefined
-        ? rest
-        : { ...rest, live_regions: serializeLiveRegions(live_regions) }
-    );
+  await getDataSource().getRepository(User).update({ id: userId }, patch);
 }

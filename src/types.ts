@@ -237,31 +237,19 @@ export interface HighlightsData {
   items: Highlight[];
 }
 
-export interface LiveUserPreferences {
-  live_radius_km: number | null;
-  live_lat: number | null;
-  live_lon: number | null;
-  live_regions: string[] | null;
-  live_announce_days: number | null;
-  live_imminent_days_local: number | null;
-  live_imminent_days_regional: number | null;
-  live_banner_enabled: boolean | null;
-}
-
-export interface LiveCoverage {
-  originLat: number | null;
-  originLon: number | null;
-  sweepRadiusKm: number;
-  regions: string[];
-  configured: boolean;
+/** Where a user's live dates are measured from. */
+export interface LiveLocation {
+  lat: number;
+  lon: number;
+  /** What they picked ("Malmö, Skåne County, Sweden"); null for raw coordinates. */
+  place: string | null;
 }
 
 export interface LivePreferencesData {
-  preferences: LiveUserPreferences;
-  coverage: LiveCoverage;
+  location: LiveLocation | null;
 }
 
-/** A place the geocoder matched, for filling in the live events origin. */
+/** A place the geocoder matched, for setting a user's live events location. */
 export interface GeocodedPlace {
   name: string;
   region: string | null;
@@ -273,14 +261,7 @@ export interface GeocodedPlace {
 }
 
 export interface LivePreferencesPatch {
-  radiusKm?: number | null;
-  lat?: number | null;
-  lon?: number | null;
-  regions?: string[] | null;
-  announceDays?: number | null;
-  imminentDaysLocal?: number | null;
-  imminentDaysRegional?: number | null;
-  bannerEnabled?: boolean | null;
+  location: LiveLocation | null;
 }
 
 /**

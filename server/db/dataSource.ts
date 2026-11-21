@@ -41,6 +41,7 @@ import { RequestAvailable1728000000000 } from "./migration/20_RequestAvailable";
 import { LiveArtists1729000000000 } from "./migration/21_LiveArtists";
 import { LiveQuotaFromJambase1730000000000 } from "./migration/22_LiveQuotaFromJambase";
 import { LiveArtistBaseline1731000000000 } from "./migration/23_LiveArtistBaseline";
+import { LiveUserLocation1732000000000 } from "./migration/24_LiveUserLocation";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -100,6 +101,7 @@ export function createDataSource(dbPath?: string): DataSource {
       LiveArtists1729000000000,
       LiveQuotaFromJambase1730000000000,
       LiveArtistBaseline1731000000000,
+      LiveUserLocation1732000000000,
     ],
     synchronize: false,
     migrationsRun: true,

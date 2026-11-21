@@ -1,162 +1,203 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import LivePreferencesSection from "../LivePreferencesSection";
 
-function preferencesBody(overrides: Record<string, unknown> = {}) {
-  return {
-    preferences: {
-      live_radius_km: null,
-      live_lat: null,
-      live_lon: null,
-      live_regions: null,
-      live_announce_days: null,
-      live_imminent_days_local: null,
-      live_imminent_days_regional: null,
-      live_banner_enabled: null,
-      ...overrides,
-    },
-    coverage: {
-      originLat: 55.605,
-      originLon: 13.0038,
-      sweepRadiusKm: 150,
-      regions: ["SE", "DK"],
-      configured: true,
-    },
-  };
+const mockFetch = vi.fn();
+const mockGetCurrentPosition = vi.fn();
+
+const MALMO_PLACE = {
+  name: "Malmö",
+  region: "Skåne County",
+  country: "Sweden",
+  countryCode: "SE",
+  latitude: 55.6059,
+  longitude: 13.0007,
+  population: 362133,
+};
+
+type Route = { ok?: boolean; body: unknown };
+
+/** Answers each URL (and PATCH) with its own response. */
+function serve(routes: Record<string, Route>) {
+  mockFetch.mockImplementation((url: string, init?: RequestInit) => {
+    const key = init?.method === "PATCH" ? `PATCH ${url}` : url;
+    const route = routes[key] ?? routes[url];
+    return Promise.resolve({
+      ok: route?.ok ?? true,
+      json: () => Promise.resolve(route?.body ?? {}),
+    });
+  });
 }
 
-function mockFetch(body: unknown, ok = true) {
-  const fetchMock = vi.fn().mockResolvedValue({ ok, json: async () => body });
-  vi.stubGlobal("fetch", fetchMock);
-  return fetchMock;
+function patchBodies(): unknown[] {
+  return mockFetch.mock.calls
+    .filter(([, init]) => (init as RequestInit | undefined)?.method === "PATCH")
+    .map(([, init]) => JSON.parse((init as RequestInit).body as string));
 }
 
 beforeEach(() => {
-  vi.unstubAllGlobals();
   vi.clearAllMocks();
+  vi.stubGlobal("fetch", mockFetch);
+  vi.stubGlobal("isSecureContext", true);
+  vi.stubGlobal("navigator", {
+    geolocation: { getCurrentPosition: mockGetCurrentPosition },
+  });
+  serve({ "/api/live/preferences": { body: { location: null } } });
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
 });
 
 describe("LivePreferencesSection", () => {
-  it("discloses what the instance actually covers", async () => {
-    mockFetch(preferencesBody());
+  it("says there is no location yet and what that means", async () => {
+    render(<LivePreferencesSection />);
+
+    expect(await screen.findByText("Not set")).toBeInTheDocument();
+    expect(screen.getByText(/next date leads instead/)).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Clear" })
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows the place the user picked", async () => {
+    serve({
+      "/api/live/preferences": {
+        body: {
+          location: {
+            lat: 55.6,
+            lon: 13,
+            place: "Malmö, Skåne County, Sweden",
+          },
+        },
+      },
+    });
+
     render(<LivePreferencesSection />);
 
     expect(
-      await screen.findByText(/This instance covers 150 km around/)
+      await screen.findByText("Malmö, Skåne County, Sweden")
+    ).toBeInTheDocument();
+    expect(screen.getByText(/closest to here leads/)).toBeInTheDocument();
+  });
+
+  it("shows bare coordinates when there is no place name", async () => {
+    serve({
+      "/api/live/preferences": {
+        body: { location: { lat: 55.6059, lon: 13.0007, place: null } },
+      },
+    });
+
+    render(<LivePreferencesSection />);
+
+    expect(await screen.findByText("55.61, 13.00")).toBeInTheDocument();
+  });
+
+  it("saves a searched city with its name", async () => {
+    serve({
+      "/api/live/preferences": { body: { location: null } },
+      "/api/live/geocode?q=Malm%C3%B6": { body: { places: [MALMO_PLACE] } },
+    });
+    render(<LivePreferencesSection />);
+    await screen.findByText("Not set");
+
+    await userEvent.type(
+      screen.getByLabelText("Search a city"),
+      "Malmö{Enter}"
+    );
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Malmö, Skåne County, Sweden" })
+    );
+
+    await waitFor(() =>
+      expect(patchBodies()).toEqual([
+        {
+          location: {
+            lat: 55.6059,
+            lon: 13.0007,
+            place: "Malmö, Skåne County, Sweden",
+          },
+        },
+      ])
+    );
+  });
+
+  it("saves the browser's position without a name", async () => {
+    mockGetCurrentPosition.mockImplementation((onSuccess) =>
+      onSuccess({ coords: { latitude: 55.60587, longitude: 13.00073 } })
+    );
+    render(<LivePreferencesSection />);
+    await screen.findByText("Not set");
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Use my location" })
+    );
+
+    await waitFor(() =>
+      expect(patchBodies()).toEqual([
+        { location: { lat: 55.6059, lon: 13.0007, place: null } },
+      ])
+    );
+  });
+
+  it("explains a refused browser location", async () => {
+    mockGetCurrentPosition.mockImplementation((_onSuccess, onError) =>
+      onError({ code: 1 })
+    );
+    render(<LivePreferencesSection />);
+    await screen.findByText("Not set");
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Use my location" })
+    );
+
+    expect(
+      await screen.findByText(/Location permission was denied/)
     ).toBeInTheDocument();
   });
 
-  it("says so when no location has been configured", async () => {
-    mockFetch({
-      ...preferencesBody(),
-      coverage: {
-        originLat: null,
-        originLon: null,
-        sweepRadiusKm: 150,
-        regions: [],
-        configured: false,
+  it("clears the location", async () => {
+    serve({
+      "/api/live/preferences": {
+        body: { location: { lat: 55.6, lon: 13, place: "Malmö" } },
       },
     });
     render(<LivePreferencesSection />);
 
-    expect(
-      await screen.findByText(/No location has been set for this instance/)
-    ).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole("button", { name: "Clear" }));
+
+    await waitFor(() => expect(patchBodies()).toEqual([{ location: null }]));
   });
 
-  it("defaults the banner toggle to on when unset", async () => {
-    mockFetch(preferencesBody());
-    render(<LivePreferencesSection />);
-
-    expect(await screen.findByRole("checkbox")).toBeChecked();
-  });
-
-  it("saves a banner toggle", async () => {
-    const fetchMock = mockFetch(preferencesBody());
-    render(<LivePreferencesSection />);
-
-    await userEvent.click(await screen.findByRole("checkbox"));
-
-    await waitFor(() =>
-      expect(fetchMock).toHaveBeenCalledWith(
-        "/api/live/preferences",
-        expect.objectContaining({
-          method: "PATCH",
-          body: JSON.stringify({ bannerEnabled: false }),
-        })
-      )
+  it("shows why a save was refused", async () => {
+    mockGetCurrentPosition.mockImplementation((onSuccess) =>
+      onSuccess({ coords: { latitude: 55.6, longitude: 13 } })
     );
-  });
-
-  it("falls back to the instance countries when the user has none", async () => {
-    mockFetch(preferencesBody());
-    render(<LivePreferencesSection />);
-
-    expect(await screen.findByText("Sweden")).toBeInTheDocument();
-    expect(screen.getByText("Denmark")).toBeInTheDocument();
-  });
-
-  it("saves a country as soon as it is added", async () => {
-    const fetchMock = mockFetch(preferencesBody());
-    render(<LivePreferencesSection />);
-
-    await userEvent.type(await screen.findByRole("combobox"), "norw{Enter}");
-
-    await waitFor(() =>
-      expect(fetchMock).toHaveBeenCalledWith(
-        "/api/live/preferences",
-        expect.objectContaining({
-          method: "PATCH",
-          body: JSON.stringify({ regions: ["SE", "DK", "NO"] }),
-        })
-      )
-    );
-  });
-
-  it("falls back to the instance default once every country is removed", async () => {
-    const fetchMock = mockFetch(preferencesBody());
-    render(<LivePreferencesSection />);
-
-    await userEvent.click(
-      await screen.findByRole("button", { name: "Remove Sweden" })
-    );
-    // The section renders nothing while the save refreshes, so wait it out.
-    await userEvent.click(
-      await screen.findByRole("button", { name: "Remove Denmark" })
-    );
-
-    await waitFor(() =>
-      expect(fetchMock).toHaveBeenCalledWith(
-        "/api/live/preferences",
-        expect.objectContaining({ body: JSON.stringify({ regions: null }) })
-      )
-    );
-  });
-
-  it("surfaces a rejected save", async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce({ ok: true, json: async () => preferencesBody() })
-      .mockResolvedValueOnce({
+    serve({
+      "/api/live/preferences": { body: { location: null } },
+      "PATCH /api/live/preferences": {
         ok: false,
-        json: async () => ({ error: "Use GB rather than UK" }),
-      });
-    vi.stubGlobal("fetch", fetchMock);
-
+        body: { error: "That is not a valid coordinate" },
+      },
+    });
     render(<LivePreferencesSection />);
-    await userEvent.click(await screen.findByRole("checkbox"));
+    await screen.findByText("Not set");
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Use my location" })
+    );
 
     expect(
-      await screen.findByText("Use GB rather than UK")
+      await screen.findByText("That is not a valid coordinate")
     ).toBeInTheDocument();
   });
 
-  it("caps the radius input at what the instance sweeps", async () => {
-    mockFetch(preferencesBody());
-    render(<LivePreferencesSection />);
+  it("renders nothing until the location has loaded", () => {
+    mockFetch.mockImplementation(() => new Promise(() => {}));
 
-    const radius = await screen.findByDisplayValue("150");
-    expect(radius).toHaveAttribute("max", "150");
+    const { container } = render(<LivePreferencesSection />);
+
+    expect(container).toBeEmptyDOMElement();
   });
 });
