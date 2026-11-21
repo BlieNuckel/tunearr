@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const mockFindAllForUser = vi.fn();
+const mockFindGoingForUser = vi.fn();
+const mockListTouringArtists = vi.fn();
 const mockSetUserResponse = vi.fn();
 const mockMarkViewed = vi.fn();
 const mockFindEventsForArtist = vi.fn();
@@ -12,7 +13,7 @@ const mockCountLiveTracking = vi.fn();
 const mockGetArtistLiveTracking = vi.fn();
 
 vi.mock("../db/liveEvents", () => ({
-  findAllForUser: (...args: unknown[]) => mockFindAllForUser(...args),
+  findGoingForUser: (...args: unknown[]) => mockFindGoingForUser(...args),
   setUserResponse: (...args: unknown[]) => mockSetUserResponse(...args),
   markViewed: (...args: unknown[]) => mockMarkViewed(...args),
   findEventsForArtist: (...args: unknown[]) => mockFindEventsForArtist(...args),
@@ -23,6 +24,10 @@ vi.mock("../db/liveEvents", () => ({
 vi.mock("../services/liveEvents/preferences", () => ({
   readLivePreferences: (...args: unknown[]) => mockReadPreferences(...args),
   writeLivePreferences: (...args: unknown[]) => mockWritePreferences(...args),
+}));
+
+vi.mock("../services/liveEvents/tours", () => ({
+  listTouringArtists: (...args: unknown[]) => mockListTouringArtists(...args),
 }));
 
 vi.mock("../api/openMeteo/geocoding", () => ({
@@ -99,7 +104,8 @@ function storedEvent(overrides: Record<string, unknown> = {}) {
 beforeEach(() => {
   vi.clearAllMocks();
   callerPermissions = ADMIN_AND_REQUEST;
-  mockFindAllForUser.mockResolvedValue([]);
+  mockFindGoingForUser.mockResolvedValue([]);
+  mockListTouringArtists.mockResolvedValue({ hasLocation: false, tours: [] });
   mockSetUserResponse.mockResolvedValue({});
   mockMarkViewed.mockResolvedValue({});
   mockFindEventsForArtist.mockResolvedValue([]);
@@ -114,39 +120,57 @@ beforeEach(() => {
   mockWritePreferences.mockResolvedValue({ location: null });
 });
 
-describe("GET /events", () => {
-  it("returns upcoming events by default", async () => {
-    mockFindAllForUser.mockResolvedValue([storedEvent()]);
+describe("GET /tours", () => {
+  it("returns one row per touring artist with the date to lead with", async () => {
+    mockListTouringArtists.mockResolvedValue({
+      hasLocation: true,
+      tours: [
+        {
+          artistMbid: "mbid-yves",
+          artistName: "Yves Tumor",
+          jambaseArtistId: "jambase:1",
+          dates: [storedEvent(), storedEvent({ id: 2 })],
+          closest: storedEvent(),
+          distanceKm: 2.4,
+        },
+      ],
+    });
 
-    const res = await request(app).get("/events");
+    const res = await request(app).get("/tours");
 
     expect(res.status).toBe(200);
-    expect(res.body.events).toHaveLength(1);
-    expect(mockFindAllForUser.mock.calls[0][1]).toMatchObject({ past: false });
-  });
-
-  it("passes the past flag through", async () => {
-    await request(app).get("/events?past=true");
-    expect(mockFindAllForUser.mock.calls[0][1]).toMatchObject({ past: true });
-  });
-
-  it("passes a valid response filter through", async () => {
-    await request(app).get("/events?response=going");
-    expect(mockFindAllForUser.mock.calls[0][1]).toMatchObject({
-      response: "going",
+    expect(mockListTouringArtists).toHaveBeenCalledWith(7);
+    expect(res.body).toEqual({
+      hasLocation: true,
+      tours: [
+        {
+          artistMbid: "mbid-yves",
+          artistName: "Yves Tumor",
+          dateCount: 2,
+          closest: expect.objectContaining({ eventKey: "jambase:100" }),
+          distanceKm: 2.4,
+        },
+      ],
     });
   });
+});
 
-  it("rejects an unknown response filter", async () => {
-    const res = await request(app).get("/events?response=maybe");
+describe("GET /going", () => {
+  it("returns the caller's going shows from today on", async () => {
+    mockFindGoingForUser.mockResolvedValue([
+      storedEvent({ state: { response: "going", viewed_at: null } }),
+    ]);
 
-    expect(res.status).toBe(400);
-    expect(mockFindAllForUser).not.toHaveBeenCalled();
-  });
+    const res = await request(app).get("/going");
 
-  it("omits the filter entirely when none is given", async () => {
-    await request(app).get("/events");
-    expect(mockFindAllForUser.mock.calls[0][1]).not.toHaveProperty("response");
+    expect(res.status).toBe(200);
+    expect(res.body.events).toEqual([
+      expect.objectContaining({ eventKey: "jambase:100", response: "going" }),
+    ]);
+    expect(mockFindGoingForUser).toHaveBeenCalledWith(
+      7,
+      expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/)
+    );
   });
 });
 

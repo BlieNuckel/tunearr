@@ -4,14 +4,18 @@ import { requirePermission } from "../middleware/requirePermission";
 import { Permission } from "../../shared/permissions";
 import { ApiError } from "../middleware/ApiError";
 import {
-  findAllForUser,
   findEventsForArtist,
+  findGoingForUser,
   findJambaseIdForArtistMbid,
   markViewed,
   setUserResponse,
 } from "../db/liveEvents";
 import type { LiveEventResponse } from "../db/index";
-import { serializeLiveEvent } from "../services/liveEvents/serialize";
+import {
+  serializeLiveEvent,
+  serializeTour,
+} from "../services/liveEvents/serialize";
+import { listTouringArtists } from "../services/liveEvents/tours";
 import {
   readLivePreferences,
   writeLivePreferences,
@@ -66,20 +70,17 @@ router.get(
   }
 );
 
-router.get("/events", async (req: Request, res: Response) => {
-  const past = req.query.past === "true";
-  const response = req.query.response as LiveEventResponse | undefined;
+/** One row per touring followed artist, nearest first. */
+router.get("/tours", async (req: Request, res: Response) => {
+  const { hasLocation, tours } = await listTouringArtists(req.user!.id);
+  res.json({ hasLocation, tours: tours.map(serializeTour) });
+});
 
-  if (response !== undefined && !RESPONSES.includes(response)) {
-    throw new ApiError(400, "Invalid response filter");
-  }
-
-  const events = await findAllForUser(req.user!.id, {
-    past,
-    now: new Date().toISOString().slice(0, 10),
-    ...(response === undefined ? {} : { response }),
-  });
-
+router.get("/going", async (req: Request, res: Response) => {
+  const events = await findGoingForUser(
+    req.user!.id,
+    new Date().toISOString().slice(0, 10)
+  );
   res.json({ events: events.map(serializeLiveEvent) });
 });
 

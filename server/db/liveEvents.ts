@@ -333,37 +333,25 @@ export async function findEventsForArtist(
   return hydrate(events, userId);
 }
 
-export async function findAllForUser(
+/** Upcoming shows the user said they are going to, in date order, whatever their status. */
+export async function findGoingForUser(
   userId: number,
-  filters: { response?: LiveEventResponse | null; past?: boolean; now: string }
+  now: string
 ): Promise<HydratedLiveEvent[]> {
-  const builder = eventRepo()
+  const events = await eventRepo()
     .createQueryBuilder("e")
-    .innerJoin(LiveEventPerformer, "p", "p.event_id = e.id")
-    .innerJoin(LiveArtist, "la", "la.jambase_artist_id = p.artist_jambase_id")
     .innerJoin(
-      FollowedArtist,
-      "fa",
-      "fa.artist_mbid = la.artist_mbid AND fa.user_id = :userId",
+      UserLiveEventState,
+      "s",
+      "s.event_id = e.id AND s.user_id = :userId AND s.response = 'going'",
       { userId }
     )
-    .where("e.deletion_status IS NULL");
-
-  builder.andWhere(
-    filters.past ? "e.event_date < :now" : "e.event_date >= :now",
-    { now: filters.now }
-  );
-
-  const events = await builder
-    .distinct(true)
-    .orderBy("e.event_date", filters.past ? "DESC" : "ASC")
+    .where("e.deletion_status IS NULL")
+    .andWhere("e.event_date >= :now", { now })
+    .orderBy("e.event_date", "ASC")
     .getMany();
 
-  const hydrated = await hydrate(events, userId);
-  if (filters.response === undefined) return hydrated;
-  return hydrated.filter(
-    (event) => (event.state?.response ?? null) === filters.response
-  );
+  return hydrate(events, userId);
 }
 
 async function upsertState(

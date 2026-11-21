@@ -7,7 +7,7 @@ import {
   applyTombstones,
   findFollowedUpcomingEvents,
   findEventsForArtist,
-  findAllForUser,
+  findGoingForUser,
   setUserResponse,
   markViewed,
   markNotified,
@@ -407,9 +407,8 @@ describe("findEventsForArtist", () => {
   });
 });
 
-describe("findAllForUser", () => {
+describe("findGoingForUser", () => {
   let userId: number;
-  let futureId: number;
 
   beforeEach(async () => {
     userId = await createUser("lasse");
@@ -417,45 +416,45 @@ describe("findAllForUser", () => {
     await upsertSweptEvents(
       [
         event({ event_key: "jambase:past", event_date: "2026-01-01" }),
-        event({ event_key: "jambase:future", event_date: "2026-12-01" }),
+        event({ event_key: "jambase:later", event_date: "2026-12-01" }),
+        event({ event_key: "jambase:sooner", event_date: "2026-10-01" }),
+        event({ event_key: "jambase:skipped", event_date: "2026-11-01" }),
       ],
       SWEPT_AT
     );
-    futureId = await eventIdFor("jambase:future");
+    for (const key of ["jambase:past", "jambase:later", "jambase:sooner"]) {
+      await setUserResponse(userId, await eventIdFor(key), "going", SWEPT_AT);
+    }
+    await setUserResponse(
+      userId,
+      await eventIdFor("jambase:skipped"),
+      "dismissed",
+      SWEPT_AT
+    );
   });
 
-  it("separates upcoming from past", async () => {
-    const upcoming = await findAllForUser(userId, { now: "2026-08-17" });
-    expect(upcoming.map((e) => e.event_key)).toEqual(["jambase:future"]);
-
-    const past = await findAllForUser(userId, {
-      now: "2026-08-17",
-      past: true,
-    });
-    expect(past.map((e) => e.event_key)).toEqual(["jambase:past"]);
+  it("lists upcoming shows marked going, soonest first", async () => {
+    const going = await findGoingForUser(userId, "2026-08-17");
+    expect(going.map((e) => e.event_key)).toEqual([
+      "jambase:sooner",
+      "jambase:later",
+    ]);
   });
 
-  it("filters by response when one is given", async () => {
-    await setUserResponse(userId, futureId, "dismissed", SWEPT_AT);
-
-    expect(
-      (
-        await findAllForUser(userId, {
-          now: "2026-08-17",
-          response: "dismissed",
-        })
-      ).map((e) => e.event_key)
-    ).toEqual(["jambase:future"]);
-
-    expect(
-      await findAllForUser(userId, { now: "2026-08-17", response: "going" })
-    ).toEqual([]);
+  it("keeps a show that dropped out of the sweep", async () => {
+    await markDisappeared("jambase:later", SWEPT_AT);
+    const going = await findGoingForUser(userId, "2026-08-17");
+    expect(going.map((e) => e.event_key)).toContain("jambase:later");
   });
 
-  it("includes disappeared events, unlike the banner read", async () => {
-    await markDisappeared("jambase:future", SWEPT_AT);
-    const upcoming = await findAllForUser(userId, { now: "2026-08-17" });
-    expect(upcoming.map((e) => e.event_key)).toEqual(["jambase:future"]);
+  it("keeps a show after the artist is unfollowed", async () => {
+    await getDataSource().query("DELETE FROM followed_artists");
+    expect(await findGoingForUser(userId, "2026-08-17")).toHaveLength(2);
+  });
+
+  it("is per user", async () => {
+    const other = await createUser("someone");
+    expect(await findGoingForUser(other, "2026-08-17")).toEqual([]);
   });
 });
 
