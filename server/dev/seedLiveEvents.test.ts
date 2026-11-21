@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { SEED_LIVE_EVENTS, SEED_FOLLOWED_ARTISTS } from "./seedLiveEvents";
+import {
+  SCENARIO_LIVE_EVENTS,
+  SEED_LIVE_EVENTS,
+  SEED_FOLLOWED_ARTISTS,
+} from "./seedLiveEvents";
+import { distanceKm } from "../db/liveEvents";
 
 const KEYS = SEED_LIVE_EVENTS.map((event) => event.key);
 const FOLLOWED_IDS = new Set(
@@ -29,39 +34,64 @@ describe("seed data shape", () => {
 });
 
 describe("state coverage", () => {
-  it("covers a just-announced local show for the banner", () => {
+  it("covers an artist whose dates were all cancelled, so their first new date is news", () => {
+    const upcoming = (artist: string) =>
+      find(
+        (e) =>
+          e.dayOffset > 0 &&
+          e.status !== "cancelled" &&
+          e.performers.some((p) => p.jambaseId === artist)
+      );
+    const cancelledOnly = SEED_FOLLOWED_ARTISTS.filter(
+      (artist) =>
+        upcoming(artist.jambaseId).length === 0 &&
+        find((e) =>
+          e.performers.some((p) => p.jambaseId === artist.jambaseId)
+        ).some((e) => e.status === "cancelled")
+    );
+    expect(cancelledOnly).not.toHaveLength(0);
+  });
+
+  it("covers an artist with several upcoming dates to pick the closest from", () => {
+    const counts = new Map<string, number>();
+    for (const event of find(
+      (e) => e.dayOffset > 0 && e.status !== "cancelled"
+    )) {
+      const lead = event.performers.find((p) => p.isHeadliner)!.jambaseId;
+      counts.set(lead, (counts.get(lead) ?? 0) + 1);
+    }
+    expect([...counts.values()].some((count) => count > 1)).toBe(true);
+  });
+
+  it("covers a recent change to a show the user is going to", () => {
     expect(
       find(
-        (e) => e.seenDaysAgo <= 14 && e.dayOffset > 0 && e.venueCountry === "SE"
+        (e) =>
+          e.adminResponse === "going" &&
+          e.status !== "scheduled" &&
+          (e.statusChangedDaysAgo ?? 99) < 14
       )
     ).not.toHaveLength(0);
   });
 
-  it("covers a show that is only in the imminent window", () => {
+  it("covers an old change nobody is going to, which stays quiet", () => {
     expect(
-      find((e) => e.seenDaysAgo > 14 && e.dayOffset <= 21)
+      find(
+        (e) =>
+          e.status !== "scheduled" &&
+          e.adminResponse !== "going" &&
+          (e.statusChangedDaysAgo ?? 0) > 14
+      )
     ).not.toHaveLength(0);
   });
 
-  it("covers a regional show", () => {
-    expect(find((e) => e.venueCountry !== "SE")).not.toHaveLength(0);
-  });
-
-  it("covers the quiet gap between both windows", () => {
-    expect(
-      find((e) => e.seenDaysAgo > 14 && e.dayOffset > 45)
-    ).not.toHaveLength(0);
+  it("covers a venue without coordinates", () => {
+    expect(find((e) => e.lat === null || e.lon === null)).not.toHaveLength(0);
   });
 
   it("covers each non-scheduled status", () => {
-    for (const status of ["cancelled", "rescheduled"]) {
+    for (const status of ["cancelled", "rescheduled", "postponed"]) {
       expect(find((e) => e.status === status)).not.toHaveLength(0);
-    }
-  });
-
-  it("keeps status changes old enough not to hijack the banner by default", () => {
-    for (const event of find((e) => e.status !== "scheduled")) {
-      expect(event.statusChangedDaysAgo).toBeGreaterThan(14);
     }
   });
 
@@ -91,5 +121,48 @@ describe("state coverage", () => {
 
   it("covers a multi-artist bill", () => {
     expect(find((e) => e.performers.length > 1)).not.toHaveLength(0);
+  });
+});
+
+describe("announce scenario", () => {
+  const MALMO = { lat: 55.605, lon: 13.0038 };
+
+  function headliner(event: (typeof SEED_LIVE_EVENTS)[number]): string {
+    return event.performers.find((p) => p.isHeadliner)!.jambaseId;
+  }
+
+  function distance(event: (typeof SEED_LIVE_EVENTS)[number]): number {
+    return distanceKm(MALMO.lat, MALMO.lon, event.lat!, event.lon!);
+  }
+
+  it("uses keys the seed does not", () => {
+    for (const event of SCENARIO_LIVE_EVENTS) {
+      expect(KEYS).not.toContain(event.key);
+    }
+  });
+
+  it("gives an artist with no upcoming dates their first one", () => {
+    const [first] = SCENARIO_LIVE_EVENTS;
+    const before = find(
+      (e) =>
+        headliner(e) === headliner(first) &&
+        e.dayOffset > 0 &&
+        e.status !== "cancelled"
+    );
+    expect(before).toEqual([]);
+  });
+
+  it("gives another artist a date closer than any they had", () => {
+    const [, closer] = SCENARIO_LIVE_EVENTS;
+    const before = find(
+      (e) =>
+        headliner(e) === headliner(closer) &&
+        e.dayOffset > 0 &&
+        e.status !== "cancelled"
+    );
+    expect(before).not.toHaveLength(0);
+    for (const event of before) {
+      expect(distance(closer)).toBeLessThan(distance(event));
+    }
   });
 });

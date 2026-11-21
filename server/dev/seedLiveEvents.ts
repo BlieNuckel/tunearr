@@ -12,6 +12,9 @@ import {
   recordArtistResolution,
   setUserLivePreferences,
 } from "../db/liveEvents";
+import { listArtistStates, saveArtistState } from "../db/liveArtistState";
+import { snapshotOf } from "../services/liveEvents/baseline";
+import { listUserTours } from "../services/liveEvents/tours";
 
 export type SeedFollowedArtist = {
   mbid: string;
@@ -30,17 +33,18 @@ export type SeedLiveEvent = {
   name: string;
   /** Days from today. Negative is in the past. */
   dayOffset: number;
-  /** How long ago we first saw it, which drives the announce window. */
+  /** How long ago we first saw it. */
   seenDaysAgo: number;
   status: LiveEventStatus;
-  /** Only set for a non-scheduled status; controls the override window. */
+  /** Only set for a non-scheduled status. Under 14 days is news for anyone going. */
   statusChangedDaysAgo?: number;
   previousStartDayOffset?: number;
   venueName: string;
   venueCity: string;
   venueCountry: string;
-  lat: number;
-  lon: number;
+  /** Null for a venue JamBase gave no coordinates for. */
+  lat: number | null;
+  lon: number | null;
   ticketUrl: string | null;
   performers: SeedLivePerformer[];
   /** Per-user state for the admin account, so every tab has something in it. */
@@ -49,7 +53,7 @@ export type SeedLiveEvent = {
   note: string;
 };
 
-/** Malmö, so the seeded local shows land inside a default sweep radius. */
+/** Malmö: the seeded user's location, so tours lead with a closest date. */
 const ORIGIN = { lat: 55.605, lon: 13.0038 };
 
 const AMIRALEN = {
@@ -137,7 +141,7 @@ export const SEED_LIVE_EVENTS: SeedLiveEvent[] = [
     ...AMIRALEN,
     ticketUrl: "https://example.test/tickets/yves",
     performers: [performer(YVES), performer(JOCKSTRAP, false)],
-    note: "highlights: just announced, local",
+    note: "Yves Tumor's closest date, 1 km away",
   },
   {
     key: "jambase:seed-2",
@@ -148,7 +152,7 @@ export const SEED_LIVE_EVENTS: SeedLiveEvent[] = [
     ...PLAN_B,
     ticketUrl: "https://example.test/tickets/bar-italia",
     performers: [performer(BAR_ITALIA)],
-    note: "highlights: coming up soon, local (announce window long gone)",
+    note: "bar italia's closest date (the card is seeded as just notified)",
   },
   {
     key: "jambase:seed-3",
@@ -159,7 +163,7 @@ export const SEED_LIVE_EVENTS: SeedLiveEvent[] = [
     ...VEGA,
     ticketUrl: "https://example.test/tickets/jockstrap",
     performers: [performer(JOCKSTRAP)],
-    note: "highlights: regional, inside the longer travel window",
+    note: "Jockstrap in Copenhagen, further than the Malmö date",
   },
   {
     key: "jambase:seed-4",
@@ -170,7 +174,7 @@ export const SEED_LIVE_EVENTS: SeedLiveEvent[] = [
     ...BERGHAIN,
     ticketUrl: "https://example.test/tickets/radiohead",
     performers: [performer(RADIOHEAD)],
-    note: "quiet: between both windows, /library/live only",
+    note: "Radiohead's only upcoming date, 600 km away",
   },
   {
     key: "jambase:seed-5",
@@ -184,7 +188,7 @@ export const SEED_LIVE_EVENTS: SeedLiveEvent[] = [
     ticketUrl: null,
     performers: [performer(NOURISHED)],
     adminNotified: true,
-    note: "cancelled pill",
+    note: "cancelled, so Nourished by Time has no dates left",
   },
   {
     key: "jambase:seed-6",
@@ -198,7 +202,7 @@ export const SEED_LIVE_EVENTS: SeedLiveEvent[] = [
     ticketUrl: "https://example.test/tickets/yves-vega",
     performers: [performer(YVES)],
     adminNotified: true,
-    note: "rescheduled pill with a moved-from date",
+    note: "rescheduled weeks ago, nobody going: no change card",
   },
   {
     key: "jambase:seed-7",
@@ -211,7 +215,7 @@ export const SEED_LIVE_EVENTS: SeedLiveEvent[] = [
     performers: [performer(JOCKSTRAP)],
     adminResponse: "going",
     adminNotified: true,
-    note: "/library/live Going tab",
+    note: "/library/live Going tab; Jockstrap's closest, so no Going button",
   },
   {
     key: "jambase:seed-8",
@@ -248,6 +252,64 @@ export const SEED_LIVE_EVENTS: SeedLiveEvent[] = [
     ticketUrl: null,
     performers: [performer(BAR_ITALIA)],
     note: "second date for the same artist, no ticket link",
+  },
+  {
+    key: "jambase:seed-13",
+    name: "Yves Tumor at Plan B",
+    dayOffset: 9,
+    seenDaysAgo: 30,
+    status: "postponed",
+    statusChangedDaysAgo: 2,
+    ...PLAN_B,
+    ticketUrl: "https://example.test/tickets/yves-plan-b",
+    performers: [performer(YVES)],
+    adminResponse: "going",
+    note: "postponed 2 days ago, admin going: urgent card",
+  },
+  {
+    key: "jambase:seed-14",
+    name: "Jockstrap at a secret venue",
+    dayOffset: 8,
+    seenDaysAgo: 10,
+    status: "scheduled",
+    venueName: "Secret venue",
+    venueCity: "Lund",
+    venueCountry: "SE",
+    lat: null,
+    lon: null,
+    ticketUrl: null,
+    performers: [performer(JOCKSTRAP)],
+    note: "no coordinates: soonest Jockstrap date, but skipped for closest",
+  },
+];
+
+/**
+ * Dates `pnpm dev:live announce` adds after the baseline is recorded, so the
+ * notifier has something to say: Nourished by Time's first date since its only
+ * one was cancelled, and a Radiohead date closer than Berlin.
+ */
+export const SCENARIO_LIVE_EVENTS: SeedLiveEvent[] = [
+  {
+    key: "jambase:seed-announce-1",
+    name: "Nourished by Time at VEGA",
+    dayOffset: 40,
+    seenDaysAgo: 0,
+    status: "scheduled",
+    ...VEGA,
+    ticketUrl: "https://example.test/tickets/nourished-vega",
+    performers: [performer(NOURISHED)],
+    note: 'first date: "Nourished by Time announced a date"',
+  },
+  {
+    key: "jambase:seed-announce-2",
+    name: "Radiohead at VEGA",
+    dayOffset: 120,
+    seenDaysAgo: 0,
+    status: "scheduled",
+    ...VEGA,
+    ticketUrl: "https://example.test/tickets/radiohead-vega",
+    performers: [performer(RADIOHEAD)],
+    note: 'closer than Berlin: "Radiohead added a date closer to you"',
   },
 ];
 
@@ -302,7 +364,7 @@ async function seedFollows(
   return created;
 }
 
-async function seedOneEvent(
+export async function seedOneEvent(
   seed: SeedLiveEvent,
   userId: number
 ): Promise<boolean> {
@@ -368,8 +430,36 @@ async function seedOneEvent(
   return true;
 }
 
+/**
+ * Seed dates are relative to the day the seed runs, so rows from an earlier run
+ * drift into the past. Each run replaces them (performers and per-user state go
+ * with them) and resets the seeded artists' tour baselines, which also undoes
+ * `pnpm dev:live announce`.
+ */
+async function clearSeededLiveEvents(userId: number): Promise<number> {
+  const ds = getDataSource();
+  const [{ count }] = (await ds.query(
+    "SELECT COUNT(*) AS count FROM live_events WHERE event_key LIKE 'jambase:seed-%'"
+  )) as { count: number }[];
+  await ds.query(
+    "DELETE FROM live_events WHERE event_key LIKE 'jambase:seed-%'"
+  );
+
+  const mbids = SEED_FOLLOWED_ARTISTS.map((artist) => artist.mbid);
+  await ds.query(
+    `DELETE FROM user_live_artist_state
+     WHERE user_id = ? AND artist_mbid IN (${mbids.map(() => "?").join(", ")})`,
+    [userId, ...mbids]
+  );
+  return Number(count);
+}
+
 export async function seedLiveEvents(userId: number): Promise<void> {
   await seedUserLocation(userId);
+  const cleared = await clearSeededLiveEvents(userId);
+  if (cleared > 0) {
+    console.log(`  replaced ${cleared} live event(s) from an earlier run`);
+  }
 
   const follows = await seedFollows(
     getDataSource().getRepository(FollowedArtist),
@@ -390,4 +480,33 @@ export async function seedLiveEvents(userId: number): Promise<void> {
   }
 
   console.log(`  created ${created} live event(s), skipped ${skipped}`);
+
+  if (await seedFreshTour(userId, BAR_ITALIA)) {
+    console.log(
+      `  ${BAR_ITALIA.name} marked as just notified ("New tour dates")`
+    );
+  }
+}
+
+/**
+ * Records one artist as notified two days ago, so Home shows the "New tour
+ * dates" card without a JamBase key. Every other artist is left without a
+ * baseline, which Home records silently on first load, like a new follow.
+ */
+async function seedFreshTour(
+  userId: number,
+  artist: SeedFollowedArtist
+): Promise<boolean> {
+  const existing = await listArtistStates(userId);
+  if (existing.some((state) => state.artist_mbid === artist.mbid)) return false;
+
+  const { origin, tours } = await listUserTours(userId);
+  const tour = tours.find((t) => t.artistMbid === artist.mbid);
+  if (!tour) return false;
+
+  await saveArtistState(userId, artist.mbid, {
+    ...snapshotOf(tour, origin, isoDaysAgo(2)),
+    notified_at: isoDaysAgo(2),
+  });
+  return true;
 }
