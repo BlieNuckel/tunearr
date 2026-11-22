@@ -2,13 +2,12 @@ import { Link } from "react-router-dom";
 import useLiveTours from "@/hooks/useLiveTours";
 import type { LiveTourSummary } from "@/types";
 import {
-  AllDatesLink,
   GoingBadge,
-  LiveListStatus,
   StatusBadge,
   TicketsLink,
-} from "./LiveEventBits";
-import { whereAndWhen } from "./liveFormat";
+} from "@/components/live/LiveEventBits";
+import { whereAndWhen } from "@/utils/liveFormat";
+import { AllDatesLink, LiveListStatus } from "./LiveEventBits";
 
 /** Says whether the date shown is the closest or just the next one, and how far. */
 function tourLine(tour: LiveTourSummary): string {

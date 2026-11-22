@@ -25,10 +25,16 @@ export function headliner(event: LiveEventSummary): string {
   return lead?.name ?? event.performers[0]?.name ?? event.name;
 }
 
-/** "Amiralen, Malmö, SE · Fri, 5 Sept 2026": where and when, in one line. */
-export function whereAndWhen(event: LiveEventSummary): string {
-  const place = [event.venueName, event.venueCity, event.venueCountry]
+/** "Amiralen, Malmö, SE": whichever of venue, city and country are known. */
+export function venueLine(event: LiveEventSummary): string {
+  return [event.venueName, event.venueCity, event.venueCountry]
     .filter(Boolean)
     .join(", ");
-  return [place, formatDate(event.eventDate)].filter(Boolean).join(" · ");
+}
+
+/** "Amiralen, Malmö, SE · Fri, 5 Sept 2026": where and when, in one line. */
+export function whereAndWhen(event: LiveEventSummary): string {
+  return [venueLine(event), formatDate(event.eventDate)]
+    .filter(Boolean)
+    .join(" · ");
 }

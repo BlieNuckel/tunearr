@@ -1,8 +1,5 @@
-import {
-  StatusBadge,
-  TicketsLink,
-} from "@/pages/LibraryPage/components/live/LiveEventBits";
-import { formatDate } from "@/pages/LibraryPage/components/live/liveFormat";
+import { StatusBadge, TicketsLink } from "@/components/live/LiveEventBits";
+import { formatDate, venueLine } from "@/utils/liveFormat";
 import type { LiveEventSummary, LiveTrackingState } from "@/types";
 
 interface ArtistLiveDatesProps {
@@ -54,9 +51,7 @@ export default function ArtistLiveDates({
               <StatusBadge status={event.status} />
             </div>
             <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
-              {[event.venueName, event.venueCity, event.venueCountry]
-                .filter(Boolean)
-                .join(", ")}
+              {venueLine(event)}
             </p>
           </div>
           <TicketsLink url={event.ticketUrl} />

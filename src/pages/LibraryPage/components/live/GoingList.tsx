@@ -1,7 +1,8 @@
 import useGoingShows from "@/hooks/useGoingShows";
 import type { LiveEventSummary } from "@/types";
-import { LiveListStatus, StatusBadge, TicketsLink } from "./LiveEventBits";
-import { headliner, whereAndWhen } from "./liveFormat";
+import { StatusBadge, TicketsLink } from "@/components/live/LiveEventBits";
+import { headliner, whereAndWhen } from "@/utils/liveFormat";
+import { LiveListStatus } from "./LiveEventBits";
 
 function GoingRow({ event }: { event: LiveEventSummary }) {
   return (
