@@ -1,5 +1,6 @@
 import { useState } from "react";
 import Modal from "@/components/Modal";
+import ModalHeader from "@/components/ModalHeader";
 
 type SetupResult = {
   indexer: { success: boolean; error?: string };
@@ -64,9 +65,7 @@ export default function AutoSetupModal({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
-      <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-        Set Up in Lidarr
-      </h2>
+      <ModalHeader title="Set Up in Lidarr" className="mb-4" />
       <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
         Enter the host and port that Lidarr should use to reach this app. This
         will create a Torznab indexer and SABnzbd download client in Lidarr.

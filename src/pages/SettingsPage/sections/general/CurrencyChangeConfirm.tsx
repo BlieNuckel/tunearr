@@ -2,6 +2,8 @@ import Modal from "@/components/Modal";
 import useAsyncData, { type FetchContext } from "@/hooks/useAsyncData";
 import { formatCurrency } from "@shared/currency";
 import type { SpendingSummary } from "@/types";
+import ModalHeader from "@/components/ModalHeader";
+import { SECONDARY_BUTTON } from "@/components/buttonStyles";
 
 interface CurrencyChangeConfirmProps {
   /** The currency being switched to; null while closed. */
@@ -11,9 +13,6 @@ interface CurrencyChangeConfirmProps {
   onConfirm: (currency: string) => void;
   onCancel: () => void;
 }
-
-const SECONDARY_BUTTON_CLASSES =
-  "w-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 font-medium py-2 px-4 rounded-xl border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all";
 
 const PRIMARY_BUTTON_CLASSES =
   "w-full bg-amber-400 hover:bg-amber-300 text-black font-bold py-3 px-4 rounded-xl border-2 border-black shadow-cartoon-md hover:translate-y-[-2px] hover:shadow-cartoon-lg active:translate-y-[1px] active:shadow-cartoon-pressed transition-all";
@@ -69,9 +68,7 @@ export default function CurrencyChangeConfirm({
   return (
     <Modal isOpen={to !== null} onClose={onCancel}>
       <div className="space-y-4">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-          Switch to {to}?
-        </h2>
+        <ModalHeader title={`Switch to ${to}?`} />
         {sentences.map((s) => (
           <p key={s} className="text-gray-500 dark:text-gray-400 text-sm">
             {s}
@@ -86,7 +83,7 @@ export default function CurrencyChangeConfirm({
         >
           Switch to {to}
         </button>
-        <button onClick={onCancel} className={SECONDARY_BUTTON_CLASSES}>
+        <button onClick={onCancel} className={`w-full ${SECONDARY_BUTTON}`}>
           Keep {from}
         </button>
       </div>

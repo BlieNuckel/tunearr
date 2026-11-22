@@ -5,6 +5,8 @@ import PurchaseDecisionBanner from "./PurchaseDecisionBanner";
 import { ExternalLinkIcon } from "@/components/icons";
 import usePurchaseContext from "@/hooks/usePurchaseContext";
 import type { LabelInfo } from "@/hooks/usePurchaseContext";
+import ModalHeader from "./ModalHeader";
+import { SECONDARY_BUTTON } from "./buttonStyles";
 
 interface PurchaseLinksModalProps {
   isOpen: boolean;
@@ -77,20 +79,17 @@ export default function PurchaseLinksModal({
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
       <div className="space-y-4">
-        <div>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-            Purchase Options
-          </h2>
-          <p className="text-gray-500 dark:text-gray-400 text-sm">
-            {albumTitle} by {artistName}
-          </p>
+        <ModalHeader
+          title="Purchase Options"
+          subtitle={`${albumTitle} by ${artistName}`}
+        >
           {context?.label && (
             <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">
               {context.label.name}
               <LabelInfoLinks label={context.label} />
             </p>
           )}
-        </div>
+        </ModalHeader>
 
         <PurchaseDecisionBanner
           context={context}
@@ -114,16 +113,13 @@ export default function PurchaseLinksModal({
               </button>
               <button
                 onClick={onClose}
-                className="w-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 font-medium py-2 px-4 rounded-xl border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all"
+                className={`w-full ${SECONDARY_BUTTON}`}
               >
                 Cancel
               </button>
             </>
           ) : (
-            <button
-              onClick={onClose}
-              className="w-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 font-medium py-2 px-4 rounded-xl border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all"
-            >
+            <button onClick={onClose} className={`w-full ${SECONDARY_BUTTON}`}>
               Close
             </button>
           )}

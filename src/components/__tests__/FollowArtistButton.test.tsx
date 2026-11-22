@@ -102,4 +102,74 @@ describe("FollowArtistButton", () => {
       expect(deleteCall?.[0]).toBe("/api/followed/mbid-1");
     });
   });
+
+  describe("onFollowed", () => {
+    const followed = {
+      id: 1,
+      artistMbid: "mbid-1",
+      artistName: "X",
+      lastCheckedAt: null,
+      createdAt: "2025-01-01",
+    };
+
+    it("is called after a follow succeeds", async () => {
+      const onFollowed = vi.fn();
+      vi.mocked(fetch)
+        .mockResolvedValueOnce(jsonResponse([]))
+        .mockResolvedValueOnce(jsonResponse({ status: "added", id: 1 }))
+        .mockResolvedValueOnce(jsonResponse([followed]));
+
+      render(
+        <FollowArtistButton
+          artistMbid="mbid-1"
+          artistName="X"
+          onFollowed={onFollowed}
+        />
+      );
+      fireEvent.click(await screen.findByRole("button", { name: "Follow X" }));
+
+      await waitFor(() => expect(onFollowed).toHaveBeenCalledTimes(1));
+    });
+
+    it("is not called when the follow fails", async () => {
+      const onFollowed = vi.fn();
+      vi.mocked(fetch)
+        .mockResolvedValueOnce(jsonResponse([]))
+        .mockResolvedValueOnce(jsonResponse({ error: "nope" }, 500));
+
+      render(
+        <FollowArtistButton
+          artistMbid="mbid-1"
+          artistName="X"
+          onFollowed={onFollowed}
+        />
+      );
+      const button = await screen.findByRole("button", { name: "Follow X" });
+      fireEvent.click(button);
+
+      await waitFor(() => expect(button).toHaveAttribute("title", "nope"));
+      expect(onFollowed).not.toHaveBeenCalled();
+    });
+
+    it("is not called on unfollow", async () => {
+      const onFollowed = vi.fn();
+      vi.mocked(fetch)
+        .mockResolvedValueOnce(jsonResponse([followed]))
+        .mockResolvedValueOnce(jsonResponse({ status: "removed" }));
+
+      render(
+        <FollowArtistButton
+          artistMbid="mbid-1"
+          artistName="X"
+          onFollowed={onFollowed}
+        />
+      );
+      fireEvent.click(
+        await screen.findByRole("button", { name: "Unfollow X" })
+      );
+
+      await screen.findByRole("button", { name: "Follow X" });
+      expect(onFollowed).not.toHaveBeenCalled();
+    });
+  });
 });

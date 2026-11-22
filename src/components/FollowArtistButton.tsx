@@ -8,6 +8,8 @@ type FollowArtistButtonProps = {
   size?: "sm" | "md";
   showLabel?: boolean;
   className?: string;
+  /** Called after a follow succeeds; not after an unfollow. */
+  onFollowed?: () => void;
 };
 
 const SIZE_STYLES = {
@@ -21,6 +23,7 @@ export default function FollowArtistButton({
   size = "md",
   showLabel = true,
   className = "",
+  onFollowed,
 }: FollowArtistButtonProps) {
   const { isFollowing, follow, unfollow } = useFollowedArtists();
   const [busy, setBusy] = useState(false);
@@ -41,6 +44,7 @@ export default function FollowArtistButton({
         await unfollow(artistMbid);
       } else {
         await follow(artistMbid, artistName);
+        onFollowed?.();
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed");

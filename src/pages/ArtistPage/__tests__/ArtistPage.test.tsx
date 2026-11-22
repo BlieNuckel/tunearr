@@ -2,7 +2,8 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import ArtistPage from "../ArtistPage";
-import type { ArtistDetails, ReleaseGroup } from "@/types";
+import type { ArtistLiveDatesState } from "@/hooks/useArtistLiveDates";
+import type { ArtistDetails, LiveEventSummary, ReleaseGroup } from "@/types";
 
 type SectionFields = {
   loading: boolean;
@@ -73,7 +74,15 @@ vi.mock("@/components/ReleaseGroupCard", () => ({
 }));
 
 vi.mock("@/components/FollowArtistButton", () => ({
-  default: () => <button>Follow</button>,
+  default: ({ onFollowed }: { onFollowed?: () => void }) => (
+    <button onClick={onFollowed}>Follow</button>
+  ),
+}));
+
+let mockLive: ArtistLiveDatesState;
+
+vi.mock("@/hooks/useArtistLiveDates", () => ({
+  default: () => mockLive,
 }));
 
 const makeRg = (overrides: Partial<ReleaseGroup>): ReleaseGroup => ({
@@ -86,9 +95,20 @@ const makeRg = (overrides: Partial<ReleaseGroup>): ReleaseGroup => ({
   ...overrides,
 });
 
-function renderPage(state?: unknown) {
+const liveEvent = {
+  id: 1,
+  eventKey: "jambase:100",
+  eventDate: "2026-09-05",
+  status: "scheduled",
+  venueName: "Berghain",
+  venueCity: "Berlin",
+  venueCountry: "DE",
+  ticketUrl: null,
+} as LiveEventSummary;
+
+function renderPage(state?: unknown, search = "") {
   return render(
-    <MemoryRouter initialEntries={[{ pathname: "/artist/a1", state }]}>
+    <MemoryRouter initialEntries={[{ pathname: "/artist/a1", search, state }]}>
       <Routes>
         <Route path="/artist/:mbid" element={<ArtistPage />} />
       </Routes>
@@ -101,6 +121,13 @@ beforeEach(() => {
   mockReleaseGroupsState = { ...idle(), releaseGroups: [] };
   mockSimilar = { artists: [], loading: false };
   mockLibraryArtistMbids = ["sim-owned"];
+  mockLive = {
+    dates: [],
+    tracking: null,
+    loading: false,
+    error: null,
+    refreshSoon: vi.fn(),
+  };
 });
 
 describe("ArtistPage", () => {
@@ -310,6 +337,57 @@ describe("ArtistPage", () => {
       renderPage();
 
       expect(screen.getByTestId("artist-header-skeleton")).toBeInTheDocument();
+    });
+  });
+
+  describe("tour dates", () => {
+    beforeEach(() => {
+      mockState.artist = { mbid: "a1", name: "Radiohead" };
+    });
+
+    it("puts the tour button in the header instead of listing dates inline", () => {
+      mockLive.dates = [liveEvent];
+      mockLive.tracking = "tracked";
+      renderPage();
+
+      expect(
+        screen.getByRole("button", { name: "1 tour date" })
+      ).toBeInTheDocument();
+      expect(screen.queryByText("Live dates")).not.toBeInTheDocument();
+      expect(
+        screen.queryByText("Berghain, Berlin, DE")
+      ).not.toBeInTheDocument();
+    });
+
+    it("opens the dates from the button", () => {
+      mockLive.dates = [liveEvent];
+      renderPage();
+
+      fireEvent.click(screen.getByRole("button", { name: "1 tour date" }));
+
+      expect(screen.getByText("Berghain, Berlin, DE")).toBeInTheDocument();
+    });
+
+    it("opens the dates from ?tour=1", () => {
+      mockLive.dates = [liveEvent];
+      renderPage(undefined, "?tour=1");
+
+      expect(screen.getByText("Berghain, Berlin, DE")).toBeInTheDocument();
+    });
+
+    it("has no tour button for an artist without dates", () => {
+      mockLive.tracking = "unavailable";
+      renderPage();
+
+      expect(screen.queryByRole("button", { name: /tour date/ })).toBeNull();
+    });
+
+    it("asks for the dates again after a follow", () => {
+      renderPage();
+
+      fireEvent.click(screen.getByRole("button", { name: "Follow" }));
+
+      expect(mockLive.refreshSoon).toHaveBeenCalledTimes(1);
     });
   });
 });

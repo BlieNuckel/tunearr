@@ -1,6 +1,7 @@
 import SectionStatus, { type SectionState } from "@/components/SectionStatus";
 import ArtistHeader from "./ArtistHeader";
 import ArtistHeaderSkeleton from "./ArtistHeaderSkeleton";
+import type { ArtistLiveDatesState } from "@/hooks/useArtistLiveDates";
 import type { ArtistDetails } from "@/types";
 
 interface ArtistHeaderSectionProps {
@@ -9,6 +10,7 @@ interface ArtistHeaderSectionProps {
   fromPreview: boolean;
   details: SectionState;
   inLibrary: boolean;
+  live: ArtistLiveDatesState;
 }
 
 /** Only the header waits on artist details; when they fail the rest of the page stays. */
@@ -17,11 +19,12 @@ export default function ArtistHeaderSection({
   fromPreview,
   details,
   inLibrary,
+  live,
 }: ArtistHeaderSectionProps) {
   if (artist) {
     return (
       <>
-        <ArtistHeader artist={artist} inLibrary={inLibrary} />
+        <ArtistHeader artist={artist} inLibrary={inLibrary} live={live} />
         {fromPreview && (
           <SectionStatus
             className="-mt-6 mb-6"

@@ -26,11 +26,9 @@ function event(overrides: Partial<LiveEventSummary> = {}): LiveEventSummary {
 }
 
 describe("ArtistLiveDates", () => {
-  it("renders nothing for an artist nobody follows", () => {
-    const { container } = render(
-      <ArtistLiveDates dates={[]} tracking={null} />
-    );
-    expect(container).toBeEmptyDOMElement();
+  it("says there are no dates for an artist nobody follows", () => {
+    render(<ArtistLiveDates dates={[]} tracking={null} />);
+    expect(screen.getByText("No upcoming dates.")).toBeInTheDocument();
   });
 
   it("says an empty list is a real answer for a tracked artist", () => {
@@ -40,7 +38,7 @@ describe("ArtistLiveDates", () => {
 
   it("says resolution is still in progress rather than showing nothing", () => {
     render(<ArtistLiveDates dates={[]} tracking="pending" />);
-    expect(screen.getByText(/Checking for live dates/)).toBeInTheDocument();
+    expect(screen.getByText("Checking for live dates…")).toBeInTheDocument();
   });
 
   it("explains that an unavailable artist will never have dates here", () => {
@@ -78,7 +76,6 @@ describe("ArtistLiveDates", () => {
   it("lists dates with their venue, wherever in the world they are", () => {
     render(<ArtistLiveDates dates={[event()]} tracking="tracked" />);
 
-    expect(screen.getByText("Live dates")).toBeInTheDocument();
     expect(screen.getByText("Berghain, Berlin, DE")).toBeInTheDocument();
   });
 
