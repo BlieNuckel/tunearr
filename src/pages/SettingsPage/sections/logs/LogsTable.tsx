@@ -1,6 +1,8 @@
 import { useState } from "react";
 import Modal from "@/components/Modal";
 import { LogEntry } from "@/hooks/useLogs";
+import ModalHeader from "@/components/ModalHeader";
+import { SECONDARY_BUTTON } from "@/components/buttonStyles";
 
 interface LogsTableProps {
   logs: LogEntry[];
@@ -127,11 +129,8 @@ export default function LogsTable({ logs }: LogsTableProps) {
       >
         {selectedLog && (
           <div className="space-y-4">
-            <div>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-                Log Details
-              </h2>
-              <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+            <ModalHeader title="Log Details">
+              <div className="mt-2 flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
                 <span
                   className={`${LEVEL_COLORS[selectedLog.level]} text-white text-xs font-bold px-2 py-0.5 rounded border border-black`}
                 >
@@ -140,7 +139,7 @@ export default function LogsTable({ logs }: LogsTableProps) {
                 <span className="font-mono">[{selectedLog.label}]</span>
                 <span>{formatTimestamp(selectedLog.timestamp)}</span>
               </div>
-            </div>
+            </ModalHeader>
 
             <div>
               <p className="text-gray-700 dark:text-gray-300 mb-3">
@@ -157,7 +156,7 @@ export default function LogsTable({ logs }: LogsTableProps) {
 
             <button
               onClick={() => setSelectedLog(null)}
-              className="w-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 font-medium py-2 px-4 rounded-xl border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all"
+              className={`w-full ${SECONDARY_BUTTON}`}
             >
               Close
             </button>

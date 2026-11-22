@@ -4,6 +4,8 @@ import Modal from "./Modal";
 import Spinner from "./Spinner";
 import useSpendingSettings from "@/hooks/useSpendingSettings";
 import { toMinorUnits, getMinorUnitExponent } from "@shared/currency";
+import ModalHeader from "./ModalHeader";
+import { SECONDARY_BUTTON } from "./buttonStyles";
 
 interface PurchasePriceModalProps {
   isOpen: boolean;
@@ -22,9 +24,6 @@ interface PriceFormProps {
   onClose: () => void;
   saving: boolean;
 }
-
-const SECONDARY_BUTTON_CLASSES =
-  "w-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 font-medium py-2 px-4 rounded-xl border-2 border-black shadow-cartoon-sm hover:translate-y-[-1px] hover:shadow-cartoon-md active:translate-y-[1px] active:shadow-cartoon-pressed transition-all";
 
 const PRIMARY_BUTTON_CLASSES =
   "w-full bg-emerald-400 hover:bg-emerald-300 disabled:bg-gray-200 disabled:text-gray-400 dark:disabled:bg-gray-700 dark:disabled:text-gray-500 text-black font-bold py-3 px-4 rounded-xl border-2 border-black shadow-cartoon-md hover:translate-y-[-2px] hover:shadow-cartoon-lg active:translate-y-[1px] active:shadow-cartoon-pressed disabled:shadow-cartoon-sm disabled:translate-y-0 transition-all flex items-center justify-center gap-2";
@@ -45,9 +44,7 @@ function stepFor(currency: string): string {
 function SetupPurchasesState({ onClose }: { onClose: () => void }) {
   return (
     <div className="space-y-4 text-center">
-      <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-        Set up purchases
-      </h2>
+      <ModalHeader title="Set up purchases" />
       <p className="text-gray-500 dark:text-gray-400 text-sm">
         Choose the currency you buy music in before recording a purchase. Every
         purchase is recorded in it, so your totals add up.
@@ -59,7 +56,7 @@ function SetupPurchasesState({ onClose }: { onClose: () => void }) {
       >
         Go to settings
       </Link>
-      <button onClick={onClose} className={SECONDARY_BUTTON_CLASSES}>
+      <button onClick={onClose} className={`w-full ${SECONDARY_BUTTON}`}>
         Cancel
       </button>
     </div>
@@ -87,14 +84,10 @@ function PriceForm({
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">
-          Record Purchase
-        </h2>
-        <p className="text-gray-500 dark:text-gray-400 text-sm">
-          {albumTitle} by {artistName}
-        </p>
-      </div>
+      <ModalHeader
+        title="Record Purchase"
+        subtitle={`${albumTitle} by ${artistName}`}
+      />
 
       <div>
         <label
@@ -133,7 +126,7 @@ function PriceForm({
           {saving && <Spinner />}
           Record Purchase
         </button>
-        <button onClick={onClose} className={SECONDARY_BUTTON_CLASSES}>
+        <button onClick={onClose} className={`w-full ${SECONDARY_BUTTON}`}>
           Cancel
         </button>
       </div>
