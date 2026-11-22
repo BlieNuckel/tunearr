@@ -47,20 +47,23 @@ function LocationProbe() {
   );
 }
 
-function renderTour(
-  state: ArtistLiveDatesState,
-  entry: { pathname: string; search?: string; state?: unknown } = {
-    pathname: "/artist/a1",
-  }
-) {
-  const ui = (s: ArtistLiveDatesState) => (
+type Entry = { pathname: string; search?: string; state?: unknown };
+
+function TourAt({
+  entry,
+  state,
+}: {
+  entry: Entry;
+  state: ArtistLiveDatesState;
+}) {
+  return (
     <MemoryRouter initialEntries={[entry]}>
       <Routes>
         <Route
           path="/artist/:mbid"
           element={
             <>
-              <ArtistTour artistName="Yves Tumor" live={s} />
+              <ArtistTour artistName="Yves Tumor" live={state} />
               <LocationProbe />
             </>
           }
@@ -68,10 +71,17 @@ function renderTour(
       </Routes>
     </MemoryRouter>
   );
-  const view = render(ui(state));
+}
+
+function renderTour(
+  state: ArtistLiveDatesState,
+  entry: Entry = { pathname: "/artist/a1" }
+) {
+  const view = render(<TourAt entry={entry} state={state} />);
   return {
     ...view,
-    rerenderWith: (s: ArtistLiveDatesState) => view.rerender(ui(s)),
+    rerenderWith: (next: ArtistLiveDatesState) =>
+      view.rerender(<TourAt entry={entry} state={next} />),
   };
 }
 
@@ -139,12 +149,18 @@ describe("ArtistTour", () => {
     expectClosing();
   });
 
-  it("leaves the URL alone when opened from the button", () => {
-    renderTour(live({ dates: [event()] }));
-    fireEvent.click(screen.getByRole("button", { name: "1 tour date" }));
-    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+  it("keeps the open modal in the URL, keeping the nav state", () => {
+    renderTour(live({ dates: [event()] }), {
+      pathname: "/artist/a1",
+      state: { preview: "kept" },
+    });
 
-    expect(screen.getByTestId("search")).toHaveTextContent("");
+    fireEvent.click(screen.getByRole("button", { name: "1 tour date" }));
+    expect(screen.getByTestId("search")).toHaveTextContent("?tour=1");
+    expect(screen.getByTestId("state")).toHaveTextContent('{"preview":"kept"}');
+
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    expect(screen.getByTestId("search")).toHaveTextContent(/^$/);
   });
 
   describe("deep link", () => {
