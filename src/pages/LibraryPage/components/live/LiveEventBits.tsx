@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import Skeleton from "@/components/Skeleton";
 import type { LiveEventStatus } from "@/types";
+import { artistTourPath } from "@/utils/artistTour";
 import { STATUS_LABELS } from "./liveFormat";
 
 const ROW_BUTTON =
@@ -19,7 +20,7 @@ export function StatusBadge({ status }: { status: LiveEventStatus }) {
 export function AllDatesLink({ artistMbid }: { artistMbid: string }) {
   return (
     <Link
-      to={`/artist/${artistMbid}`}
+      to={artistTourPath(artistMbid)}
       className={`${ROW_BUTTON} bg-white text-black dark:bg-gray-700 dark:text-gray-100`}
     >
       All dates

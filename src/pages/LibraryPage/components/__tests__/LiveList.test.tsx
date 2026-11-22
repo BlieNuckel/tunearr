@@ -109,7 +109,7 @@ describe("LiveList upcoming", () => {
     );
     expect(
       within(row).getByRole("link", { name: "All dates" })
-    ).toHaveAttribute("href", "/artist/mbid-yves");
+    ).toHaveAttribute("href", "/artist/mbid-yves?tour=1");
   });
 
   it("still offers every date when the closest has no ticket link", async () => {

@@ -13,6 +13,7 @@ import {
   albumPreviewFromRequestHighlight,
   type NavPreviewState,
 } from "@/utils/navPreview";
+import { artistTourPath } from "@/utils/artistTour";
 import { liveEventOf } from "../highlightView";
 import { PRIMARY_BUTTON, SECONDARY_BUTTON, TICKET_BUTTON } from "../styles";
 import type { HighlightHandlers } from "../types";
@@ -118,7 +119,7 @@ function LiveActions({
         </a>
       )}
       <Link
-        to={`/artist/${highlight.artistMbid}`}
+        to={artistTourPath(highlight.artistMbid)}
         onClick={() => haptics.light()}
         className={SECONDARY_BUTTON}
       >

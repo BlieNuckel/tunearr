@@ -197,12 +197,12 @@ describe("HighlightCard for a touring artist", () => {
     );
   });
 
-  it("links to the artist page for every date", () => {
+  it("links to the artist's tour dates", () => {
     renderCard(liveHighlight());
 
     expect(screen.getByRole("link", { name: "All dates" })).toHaveAttribute(
       "href",
-      "/artist/mbid-yves"
+      "/artist/mbid-yves?tour=1"
     );
   });
 
