@@ -97,10 +97,10 @@ describe("useArtistLiveDates", () => {
       await act(() => vi.advanceTimersByTimeAsync(0));
 
       act(() => result.current.refreshSoon());
+      expect(vi.getTimerCount()).toBe(1);
       unmount();
-      await vi.advanceTimersByTimeAsync(REFRESH_SOON_DELAY_MS);
 
-      expect(fetch).toHaveBeenCalledTimes(1);
+      expect(vi.getTimerCount()).toBe(0);
     });
 
     it("drops a pending refetch when the artist changes", async () => {
