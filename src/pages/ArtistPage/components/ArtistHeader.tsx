@@ -2,11 +2,14 @@ import { useState } from "react";
 import ImageWithShimmer from "@/components/ImageWithShimmer";
 import FollowArtistButton from "@/components/FollowArtistButton";
 import { MusicalNoteIcon } from "@/components/icons";
+import type { ArtistLiveDatesState } from "@/hooks/useArtistLiveDates";
 import type { ArtistDetails } from "@/types";
+import ArtistTour from "./ArtistTour";
 
 interface ArtistHeaderProps {
   artist: ArtistDetails;
   inLibrary: boolean;
+  live: ArtistLiveDatesState;
 }
 
 function buildSubtitle(artist: ArtistDetails): string {
@@ -15,7 +18,11 @@ function buildSubtitle(artist: ArtistDetails): string {
     .join(" · ");
 }
 
-export default function ArtistHeader({ artist, inLibrary }: ArtistHeaderProps) {
+export default function ArtistHeader({
+  artist,
+  inLibrary,
+  live,
+}: ArtistHeaderProps) {
   const [imageError, setImageError] = useState(false);
   const subtitle = buildSubtitle(artist);
 
@@ -50,12 +57,14 @@ export default function ArtistHeader({ artist, inLibrary }: ArtistHeaderProps) {
             {subtitle}
           </p>
         )}
-        <div className="mt-3">
+        <div className="mt-3 flex items-center gap-2 flex-wrap">
           <FollowArtistButton
             artistMbid={artist.mbid}
             artistName={artist.name}
             size="md"
+            onFollowed={live.refreshSoon}
           />
+          <ArtistTour key={artist.mbid} artistName={artist.name} live={live} />
         </div>
       </div>
     </div>
