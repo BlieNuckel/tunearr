@@ -14,4 +14,6 @@ export type LogsResponse = {
   pageSize: number;
   totalCount: number;
   totalPages: number;
+  /** True when older rotated files were left out to stay within the read budget. */
+  truncated: boolean;
 };

@@ -17,7 +17,7 @@ router.get("/", (req: Request, res: Response) => {
   const search = req.query.search as string | undefined;
 
   try {
-    res.json(getLogs(page, pageSize, level, search));
+    res.json(getLogs({ page, pageSize, level, search }));
   } catch {
     res.status(500).json({ error: "Failed to read logs" });
   }
