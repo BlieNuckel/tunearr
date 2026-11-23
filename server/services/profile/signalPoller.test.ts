@@ -1,11 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
+const mockLogError = vi.hoisted(() => vi.fn());
+
 const mockGetConfigValue = vi.fn();
 const mockGetRatedItems = vi.fn();
 const mockGetAllTrackPlayCounts = vi.fn();
 const mockGetAllAlbumTrackCounts = vi.fn();
 const mockGetPlayHistory = vi.fn();
 
+vi.mock("../../logger", () => ({
+  createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: mockLogError }),
+}));
 vi.mock("../../config", () => ({
   getConfigValue: (...args: unknown[]) => mockGetConfigValue(...args),
 }));
@@ -193,5 +198,18 @@ describe("runSignalIngestionOnce", () => {
 
     expect(await getSignalEvents(1, "plex_track_plays")).toHaveLength(0);
     expect(await getSignalEvents(2, "plex_track_plays")).toHaveLength(1);
+  });
+
+  it("names the user whose ingestion failed", async () => {
+    await createUser("broken", "tok-x");
+    const failure = new Error("Plex returned 401");
+    mockGetRatedItems.mockRejectedValueOnce(failure);
+
+    await runSignalIngestionOnce();
+
+    expect(mockLogError).toHaveBeenCalledWith(
+      "Signal ingestion failed for broken (user 1)",
+      failure
+    );
   });
 });

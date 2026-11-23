@@ -4,6 +4,8 @@ import { UserSignalEvent } from "./entity/UserSignalEvent";
 /** A user eligible for signal ingestion: enabled and holding a Plex token. */
 export type SignalIngestionUser = {
   userId: number;
+  /** The name the rest of the app shows for this user, for log lines. */
+  displayName: string;
   plexToken: string;
 };
 
@@ -39,13 +41,16 @@ export async function getSignalIngestionUsers(): Promise<
   SignalIngestionUser[]
 > {
   const rows = (await getDataSource().query(
-    `SELECT id AS user_id, plex_token
+    `SELECT id AS user_id,
+            COALESCE(username, plex_username, plex_email, 'unknown') AS display_name,
+            plex_token
      FROM users
      WHERE plex_token IS NOT NULL AND enabled = 1`
-  )) as { user_id: number; plex_token: string }[];
+  )) as { user_id: number; display_name: string; plex_token: string }[];
 
   return rows.map((row) => ({
     userId: row.user_id,
+    displayName: row.display_name,
     plexToken: row.plex_token,
   }));
 }

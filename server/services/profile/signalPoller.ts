@@ -81,7 +81,10 @@ export async function runSignalIngestionOnce(now = Date.now()): Promise<void> {
           cataloguesWritten += 1;
         }
       } catch (error) {
-        log.error(`Signal ingestion failed for user ${user.userId}`, error);
+        log.error(
+          `Signal ingestion failed for ${user.displayName} (user ${user.userId})`,
+          error
+        );
       }
     }
 

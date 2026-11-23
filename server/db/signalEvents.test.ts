@@ -94,8 +94,22 @@ describe("getSignalIngestionUsers", () => {
     );
 
     expect(await getSignalIngestionUsers()).toEqual([
-      { userId: alice, plexToken: "tok-a" },
+      { userId: alice, displayName: "alice", plexToken: "tok-a" },
     ]);
     expect(bob).toBeGreaterThan(0);
+  });
+
+  it("names a Plex-only user by their Plex username, then email", async () => {
+    await getDataSource().query(
+      `INSERT INTO users (plex_username, plex_email, plex_token)
+       VALUES ('plexdan', 'dan@example.com', 'tok-d'),
+              (NULL, 'eve@example.com', 'tok-e'),
+              (NULL, NULL, 'tok-f')`
+    );
+
+    const names = (await getSignalIngestionUsers()).map(
+      (user) => user.displayName
+    );
+    expect(names).toEqual(["plexdan", "eve@example.com", "unknown"]);
   });
 });

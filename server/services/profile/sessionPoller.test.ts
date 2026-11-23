@@ -1,8 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
+const mockLogError = vi.hoisted(() => vi.fn());
+
 const mockGetConfigValue = vi.fn();
 const mockGetActiveSessions = vi.fn();
 
+vi.mock("../../logger", () => ({
+  createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: mockLogError }),
+}));
 vi.mock("../../config", () => ({
   getConfigValue: (...args: unknown[]) => mockGetConfigValue(...args),
 }));
@@ -143,5 +148,18 @@ describe("runListenSessionPollOnce", () => {
       .mockResolvedValueOnce([]);
     expect(await runListenSessionPollOnce(T0 + 70_000)).toBe(1);
     expect(await storedEpisodes(2)).toHaveLength(1);
+  });
+
+  it("names the user whose read failed", async () => {
+    await createUser("broken", "tok-x");
+    const failure = new Error("Plex returned 401");
+    mockGetActiveSessions.mockRejectedValueOnce(failure);
+
+    await runListenSessionPollOnce(T0);
+
+    expect(mockLogError).toHaveBeenCalledWith(
+      "Session poll failed for broken (user 1)",
+      failure
+    );
   });
 });

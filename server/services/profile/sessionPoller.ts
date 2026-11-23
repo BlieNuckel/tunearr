@@ -40,7 +40,10 @@ export async function runListenSessionPollOnce(
           retireWatches(user.userId, live)
         );
       } catch (error) {
-        log.error(`Session poll failed for user ${user.userId}`, error);
+        log.error(
+          `Session poll failed for ${user.displayName} (user ${user.userId})`,
+          error
+        );
       }
     }
 
