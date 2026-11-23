@@ -1,21 +1,16 @@
 import { describe, it, expect } from "vitest";
 import { serializeData, formatErrorText, type SerializedError } from "./logger";
 
-function withCause<T extends Error>(error: T, cause: unknown): T {
-  return Object.assign(error, { cause });
-}
-
 function fetchFailed(cause: unknown): TypeError {
-  return withCause(new TypeError("fetch failed"), cause);
+  return new TypeError("fetch failed", { cause });
 }
 
 function errnoError(message: string, code: string): Error {
   return Object.assign(new Error(message), { code });
 }
 
-/** Same shape as undici's AggregateError; the server lib predates the global. */
-function aggregateError(errors: Error[], code?: string): Error {
-  return Object.assign(new Error(""), { name: "AggregateError", errors, code });
+function aggregateError(errors: Error[], code?: string): AggregateError {
+  return Object.assign(new AggregateError(errors, ""), { code });
 }
 
 describe("serializeData", () => {
@@ -69,7 +64,7 @@ describe("serializeData", () => {
 
   it("keeps a non-error cause as is", () => {
     const result = serializeData(
-      withCause(new Error("outer"), { reason: "x" })
+      new Error("outer", { cause: { reason: "x" } })
     ) as SerializedError;
     expect(result.cause).toEqual({ reason: "x" });
   });
@@ -77,7 +72,7 @@ describe("serializeData", () => {
   it("stops following causes after a fixed depth", () => {
     let error = new Error("level 0");
     for (let i = 1; i <= 10; i++) {
-      error = withCause(new Error(`level ${i}`), error);
+      error = new Error(`level ${i}`, { cause: error });
     }
 
     let depth = 0;
@@ -117,7 +112,7 @@ describe("formatErrorText", () => {
   it("prints a non-error cause as JSON", () => {
     const text = formatErrorText(
       serializeData(
-        withCause(new Error("outer"), { reason: "x" })
+        new Error("outer", { cause: { reason: "x" } })
       ) as SerializedError
     );
     expect(text).toContain('Caused by: {"reason":"x"}');

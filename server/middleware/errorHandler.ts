@@ -16,10 +16,7 @@ function statusOf(err: unknown): number {
 }
 
 function messageOf(err: unknown): string {
-  const cause =
-    err instanceof Error
-      ? (err as NodeJS.ErrnoException & { cause?: unknown }).cause
-      : undefined;
+  const cause = err instanceof Error ? err.cause : undefined;
   if (cause instanceof Error) return cause.message;
   if (err instanceof Error) return err.message;
   if (typeof (err as { message?: unknown })?.message === "string") {

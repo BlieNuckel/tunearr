@@ -118,12 +118,13 @@ function serializeError(error: Error, depth: number): SerializedError {
   if (typeof code === "string") serialized.code = code;
   if (depth >= MAX_CAUSE_DEPTH) return serialized;
 
-  const { cause, errors } = error as { cause?: unknown; errors?: unknown };
-  if (cause !== undefined) {
-    serialized.cause = serializeValue(cause, depth + 1);
+  if (error.cause !== undefined) {
+    serialized.cause = serializeValue(error.cause, depth + 1);
   }
-  if (Array.isArray(errors) && errors.length > 0) {
-    serialized.errors = errors.map((inner) => serializeValue(inner, depth + 1));
+  if (error instanceof AggregateError && error.errors.length > 0) {
+    serialized.errors = error.errors.map((inner: unknown) =>
+      serializeValue(inner, depth + 1)
+    );
   }
   return serialized;
 }
