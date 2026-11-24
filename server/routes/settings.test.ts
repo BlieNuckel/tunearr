@@ -93,7 +93,30 @@ describe("GET /settings", () => {
   });
 });
 
+describe("GET /settings: Plex connection", () => {
+  it("never sends the Plex connection's tokens", async () => {
+    mockGetConfig.mockReturnValue({
+      plexUrl: "http://plex:32400",
+      plexConnection: { accountToken: "secret", serverToken: "secret" },
+    });
+    const res = await request(app).get("/settings");
+    expect(res.body).toEqual({ plexUrl: "http://plex:32400" });
+  });
+});
+
 describe("PUT /settings", () => {
+  it("ignores a Plex connection sent with the form", async () => {
+    await request(app)
+      .put("/settings")
+      .send({
+        plexUrl: "http://plex:32400",
+        plexConnection: { serverToken: "x" },
+      });
+    expect(mockSetConfig).toHaveBeenCalledWith({
+      plexUrl: "http://plex:32400",
+    });
+  });
+
   it("saves valid config", async () => {
     const res = await request(app)
       .put("/settings")

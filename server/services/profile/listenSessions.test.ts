@@ -30,6 +30,7 @@ function session(overrides: Partial<PlexTrackSession> = {}): PlexTrackSession {
     machineIdentifier: "device-1",
     product: "Plexamp",
     state: "playing",
+    accountId: "1",
     ...overrides,
   };
 }

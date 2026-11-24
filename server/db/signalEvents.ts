@@ -4,7 +4,18 @@ import { UserSignalEvent } from "./entity/UserSignalEvent";
 /** A user eligible for signal ingestion: enabled and holding a Plex token. */
 export type SignalIngestionUser = {
   userId: number;
+  /** The name the rest of the app shows for this user, for log lines. */
+  displayName: string;
   plexToken: string;
+  /** The plex.tv account the user is linked to; null for a user who only holds a token. */
+  plexAccountId: string | null;
+};
+
+/** An enabled user linked to a plex.tv account, for attributing server-wide reads. */
+export type PlexLinkedUser = {
+  userId: number;
+  displayName: string;
+  plexAccountId: string;
 };
 
 /**
@@ -39,14 +50,41 @@ export async function getSignalIngestionUsers(): Promise<
   SignalIngestionUser[]
 > {
   const rows = (await getDataSource().query(
-    `SELECT id AS user_id, plex_token
+    `SELECT id AS user_id,
+            COALESCE(username, plex_username, plex_email, 'unknown') AS display_name,
+            plex_token,
+            plex_id
      FROM users
      WHERE plex_token IS NOT NULL AND enabled = 1`
-  )) as { user_id: number; plex_token: string }[];
+  )) as {
+    user_id: number;
+    display_name: string;
+    plex_token: string;
+    plex_id: string | null;
+  }[];
 
   return rows.map((row) => ({
     userId: row.user_id,
+    displayName: row.display_name,
     plexToken: row.plex_token,
+    plexAccountId: row.plex_id,
+  }));
+}
+
+/** Every enabled user linked to a plex.tv account, whether or not they hold a token. */
+export async function getPlexLinkedUsers(): Promise<PlexLinkedUser[]> {
+  const rows = (await getDataSource().query(
+    `SELECT id AS user_id,
+            COALESCE(username, plex_username, plex_email, 'unknown') AS display_name,
+            plex_id
+     FROM users
+     WHERE plex_id IS NOT NULL AND enabled = 1`
+  )) as { user_id: number; display_name: string; plex_id: string }[];
+
+  return rows.map((row) => ({
+    userId: row.user_id,
+    displayName: row.display_name,
+    plexAccountId: row.plex_id,
   }));
 }
 

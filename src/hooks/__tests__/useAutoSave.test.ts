@@ -9,7 +9,6 @@ const defaultSettings: AppSettings = {
   lidarrRootFolderPath: "/music",
   lidarrMetadataProfileId: 1,
   lastfmApiKey: "lfm-key",
-  plexUrl: "http://plex:32400",
   importPath: "/imports",
   slskdUrl: "",
   slskdApiKey: "",
@@ -147,16 +146,16 @@ describe("useAutoSave", () => {
 
     await act(async () => {
       result.current.updateFields({
-        plexUrl: "http://new-plex",
+        lidarrUrl: "http://new-lidarr",
         lastfmApiKey: "new-key",
       });
     });
 
     expect(save).toHaveBeenCalledWith({
-      plexUrl: "http://new-plex",
+      lidarrUrl: "http://new-lidarr",
       lastfmApiKey: "new-key",
     });
-    expect(result.current.fields.plexUrl).toBe("http://new-plex");
+    expect(result.current.fields.lidarrUrl).toBe("http://new-lidarr");
     expect(result.current.fields.lastfmApiKey).toBe("new-key");
   });
 

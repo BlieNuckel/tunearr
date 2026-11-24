@@ -62,7 +62,7 @@ describe("getPlayHistory", () => {
       })
     );
 
-    const result = await getPlayHistory("tok");
+    const result = await getPlayHistory("tok", "1");
 
     expect(result).toEqual([
       {
@@ -95,7 +95,7 @@ describe("getPlayHistory", () => {
       })
     );
 
-    const [entry] = await getPlayHistory("tok");
+    const [entry] = await getPlayHistory("tok", "1");
 
     expect(entry.artistKey).toBe("88");
     expect(entry.albumKey).toBe("99");
@@ -108,12 +108,31 @@ describe("getPlayHistory", () => {
       })
     );
 
-    await getPlayHistory("tok", 1_769_000_000);
+    await getPlayHistory("tok", "1", 1_769_000_000);
 
     const url = mockFetch.mock.calls[1][0] as string;
     expect(url).toContain("librarySectionID=3");
     expect(url).toContain("viewedAt%3E=1769000000");
     expect(url).toContain("sort=viewedAt:asc");
+    expect(url).toContain("accountID=1");
+  });
+
+  it("drops rows of other accounts even if Plex ignores the filter", async () => {
+    mockFetch.mockResolvedValueOnce(musicSection).mockResolvedValueOnce(
+      okResponse({
+        MediaContainer: {
+          totalSize: 2,
+          Metadata: [
+            rawRow(1, 1_770_000_000),
+            { ...rawRow(2, 1_770_000_100), accountID: 678939888 },
+          ],
+        },
+      })
+    );
+
+    const result = await getPlayHistory("tok", "678939888");
+
+    expect(result.map((entry) => entry.ratingKey)).toEqual(["2"]);
   });
 
   it("pages to completion", async () => {
@@ -122,7 +141,7 @@ describe("getPlayHistory", () => {
       .mockResolvedValueOnce(historyPage(0, PAGE_SIZE, PAGE_SIZE + 3))
       .mockResolvedValueOnce(historyPage(PAGE_SIZE, 3, PAGE_SIZE + 3));
 
-    const result = await getPlayHistory("tok");
+    const result = await getPlayHistory("tok", "1");
 
     expect(result).toHaveLength(PAGE_SIZE + 3);
     expect(mockFetch).toHaveBeenCalledTimes(3);
@@ -146,7 +165,7 @@ describe("getPlayHistory", () => {
       })
     );
 
-    const result = await getPlayHistory("tok");
+    const result = await getPlayHistory("tok", "1");
 
     expect(result.map((entry) => entry.ratingKey)).toEqual(["1"]);
   });
@@ -180,7 +199,7 @@ describe("getPlayHistory", () => {
         })
       );
 
-    const result = await getPlayHistory("tok");
+    const result = await getPlayHistory("tok", "1");
 
     expect(result.map((entry) => entry.viewedAt)).toEqual([
       1_770_000_100, 1_770_000_200,
@@ -192,6 +211,8 @@ describe("getPlayHistory", () => {
       .mockResolvedValueOnce(musicSection)
       .mockResolvedValueOnce({ ok: false, status: 401 });
 
-    await expect(getPlayHistory("tok")).rejects.toThrow("Plex returned 401");
+    await expect(getPlayHistory("tok", "1")).rejects.toThrow(
+      "Plex returned 401"
+    );
   });
 });

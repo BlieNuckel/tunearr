@@ -4,6 +4,7 @@ import {
   appendSignalEvents,
   getSignalEvents,
   getSignalIngestionUsers,
+  getPlexLinkedUsers,
 } from "./signalEvents";
 
 async function createUser(username: string): Promise<number> {
@@ -94,8 +95,46 @@ describe("getSignalIngestionUsers", () => {
     );
 
     expect(await getSignalIngestionUsers()).toEqual([
-      { userId: alice, plexToken: "tok-a" },
+      {
+        userId: alice,
+        displayName: "alice",
+        plexToken: "tok-a",
+        plexAccountId: null,
+      },
     ]);
     expect(bob).toBeGreaterThan(0);
+  });
+
+  it("names a Plex-only user by their Plex username, then email", async () => {
+    await getDataSource().query(
+      `INSERT INTO users (plex_username, plex_email, plex_token)
+       VALUES ('plexdan', 'dan@example.com', 'tok-d'),
+              (NULL, 'eve@example.com', 'tok-e'),
+              (NULL, NULL, 'tok-f')`
+    );
+
+    const names = (await getSignalIngestionUsers()).map(
+      (user) => user.displayName
+    );
+    expect(names).toEqual(["plexdan", "eve@example.com", "unknown"]);
+  });
+});
+
+describe("getPlexLinkedUsers", () => {
+  it("returns enabled users linked to a plex.tv account, token or not", async () => {
+    await getDataSource().query(
+      `INSERT INTO users (username, plex_id, plex_token, enabled)
+       VALUES ('owner', '4242', 'tok', 1),
+              ('maria', '678939888', NULL, 1),
+              ('gone', '555', 'tok', 0),
+              ('local', NULL, 'tok', 1)`
+    );
+
+    const users = await getPlexLinkedUsers();
+
+    expect(users.map((u) => [u.displayName, u.plexAccountId])).toEqual([
+      ["owner", "4242"],
+      ["maria", "678939888"],
+    ]);
   });
 });

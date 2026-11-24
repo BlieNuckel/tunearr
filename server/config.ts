@@ -53,6 +53,23 @@ export type NotificationsConfig = {
   webPush: WebPushConfig;
 };
 
+/**
+ * The Plex account an admin connected under Settings > Integrations > Plex. Server-level
+ * reads such as live sessions only answer the server owner, which a user's own token may
+ * not be, so they go through this connection rather than through any user.
+ */
+export type PlexConnectionConfig = {
+  /** plex.tv token of the connected account, kept to list its servers again. */
+  accountToken: string;
+  /** Token for the selected server, from that server's plex.tv resource. */
+  serverToken: string;
+  accountId: string;
+  username: string;
+  thumb: string;
+  /** plex.tv id of the selected server's owner, whom the server itself reports as account `1`. */
+  ownerAccountId: string;
+};
+
 export type IConfig = {
   lidarrUrl: string;
   lidarrApiKey: string;
@@ -61,6 +78,7 @@ export type IConfig = {
   lidarrMetadataProfileId: number;
   lastfmApiKey: string;
   plexUrl: string;
+  plexConnection: PlexConnectionConfig;
   importPath: string;
   slskdUrl: string;
   slskdApiKey: string;
@@ -86,8 +104,13 @@ export type IConfig = {
 /** Input type for setConfig — nested objects are optional since defaults are deep-merged */
 export type IConfigInput = Omit<
   IConfig,
-  "purchaseDecision" | "notifications" | "liveEvents" | "musicbrainz"
+  | "purchaseDecision"
+  | "notifications"
+  | "liveEvents"
+  | "musicbrainz"
+  | "plexConnection"
 > & {
+  plexConnection?: Partial<PlexConnectionConfig>;
   purchaseDecision?: Partial<PurchaseDecisionConfig>;
   liveEvents?: Partial<LiveEventsConfig>;
   musicbrainz?: Partial<MusicBrainzConfig>;
@@ -100,6 +123,15 @@ export const DEFAULT_WEB_PUSH: WebPushConfig = {
   publicKey: "",
   privateKey: "",
   subject: "https://github.com/BlieNuckel/tunearr",
+};
+
+export const DEFAULT_PLEX_CONNECTION: PlexConnectionConfig = {
+  accountToken: "",
+  serverToken: "",
+  accountId: "",
+  username: "",
+  thumb: "",
+  ownerAccountId: "",
 };
 
 export const DEFAULT_NOTIFICATIONS: NotificationsConfig = {
@@ -119,6 +151,7 @@ const DEFAULT_CONFIG: IConfig = {
   lidarrMetadataProfileId: 1,
   lastfmApiKey: "",
   plexUrl: "",
+  plexConnection: DEFAULT_PLEX_CONNECTION,
   importPath: "",
   slskdUrl: "",
   slskdApiKey: "",
@@ -186,6 +219,10 @@ function mergeWithDefaults(raw: Record<string, unknown>): IConfig {
       ...DEFAULT_MUSICBRAINZ,
       ...((saved.musicbrainz as Record<string, unknown>) ?? {}),
     },
+    plexConnection: {
+      ...DEFAULT_PLEX_CONNECTION,
+      ...((saved.plexConnection as Record<string, unknown>) ?? {}),
+    },
     notifications: {
       ...DEFAULT_NOTIFICATIONS,
       ...((saved.notifications as Record<string, unknown>) ?? {}),
@@ -210,6 +247,7 @@ export const getConfig = (): IConfig => {
       notifications: { ...DEFAULT_NOTIFICATIONS },
       liveEvents: { ...DEFAULT_LIVE_EVENTS },
       musicbrainz: { ...DEFAULT_MUSICBRAINZ },
+      plexConnection: { ...DEFAULT_PLEX_CONNECTION },
     };
   }
 
@@ -331,6 +369,14 @@ function validateMusicBrainzConfig(config: MusicBrainzConfig) {
   if (paceError) throw new Error(`musicbrainz.requestsPerSecond: ${paceError}`);
 }
 
+function validatePlexConnectionConfig(config: PlexConnectionConfig) {
+  for (const [name, value] of Object.entries(config)) {
+    if (typeof value !== "string") {
+      throw new Error(`plexConnection.${name} must be a string`);
+    }
+  }
+}
+
 function validateConfig(mergedConfig: IConfig) {
   if (typeof mergedConfig.lidarrUrl !== "string") {
     throw new Error("lidarrUrl must be a string");
@@ -422,6 +468,10 @@ export const setConfig = (newConfig: Partial<IConfigInput>) => {
       ...currentConfig.musicbrainz,
       ...(newConfig.musicbrainz ?? {}),
     },
+    plexConnection: {
+      ...currentConfig.plexConnection,
+      ...(newConfig.plexConnection ?? {}),
+    },
   };
 
   validateConfig(mergedConfig);
@@ -436,6 +486,10 @@ export const setConfig = (newConfig: Partial<IConfigInput>) => {
 
   if (newConfig.liveEvents !== undefined) {
     validateLiveEventsConfig(mergedConfig.liveEvents);
+  }
+
+  if (newConfig.plexConnection !== undefined) {
+    validatePlexConnectionConfig(mergedConfig.plexConnection);
   }
 
   if (newConfig.musicbrainz !== undefined) {

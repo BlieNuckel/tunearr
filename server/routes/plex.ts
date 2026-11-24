@@ -1,10 +1,17 @@
 import type { Request, Response } from "express";
 import express from "express";
 import { getTopArtists } from "../api/plex/topArtists";
-import { getPlexServers } from "../api/plex/servers";
-import { getPlexAccount } from "../api/plex/account";
 import { fetchPlexThumbnail } from "../services/plex";
 import type { TopArtistsRange } from "../api/plex/types";
+import {
+  connectPlex,
+  disconnectPlex,
+  getPlexConnectionStatus,
+  selectPlexServer,
+} from "../services/plexConnection";
+import { requirePermission } from "../middleware/requirePermission";
+import { ApiError } from "../middleware/ApiError";
+import { Permission } from "../../shared/permissions";
 
 const VALID_RANGES = new Set<TopArtistsRange>([
   "all",
@@ -56,28 +63,46 @@ router.get("/thumb", async (req: Request, res: Response) => {
   res.send(result.buffer);
 });
 
-router.get("/servers", async (req: Request, res: Response) => {
-  const token = (req.query.token as string) || req.user?.plexToken;
-  const clientId = req.query.clientId as string;
-  if (!token || !clientId) {
-    res.status(400).json({ error: "Missing token or clientId parameter" });
-    return;
+function requireString(value: unknown, name: string): string {
+  if (!value || typeof value !== "string") {
+    throw new ApiError(400, `${name} is required`);
   }
+  return value;
+}
 
-  const servers = await getPlexServers(token, clientId);
-  res.json({ servers });
-});
-
-router.get("/account", async (req: Request, res: Response) => {
-  const token = (req.query.token as string) || req.user?.plexToken;
-  const clientId = req.query.clientId as string;
-  if (!token || !clientId) {
-    res.status(400).json({ error: "Missing token or clientId parameter" });
-    return;
+router.get(
+  "/connection",
+  requirePermission(Permission.ADMIN),
+  async (_req: Request, res: Response) => {
+    res.json(await getPlexConnectionStatus());
   }
+);
 
-  const account = await getPlexAccount(token, clientId);
-  res.json(account);
-});
+router.post(
+  "/connection",
+  requirePermission(Permission.ADMIN),
+  async (req: Request, res: Response) => {
+    const authToken = requireString(req.body?.authToken, "authToken");
+    res.json(await connectPlex(authToken));
+  }
+);
+
+router.put(
+  "/connection/server",
+  requirePermission(Permission.ADMIN),
+  async (req: Request, res: Response) => {
+    const serverUrl = requireString(req.body?.serverUrl, "serverUrl");
+    res.json(await selectPlexServer(serverUrl));
+  }
+);
+
+router.delete(
+  "/connection",
+  requirePermission(Permission.ADMIN),
+  (_req: Request, res: Response) => {
+    disconnectPlex();
+    res.json({ success: true });
+  }
+);
 
 export default router;

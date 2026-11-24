@@ -19,7 +19,6 @@ export interface AppSettings {
   lidarrRootFolderPath: string;
   lidarrMetadataProfileId: number;
   lastfmApiKey: string;
-  plexUrl: string;
   importPath: string;
   slskdUrl: string;
   slskdApiKey: string;

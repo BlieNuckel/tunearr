@@ -1,6 +1,14 @@
-import { getConfigValue } from "../../config";
-import { getActiveSessions } from "../../api/plex/sessions";
-import { getSignalIngestionUsers } from "../../db/signalEvents";
+import {
+  getPlexServerAccess,
+  isListeningCaptureActive,
+  toPlexAccountId,
+  type PlexServerAccess,
+} from "../plexConnection";
+import {
+  getActiveSessions,
+  type PlexTrackSession,
+} from "../../api/plex/sessions";
+import { getPlexLinkedUsers, type PlexLinkedUser } from "../../db/signalEvents";
 import {
   observeSessions,
   recordMeasuredEpisodes,
@@ -13,12 +21,53 @@ const log = createLogger("listen-session-poller");
 
 let timer: ReturnType<typeof setTimeout> | null = null;
 let running = false;
+/** The read failure last logged, so a failure that persists is logged once rather than every tick. */
+let lastReadFailure: string | null = null;
 
 /**
- * One poll of every enabled user's active sessions: advance the windows still playing and
- * commit the ones that ended. A user whose read fails keeps their windows open — retiring
- * them on a failed poll would commit every one of them early, at whatever partial time we
- * happened to have.
+ * Every linked user with the sessions that are theirs, including users with none, whose
+ * open windows must retire. Sessions from accounts no user is linked to are dropped.
+ */
+function sessionsByUser(
+  sessions: PlexTrackSession[],
+  users: PlexLinkedUser[],
+  access: PlexServerAccess
+): Map<PlexLinkedUser, PlexTrackSession[]> {
+  const byAccount = new Map(users.map((user) => [user.plexAccountId, user]));
+  const grouped = new Map(
+    users.map((user) => [user, [] as PlexTrackSession[]])
+  );
+
+  for (const session of sessions) {
+    const user = byAccount.get(toPlexAccountId(session.accountId, access));
+    if (user) grouped.get(user)!.push(session);
+  }
+  return grouped;
+}
+
+async function readSessions(token: string): Promise<PlexTrackSession[] | null> {
+  try {
+    const sessions = await getActiveSessions(token);
+    if (lastReadFailure !== null) {
+      log.info("Session poll recovered");
+      lastReadFailure = null;
+    }
+    return sessions;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message !== lastReadFailure) {
+      log.error("Session poll failed", error);
+      lastReadFailure = message;
+    }
+    return null;
+  }
+}
+
+/**
+ * One read of the server's active sessions, split across the users they belong to: advance
+ * the windows still playing and commit the ones that ended. A failed read keeps every window
+ * open — retiring them on a failed poll would commit each one early, at whatever partial
+ * time we happened to have.
  */
 export async function runListenSessionPollOnce(
   now = Date.now()
@@ -26,21 +75,31 @@ export async function runListenSessionPollOnce(
   if (running) return 0;
   running = true;
   try {
-    if (!getConfigValue("listeningCaptureEnabled")) return 0;
+    const access = getPlexServerAccess();
+    if (!isListeningCaptureActive() || !access) return 0;
 
-    const users = await getSignalIngestionUsers();
+    const sessions = await readSessions(access.token);
+    if (!sessions) return 0;
+
+    const users = await getPlexLinkedUsers();
     let written = 0;
 
-    for (const user of users) {
+    for (const [user, userSessions] of sessionsByUser(
+      sessions,
+      users,
+      access
+    )) {
       try {
-        const sessions = await getActiveSessions(user.plexToken);
-        const live = observeSessions(user.userId, sessions, now);
+        const live = observeSessions(user.userId, userSessions, now);
         written += await recordMeasuredEpisodes(
           user.userId,
           retireWatches(user.userId, live)
         );
       } catch (error) {
-        log.error(`Session poll failed for user ${user.userId}`, error);
+        log.error(
+          `Recording sessions failed for ${user.displayName} (user ${user.userId})`,
+          error
+        );
       }
     }
 
@@ -73,5 +132,6 @@ export function stopListenSessionPoller(): void {
     clearTimeout(timer);
     timer = null;
   }
+  lastReadFailure = null;
   resetWatches();
 }

@@ -7,11 +7,16 @@ import {
 } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 
-vi.mock("@/hooks/usePlexLogin", () => ({
-  default: () => ({ loading: false, login: vi.fn() }),
-  fetchAccount: () => Promise.resolve(null),
-  pickBestServer: (servers: { local: boolean }[]) =>
-    servers.find((s) => !s.local) ?? servers[0],
+vi.mock("@/hooks/usePlexConnection", () => ({
+  default: () => ({
+    connection: null,
+    loading: false,
+    busy: false,
+    error: null,
+    connect: vi.fn(),
+    selectServer: vi.fn(),
+    disconnect: vi.fn(),
+  }),
 }));
 
 vi.mock("@/utils/plexOAuth", () => ({
@@ -48,7 +53,6 @@ function renderOnboarding(overrides: Partial<SettingsContextValue> = {}) {
       lidarrRootFolderPath: "",
       lidarrMetadataProfileId: 1,
       lastfmApiKey: "",
-      plexUrl: "",
       importPath: "",
       slskdUrl: "",
       slskdApiKey: "",
@@ -98,7 +102,6 @@ describe("OnboardingPage", () => {
         lidarrRootFolderPath: "/music",
         lidarrMetadataProfileId: 1,
         lastfmApiKey: "",
-        plexUrl: "",
         importPath: "",
         slskdUrl: "",
         slskdApiKey: "",
@@ -118,7 +121,6 @@ describe("OnboardingPage", () => {
         lidarrRootFolderPath: "/music",
         lidarrMetadataProfileId: 1,
         lastfmApiKey: "",
-        plexUrl: "",
         importPath: "",
         slskdUrl: "",
         slskdApiKey: "",

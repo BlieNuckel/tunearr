@@ -184,8 +184,8 @@ describe("ingestUserListenHistory (with DB)", () => {
       historyRow("2", "A", 1_770_003_600),
     ]);
 
-    expect(await ingestUserListenHistory(1, "tok")).toBe(2);
-    expect(mockGetPlayHistory).toHaveBeenCalledWith("tok", 0);
+    expect(await ingestUserListenHistory(1, "tok", "1")).toBe(2);
+    expect(mockGetPlayHistory).toHaveBeenCalledWith("tok", "1", 0);
     expect(
       episodesOf(await getSignalEvents(1, "plex_listen_history"))
     ).toHaveLength(2);
@@ -195,19 +195,23 @@ describe("ingestUserListenHistory (with DB)", () => {
     mockGetPlayHistory.mockResolvedValueOnce([
       historyRow("1", "A", 1_770_000_000),
     ]);
-    await ingestUserListenHistory(1, "tok");
+    await ingestUserListenHistory(1, "tok", "1");
     mockGetPlayHistory.mockResolvedValueOnce([]);
 
-    await ingestUserListenHistory(1, "tok");
+    await ingestUserListenHistory(1, "tok", "1");
 
-    expect(mockGetPlayHistory).toHaveBeenLastCalledWith("tok", 1_770_000_000);
+    expect(mockGetPlayHistory).toHaveBeenLastCalledWith(
+      "tok",
+      "1",
+      1_770_000_000
+    );
   });
 
   it("appends nothing when the sweep only returns plays it already holds", async () => {
     mockGetPlayHistory.mockResolvedValue([historyRow("1", "A", 1_770_000_000)]);
 
-    await ingestUserListenHistory(1, "tok");
-    expect(await ingestUserListenHistory(1, "tok")).toBe(0);
+    await ingestUserListenHistory(1, "tok", "1");
+    expect(await ingestUserListenHistory(1, "tok", "1")).toBe(0);
     expect(await getSignalEvents(1, "plex_listen_history")).toHaveLength(1);
   });
 
@@ -217,7 +221,7 @@ describe("ingestUserListenHistory (with DB)", () => {
       historyRow("1", "A", 1_770_000_000),
     ]);
 
-    expect(await ingestUserListenHistory(1, "tok")).toBe(1);
+    expect(await ingestUserListenHistory(1, "tok", "1")).toBe(1);
   });
 
   it("joins the track length from the play-count series", async () => {
@@ -239,7 +243,7 @@ describe("ingestUserListenHistory (with DB)", () => {
     ]);
     mockGetPlayHistory.mockResolvedValue([historyRow("1", "A", 1_770_000_000)]);
 
-    await ingestUserListenHistory(1, "tok");
+    await ingestUserListenHistory(1, "tok", "1");
 
     const [stored] = episodesOf(
       await getSignalEvents(1, "plex_listen_history")
@@ -268,7 +272,7 @@ describe("ingestUserListenHistory (with DB)", () => {
     ]);
     mockGetPlayHistory.mockResolvedValue([historyRow("1", "A", 1_770_000_000)]);
 
-    await ingestUserListenHistory(1, "tok");
+    await ingestUserListenHistory(1, "tok", "1");
 
     const [stored] = episodesOf(
       await getSignalEvents(1, "plex_listen_history")
@@ -279,7 +283,7 @@ describe("ingestUserListenHistory (with DB)", () => {
   it("falls back to a nominal length for a track the play sweep has not seen", async () => {
     mockGetPlayHistory.mockResolvedValue([historyRow("1", "A", 1_770_000_000)]);
 
-    await ingestUserListenHistory(1, "tok");
+    await ingestUserListenHistory(1, "tok", "1");
 
     const [stored] = episodesOf(
       await getSignalEvents(1, "plex_listen_history")
@@ -292,7 +296,7 @@ describe("ingestUserListenHistory (with DB)", () => {
       historyRow("1", "A", 1_770_000_000, { deviceID: 77, accountID: 1 }),
     ]);
 
-    await ingestUserListenHistory(1, "tok");
+    await ingestUserListenHistory(1, "tok", "1");
 
     const [stored] = episodesOf(
       await getSignalEvents(1, "plex_listen_history")
@@ -307,7 +311,7 @@ describe("ingestUserListenHistory (with DB)", () => {
       )
     );
 
-    expect(await ingestUserListenHistory(1, "tok")).toBe(4500);
+    expect(await ingestUserListenHistory(1, "tok", "1")).toBe(4500);
 
     const events = await getSignalEvents(1, "plex_listen_history");
     expect(events.map((e) => episodesOf([e]).length)).toEqual([

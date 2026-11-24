@@ -6,6 +6,9 @@ interface PlexConfig {
   token: string;
 }
 
+/** How the server identifies itself to plex.tv on calls it makes on its own behalf. */
+export const TUNEARR_SERVER_CLIENT_ID = "tunearr-server";
+
 export const getPlexConfig = (userPlexToken: string): PlexConfig => {
   const config = getConfig();
   if (!config.plexUrl) {

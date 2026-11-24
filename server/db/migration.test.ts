@@ -11,6 +11,7 @@ import { LiveArtists1729000000000 } from "./migration/21_LiveArtists";
 import { LiveQuotaFromJambase1730000000000 } from "./migration/22_LiveQuotaFromJambase";
 import { LiveArtistBaseline1731000000000 } from "./migration/23_LiveArtistBaseline";
 import { LiveUserLocation1732000000000 } from "./migration/24_LiveUserLocation";
+import { HistoryAccountCleanup1733000000000 } from "./migration/25_HistoryAccountCleanup";
 import type { DataSource } from "typeorm";
 
 let ds: DataSource | null = null;
@@ -1220,5 +1221,133 @@ describe("RequestAvailable migration", () => {
     expect(columns.map((c) => c.name)).not.toContain("available_at");
     expect(columns.map((c) => c.name)).not.toContain("highlight_dismissed_at");
     await runner.release();
+  });
+});
+
+describe("HistoryAccountCleanup migration", () => {
+  const OWNER = "235168011";
+  const MARIA = "678939888";
+
+  function play(ratingKey: string, viewedAt: number, accountID?: number) {
+    return { ratingKey, viewedAt, accountID };
+  }
+
+  async function linkedUser(db: DataSource, name: string, plexId: string) {
+    const id = await insertUser(db, name);
+    await db.query("UPDATE users SET plex_id = ? WHERE id = ?", [plexId, id]);
+    return id;
+  }
+
+  async function storeHistory(
+    db: DataSource,
+    userId: number,
+    episodes: unknown[],
+    recordedAt = "2026-11-20T00:00:00.000Z"
+  ) {
+    await db.query(
+      `INSERT INTO user_signal_events (user_id, kind, payload, recorded_at)
+       VALUES (?, 'plex_listen_history', ?, ?)`,
+      [userId, JSON.stringify({ episodes }), recordedAt]
+    );
+  }
+
+  async function historyOf(db: DataSource, userId: number) {
+    const rows = (await db.query(
+      `SELECT payload, recorded_at FROM user_signal_events
+       WHERE user_id = ? AND kind = 'plex_listen_history' ORDER BY id`,
+      [userId]
+    )) as { payload: string; recorded_at: string }[];
+    return rows.map((r) => ({
+      recordedAt: r.recorded_at,
+      keys: (JSON.parse(r.payload).episodes as { ratingKey: string }[]).map(
+        (e) => e.ratingKey
+      ),
+    }));
+  }
+
+  async function runUp(db: DataSource) {
+    const runner = db.createQueryRunner();
+    await new HistoryAccountCleanup1733000000000().up(runner);
+    await runner.release();
+  }
+
+  it("moves another account's plays from the owner to the user linked to it", async () => {
+    const db = await initTestDb();
+    const owner = await linkedUser(db, "owner", OWNER);
+    const maria = await linkedUser(db, "maria", MARIA);
+    await storeHistory(db, owner, [
+      play("a", 100, 1),
+      play("b", 200, Number(MARIA)),
+    ]);
+
+    await runUp(db);
+
+    expect(await historyOf(db, owner)).toEqual([
+      { recordedAt: "2026-11-20T00:00:00.000Z", keys: ["a"] },
+    ]);
+    expect(await historyOf(db, maria)).toEqual([
+      { recordedAt: "2026-11-20T00:00:00.000Z", keys: ["b"] },
+    ]);
+  });
+
+  it("skips a moved play the target already has", async () => {
+    const db = await initTestDb();
+    const owner = await linkedUser(db, "owner", OWNER);
+    const maria = await linkedUser(db, "maria", MARIA);
+    await storeHistory(db, maria, [play("b", 200, Number(MARIA))]);
+    await storeHistory(db, owner, [
+      play("a", 100, 1),
+      play("b", 200, Number(MARIA)),
+    ]);
+
+    await runUp(db);
+
+    expect((await historyOf(db, maria)).flatMap((h) => h.keys)).toEqual(["b"]);
+  });
+
+  it("drops plays of accounts no user is linked to, and an event left empty", async () => {
+    const db = await initTestDb();
+    const owner = await linkedUser(db, "owner", OWNER);
+    await storeHistory(db, owner, [play("x", 300, 555)]);
+    await storeHistory(db, owner, [play("a", 100, 1)]);
+
+    await runUp(db);
+
+    expect(await historyOf(db, owner)).toEqual([
+      { recordedAt: "2026-11-20T00:00:00.000Z", keys: ["a"] },
+    ]);
+  });
+
+  it("keeps plays with no account, and a user's own plays by plex.tv id", async () => {
+    const db = await initTestDb();
+    const maria = await linkedUser(db, "maria", MARIA);
+    await storeHistory(db, maria, [
+      play("b", 200, Number(MARIA)),
+      play("c", 400),
+    ]);
+
+    await runUp(db);
+
+    expect((await historyOf(db, maria)).flatMap((h) => h.keys)).toEqual([
+      "b",
+      "c",
+    ]);
+  });
+
+  it("leaves other signal kinds alone", async () => {
+    const db = await initTestDb();
+    const owner = await linkedUser(db, "owner", OWNER);
+    await db.query(
+      `INSERT INTO user_signal_events (user_id, kind, payload)
+       VALUES (?, 'plex_track_plays', '{"accountID":555}')`,
+      [owner]
+    );
+
+    await runUp(db);
+
+    const [{ count }] = (await db.query(
+      "SELECT count(*) AS count FROM user_signal_events"
+    )) as { count: number }[];
+    expect(count).toBe(1);
   });
 });

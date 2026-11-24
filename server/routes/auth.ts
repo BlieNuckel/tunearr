@@ -8,7 +8,6 @@ import {
   findOrCreatePlexUser,
   linkPlexAccount,
   updateUserPreferences,
-  updateUserPlexToken,
 } from "../auth/users";
 import { createSession, deleteSession } from "../auth/sessions";
 import type { AuthUser } from "../auth/types";
@@ -20,8 +19,7 @@ import {
 import { validateSession } from "../auth/sessions";
 import { getPlexAccountFull } from "../api/plex/account";
 import { getServerAccessToken } from "../api/plex/servers";
-
-const TUNEARR_SERVER_CLIENT_ID = "tunearr-server";
+import { TUNEARR_SERVER_CLIENT_ID } from "../api/plex/config";
 
 const router = express.Router();
 
@@ -300,34 +298,6 @@ router.get("/me", async (req: Request, res: Response, next: NextFunction) => {
     next(err);
   }
 });
-
-router.post(
-  "/store-plex-token",
-  requireAuth,
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { authToken } = req.body;
-
-      if (!authToken || typeof authToken !== "string") {
-        const err = new Error("authToken is required") as Error & {
-          status: number;
-        };
-        err.status = 400;
-        throw err;
-      }
-
-      const serverToken = await getServerAccessToken(
-        authToken,
-        TUNEARR_SERVER_CLIENT_ID
-      );
-      await updateUserPlexToken(req.user!.id, serverToken);
-
-      res.json({ success: true });
-    } catch (err) {
-      next(err);
-    }
-  }
-);
 
 router.patch(
   "/preferences",

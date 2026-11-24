@@ -11,7 +11,6 @@ const settings: AppSettings = {
   lidarrRootFolderPath: "",
   lidarrMetadataProfileId: 1,
   lastfmApiKey: "",
-  plexUrl: "",
   importPath: "",
   slskdUrl: "http://slskd:5030",
   slskdApiKey: "key",

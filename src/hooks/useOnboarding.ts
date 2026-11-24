@@ -21,7 +21,6 @@ export interface OnboardingFields {
   rootFolderPath: string;
   metadataProfileId: number;
   lastfmApiKey: string;
-  plexUrl: string;
   importPath: string;
 }
 
@@ -48,7 +47,6 @@ export function useOnboarding() {
     rootFolderPath: "",
     metadataProfileId: 0,
     lastfmApiKey: "",
-    plexUrl: "",
     importPath: "",
   });
   const [testing, setTesting] = useState(false);
@@ -129,7 +127,6 @@ export function useOnboarding() {
         lidarrRootFolderPath: fields.rootFolderPath,
         lidarrMetadataProfileId: fields.metadataProfileId,
         lastfmApiKey: "",
-        plexUrl: "",
         importPath: "",
         slskdUrl: "",
         slskdApiKey: "",
@@ -169,7 +166,6 @@ export function useOnboarding() {
         lidarrRootFolderPath: fields.rootFolderPath,
         lidarrMetadataProfileId: fields.metadataProfileId,
         lastfmApiKey: fields.lastfmApiKey,
-        plexUrl: fields.plexUrl,
         importPath: fields.importPath,
         slskdUrl: "",
         slskdApiKey: "",

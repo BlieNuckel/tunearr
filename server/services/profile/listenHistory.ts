@@ -167,17 +167,26 @@ function trackDurations(events: UserSignalEvent[]): Map<string, number> {
  * and is not revisited — the count series is the durable record of length, and this series
  * exists for *when* a play happened.
  *
+ * Reads through the server connection, filtered to the user's own account on the server
+ * (`serverAccountId`), rather than with the user's token: an owner's token reads every
+ * account's plays, and a shared user's token is not one we can rely on for this log.
+ *
  * Returns the number of episodes appended.
  */
 export async function ingestUserListenHistory(
   userId: number,
-  plexToken: string
+  serverToken: string,
+  serverAccountId: string
 ): Promise<number> {
   const stored = reconstructListenEpisodes(
     await getSignalEvents(userId, "plex_listen_history"),
     Infinity
   );
-  const entries = await getPlayHistory(plexToken, historyWatermark(stored));
+  const entries = await getPlayHistory(
+    serverToken,
+    serverAccountId,
+    historyWatermark(stored)
+  );
   const durations = trackDurations(
     await getSignalEvents(userId, "plex_track_plays")
   );

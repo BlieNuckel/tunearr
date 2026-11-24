@@ -61,11 +61,30 @@ describe("getActiveSessions", () => {
         machineIdentifier: "device-1",
         product: "Plexamp",
         state: "playing",
+        accountId: "1",
       },
     ]);
     expect(mockFetch.mock.calls[0][0]).toBe(
       "http://plex:32400/status/sessions"
     );
+  });
+
+  it("reads the listening account, falling back to the player's user id", async () => {
+    const { User: _user, ...noUser } = rawSession;
+    mockFetch.mockResolvedValueOnce(
+      okResponse({
+        MediaContainer: {
+          Metadata: [
+            { ...rawSession, User: { id: "678939888", title: "Maria" } },
+            { ...noUser, Player: { ...rawSession.Player, userID: 45024844 } },
+          ],
+        },
+      })
+    );
+
+    const result = await getActiveSessions("tok");
+
+    expect(result.map((s) => s.accountId)).toEqual(["678939888", "45024844"]);
   });
 
   it("keeps a paused session, which is still a window in flight", async () => {

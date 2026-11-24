@@ -19,13 +19,20 @@ export type PlexHistoryEntry = {
 
 const PAGE_SIZE = 1000;
 
+/** Where one page of one account's history in one section is read from. */
+type PageQuery = {
+  sectionKey: string;
+  accountId: string;
+  sinceSeconds: number;
+  start: number;
+};
+
 const buildPageUrl = (
   baseUrl: string,
-  sectionKey: string,
-  sinceSeconds: number,
-  start: number
+  { sectionKey, accountId, sinceSeconds, start }: PageQuery
 ): string =>
   `${baseUrl}/status/sessions/history/all?librarySectionID=${sectionKey}` +
+  `&accountID=${encodeURIComponent(accountId)}` +
   `&viewedAt%3E=${sinceSeconds}&sort=viewedAt:asc` +
   `&X-Plex-Container-Start=${start}&X-Plex-Container-Size=${PAGE_SIZE}`;
 
@@ -57,14 +64,9 @@ const isUsable = (raw: PlexHistoryMetadata): boolean =>
 async function fetchPage(
   baseUrl: string,
   headers: Record<string, string>,
-  sectionKey: string,
-  sinceSeconds: number,
-  start: number
+  query: PageQuery
 ): Promise<{ items: PlexHistoryEntry[]; rowCount: number; totalSize: number }> {
-  const res = await resilientFetch(
-    buildPageUrl(baseUrl, sectionKey, sinceSeconds, start),
-    { headers }
-  );
+  const res = await resilientFetch(buildPageUrl(baseUrl, query), { headers });
   if (!res.ok) throw new Error(`Plex returned ${res.status}`);
 
   const data: PlexHistoryResponse = await res.json();
@@ -79,26 +81,19 @@ async function fetchPage(
 }
 
 /**
- * One music section's play history from `sinceSeconds` onwards, paged to completion.
- * Sorted ascending so paging stays stable while the log grows underneath us — a new play
- * lands at the end rather than shifting every row we have not read yet.
+ * One account's play history in one music section from `sinceSeconds` onwards, paged to
+ * completion. Sorted ascending so paging stays stable while the log grows underneath us — a
+ * new play lands at the end rather than shifting every row we have not read yet.
  */
 async function walkSection(
   baseUrl: string,
   headers: Record<string, string>,
-  sectionKey: string,
-  sinceSeconds: number
+  query: Omit<PageQuery, "start">
 ): Promise<PlexHistoryEntry[]> {
   const all: PlexHistoryEntry[] = [];
   let start = 0;
   for (;;) {
-    const page = await fetchPage(
-      baseUrl,
-      headers,
-      sectionKey,
-      sinceSeconds,
-      start
-    );
+    const page = await fetchPage(baseUrl, headers, { ...query, start });
     all.push(...page.items);
     start += PAGE_SIZE;
     if (page.rowCount < PAGE_SIZE || start >= page.totalSize) break;
@@ -107,26 +102,39 @@ async function walkSection(
 }
 
 /**
- * Every committed play across every music section since `sinceSeconds` (Unix seconds; `0`
- * reads the whole log). Plex's event log is the only source with a real timestamp per play
- * and it survives Plexamp replaying plays it cached while offline, which is why it is the
- * spine the other listening sources join onto.
+ * One account's committed plays across every music section since `sinceSeconds` (Unix
+ * seconds; `0` reads the whole log). Plex's event log is the only source with a real
+ * timestamp per play and it survives Plexamp replaying plays it cached while offline, which
+ * is why it is the spine the other listening sources join onto.
  *
- * Rows are scoped to the token's own account by Plex. Sections are walked sequentially so a
- * server with several music libraries doesn't get several concurrent full sweeps.
+ * `accountId` is the server's id for the account (`1` for the owner). The owner's token reads
+ * every account's plays, so the filter is what keeps one user's history from absorbing
+ * everyone else's; rows that still name another account are dropped. Sections are walked
+ * sequentially so a server with several music libraries doesn't get several concurrent full
+ * sweeps.
  */
 export async function getPlayHistory(
-  plexToken: string,
+  serverToken: string,
+  accountId: string,
   sinceSeconds = 0
 ): Promise<PlexHistoryEntry[]> {
-  const { baseUrl, headers } = getPlexConfig(plexToken);
+  const { baseUrl, headers } = getPlexConfig(serverToken);
   const sectionKeys = await getMusicSectionKeys(baseUrl, headers);
 
   const all: PlexHistoryEntry[] = [];
   for (const sectionKey of sectionKeys) {
     all.push(
-      ...(await walkSection(baseUrl, headers, sectionKey, sinceSeconds))
+      ...(await walkSection(baseUrl, headers, {
+        sectionKey,
+        accountId,
+        sinceSeconds,
+      }))
     );
   }
-  return all.sort((a, b) => a.viewedAt - b.viewedAt);
+  return all
+    .filter(
+      (entry) =>
+        entry.accountID === undefined || String(entry.accountID) === accountId
+    )
+    .sort((a, b) => a.viewedAt - b.viewedAt);
 }
