@@ -78,12 +78,7 @@ export default function OnboardingPage() {
           onApiKeyChange={(v) => wizard.updateField("lastfmApiKey", v)}
         />
       )}
-      {wizard.currentStep === "plex" && (
-        <PlexStep
-          url={wizard.fields.plexUrl}
-          onUrlChange={(v) => wizard.updateField("plexUrl", v)}
-        />
-      )}
+      {wizard.currentStep === "plex" && <PlexStep />}
       {wizard.currentStep === "import" && (
         <ImportStep
           importPath={wizard.fields.importPath}

@@ -74,13 +74,6 @@ export function listServerConnections(
   );
 }
 
-export async function getPlexServers(
-  token: string,
-  clientId: string
-): Promise<PlexServer[]> {
-  return listServerConnections(await getServerResources(token, clientId));
-}
-
 /**
  * For shared/friend users, the plex.tv account token cannot access the media
  * server directly. Each resource in the resources API has a server-specific

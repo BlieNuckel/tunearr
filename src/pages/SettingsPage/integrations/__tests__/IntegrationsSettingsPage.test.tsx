@@ -11,7 +11,6 @@ const settings: AppSettings = {
   lidarrRootFolderPath: "/music",
   lidarrMetadataProfileId: 1,
   lastfmApiKey: "fm",
-  plexUrl: "",
   importPath: "/import",
   slskdUrl: "",
   slskdApiKey: "",

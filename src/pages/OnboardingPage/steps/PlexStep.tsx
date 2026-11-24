@@ -1,16 +1,14 @@
 import StepDescription from "../components/StepDescription";
 import PlexAuth from "@/components/PlexAuth";
+import usePlexConnection from "@/hooks/usePlexConnection";
 
-interface PlexStepProps {
-  url: string;
-  onUrlChange: (url: string) => void;
-}
+export default function PlexStep() {
+  const plex = usePlexConnection();
 
-export default function PlexStep({ url, onUrlChange }: PlexStepProps) {
   return (
     <div className="space-y-4">
-      <StepDescription text="Connect Plex to show your most-played artists on the Home page. You can skip this and add it later in Settings." />
-      <PlexAuth serverUrl={url} onServerUrl={onUrlChange} />
+      <StepDescription text="Connect the Plex server Tunearr reads your listening from. You can skip this and add it later in Settings." />
+      <PlexAuth plex={plex} />
     </div>
   );
 }

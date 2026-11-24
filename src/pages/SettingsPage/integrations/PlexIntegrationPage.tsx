@@ -1,15 +1,14 @@
 import PlexSection from "../sections/integrations/PlexSection";
 import { useIntegrations } from "./context";
+import usePlexConnection from "@/hooks/usePlexConnection";
 
 export default function PlexIntegrationPage() {
-  const { fields, updateField, updateFields } = useIntegrations();
+  const { fields, updateField } = useIntegrations();
+  const plex = usePlexConnection();
 
   return (
     <PlexSection
-      url={fields.plexUrl}
-      onUrlChange={(v) => updateField("plexUrl", v)}
-      onSignOut={() => updateFields({ plexUrl: "" })}
-      onLoginComplete={(serverUrl) => updateFields({ plexUrl: serverUrl })}
+      plex={plex}
       captureEnabled={fields.listeningCaptureEnabled ?? true}
       onCaptureEnabledChange={(enabled) =>
         updateField("listeningCaptureEnabled", enabled)

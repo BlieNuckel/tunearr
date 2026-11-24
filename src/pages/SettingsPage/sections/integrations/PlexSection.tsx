@@ -1,19 +1,14 @@
 import PlexAuth from "@/components/PlexAuth";
+import type { UsePlexConnectionResult } from "@/hooks/usePlexConnection";
 
 interface PlexSectionProps {
-  url: string;
-  onUrlChange: (url: string) => void;
-  onSignOut: () => void;
-  onLoginComplete: (serverUrl: string) => void;
+  plex: UsePlexConnectionResult;
   captureEnabled: boolean;
   onCaptureEnabledChange: (enabled: boolean) => void;
 }
 
 export default function PlexSection({
-  url,
-  onUrlChange,
-  onSignOut,
-  onLoginComplete,
+  plex,
   captureEnabled,
   onCaptureEnabledChange,
 }: PlexSectionProps) {
@@ -22,12 +17,7 @@ export default function PlexSection({
       <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
         Plex
       </h2>
-      <PlexAuth
-        serverUrl={url}
-        onServerUrl={onUrlChange}
-        onSignOut={onSignOut}
-        onLoginComplete={onLoginComplete}
-      />
+      <PlexAuth plex={plex} />
       <label className="flex items-center gap-2">
         <input
           type="checkbox"

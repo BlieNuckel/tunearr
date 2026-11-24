@@ -14,7 +14,6 @@ function baseSettings(musicbrainz: AppSettings["musicbrainz"]): AppSettings {
     lidarrRootFolderPath: "",
     lidarrMetadataProfileId: 1,
     lastfmApiKey: "",
-    plexUrl: "",
     importPath: "",
     slskdUrl: "",
     slskdApiKey: "",

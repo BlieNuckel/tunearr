@@ -1,56 +1,29 @@
 import { render, screen } from "@testing-library/react";
 
-vi.mock("@/hooks/usePlexLogin", () => ({
-  default: () => ({ loading: false, login: vi.fn() }),
-  fetchAccount: () => Promise.resolve(null),
-  pickBestServer: (servers: { local: boolean }[]) =>
-    servers.find((s) => !s.local) ?? servers[0],
-}));
-
-vi.mock("@/utils/plexOAuth", () => ({
-  getClientId: () => "test-client-id",
-}));
-
-vi.mock("@/context/useAuth", () => ({
-  useAuth: () => ({
-    user: { hasPlexToken: false },
-    status: "authenticated",
-    refreshUser: vi.fn(),
+vi.mock("@/hooks/usePlexConnection", () => ({
+  default: () => ({
+    connection: null,
+    loading: false,
+    busy: false,
+    error: null,
+    connect: vi.fn(),
+    selectServer: vi.fn(),
+    disconnect: vi.fn(),
   }),
 }));
 
 import PlexStep from "../PlexStep";
 
-const defaultProps = {
-  url: "",
-  onUrlChange: vi.fn(),
-};
-
-beforeEach(() => {
-  vi.clearAllMocks();
-});
-
 describe("PlexStep", () => {
   it("renders description", () => {
-    render(<PlexStep {...defaultProps} />);
+    render(<PlexStep />);
     expect(
-      screen.getByText(/Connect Plex to show your most-played/)
+      screen.getByText(/Connect the Plex server Tunearr reads/)
     ).toBeInTheDocument();
   });
 
   it("renders Sign in with Plex button", () => {
-    render(<PlexStep {...defaultProps} />);
+    render(<PlexStep />);
     expect(screen.getByText("Sign in with Plex")).toBeInTheDocument();
-  });
-
-  it("does not render manual input fields", () => {
-    render(<PlexStep {...defaultProps} />);
-    expect(
-      screen.queryByPlaceholderText("http://localhost:32400")
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByPlaceholderText("Enter Plex token")
-    ).not.toBeInTheDocument();
-    expect(screen.queryByText("or enter manually")).not.toBeInTheDocument();
   });
 });

@@ -2,8 +2,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockGetTopArtists = vi.fn();
 const mockFetchPlexThumbnail = vi.fn();
-const mockGetPlexServers = vi.fn();
-const mockGetPlexAccount = vi.fn();
 const mockGetConnectionStatus = vi.fn();
 const mockConnectPlex = vi.fn();
 const mockSelectPlexServer = vi.fn();
@@ -15,14 +13,6 @@ vi.mock("../api/plex/topArtists", () => ({
 
 vi.mock("../services/plex", () => ({
   fetchPlexThumbnail: (...args: unknown[]) => mockFetchPlexThumbnail(...args),
-}));
-
-vi.mock("../api/plex/servers", () => ({
-  getPlexServers: (...args: unknown[]) => mockGetPlexServers(...args),
-}));
-
-vi.mock("../api/plex/account", () => ({
-  getPlexAccount: (...args: unknown[]) => mockGetPlexAccount(...args),
 }));
 
 vi.mock("../services/plexConnection", () => ({
@@ -149,74 +139,6 @@ describe("GET /thumb", () => {
 
     const res = await request(app).get("/thumb?path=/bad/path");
     expect(res.status).toBe(404);
-  });
-});
-
-describe("GET /servers", () => {
-  it("returns 400 when token or clientId param is missing", async () => {
-    const res = await request(app).get("/servers");
-    expect(res.status).toBe(400);
-    expect(res.body.error).toContain("Missing token or clientId");
-
-    const res2 = await request(app).get("/servers?token=abc");
-    expect(res2.status).toBe(400);
-  });
-
-  it("returns servers from getPlexServers", async () => {
-    const servers = [
-      { name: "My Server", uri: "http://plex:32400", local: true },
-    ];
-    mockGetPlexServers.mockResolvedValue(servers);
-
-    const res = await request(app).get(
-      "/servers?token=test-token&clientId=client-123"
-    );
-    expect(res.status).toBe(200);
-    expect(res.body).toEqual({ servers });
-    expect(mockGetPlexServers).toHaveBeenCalledWith("test-token", "client-123");
-  });
-
-  it("returns 500 when getPlexServers throws", async () => {
-    mockGetPlexServers.mockRejectedValue(new Error("Plex returned 401"));
-
-    const res = await request(app).get(
-      "/servers?token=bad-token&clientId=client-123"
-    );
-    expect(res.status).toBe(500);
-    expect(res.body.error).toContain("Plex returned 401");
-  });
-});
-
-describe("GET /account", () => {
-  it("returns 400 when token or clientId param is missing", async () => {
-    const res = await request(app).get("/account");
-    expect(res.status).toBe(400);
-    expect(res.body.error).toContain("Missing token or clientId");
-
-    const res2 = await request(app).get("/account?token=abc");
-    expect(res2.status).toBe(400);
-  });
-
-  it("returns account info from getPlexAccount", async () => {
-    const account = { username: "testuser", thumb: "https://plex.tv/thumb" };
-    mockGetPlexAccount.mockResolvedValue(account);
-
-    const res = await request(app).get(
-      "/account?token=test-token&clientId=client-123"
-    );
-    expect(res.status).toBe(200);
-    expect(res.body).toEqual(account);
-    expect(mockGetPlexAccount).toHaveBeenCalledWith("test-token", "client-123");
-  });
-
-  it("returns 500 when getPlexAccount throws", async () => {
-    mockGetPlexAccount.mockRejectedValue(new Error("Plex returned 401"));
-
-    const res = await request(app).get(
-      "/account?token=bad-token&clientId=client-123"
-    );
-    expect(res.status).toBe(500);
-    expect(res.body.error).toContain("Plex returned 401");
   });
 });
 

@@ -9,9 +9,9 @@ vi.mock("../../config", () => ({
 }));
 
 import {
-  getPlexServers,
   getServerAccessToken,
   getServerResources,
+  listServerConnections,
 } from "./servers";
 
 beforeEach(() => {
@@ -60,11 +60,13 @@ describe("getServerResources", () => {
   });
 });
 
-describe("getPlexServers", () => {
+describe("listServerConnections", () => {
   it("returns server connections filtered from resources", async () => {
     mockResourcesResponse([serverResource, playerResource]);
 
-    const servers = await getPlexServers("test-token", "client-123");
+    const servers = listServerConnections(
+      await getServerResources("test-token", "client-123")
+    );
 
     expect(servers).toEqual([
       {
@@ -90,14 +92,16 @@ describe("getPlexServers", () => {
   it("returns empty array when no servers found", async () => {
     mockResourcesResponse([playerResource]);
 
-    const servers = await getPlexServers("token", "client-123");
+    const servers = listServerConnections(
+      await getServerResources("token", "client-123")
+    );
     expect(servers).toEqual([]);
   });
 
   it("throws when plex.tv returns an error", async () => {
     mockFetch.mockResolvedValue({ ok: false, status: 401 });
 
-    await expect(getPlexServers("bad-token", "client-123")).rejects.toThrow(
+    await expect(getServerResources("bad-token", "client-123")).rejects.toThrow(
       "Plex returned 401"
     );
   });

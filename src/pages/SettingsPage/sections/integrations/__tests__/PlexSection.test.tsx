@@ -1,9 +1,20 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import PlexSection from "../PlexSection";
+import type { UsePlexConnectionResult } from "@/hooks/usePlexConnection";
 
 vi.mock("@/components/PlexAuth", () => ({
   default: () => <div data-testid="plex-auth" />,
 }));
+
+const plex: UsePlexConnectionResult = {
+  connection: null,
+  loading: false,
+  busy: false,
+  error: null,
+  connect: vi.fn(),
+  selectServer: vi.fn(),
+  disconnect: vi.fn(),
+};
 
 function renderSection(
   captureEnabled: boolean,
@@ -11,10 +22,7 @@ function renderSection(
 ) {
   render(
     <PlexSection
-      url="http://plex:32400"
-      onUrlChange={vi.fn()}
-      onSignOut={vi.fn()}
-      onLoginComplete={vi.fn()}
+      plex={plex}
       captureEnabled={captureEnabled}
       onCaptureEnabledChange={onCaptureEnabledChange}
     />

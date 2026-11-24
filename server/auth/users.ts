@@ -223,20 +223,6 @@ export async function linkPlexAccount(
   });
 }
 
-export async function updateUserPlexToken(
-  userId: number,
-  plexToken: string
-): Promise<void> {
-  const repo = getDataSource().getRepository(User);
-  await repo
-    .createQueryBuilder()
-    .update()
-    .set({ plex_token: plexToken })
-    .where("id = :id", { id: userId })
-    .callListeners(false)
-    .execute();
-}
-
 export async function updateUserPreferences(
   userId: number,
   prefs: { theme?: AuthUser["theme"] }
