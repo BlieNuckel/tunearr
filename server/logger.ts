@@ -19,7 +19,7 @@ const isDevelopment = process.env.NODE_ENV !== "production";
 
 const LOG_DIR =
   process.env.APP_CONFIG_DIR || path.join(__dirname, "..", "config");
-const LOGS_PATH = path.join(LOG_DIR, "logs");
+export const LOGS_PATH = path.join(LOG_DIR, "logs");
 
 if (!isTest && !fs.existsSync(LOGS_PATH)) {
   fs.mkdirSync(LOGS_PATH, { recursive: true });

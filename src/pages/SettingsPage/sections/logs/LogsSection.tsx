@@ -101,6 +101,13 @@ export default function LogsSection() {
           onPageChange={setPage}
         />
       )}
+
+      {!loading && !error && data?.truncated && (
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Older entries are left out to keep this page fast. The full files are
+          in the logs folder of the config directory.
+        </p>
+      )}
     </div>
   );
 }

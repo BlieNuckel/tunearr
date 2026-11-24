@@ -17,6 +17,7 @@ type LogsResponse = {
   pageSize: number;
   totalCount: number;
   totalPages: number;
+  truncated: boolean;
 };
 
 type UseLogsParams = {
