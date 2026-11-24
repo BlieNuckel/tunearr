@@ -20,8 +20,7 @@ import {
 import { validateSession } from "../auth/sessions";
 import { getPlexAccountFull } from "../api/plex/account";
 import { getServerAccessToken } from "../api/plex/servers";
-
-const TUNEARR_SERVER_CLIENT_ID = "tunearr-server";
+import { TUNEARR_SERVER_CLIENT_ID } from "../api/plex/config";
 
 const router = express.Router();
 

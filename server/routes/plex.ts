@@ -5,6 +5,15 @@ import { getPlexServers } from "../api/plex/servers";
 import { getPlexAccount } from "../api/plex/account";
 import { fetchPlexThumbnail } from "../services/plex";
 import type { TopArtistsRange } from "../api/plex/types";
+import {
+  connectPlex,
+  disconnectPlex,
+  getPlexConnectionStatus,
+  selectPlexServer,
+} from "../services/plexConnection";
+import { requirePermission } from "../middleware/requirePermission";
+import { ApiError } from "../middleware/ApiError";
+import { Permission } from "../../shared/permissions";
 
 const VALID_RANGES = new Set<TopArtistsRange>([
   "all",
@@ -79,5 +88,47 @@ router.get("/account", async (req: Request, res: Response) => {
   const account = await getPlexAccount(token, clientId);
   res.json(account);
 });
+
+function requireString(value: unknown, name: string): string {
+  if (!value || typeof value !== "string") {
+    throw new ApiError(400, `${name} is required`);
+  }
+  return value;
+}
+
+router.get(
+  "/connection",
+  requirePermission(Permission.ADMIN),
+  async (_req: Request, res: Response) => {
+    res.json(await getPlexConnectionStatus());
+  }
+);
+
+router.post(
+  "/connection",
+  requirePermission(Permission.ADMIN),
+  async (req: Request, res: Response) => {
+    const authToken = requireString(req.body?.authToken, "authToken");
+    res.json(await connectPlex(authToken));
+  }
+);
+
+router.put(
+  "/connection/server",
+  requirePermission(Permission.ADMIN),
+  async (req: Request, res: Response) => {
+    const serverUrl = requireString(req.body?.serverUrl, "serverUrl");
+    res.json(await selectPlexServer(serverUrl));
+  }
+);
+
+router.delete(
+  "/connection",
+  requirePermission(Permission.ADMIN),
+  (_req: Request, res: Response) => {
+    disconnectPlex();
+    res.json({ success: true });
+  }
+);
 
 export default router;

@@ -34,6 +34,17 @@ const LIVE_SWEEP_STATE_KEYS = [
   "rosterFullPass",
 ] as const;
 
+/**
+ * The Plex connection holds account tokens and is written only through `/api/plex/connection`,
+ * so it is neither sent to the settings form nor accepted back from it.
+ */
+function withoutPlexConnection<T extends { plexConnection?: unknown }>(
+  body: T
+): Omit<T, "plexConnection"> {
+  const { plexConnection: _plexConnection, ...rest } = body;
+  return rest;
+}
+
 function withoutLiveSweepState<T extends { liveEvents?: object }>(body: T): T {
   if (!body.liveEvents) return body;
   const liveEvents: Record<string, unknown> = { ...body.liveEvents };
@@ -49,13 +60,13 @@ router.get("/status", requireAuth, (_req: Request, res: Response) => {
 router.use(requireAuth, requirePermission(Permission.ADMIN));
 
 router.get("/", (_req: Request, res: Response) => {
-  const fullConfig = getConfig();
-
-  res.json(fullConfig);
+  res.json(withoutPlexConnection(getConfig()));
 });
 
 router.put("/", (req: Request, res: Response) => {
-  const partialConfig = withoutLiveSweepState(req.body ?? {});
+  const partialConfig = withoutPlexConnection(
+    withoutLiveSweepState(req.body ?? {})
+  );
 
   if (partialConfig.importPath) {
     const result = validateWritableDirectory(partialConfig.importPath);

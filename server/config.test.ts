@@ -11,6 +11,7 @@ import {
   initializeConfig,
   DEFAULT_LIVE_EVENTS,
   DEFAULT_NOTIFICATIONS,
+  DEFAULT_PLEX_CONNECTION,
 } from "./config";
 import { DEFAULT_MUSICBRAINZ } from "../shared/musicbrainzServer";
 
@@ -461,5 +462,34 @@ describe("musicbrainz config", () => {
       musicbrainz: { serverUrl: "http://mb.local", requestsPerSecond: 20 },
     });
     expect(() => setConfig({ musicbrainz: { serverUrl: "" } })).not.toThrow();
+  });
+});
+
+describe("plexConnection config", () => {
+  beforeEach(() => {
+    initializeConfig();
+  });
+
+  it("starts with no connection", () => {
+    expect(getConfig().plexConnection).toEqual(DEFAULT_PLEX_CONNECTION);
+  });
+
+  it("deep-merges a partial patch", () => {
+    setConfig({
+      plexConnection: { accountToken: "acct", serverToken: "srv" },
+    });
+    setConfig({ plexConnection: { ownerAccountId: "42" } });
+
+    expect(getConfig().plexConnection).toMatchObject({
+      accountToken: "acct",
+      serverToken: "srv",
+      ownerAccountId: "42",
+    });
+  });
+
+  it("rejects a field that isn't a string", () => {
+    expect(() =>
+      setConfig({ plexConnection: { serverToken: 5 as never } })
+    ).toThrow("plexConnection.serverToken");
   });
 });

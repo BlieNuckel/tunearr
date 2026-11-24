@@ -4,6 +4,10 @@ const mockGetTopArtists = vi.fn();
 const mockFetchPlexThumbnail = vi.fn();
 const mockGetPlexServers = vi.fn();
 const mockGetPlexAccount = vi.fn();
+const mockGetConnectionStatus = vi.fn();
+const mockConnectPlex = vi.fn();
+const mockSelectPlexServer = vi.fn();
+const mockDisconnectPlex = vi.fn();
 
 vi.mock("../api/plex/topArtists", () => ({
   getTopArtists: (...args: unknown[]) => mockGetTopArtists(...args),
@@ -21,12 +25,20 @@ vi.mock("../api/plex/account", () => ({
   getPlexAccount: (...args: unknown[]) => mockGetPlexAccount(...args),
 }));
 
+vi.mock("../services/plexConnection", () => ({
+  getPlexConnectionStatus: () => mockGetConnectionStatus(),
+  connectPlex: (...args: unknown[]) => mockConnectPlex(...args),
+  selectPlexServer: (...args: unknown[]) => mockSelectPlexServer(...args),
+  disconnectPlex: () => mockDisconnectPlex(),
+}));
+
 import type { AuthUser } from "../auth/types";
 import express from "express";
 import request from "supertest";
 import plexRouter from "./plex";
 
 const app = express();
+app.use(express.json());
 app.use((req, _res, next) => {
   req.user = <AuthUser>{
     id: 1,
@@ -44,12 +56,12 @@ app.use((req, _res, next) => {
 app.use("/", plexRouter);
 app.use(
   (
-    err: Error,
+    err: Error & { status?: number },
     _req: express.Request,
     res: express.Response,
     _next: express.NextFunction
   ) => {
-    res.status(500).json({ error: err.message });
+    res.status(err.status ?? 500).json({ error: err.message });
   }
 );
 
@@ -205,5 +217,57 @@ describe("GET /account", () => {
     );
     expect(res.status).toBe(500);
     expect(res.body.error).toContain("Plex returned 401");
+  });
+});
+
+const connectionStatus = {
+  connected: true,
+  account: { username: "owner", thumb: "" },
+  serverUrl: "http://plex:32400",
+  owned: true,
+  servers: [],
+};
+
+describe("Plex connection", () => {
+  it("returns the connection status", async () => {
+    mockGetConnectionStatus.mockResolvedValue(connectionStatus);
+    const res = await request(app).get("/connection");
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual(connectionStatus);
+  });
+
+  it("connects the account behind an auth token", async () => {
+    mockConnectPlex.mockResolvedValue(connectionStatus);
+    const res = await request(app)
+      .post("/connection")
+      .send({ authToken: "plex-auth" });
+    expect(res.status).toBe(200);
+    expect(mockConnectPlex).toHaveBeenCalledWith("plex-auth");
+  });
+
+  it("rejects a connect without an auth token", async () => {
+    const res = await request(app).post("/connection").send({});
+    expect(res.status).toBe(400);
+    expect(mockConnectPlex).not.toHaveBeenCalled();
+  });
+
+  it("selects another server", async () => {
+    mockSelectPlexServer.mockResolvedValue(connectionStatus);
+    const res = await request(app)
+      .put("/connection/server")
+      .send({ serverUrl: "http://plex:32400" });
+    expect(res.status).toBe(200);
+    expect(mockSelectPlexServer).toHaveBeenCalledWith("http://plex:32400");
+  });
+
+  it("rejects a server change without a URL", async () => {
+    const res = await request(app).put("/connection/server").send({});
+    expect(res.status).toBe(400);
+  });
+
+  it("disconnects", async () => {
+    const res = await request(app).delete("/connection");
+    expect(res.status).toBe(200);
+    expect(mockDisconnectPlex).toHaveBeenCalled();
   });
 });

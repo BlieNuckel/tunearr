@@ -8,7 +8,11 @@ vi.mock("../../config", () => ({
   getConfig: (...args: unknown[]) => mockGetConfig(...args),
 }));
 
-import { getPlexServers, getServerAccessToken } from "./servers";
+import {
+  getPlexServers,
+  getServerAccessToken,
+  getServerResources,
+} from "./servers";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -37,6 +41,24 @@ function mockResourcesResponse(resources: unknown[]) {
     json: async () => resources,
   });
 }
+
+describe("getServerResources", () => {
+  it("keeps each server's token and who owns it", async () => {
+    mockResourcesResponse([
+      { ...serverResource, owned: true },
+      { ...serverResource, name: "Shared", owned: false, ownerId: 900 },
+      playerResource,
+    ]);
+
+    const resources = await getServerResources("test-token", "client-123");
+
+    expect(resources.map((r) => [r.name, r.owned, r.ownerId])).toEqual([
+      ["My Server", true, ""],
+      ["Shared", false, "900"],
+    ]);
+    expect(resources[0].accessToken).toBe("server-specific-token");
+  });
+});
 
 describe("getPlexServers", () => {
   it("returns server connections filtered from resources", async () => {

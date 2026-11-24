@@ -5,6 +5,9 @@ type PlexResource = {
   name: string;
   provides: string;
   accessToken: string;
+  owned?: boolean;
+  /** plex.tv id of the account that owns the resource; absent on resources the caller owns. */
+  ownerId?: number | null;
   connections: { uri: string; local: boolean }[];
 };
 
@@ -12,6 +15,15 @@ export type PlexServer = {
   name: string;
   uri: string;
   local: boolean;
+};
+
+/** A media server the token can reach, with the token that server accepts from it. */
+export type PlexServerResource = {
+  name: string;
+  accessToken: string;
+  owned: boolean;
+  ownerId: string;
+  connections: { uri: string; local: boolean }[];
 };
 
 async function fetchResources(
@@ -36,21 +48,37 @@ async function fetchResources(
   return res.json();
 }
 
-export async function getPlexServers(
+export async function getServerResources(
   token: string,
   clientId: string
-): Promise<PlexServer[]> {
+): Promise<PlexServerResource[]> {
   const resources = await fetchResources(token, clientId);
 
   return resources
     .filter((r) => r.provides.includes("server"))
-    .flatMap((r) =>
-      r.connections.map((c) => ({
-        name: r.name,
-        uri: c.uri,
-        local: c.local,
-      }))
-    );
+    .map((r) => ({
+      name: r.name,
+      accessToken: r.accessToken,
+      owned: r.owned === true,
+      ownerId: r.ownerId == null ? "" : String(r.ownerId),
+      connections: r.connections,
+    }));
+}
+
+/** Every connection of `resources`, flattened for a server picker. */
+export function listServerConnections(
+  resources: PlexServerResource[]
+): PlexServer[] {
+  return resources.flatMap((r) =>
+    r.connections.map((c) => ({ name: r.name, uri: c.uri, local: c.local }))
+  );
+}
+
+export async function getPlexServers(
+  token: string,
+  clientId: string
+): Promise<PlexServer[]> {
+  return listServerConnections(await getServerResources(token, clientId));
 }
 
 /**
