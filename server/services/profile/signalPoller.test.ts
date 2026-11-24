@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const mockLogError = vi.hoisted(() => vi.fn());
+const mockLogWarn = vi.hoisted(() => vi.fn());
 
 const mockCaptureActive = vi.fn();
 const mockGetRatedItems = vi.fn();
@@ -9,10 +10,19 @@ const mockGetAllAlbumTrackCounts = vi.fn();
 const mockGetPlayHistory = vi.fn();
 
 vi.mock("../../logger", () => ({
-  createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: mockLogError }),
+  createLogger: () => ({
+    info: vi.fn(),
+    warn: mockLogWarn,
+    error: mockLogError,
+  }),
 }));
-vi.mock("../plexConnection", () => ({
+vi.mock("../plexConnection", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../plexConnection")>()),
   isListeningCaptureActive: () => mockCaptureActive(),
+  getPlexServerAccess: () => ({
+    token: "server-token",
+    ownerAccountId: OWNER_PLEX_ID,
+  }),
 }));
 vi.mock("../../api/plex/ratings", () => ({
   getRatedItems: (...args: unknown[]) => mockGetRatedItems(...args),
@@ -29,18 +39,24 @@ vi.mock("../../api/plex/playHistory", () => ({
   getPlayHistory: (...args: unknown[]) => mockGetPlayHistory(...args),
 }));
 
+const OWNER_PLEX_ID = vi.hoisted(() => "4242");
+
 import { runSignalIngestionOnce } from "./signalPoller";
 import { initializeDatabase, closeDatabase, getDataSource } from "../../db";
 import { getSignalEvents } from "../../db/signalEvents";
 
+let nextPlexId = 9000;
+
+/** Every user is linked to a plex.tv account unless `plexId` says otherwise. */
 async function createUser(
   username: string,
   plexToken: string | null,
-  enabled = 1
+  enabled = 1,
+  plexId: string | null = String(nextPlexId++)
 ): Promise<void> {
   await getDataSource().query(
-    "INSERT INTO users (username, plex_token, enabled) VALUES (?, ?, ?)",
-    [username, plexToken, enabled]
+    "INSERT INTO users (username, plex_token, enabled, plex_id) VALUES (?, ?, ?, ?)",
+    [username, plexToken, enabled, plexId]
   );
 }
 
@@ -210,6 +226,32 @@ describe("runSignalIngestionOnce", () => {
     expect(mockLogError).toHaveBeenCalledWith(
       "Signal ingestion failed for broken (user 1)",
       failure
+    );
+  });
+
+  it("reads each user's history through the server, filtered to their account", async () => {
+    await createUser("owner", "tok-o", 1, OWNER_PLEX_ID);
+    await createUser("maria", "tok-m", 1, "678939888");
+
+    await runSignalIngestionOnce();
+
+    expect(mockGetPlayHistory).toHaveBeenCalledWith("server-token", "1", 0);
+    expect(mockGetPlayHistory).toHaveBeenCalledWith(
+      "server-token",
+      "678939888",
+      0
+    );
+  });
+
+  it("skips history for a user not linked to a Plex account, but not the rest", async () => {
+    await createUser("local", "tok-l", 1, null);
+
+    await runSignalIngestionOnce();
+
+    expect(mockGetPlayHistory).not.toHaveBeenCalled();
+    expect(await getSignalEvents(1, "plex_track_plays")).toHaveLength(1);
+    expect(mockLogWarn).toHaveBeenCalledWith(
+      "Skipping play history for local (user 1): not linked to a Plex account"
     );
   });
 });

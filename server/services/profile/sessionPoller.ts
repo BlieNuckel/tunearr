@@ -1,6 +1,8 @@
 import {
   getPlexServerAccess,
   isListeningCaptureActive,
+  toPlexAccountId,
+  type PlexServerAccess,
 } from "../plexConnection";
 import {
   getActiveSessions,
@@ -17,22 +19,10 @@ import { createLogger } from "../../logger";
 
 const log = createLogger("listen-session-poller");
 
-/** The server reports its owner as this local account, never by plex.tv id. */
-const OWNER_LOCAL_ACCOUNT_ID = "1";
-
 let timer: ReturnType<typeof setTimeout> | null = null;
 let running = false;
 /** The read failure last logged, so a failure that persists is logged once rather than every tick. */
 let lastReadFailure: string | null = null;
-
-function plexAccountIdOf(
-  session: PlexTrackSession,
-  ownerAccountId: string
-): string {
-  return session.accountId === OWNER_LOCAL_ACCOUNT_ID
-    ? ownerAccountId
-    : session.accountId;
-}
 
 /**
  * Every linked user with the sessions that are theirs, including users with none, whose
@@ -41,7 +31,7 @@ function plexAccountIdOf(
 function sessionsByUser(
   sessions: PlexTrackSession[],
   users: PlexLinkedUser[],
-  ownerAccountId: string
+  access: PlexServerAccess
 ): Map<PlexLinkedUser, PlexTrackSession[]> {
   const byAccount = new Map(users.map((user) => [user.plexAccountId, user]));
   const grouped = new Map(
@@ -49,7 +39,7 @@ function sessionsByUser(
   );
 
   for (const session of sessions) {
-    const user = byAccount.get(plexAccountIdOf(session, ownerAccountId));
+    const user = byAccount.get(toPlexAccountId(session.accountId, access));
     if (user) grouped.get(user)!.push(session);
   }
   return grouped;
@@ -97,7 +87,7 @@ export async function runListenSessionPollOnce(
     for (const [user, userSessions] of sessionsByUser(
       sessions,
       users,
-      access.ownerAccountId
+      access
     )) {
       try {
         const live = observeSessions(user.userId, userSessions, now);

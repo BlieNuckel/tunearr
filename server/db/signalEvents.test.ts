@@ -95,7 +95,12 @@ describe("getSignalIngestionUsers", () => {
     );
 
     expect(await getSignalIngestionUsers()).toEqual([
-      { userId: alice, displayName: "alice", plexToken: "tok-a" },
+      {
+        userId: alice,
+        displayName: "alice",
+        plexToken: "tok-a",
+        plexAccountId: null,
+      },
     ]);
     expect(bob).toBeGreaterThan(0);
   });

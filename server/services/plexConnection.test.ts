@@ -45,6 +45,8 @@ import {
   getPlexServerAccess,
   isListeningCaptureActive,
   selectPlexServer,
+  toPlexAccountId,
+  toServerAccountId,
 } from "./plexConnection";
 import { DEFAULT_PLEX_CONNECTION } from "../config";
 
@@ -231,5 +233,19 @@ describe("isListeningCaptureActive", () => {
     await connectPlex("auth-token");
     mockConfig.current.listeningCaptureEnabled = false;
     expect(isListeningCaptureActive()).toBe(false);
+  });
+});
+
+describe("account ids", () => {
+  const access = { token: "t", ownerAccountId: "235168011" };
+
+  it("reads the server's account 1 as the owner's plex.tv account", () => {
+    expect(toPlexAccountId("1", access)).toBe("235168011");
+    expect(toPlexAccountId("678939888", access)).toBe("678939888");
+  });
+
+  it("asks the server for the owner as account 1", () => {
+    expect(toServerAccountId("235168011", access)).toBe("1");
+    expect(toServerAccountId("678939888", access)).toBe("678939888");
   });
 });

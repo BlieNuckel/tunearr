@@ -32,6 +32,9 @@ export type PlexServerAccess = {
 
 type ServerChoice = { resource: PlexServerResource; uri: string };
 
+/** The server reports its owner as this local account, never by plex.tv id. */
+const OWNER_LOCAL_ACCOUNT_ID = "1";
+
 const normalizeUrl = (url: string): string => url.trim().replace(/\/+$/, "");
 
 function findConnection(
@@ -168,6 +171,26 @@ export async function selectPlexServer(
 
 export function disconnectPlex(): void {
   setConfig({ plexUrl: "", plexConnection: { ...DEFAULT_PLEX_CONNECTION } });
+}
+
+/** The plex.tv account behind an account id the server reported in a session or history row. */
+export function toPlexAccountId(
+  serverAccountId: string,
+  access: PlexServerAccess
+): string {
+  return serverAccountId === OWNER_LOCAL_ACCOUNT_ID
+    ? access.ownerAccountId
+    : serverAccountId;
+}
+
+/** The id the server uses for a plex.tv account, for filtering what it returns. */
+export function toServerAccountId(
+  plexAccountId: string,
+  access: PlexServerAccess
+): string {
+  return plexAccountId === access.ownerAccountId
+    ? OWNER_LOCAL_ACCOUNT_ID
+    : plexAccountId;
 }
 
 /** Null until an admin has connected Plex and a server is selected. */

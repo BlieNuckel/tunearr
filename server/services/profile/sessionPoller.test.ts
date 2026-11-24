@@ -14,7 +14,8 @@ vi.mock("../../logger", () => ({
     error: mockLogError,
   }),
 }));
-vi.mock("../plexConnection", () => ({
+vi.mock("../plexConnection", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../plexConnection")>()),
   isListeningCaptureActive: () => mockCaptureActive(),
   getPlexServerAccess: () => mockServerAccess(),
 }));
