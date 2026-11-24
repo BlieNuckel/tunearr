@@ -18,6 +18,11 @@ export type PlexTrackSession = {
   product: string;
   /** Plex's own claim about playback, kept for diagnostics; it is not always right. */
   state: string;
+  /**
+   * The server's id for the listening account: the plex.tv account id, except for the
+   * server owner, whom the server always reports as `1`.
+   */
+  accountId: string;
 };
 
 const isTrack = (raw: PlexSessionMetadata): boolean =>
@@ -39,19 +44,20 @@ const mapSession = (raw: PlexSessionMetadata): PlexTrackSession => ({
   machineIdentifier: raw.Player?.machineIdentifier ?? "",
   product: raw.Player?.product ?? "",
   state: raw.Player?.state ?? "",
+  accountId: String(raw.User?.id ?? raw.Player?.userID ?? ""),
 });
 
 /**
- * Every music track currently loaded on one of the token holder's clients.
+ * Every music track currently loaded on any client of the server, across all accounts.
  *
- * Scopes to the token's own account, so this sees less than the PMS dashboard does — the
- * dashboard runs as owner. Cached or offline Plexamp playback produces no session at all
- * while still committing a play later, so an empty read is not evidence of no listening.
+ * Only the server owner may read this; any other account's token gets a 401. Cached or
+ * offline Plexamp playback produces no session at all while still committing a play later,
+ * so an empty read is not evidence of no listening.
  */
 export async function getActiveSessions(
-  plexToken: string
+  ownerToken: string
 ): Promise<PlexTrackSession[]> {
-  const { baseUrl, headers } = getPlexConfig(plexToken);
+  const { baseUrl, headers } = getPlexConfig(ownerToken);
   const res = await resilientFetch(`${baseUrl}/status/sessions`, { headers });
   if (!res.ok) throw new Error(`Plex returned ${res.status}`);
 

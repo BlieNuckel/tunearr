@@ -9,6 +9,13 @@ export type SignalIngestionUser = {
   plexToken: string;
 };
 
+/** An enabled user linked to a plex.tv account, for attributing server-wide reads. */
+export type PlexLinkedUser = {
+  userId: number;
+  displayName: string;
+  plexAccountId: string;
+};
+
 /**
  * Append many events of one kind in a single insert. Rows share a `recorded_at`, and
  * `getSignalEvents` breaks that tie on `id`, so insertion order is preserved on read —
@@ -52,6 +59,23 @@ export async function getSignalIngestionUsers(): Promise<
     userId: row.user_id,
     displayName: row.display_name,
     plexToken: row.plex_token,
+  }));
+}
+
+/** Every enabled user linked to a plex.tv account, whether or not they hold a token. */
+export async function getPlexLinkedUsers(): Promise<PlexLinkedUser[]> {
+  const rows = (await getDataSource().query(
+    `SELECT id AS user_id,
+            COALESCE(username, plex_username, plex_email, 'unknown') AS display_name,
+            plex_id
+     FROM users
+     WHERE plex_id IS NOT NULL AND enabled = 1`
+  )) as { user_id: number; display_name: string; plex_id: string }[];
+
+  return rows.map((row) => ({
+    userId: row.user_id,
+    displayName: row.display_name,
+    plexAccountId: row.plex_id,
   }));
 }
 

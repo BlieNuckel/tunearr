@@ -4,6 +4,7 @@ import {
   appendSignalEvents,
   getSignalEvents,
   getSignalIngestionUsers,
+  getPlexLinkedUsers,
 } from "./signalEvents";
 
 async function createUser(username: string): Promise<number> {
@@ -111,5 +112,24 @@ describe("getSignalIngestionUsers", () => {
       (user) => user.displayName
     );
     expect(names).toEqual(["plexdan", "eve@example.com", "unknown"]);
+  });
+});
+
+describe("getPlexLinkedUsers", () => {
+  it("returns enabled users linked to a plex.tv account, token or not", async () => {
+    await getDataSource().query(
+      `INSERT INTO users (username, plex_id, plex_token, enabled)
+       VALUES ('owner', '4242', 'tok', 1),
+              ('maria', '678939888', NULL, 1),
+              ('gone', '555', 'tok', 0),
+              ('local', NULL, 'tok', 1)`
+    );
+
+    const users = await getPlexLinkedUsers();
+
+    expect(users.map((u) => [u.displayName, u.plexAccountId])).toEqual([
+      ["owner", "4242"],
+      ["maria", "678939888"],
+    ]);
   });
 });

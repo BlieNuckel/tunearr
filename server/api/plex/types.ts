@@ -157,8 +157,9 @@ export type PlexSessionMetadata = {
     state?: string;
     machineIdentifier?: string;
     product?: string;
+    userID?: number;
   };
-  User?: { id?: string | number };
+  User?: { id?: string | number; title?: string };
 };
 
 export type PlexSessionsResponse = {
