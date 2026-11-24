@@ -2,14 +2,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const mockLogError = vi.hoisted(() => vi.fn());
 
-const mockGetConfigValue = vi.fn();
+const mockCaptureActive = vi.fn();
 const mockGetActiveSessions = vi.fn();
 
 vi.mock("../../logger", () => ({
   createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: mockLogError }),
 }));
-vi.mock("../../config", () => ({
-  getConfigValue: (...args: unknown[]) => mockGetConfigValue(...args),
+vi.mock("../plexConnection", () => ({
+  isListeningCaptureActive: () => mockCaptureActive(),
 }));
 vi.mock("../../api/plex/sessions", () => ({
   getActiveSessions: (...args: unknown[]) => mockGetActiveSessions(...args),
@@ -58,7 +58,7 @@ async function storedEpisodes(userId: number) {
 beforeEach(async () => {
   await initializeDatabase(":memory:");
   resetWatches();
-  mockGetConfigValue.mockReturnValue(true);
+  mockCaptureActive.mockReturnValue(true);
 });
 afterEach(async () => {
   vi.clearAllMocks();
@@ -94,8 +94,8 @@ describe("runListenSessionPollOnce", () => {
     expect(await getSignalEvents(1, "plex_listen_sessions")).toHaveLength(0);
   });
 
-  it("does nothing when the signal backup is disabled", async () => {
-    mockGetConfigValue.mockReturnValue(false);
+  it("does nothing while listening capture is inactive", async () => {
+    mockCaptureActive.mockReturnValue(false);
     await createUser("alice", "tok-a");
 
     await runListenSessionPollOnce(T0);

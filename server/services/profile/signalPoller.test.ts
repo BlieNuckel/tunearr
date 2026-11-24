@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const mockLogError = vi.hoisted(() => vi.fn());
 
-const mockGetConfigValue = vi.fn();
+const mockCaptureActive = vi.fn();
 const mockGetRatedItems = vi.fn();
 const mockGetAllTrackPlayCounts = vi.fn();
 const mockGetAllAlbumTrackCounts = vi.fn();
@@ -11,8 +11,8 @@ const mockGetPlayHistory = vi.fn();
 vi.mock("../../logger", () => ({
   createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: mockLogError }),
 }));
-vi.mock("../../config", () => ({
-  getConfigValue: (...args: unknown[]) => mockGetConfigValue(...args),
+vi.mock("../plexConnection", () => ({
+  isListeningCaptureActive: () => mockCaptureActive(),
 }));
 vi.mock("../../api/plex/ratings", () => ({
   getRatedItems: (...args: unknown[]) => mockGetRatedItems(...args),
@@ -54,7 +54,7 @@ const ratedTrack = {
 
 beforeEach(async () => {
   await initializeDatabase(":memory:");
-  mockGetConfigValue.mockReturnValue(true);
+  mockCaptureActive.mockReturnValue(true);
   mockGetRatedItems.mockResolvedValue([ratedTrack]);
   mockGetAllTrackPlayCounts.mockResolvedValue([
     {
@@ -122,8 +122,8 @@ describe("runSignalIngestionOnce", () => {
     expect(mockGetRatedItems).not.toHaveBeenCalled();
   });
 
-  it("does nothing when the backup is disabled", async () => {
-    mockGetConfigValue.mockReturnValue(false);
+  it("does nothing while listening capture is inactive", async () => {
+    mockCaptureActive.mockReturnValue(false);
     await createUser("alice", "tok-a");
 
     await runSignalIngestionOnce();

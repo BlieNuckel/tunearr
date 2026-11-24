@@ -1,4 +1,4 @@
-import { getConfigValue } from "../../config";
+import { isListeningCaptureActive } from "../plexConnection";
 import { getActiveSessions } from "../../api/plex/sessions";
 import { getSignalIngestionUsers } from "../../db/signalEvents";
 import {
@@ -26,7 +26,7 @@ export async function runListenSessionPollOnce(
   if (running) return 0;
   running = true;
   try {
-    if (!getConfigValue("listeningCaptureEnabled")) return 0;
+    if (!isListeningCaptureActive()) return 0;
 
     const users = await getSignalIngestionUsers();
     let written = 0;

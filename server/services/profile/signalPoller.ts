@@ -1,4 +1,4 @@
-import { getConfigValue } from "../../config";
+import { isListeningCaptureActive } from "../plexConnection";
 import {
   getSignalEvents,
   getSignalIngestionUsers,
@@ -45,7 +45,7 @@ export async function runSignalIngestionOnce(now = Date.now()): Promise<void> {
   }
   running = true;
   try {
-    if (!getConfigValue("listeningCaptureEnabled")) return;
+    if (!isListeningCaptureActive()) return;
 
     const users = await getSignalIngestionUsers();
     let ratingsWritten = 0;

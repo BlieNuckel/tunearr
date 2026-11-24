@@ -7,7 +7,13 @@ vi.mock("@/components/PlexAuth", () => ({
 }));
 
 const plex: UsePlexConnectionResult = {
-  connection: null,
+  connection: {
+    connected: true,
+    account: { username: "owner", thumb: "" },
+    serverUrl: "http://plex:32400",
+    owned: true,
+    servers: [],
+  },
   loading: false,
   busy: false,
   error: null,
@@ -18,11 +24,12 @@ const plex: UsePlexConnectionResult = {
 
 function renderSection(
   captureEnabled: boolean,
-  onCaptureEnabledChange = vi.fn()
+  onCaptureEnabledChange = vi.fn(),
+  connection: UsePlexConnectionResult["connection"] = plex.connection
 ) {
   render(
     <PlexSection
-      plex={plex}
+      plex={{ ...plex, connection }}
       captureEnabled={captureEnabled}
       onCaptureEnabledChange={onCaptureEnabledChange}
     />
@@ -49,5 +56,15 @@ describe("PlexSection", () => {
       screen.getByRole("checkbox", { name: "Record listening history" })
     );
     expect(onChange).toHaveBeenCalledWith(false);
+  });
+
+  it("turns the switch off and explains why while no server is connected", () => {
+    renderSection(true, vi.fn(), null);
+    const checkbox = screen.getByRole("checkbox", {
+      name: "Record listening history",
+    });
+    expect(checkbox).not.toBeChecked();
+    expect(checkbox).toBeDisabled();
+    expect(screen.getByText(/Sign in with Plex above/)).toBeInTheDocument();
   });
 });

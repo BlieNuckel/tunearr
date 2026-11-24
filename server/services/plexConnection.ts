@@ -1,6 +1,7 @@
 import {
   DEFAULT_PLEX_CONNECTION,
   getConfig,
+  getConfigValue,
   setConfig,
   type PlexConnectionConfig,
 } from "../config";
@@ -177,4 +178,14 @@ export function getPlexServerAccess(): PlexServerAccess | null {
     token: plexConnection.serverToken,
     ownerAccountId: plexConnection.ownerAccountId,
   };
+}
+
+/**
+ * Listening capture follows the Plex integration: the switch alone is not enough, because
+ * without a connected server there is nothing to read sessions with.
+ */
+export function isListeningCaptureActive(): boolean {
+  return (
+    getConfigValue("listeningCaptureEnabled") && getPlexServerAccess() !== null
+  );
 }

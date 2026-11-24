@@ -21,6 +21,7 @@ vi.mock("../config", async (importOriginal) => {
   return {
     ...actual,
     getConfig: () => mockConfig.current,
+    getConfigValue: (key: string) => mockConfig.current[key],
     setConfig: (patch: Record<string, unknown>) => {
       const current = mockConfig.current as {
         plexConnection: Record<string, unknown>;
@@ -42,6 +43,7 @@ import {
   disconnectPlex,
   getPlexConnectionStatus,
   getPlexServerAccess,
+  isListeningCaptureActive,
   selectPlexServer,
 } from "./plexConnection";
 import { DEFAULT_PLEX_CONNECTION } from "../config";
@@ -75,6 +77,7 @@ function config() {
 beforeEach(() => {
   vi.clearAllMocks();
   mockConfig.current = {
+    listeningCaptureEnabled: true,
     plexUrl: "",
     plexConnection: { ...DEFAULT_PLEX_CONNECTION },
   };
@@ -211,5 +214,22 @@ describe("getPlexServerAccess", () => {
     expect(getPlexServerAccess()).toBeNull();
     expect(config().plexUrl).toBe("");
     expect(config().plexConnection).toEqual(DEFAULT_PLEX_CONNECTION);
+  });
+});
+
+describe("isListeningCaptureActive", () => {
+  it("is off while no server is connected, even with the switch on", () => {
+    expect(isListeningCaptureActive()).toBe(false);
+  });
+
+  it("is on once a server is connected", async () => {
+    await connectPlex("auth-token");
+    expect(isListeningCaptureActive()).toBe(true);
+  });
+
+  it("follows the switch while connected", async () => {
+    await connectPlex("auth-token");
+    mockConfig.current.listeningCaptureEnabled = false;
+    expect(isListeningCaptureActive()).toBe(false);
   });
 });
