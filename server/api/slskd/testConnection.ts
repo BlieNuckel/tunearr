@@ -1,4 +1,5 @@
 import type { SlskdApplicationState } from "./types";
+import { describeConnectionFailure } from "./errors";
 import { resilientFetch } from "../resilientFetch";
 import { createLogger } from "../../logger";
 
@@ -54,11 +55,9 @@ export async function testSlskdConnection(
       { retry: false }
     );
   } catch (err) {
-    log.warn(`slskd connection failed: ${err}`);
-    return {
-      error: err instanceof Error ? err.message : "Could not reach slskd",
-      status: 502,
-    };
+    const reason = describeConnectionFailure(err);
+    log.warn(`slskd connection test failed for ${url}: ${reason}`);
+    return { error: reason, status: 502 };
   }
 
   if (!response.ok) {

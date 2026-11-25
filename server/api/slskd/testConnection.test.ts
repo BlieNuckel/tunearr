@@ -98,4 +98,21 @@ describe("testSlskdConnection", () => {
 
     expect(result).toEqual({ error: "connect ECONNREFUSED", status: 502 });
   });
+
+  it("explains undici's fetch failure in plain words", async () => {
+    mockFetch.mockRejectedValue(
+      new TypeError("fetch failed", {
+        cause: Object.assign(new Error("connect ECONNREFUSED"), {
+          code: "ECONNREFUSED",
+        }),
+      })
+    );
+
+    const result = await testSlskdConnection("http://slskd:5030", "key");
+
+    expect(result).toEqual({
+      error: "connection refused, is slskd running?",
+      status: 502,
+    });
+  });
 });

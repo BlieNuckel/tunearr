@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import express from "express";
 import multer from "multer";
 import { getSlskdConfig } from "../api/slskd/config";
+import { errorMessage, logSlskdFailure } from "../api/slskd/errors";
 import { removeDownload } from "../api/slskd/downloadTracker";
 import { createLogger } from "../logger";
 import { getQueueSlots } from "../services/sabnzbd/queue";
@@ -80,6 +81,18 @@ function handleFullStatus(res: Response): void {
   });
 }
 
+/**
+ * Answers like SABnzbd does when it fails, so Lidarr marks the download client
+ * unavailable and shows the reason, instead of seeing an empty, healthy queue.
+ * @param {Response} res
+ * @param {string} message
+ * @param {unknown} err
+ */
+function sendSabError(res: Response, message: string, err: unknown): void {
+  logSlskdFailure(log, message, err);
+  res.json({ status: false, error: errorMessage(err) });
+}
+
 async function handleQueue(req: Request, res: Response): Promise<void> {
   const name = req.query.name as string | undefined;
 
@@ -96,8 +109,7 @@ async function handleQueue(req: Request, res: Response): Promise<void> {
     const slots = await getQueueSlots();
     res.json({ queue: { slots, noofslots: slots.length } });
   } catch (err) {
-    log.error("Queue poll failed:", err);
-    res.json({ queue: { slots: [], noofslots: 0 } });
+    sendSabError(res, "Queue poll failed:", err);
   }
 }
 
@@ -117,8 +129,7 @@ async function handleHistory(req: Request, res: Response): Promise<void> {
     const slots = await getHistorySlots();
     res.json({ history: { slots, noofslots: slots.length } });
   } catch (err) {
-    log.error("History poll failed:", err);
-    res.json({ history: { slots: [], noofslots: 0 } });
+    sendSabError(res, "History poll failed:", err);
   }
 }
 
@@ -139,11 +150,8 @@ async function handleAddFile(req: Request, res: Response): Promise<void> {
     log.info(`Queued download: ${title} (${nzoId})`);
     res.json({ status: true, nzo_ids: [nzoId] });
   } catch (err) {
-    log.error("addfile failed:", err);
-    res.status(400).json({
-      status: false,
-      error: err instanceof Error ? err.message : "Unknown error",
-    });
+    logSlskdFailure(log, "addfile failed:", err);
+    res.status(400).json({ status: false, error: errorMessage(err) });
   }
 }
 

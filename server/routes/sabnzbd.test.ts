@@ -112,12 +112,20 @@ describe("GET /api?mode=queue", () => {
     expect(res.body.queue.slots).toHaveLength(0);
   });
 
-  it("returns empty queue on error", async () => {
-    mockGetQueueSlots.mockRejectedValue(new Error("failed"));
+  it("reports a failure to Lidarr as a SABnzbd error, not an empty queue", async () => {
+    mockGetQueueSlots.mockRejectedValue(
+      new Error(
+        "slskd unreachable at http://slskd:5030: connection refused, is slskd running?"
+      )
+    );
 
     const res = await request(app).get("/api?mode=queue");
     expect(res.status).toBe(200);
-    expect(res.body.queue.slots).toHaveLength(0);
+    expect(res.body).toEqual({
+      status: false,
+      error:
+        "slskd unreachable at http://slskd:5030: connection refused, is slskd running?",
+    });
   });
 });
 
@@ -143,6 +151,18 @@ describe("GET /api?mode=history", () => {
     expect(res.body.history.slots[0].storage).toBe(
       "/downloads/complete/Test Album"
     );
+  });
+  it("reports a failure to Lidarr as a SABnzbd error, not an empty history", async () => {
+    mockGetHistorySlots.mockRejectedValue(
+      new Error("slskd get transfers failed: 401")
+    );
+
+    const res = await request(app).get("/api?mode=history");
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      status: false,
+      error: "slskd get transfers failed: 401",
+    });
   });
 });
 

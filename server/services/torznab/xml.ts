@@ -10,6 +10,17 @@ export function escapeXml(str: string): string {
     .replace(/'/g, "&apos;");
 }
 
+/**
+ * A Newznab error document. Lidarr only reads the description when the
+ * response is a 200; on a 5xx it reports a bare HTTP failure instead.
+ * @param {number} code Newznab error code (900 is "unknown error")
+ * @param {string} description
+ * @returns {string}
+ */
+export function buildErrorXml(code: number, description: string): string {
+  return `<?xml version="1.0" encoding="UTF-8"?><error code="${code}" description="${escapeXml(description)}" />`;
+}
+
 export function buildCapsXml(): string {
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',

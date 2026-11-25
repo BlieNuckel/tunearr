@@ -1,6 +1,5 @@
 import type { SlskdSearchState, SlskdSearchResponse } from "./types";
-import { getSlskdConfig } from "./config";
-import { resilientFetch } from "../resilientFetch";
+import { slskdFetch } from "./request";
 import { AsyncLock } from "../asyncLock";
 import { createLogger } from "../../logger";
 
@@ -12,15 +11,11 @@ const MAX_POLL_DURATION_MS = 45000;
 
 export function startSearch(searchText: string): Promise<SlskdSearchState> {
   return searchLock.acquire("slskd-search", async () => {
-    const { baseUrl, headers } = getSlskdConfig();
     const id = crypto.randomUUID();
 
-    log.info(
-      `POST ${baseUrl}/api/v0/searches (id=${id}, query="${searchText}")`
-    );
-    const response = await resilientFetch(`${baseUrl}/api/v0/searches`, {
+    log.info(`Starting slskd search (id=${id}, query="${searchText}")`);
+    const response = await slskdFetch("/api/v0/searches", {
       method: "POST",
-      headers,
       body: JSON.stringify({ id, searchText }),
     });
 
@@ -40,16 +35,10 @@ export function startSearch(searchText: string): Promise<SlskdSearchState> {
 export type WaitResult = { completed: boolean; fileCount: number };
 
 export async function waitForSearch(searchId: string): Promise<WaitResult> {
-  const { baseUrl, headers } = getSlskdConfig();
   const deadline = Date.now() + MAX_POLL_DURATION_MS;
 
   while (Date.now() < deadline) {
-    const response = await resilientFetch(
-      `${baseUrl}/api/v0/searches/${searchId}`,
-      {
-        headers,
-      }
-    );
+    const response = await slskdFetch(`/api/v0/searches/${searchId}`);
 
     if (!response.ok) {
       const body = await response.text().catch(() => "");
@@ -82,14 +71,7 @@ export async function waitForSearch(searchId: string): Promise<WaitResult> {
 export async function getSearchResponses(
   searchId: string
 ): Promise<SlskdSearchResponse[]> {
-  const { baseUrl, headers } = getSlskdConfig();
-
-  const response = await fetch(
-    `${baseUrl}/api/v0/searches/${searchId}/responses`,
-    {
-      headers,
-    }
-  );
+  const response = await slskdFetch(`/api/v0/searches/${searchId}/responses`);
 
   if (!response.ok) {
     throw new Error(`slskd search responses failed: ${response.status}`);
@@ -99,10 +81,5 @@ export async function getSearchResponses(
 }
 
 export async function deleteSearch(searchId: string): Promise<void> {
-  const { baseUrl, headers } = getSlskdConfig();
-
-  await resilientFetch(`${baseUrl}/api/v0/searches/${searchId}`, {
-    method: "DELETE",
-    headers,
-  });
+  await slskdFetch(`/api/v0/searches/${searchId}`, { method: "DELETE" });
 }
