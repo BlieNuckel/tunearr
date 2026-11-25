@@ -133,6 +133,32 @@ describe("GET /?t=search", () => {
     expect(res.status).toBe(200);
     expect(mockGetOrSearchResults).toHaveBeenCalledWith("radiohead");
   });
+  it("returns the failure as a Newznab error Lidarr can show", async () => {
+    mockGetOrSearchResults.mockRejectedValue(
+      new Error(
+        "slskd unreachable at http://slskd:5030: connection refused, is slskd running?"
+      )
+    );
+
+    const res = await request(app).get("/?t=search&q=radiohead");
+    expect(res.status).toBe(200);
+    expect(res.type).toBe("text/xml");
+    expect(res.text).toContain('<error code="900"');
+    expect(res.text).toContain(
+      'description="slskd unreachable at http://slskd:5030: connection refused, is slskd running?"'
+    );
+  });
+
+  it("escapes the error description", async () => {
+    mockGetOrSearchResults.mockRejectedValue(
+      new Error('slskd search failed: 500 <"oops">')
+    );
+
+    const res = await request(app).get("/?t=search&q=radiohead");
+    expect(res.text).toContain(
+      'description="slskd search failed: 500 &lt;&quot;oops&quot;&gt;"'
+    );
+  });
 });
 
 describe("pagination", () => {

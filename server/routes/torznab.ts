@@ -1,12 +1,14 @@
 import type { Request, Response } from "express";
 import express from "express";
 import { encodeNzb } from "../api/slskd/nzb";
+import { errorMessage, logSlskdFailure } from "../api/slskd/errors";
 import { createLogger } from "../logger";
 import { buildReleaseTitle } from "../services/torznab/releaseTitle";
 import {
   buildCapsXml,
   buildTestResultXml,
   buildResultsXml,
+  buildErrorXml,
 } from "../services/torznab/xml";
 import {
   cleanExpiredCaches,
@@ -105,13 +107,8 @@ async function handleSearch(req: Request, res: Response): Promise<void> {
     const xml = buildResultsXml(page, results.length, offset, baseUrl);
     res.type("text/xml").send(xml);
   } catch (err) {
-    log.error("Search failed:", err);
-    res
-      .status(500)
-      .type("text/xml")
-      .send(
-        `<?xml version="1.0" encoding="UTF-8"?><error code="900" description="Internal error" />`
-      );
+    logSlskdFailure(log, "Search failed:", err);
+    res.type("text/xml").send(buildErrorXml(900, errorMessage(err)));
   }
 }
 

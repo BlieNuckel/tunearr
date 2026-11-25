@@ -1,18 +1,14 @@
 import type { SlskdTransferGroup } from "./types";
-import { getSlskdConfig } from "./config";
-import { resilientFetch } from "../resilientFetch";
+import { slskdFetch } from "./request";
 
 export async function enqueueDownload(
   username: string,
   files: { filename: string; size: number }[]
 ): Promise<void> {
-  const { baseUrl, headers } = getSlskdConfig();
-
-  const response = await resilientFetch(
-    `${baseUrl}/api/v0/transfers/downloads/${encodeURIComponent(username)}`,
+  const response = await slskdFetch(
+    `/api/v0/transfers/downloads/${encodeURIComponent(username)}`,
     {
       method: "POST",
-      headers,
       body: JSON.stringify(
         files.map((f) => ({ filename: f.filename, size: f.size }))
       ),
@@ -25,14 +21,7 @@ export async function enqueueDownload(
 }
 
 export async function getDownloadTransfers(): Promise<SlskdTransferGroup[]> {
-  const { baseUrl, headers } = getSlskdConfig();
-
-  const response = await resilientFetch(
-    `${baseUrl}/api/v0/transfers/downloads`,
-    {
-      headers,
-    }
-  );
+  const response = await slskdFetch("/api/v0/transfers/downloads");
 
   if (!response.ok) {
     throw new Error(`slskd get transfers failed: ${response.status}`);
@@ -45,11 +34,9 @@ export async function cancelDownload(
   username: string,
   id: string
 ): Promise<void> {
-  const { baseUrl, headers } = getSlskdConfig();
-
-  const response = await resilientFetch(
-    `${baseUrl}/api/v0/transfers/downloads/${encodeURIComponent(username)}/${encodeURIComponent(id)}`,
-    { method: "DELETE", headers }
+  const response = await slskdFetch(
+    `/api/v0/transfers/downloads/${encodeURIComponent(username)}/${encodeURIComponent(id)}`,
+    { method: "DELETE" }
   );
 
   if (!response.ok) {
